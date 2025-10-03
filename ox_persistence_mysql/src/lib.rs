@@ -2,7 +2,7 @@ use ox_data_object::{
     generic_data_object::GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -47,6 +47,16 @@ impl PersistenceDriver for MySqlDriver {
         println!("Connection Info: {:?}", connection_info);
         println!("--- MySQL Datastore Prepared ---\n");
         Ok(())
+    }
+
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+        // TODO: Implement by querying INFORMATION_SCHEMA.TABLES
+        Err("Not implemented for MySQL driver yet.".to_string())
+    }
+
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
+        // TODO: Implement by querying INFORMATION_SCHEMA.COLUMNS
+        Err("Not implemented for MySQL driver yet.".to_string())
     }
 }
 

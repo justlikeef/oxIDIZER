@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
+use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata};
 
 #[derive(Serialize, Deserialize)]
 struct SerializableAttributeValue {
@@ -90,6 +91,61 @@ impl PersistenceDriver for JsonDriver {
         println!("Connection Info: {:?}", connection_info);
         println!("--- JSON Datastore Prepared ---\n");
         Ok(())
+    }
+
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+        let location = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
+        let mut file = File::open(location).map_err(|e| e.to_string())?;
+        let mut json_str = String::new();
+        file.read_to_string(&mut json_str).map_err(|e| e.to_string())?;
+
+        let json_value: serde_json::Value = serde_json::from_str(&json_str).map_err(|e| e.to_string())?;
+
+        if let serde_json::Value::Object(map) = json_value {
+            Ok(map.keys().cloned().collect())
+        } else {
+            Err("JSON root is not an object".to_string())
+        }
+    }
+
+    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+        let location = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
+        let mut file = File::open(location).map_err(|e| e.to_string())?;
+        let mut json_str = String::new();
+        file.read_to_string(&mut json_str).map_err(|e| e.to_string())?;
+
+        let json_value: serde_json::Value = serde_json::from_str(&json_str).map_err(|e| e.to_string())?;
+        
+        let root_map = json_value.as_object().ok_or("JSON root is not an object")?;
+        let dataset_value = root_map.get(dataset_name)
+            .ok_or(format!("Dataset '{}' not found in JSON file", dataset_name))?;
+
+        let dataset_array = dataset_value.as_array().ok_or(format!("Dataset '{}' is not an array", dataset_name))?;
+        let first_item = dataset_array.get(0).ok_or(format!("Dataset '{}' is empty", dataset_name))?;
+        let item_object = first_item.as_object().ok_or(format!("Items in dataset '{}' are not objects", dataset_name))?;
+
+        let mut columns = Vec::new();
+        for (name, value) in item_object {
+            let data_type = match value {
+                serde_json::Value::Null => "null",
+                serde_json::Value::Bool(_) => "boolean",
+                serde_json::Value::Number(_) => "numeric",
+                serde_json::Value::String(_) => "string",
+                serde_json::Value::Array(_) => "array",
+                serde_json::Value::Object(_) => "object",
+            }.to_string();
+
+            columns.push(ColumnDefinition {
+                name: name.to_string(),
+                data_type,
+                metadata: ColumnMetadata::default(), // Cannot infer metadata from JSON data
+            });
+        }
+
+        Ok(DataSet {
+            name: dataset_name.to_string(),
+            columns,
+        })
     }
 }
 

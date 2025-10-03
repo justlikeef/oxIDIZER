@@ -1,5 +1,5 @@
 use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -65,6 +65,14 @@ impl PersistenceDriver for GenericSqlDriver {
         println!("Connection Info: {:?}", connection_info);
         println!("--- Generic SQL Datastore Prepared ---\n");
         Ok(())
+    }
+
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+        Err("Not implemented for SQL drivers yet.".to_string())
+    }
+
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
+        Err("Not implemented for SQL drivers yet.".to_string())
     }
 }
 

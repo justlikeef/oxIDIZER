@@ -2,14 +2,7 @@ use ox_data_object::{
     GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata};
-use ox_locking::LockStatus;
-use ox_type_converter::ValueType;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
-use std::sync::Arc;
+use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, PersistenceDriver, register_persistence_driver, DriverMetadata};
 
 #[derive(Serialize, Deserialize)]
 struct SerializableAttributeValue {
@@ -90,5 +83,63 @@ impl PersistenceDriver for YamlDriver {
         println!("Connection Info: {:?}", connection_info);
         println!("--- YAML Datastore Prepared ---\n");
         Ok(())
+    }
+
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+        let location = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
+        let mut file = File::open(location).map_err(|e| e.to_string())?;
+        let mut yaml_str = String::new();
+        file.read_to_string(&mut yaml_str).map_err(|e| e.to_string())?;
+
+        let yaml_value: serde_yaml::Value = serde_yaml::from_str(&yaml_str).map_err(|e| e.to_string())?;
+
+        if let serde_yaml::Value::Mapping(map) = yaml_value {
+            Ok(map.keys().filter_map(|k| k.as_str().map(String::from)).collect())
+        } else {
+            Err("YAML root is not a mapping (object)".to_string())
+        }
+    }
+
+    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+        let location = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
+        let mut file = File::open(location).map_err(|e| e.to_string())?;
+        let mut yaml_str = String::new();
+        file.read_to_string(&mut yaml_str).map_err(|e| e.to_string())?;
+
+        let yaml_value: serde_yaml::Value = serde_yaml::from_str(&yaml_str).map_err(|e| e.to_string())?;
+        
+        let root_map = yaml_value.as_mapping().ok_or("YAML root is not a mapping")?;
+        let dataset_value = root_map.get(&serde_yaml::Value::String(dataset_name.to_string()))
+            .ok_or(format!("Dataset '{}' not found in YAML file", dataset_name))?;
+
+        let dataset_seq = dataset_value.as_sequence().ok_or(format!("Dataset '{}' is not a sequence (array)", dataset_name))?;
+        let first_item = dataset_seq.get(0).ok_or(format!("Dataset '{}' is empty", dataset_name))?;
+        let item_map = first_item.as_mapping().ok_or(format!("Items in dataset '{}' are not mappings (objects)", dataset_name))?;
+
+        let mut columns = Vec::new();
+        for (key, value) in item_map {
+            if let Some(name) = key.as_str() {
+                let data_type = match value {
+                    serde_yaml::Value::Null => "null",
+                    serde_yaml::Value::Bool(_) => "boolean",
+                    serde_yaml::Value::Number(_) => "numeric",
+                    serde_yaml::Value::String(_) => "string",
+                    serde_yaml::Value::Sequence(_) => "sequence",
+                    serde_yaml::Value::Mapping(_) => "mapping",
+                    _ => "unknown",
+                }.to_string();
+
+                columns.push(ColumnDefinition {
+                    name: name.to_string(),
+                    data_type,
+                    metadata: ColumnMetadata::default(), // Cannot infer metadata from YAML data
+                });
+            }
+        }
+
+        Ok(DataSet {
+            name: dataset_name.to_string(),
+            columns,
+        })
     }
 }

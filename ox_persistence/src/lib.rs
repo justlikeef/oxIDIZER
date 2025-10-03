@@ -3,6 +3,30 @@ use std::sync::{Arc, Mutex};
 use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
 use ox_type_converter::ValueType;
 use ox_locking::LockStatus;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataSet {
+    pub name: String,
+    pub columns: Vec<ColumnDefinition>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ColumnDefinition {
+    pub name: String,
+    pub data_type: String, // Using String for flexibility, could be an enum
+    pub metadata: ColumnMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ColumnMetadata {
+    pub is_unique: Option<bool>,
+    pub max_length: Option<u32>,
+    pub precision: Option<u8>,
+    pub scale: Option<u8>, // For decimal types
+    // Using a HashMap for any other driver-specific metadata
+    pub additional: HashMap<String, String>,
+}
 
 #[derive(Clone)]
 pub struct DriverMetadata {
@@ -75,4 +99,7 @@ pub trait PersistenceDriver {
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize);
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String>;
+
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
+    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
 }

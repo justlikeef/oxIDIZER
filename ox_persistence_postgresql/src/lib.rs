@@ -2,7 +2,7 @@ use ox_data_object::{
     generic_data_object::GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -47,6 +47,16 @@ impl PersistenceDriver for PostgresqlDriver {
         println!("Connection Info: {:?}", connection_info);
         println!("--- PostgreSQL Datastore Prepared ---\n");
         Ok(())
+    }
+
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+        // TODO: Implement by querying pg_catalog.pg_tables
+        Err("Not implemented for PostgreSQL driver yet.".to_string())
+    }
+
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
+        // TODO: Implement by querying information_schema.columns
+        Err("Not implemented for PostgreSQL driver yet.".to_string())
     }
 }
 
