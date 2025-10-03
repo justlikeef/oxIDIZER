@@ -1,0 +1,10 @@
+[package]
+name = "ox_persistence_postgresql"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_persistence = { path = "../ox_persistence" }
+ox_locking = { path = "../ox_locking" }
+ox_persistence_sql = { path = "../ox_persistence_sql" }
+postgres = "0.19" # Placeholder for postgres client

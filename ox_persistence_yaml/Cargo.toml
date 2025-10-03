@@ -1,0 +1,8 @@
+[package]
+name = "ox_persistence_yaml"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_persistence = { path = "../ox_persistence" }
+ox_locking = { path = "../ox_locking" }

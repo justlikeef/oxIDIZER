@@ -1,0 +1,6 @@
+uuid: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+name: "json_datastore"
+description: "A datastore for JSON files"
+driver: "json"
+connection_info:
+  path: "./data/json_data.json"

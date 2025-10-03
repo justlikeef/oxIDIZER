@@ -1,0 +1,10 @@
+[package]
+name = "ox_persistence"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_data_object = { path = "../" }
+ox_locking = { path = "../ox_locking" }
+ox_type_converter = { path = "../ox_type_converter" }
+lazy_static = "1.4"

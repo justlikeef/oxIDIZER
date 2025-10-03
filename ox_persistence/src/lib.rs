@@ -1,0 +1,78 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
+use ox_type_converter::ValueType;
+use ox_locking::LockStatus;
+
+#[derive(Clone)]
+pub struct DriverMetadata {
+    pub name: String,
+    pub description: String,
+    pub version: String,
+}
+
+pub struct PersistenceDriverRegistry {
+    drivers: HashMap<String, (Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata)>,
+}
+
+impl PersistenceDriverRegistry {
+    fn new() -> Self {
+        Self { drivers: HashMap::new() }
+    }
+
+    fn register_driver(&mut self, driver: Arc<dyn PersistenceDriver + Send + Sync>, metadata: DriverMetadata) {
+        self.drivers.insert(metadata.name.clone(), (driver, metadata));
+    }
+
+    fn get_driver(&self, name: &str) -> Option<(Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata)> {
+        self.drivers.get(name).cloned()
+    }
+
+    fn get_all_drivers(&self) -> Vec<DriverMetadata> {
+        self.drivers.values().map(|(_, meta)| meta.clone()).collect()
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref PERSISTENCE_DRIVER_REGISTRY: Mutex<PersistenceDriverRegistry> = Mutex::new(PersistenceDriverRegistry::new());
+}
+
+pub fn register_persistence_driver(driver: Arc<dyn PersistenceDriver + Send + Sync>, metadata: DriverMetadata) {
+    PERSISTENCE_DRIVER_REGISTRY.lock().unwrap().register_driver(driver, metadata);
+}
+
+pub fn get_registered_drivers() -> Vec<DriverMetadata> {
+    PERSISTENCE_DRIVER_REGISTRY.lock().unwrap().get_all_drivers()
+}
+
+
+/// A trait for objects that can be persisted.
+pub trait Persistent {
+    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
+    fn restore(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
+    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String>;
+}
+
+/// A trait for drivers that can persist and restore a GenericDataObject
+pub trait PersistenceDriver {
+    fn persist(
+        &self,
+        serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
+        location: &str,
+    ) -> Result<(), String>;
+
+    fn restore(
+        &self,
+        location: &str,
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
+
+    fn fetch(
+        &self,
+        filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
+        location: &str,
+    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String>;
+
+    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize);
+
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String>;
+}

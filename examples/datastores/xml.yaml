@@ -1,0 +1,6 @@
+uuid: "a0b1c2d3-e4f5-6789-0123-456789abcdef"
+name: "xml_datastore"
+description: "A datastore for XML files"
+driver: "xml"
+connection_info:
+  path: "./data/xml_data.xml"

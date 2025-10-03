@@ -1,0 +1,10 @@
+uuid: "b2c3d4e5-f6a7-8901-2345-67890abcdef0"
+name: "mysql_datastore"
+description: "A datastore for MySQL databases"
+driver: "mysql"
+connection_info:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "password"
+  database: "my_app_db"

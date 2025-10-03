@@ -1,0 +1,11 @@
+[package]
+name = "ox_persistence_mssql"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_persistence = { path = "../ox_persistence" }
+ox_locking = { path = "../ox_locking" }
+ox_persistence_sql = { path = "../ox_persistence_sql" }
+tiberius = "0.12" # Placeholder for mssql client
+tokio = { version = "1", features = ["full"] } # For async operations

@@ -1,0 +1,15 @@
+[package]
+name = "ox_type_converter"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A modular type conversion system for Rust"
+license = "MIT"
+
+[dependencies]
+lazy_static = "1.4.0"
+serde = { version = "1.0", features = ["derive"] }
+
+[lib]
+name = "ox_type_converter"
+path = "src/lib.rs"

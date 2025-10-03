@@ -1,0 +1,6 @@
+uuid: "b1c2d3e4-f5a6-7890-1234-567890abcdef0"
+name: "yaml_datastore"
+description: "A datastore for YAML files"
+driver: "yaml"
+connection_info:
+  path: "./data/yaml_data.yaml"
