@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 ox_persistence = { path = "../ox_persistence" }
 ox_locking = { path = "../ox_locking" }
+ox_data_object = { path = "../" }
+ox_type_converter = { path = "../ox_type_converter" }
+xml-rs = "0.8"

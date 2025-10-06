@@ -7,5 +7,7 @@ edition = "2021"
 ox_persistence = { path = "../ox_persistence" }
 ox_locking = { path = "../ox_locking" }
 ox_persistence_sql = { path = "../ox_persistence_sql" }
+ox_data_object = { path = "../" }
+ox_type_converter = { path = "../ox_type_converter" }
 tiberius = "0.12" # Placeholder for mssql client
 tokio = { version = "1", features = ["full"] } # For async operations

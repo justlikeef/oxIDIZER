@@ -1,7 +1,3 @@
-use ox_data_object::{
-    GenericDataObject,
-    AttributeValue,
-};
 use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter};
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -34,12 +30,8 @@ impl PersistenceDriver for FlatfileDriver {
         Err("Fetch not implemented for FlatfileDriver".to_string())
     }
 
-    fn restore_one(&self, _location: &str, _id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        Err("Restore_one not implemented for FlatfileDriver".to_string())
-    }
-
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("FlatfileDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("FlatfileDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {

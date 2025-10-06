@@ -1,7 +1,3 @@
-use ox_data_object::{
-    generic_data_object::GenericDataObject,
-    AttributeValue,
-};
 use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
@@ -35,13 +31,8 @@ impl PersistenceDriver for MssqlDriver {
         GenericSqlDriver.fetch(filter, location)
     }
 
-    fn restore_one(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        // Delegate to GenericSqlDriver
-        GenericSqlDriver.restore_one(location, id)
-    }
-
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("MssqlDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("MssqlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {

@@ -1,11 +1,10 @@
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 use std::any::Any;
 
 use ox_data_object::generic_data_object::GenericDataObject;
-use ox_type_converter::{CONVERSION_REGISTRY, ValueType};
+
 
 /// Represents the locking status of a GenericDataObject.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -81,7 +80,7 @@ impl LockableGenericDataObject {
     }
 
     // Custom get method for LockableGenericDataObject
-    pub fn get<T: Clone + 'static + Default>(&mut self, identifier: &str) -> Option<T> 
+    pub fn get<T: Clone + 'static + Default>(&mut self, identifier: &str) -> Option<T>
     where
         T: Any + Clone,
     {
@@ -89,10 +88,10 @@ impl LockableGenericDataObject {
     }
 
     // Custom set method for LockableGenericDataObject
-    pub fn set<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T, _lock: Option<Arc<Mutex<Lock>>>) -> Result<(), String> {
+    pub fn set<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T, _lock: Option<Arc<Mutex<Lock>>>) {
         // Update state if the object is not new
         // This logic will be moved to a persistence wrapper
-        self.gdo.set(identifier, value)
+        self.gdo.set(identifier, value);
     }
 }
 

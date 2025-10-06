@@ -1,9 +1,7 @@
-use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
 use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
-use ox_locking::LockStatus;
 
 // A trait for SQL-specific persistence operations
 pub trait SqlPersistenceDriver: PersistenceDriver {
@@ -113,7 +111,7 @@ impl SqlPersistenceDriver for GenericSqlDriver {
         let mut where_clauses = Vec::new();
         let mut params = HashMap::new();
         for (key, (value, _, _)) in filter {
-            where_clauses.push(format!("{} = :{{}}", key, key));
+            where_clauses.push(format!("{} = :{}", key, key));
             params.insert(key.clone(), value.clone());
         }
         let where_sql = if where_clauses.is_empty() {

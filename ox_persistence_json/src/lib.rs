@@ -1,8 +1,5 @@
-use ox_data_object::{
-    GenericDataObject,
-    AttributeValue,
-};
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata};
+use ox_data_object::generic_data_object::AttributeValue;
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::fs::File;
@@ -10,7 +7,6 @@ use std::io::{Read, Write};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
-use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter};
 
 #[derive(Serialize, Deserialize)]
 struct SerializableAttributeValue {
@@ -116,48 +112,8 @@ impl PersistenceDriver for JsonDriver {
         Ok(ids)
     }
 
-    fn restore_one(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let parts: Vec<&str> = location.splitn(2, ':').collect();
-        let (file_path, dataset_name) = if parts.len() == 2 {
-            (parts[0], parts[1])
-        } else {
-            return Err("Location for restore_one must be in 'filepath:dataset' format".to_string());
-        };
-
-        let file = File::open(file_path).map_err(|e| e.to_string())?;
-        let json_value: serde_json::Value = serde_json::from_reader(file).map_err(|e| e.to_string())?;
-
-        let root_map = json_value.as_object().ok_or("JSON root is not an object")?;
-        let dataset_seq = root_map
-            .get(dataset_name)
-            .and_then(|v| v.as_array())
-            .ok_or(format!("Dataset '{}' not found or is not an array", dataset_name))?;
-
-        for item in dataset_seq {
-            if let Some(map) = item.as_object() {
-                if let Some(id_val) = map.get("id") {
-                    if id_val.as_str() == Some(id) {
-                        let mut serializable_map = HashMap::new();
-                        for (key, value) in map {
-                            let value_str = value.as_str().unwrap_or("").to_string();
-                            let value_type = match value {
-                                serde_json::Value::Number(_) => ValueType::new("float"),
-                                serde_json::Value::Bool(_) => ValueType::new("boolean"),
-                                _ => ValueType::new("string"),
-                            };
-                            serializable_map.insert(key.to_string(), (value_str, value_type, HashMap::new()));
-                        }
-                        return Ok(serializable_map);
-                    }
-                }
-            }
-        }
-
-        Err(format!("Object with id '{}' not found in dataset '{}'", id, dataset_name))
-    }
-
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("JsonDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("JsonDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {

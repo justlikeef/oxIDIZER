@@ -1,0 +1,9 @@
+[package]
+name = "ox_data_object_manager"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_data_object = { path = "../" }
+ox_callback_manager = { path = "../ox_callback_manager" }
+uuid = { version = "1.8.0", features = ["v4"] }

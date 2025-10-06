@@ -1,11 +1,9 @@
-use ox_data_object::{
-    GenericDataObject,
-    AttributeValue,
-};
-use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
+use std::sync::Arc;
+use serde::{Deserialize, Serialize};
 
 pub struct OxPersistenceApiDriver;
 
@@ -34,8 +32,8 @@ impl PersistenceDriver for OxPersistenceApiDriver {
         Err("Not implemented".to_string())
     }
 
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("OxPersistenceApiDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("ApiDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {

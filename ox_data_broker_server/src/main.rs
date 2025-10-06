@@ -1,6 +1,7 @@
 use axum::{routing::get, Json, Router};
 use serde::Serialize;
 use std::net::SocketAddr;
+use tokio::net::TcpListener;
 
 // Import all persistence drivers to ensure their init() functions are available
 use ox_persistence::{get_registered_drivers, DriverMetadata};
@@ -17,7 +18,6 @@ use ox_persistence_gdo_relational;
 
 // Function to initialize all persistence drivers
 fn init_drivers() {
-    ox_persistence_api::init();
     ox_persistence_flatfile::init();
     ox_persistence_json::init();
     ox_persistence_mssql::init();
@@ -41,10 +41,8 @@ async fn main() {
     // Run it
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 // Handler to return a list of registered drivers

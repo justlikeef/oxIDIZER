@@ -1,13 +1,11 @@
-use ox_data_object::generic_data_object::{AttributeValue, GenericDataObject, DataObjectState, PersistenceInfo};
 use ox_persistence::{
-    PersistenceDriver, register_persistence_driver, DriverMetadata,
+    PersistenceDriver, DriverMetadata, DataObjectState, PersistenceInfo,
     DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, PERSISTENCE_DRIVER_REGISTRY
 };
 use ox_type_converter::ValueType;
 use ox_locking::LockStatus;
 use std::collections::HashMap;
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub struct GdoRelationalDriver {
     internal_driver_name: String,
@@ -54,8 +52,8 @@ impl PersistenceDriver for GdoRelationalDriver {
         driver.fetch(filter, &self.internal_location)
     }
 
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("GdoRelationalDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("GdoRelationalDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
