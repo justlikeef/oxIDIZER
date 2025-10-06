@@ -3,54 +3,67 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 use std::any::Any;
 
-/// Type alias for a callback function.
-/// Callbacks take a generic context object and return a Result indicating success or failure.
-pub type CallbackFn = fn(&dyn Any) -> Result<(), String>;
+/// Represents a type of event that callbacks can be registered for.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EventType(pub String);
+
+impl EventType {
+    pub fn new(name: &str) -> Self {
+        EventType(name.to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Type alias for a callback function that can receive a context object and additional parameters.
+pub type CallbackFn = Box<dyn Fn(&dyn Any, &[&dyn Any]) + Send + Sync + 'static>;
 
 /// Registry for managing callback functions.
-pub struct CallbackRegistry {
-    callbacks: HashMap<String, Vec<CallbackFn>>,
+pub struct CallbackManager {
+    callbacks: HashMap<EventType, Vec<CallbackFn>>,
 }
 
 lazy_static! {
-    /// The global callback registry.
-    pub static ref CALLBACK_REGISTRY: Mutex<CallbackRegistry> = Mutex::new(CallbackRegistry::new());
+    /// The global callback manager.
+    pub static ref CALLBACK_MANAGER: Mutex<CallbackManager> = Mutex::new(CallbackManager::new());
 }
 
-impl CallbackRegistry {
-    /// Creates a new empty callback registry.
+impl CallbackManager {
+    /// Creates a new empty callback manager.
     fn new() -> Self {
         Self {
             callbacks: HashMap::new(),
         }
     }
 
-    /// Registers a callback function for a given event name.
-    pub fn register_callback(&mut self, event_name: &str, callback: CallbackFn) {
+    /// Registers a callback function for a given event type.
+    pub fn register_callback(&mut self, event_type: EventType, callback: CallbackFn) {
         self.callbacks
-            .entry(event_name.to_string())
+            .entry(event_type)
             .or_insert_with(Vec::new)
             .push(callback);
     }
 
-    /// Triggers all registered callback functions for a given event name.
+    /// Triggers all registered callback functions for a given event type.
     /// The `context` parameter is a generic object that can be downcast by the callback.
-    pub fn trigger_callbacks(&self, event_name: &str, context: &dyn Any) -> Result<(), String> {
-        if let Some(callbacks) = self.callbacks.get(event_name) {
+    /// The `params` slice contains additional generic parameters for the callback.
+    pub fn trigger_callbacks_immutable(&self, event_type: &EventType, params: &[&dyn Any], context: &dyn Any) {
+        if let Some(callbacks) = self.callbacks.get(event_type) {
             for callback in callbacks {
-                callback(context)?;
+                callback(context, params);
             }
         }
-        Ok(())
     }
 
-    /// Checks if any callbacks are registered for a given event name.
-    pub fn has_callbacks(&self, event_name: &str) -> bool {
-        self.callbacks.contains_key(event_name)
+    /// Checks if any callbacks are registered for a given event type.
+    pub fn has_callbacks(&self, event_type: &EventType) -> bool {
+        self.callbacks.contains_key(event_type)
     }
 
     /// Returns a list of all registered event names.
-    pub fn get_registered_events(&self) -> Vec<String> {
+    pub fn get_registered_events(&self) -> Vec<EventType> {
         self.callbacks.keys().cloned().collect()
     }
 }

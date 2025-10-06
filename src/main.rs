@@ -4,7 +4,7 @@ fn main() {
     println!("Generic Data Object Demo");
     
     // Create a new generic data object
-    let _data_object = GenericDataObject::new();
+    let _data_object = GenericDataObject::new("id", None);
     
     // Example usage will be added here
     println!("Data object created successfully!");

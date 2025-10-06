@@ -2,5 +2,5 @@
 
 pub mod registry;
 
-pub use registry::{CallbackRegistry, CALLBACK_REGISTRY};
+pub use registry::{CallbackManager, CALLBACK_MANAGER, EventType};
 pub use std::any::Any;

@@ -2,8 +2,31 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
 use ox_type_converter::ValueType;
-use ox_locking::LockStatus;
 use serde::{Deserialize, Serialize};
+
+/// Represents the hydration and persistence state of a GenericDataObject.
+#[derive(Debug, Clone, PartialEq)]
+pub enum DataObjectState {
+    /// The object was newly created in memory and does not exist in the datastore.
+    New,
+    /// The object is a shell, containing only an ID. It represents a full object in the datastore.
+    NotHydrated,
+    /// The object is fully loaded from the datastore.
+    Hydrated,
+    /// The object has been modified in memory and is out of sync with the datastore.
+    Modified,
+    /// The object in memory is in sync with the datastore.
+    Consistent,
+    /// The object is marked for deletion from the datastore.
+    Deleted,
+}
+
+/// Holds information required for a GenericDataObject to self-hydrate.
+#[derive(Debug, Clone)]
+pub struct PersistenceInfo {
+    pub driver_name: String,
+    pub location: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataSet {
@@ -38,7 +61,7 @@ pub struct ConnectionParameter {
     pub default_value: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct DriverMetadata {
     pub name: String,
     pub description: String,
@@ -58,7 +81,7 @@ impl PersistenceDriverRegistry {
         self.drivers.insert(metadata.name.clone(), (driver, metadata));
     }
 
-    fn get_driver(&self, name: &str) -> Option<(Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata)> {
+    pub fn get_driver(&self, name: &str) -> Option<(Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata)> {
         self.drivers.get(name).cloned()
     }
 
@@ -68,7 +91,7 @@ impl PersistenceDriverRegistry {
 }
 
 lazy_static::lazy_static! {
-    static ref PERSISTENCE_DRIVER_REGISTRY: Mutex<PersistenceDriverRegistry> = Mutex::new(PersistenceDriverRegistry::new());
+    pub static ref PERSISTENCE_DRIVER_REGISTRY: Mutex<PersistenceDriverRegistry> = Mutex::new(PersistenceDriverRegistry::new());
 }
 
 pub fn register_persistence_driver(driver: Arc<dyn PersistenceDriver + Send + Sync>, metadata: DriverMetadata) {
@@ -84,6 +107,9 @@ pub fn get_registered_drivers() -> Vec<DriverMetadata> {
 pub trait Persistent {
     fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
     fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String>;
+
+    /// Hydrates the object by loading its full data from the datastore.
+    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
 }
 
 /// A trait for drivers that can persist and restore a GenericDataObject
@@ -95,9 +121,16 @@ pub trait PersistenceDriver {
     ) -> Result<(), String>;
 
     /// Restores a single object by its unique ID.
-    fn restore(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
+    fn restore(
+        &self,
+        location: &str,
+        id: &str,
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
 
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize);
+    /// Fetches the unique IDs of objects matching a filter.
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String>;
+
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str);
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String>;
 

@@ -1,3 +1,23 @@
+[workspace]
+members = [
+    ".", # The root crate itself
+    "ox_type_converter",
+    "ox_callback_manager",
+    "ox_locking",
+    "ox_persistence",
+    "ox_persistence_api",
+    "ox_persistence_flatfile",
+    "ox_persistence_json",
+    "ox_persistence_mssql",
+    "ox_persistence_mysql",
+    "ox_persistence_postgresql",
+    "ox_persistence_sql",
+    "ox_persistence_xml",
+    "ox_persistence_yaml",
+    "ox_persistence_gdo_relational",
+    "ox_data_broker_server",
+]
+
 [package]
 name = "ox_data_object"
 version = "0.1.0"
@@ -7,11 +27,9 @@ description = "A generic data object with flexible attribute storage and type co
 license = "MIT"
 
 [dependencies]
+# Dependencies for the ox_data_object library itself
 ox_type_converter = { path = "./ox_type_converter" }
 ox_callback_manager = { path = "./ox_callback_manager" }
-ox_locking = { path = "./ox_locking" }
-ox_persistence = { path = "./ox_persistence" }
-ox_persistence_mysql = { path = "./ox_persistence_mysql" }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
- 
+uuid = { version = "1.8.0", features = ["v4"] }

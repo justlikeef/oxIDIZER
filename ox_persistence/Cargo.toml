@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 ox_data_object = { path = "../" }
-ox_locking = { path = "../ox_locking" }
 ox_type_converter = { path = "../ox_type_converter" }
 lazy_static = "1.4"
+serde = { version = "1.0", features = ["derive"] }

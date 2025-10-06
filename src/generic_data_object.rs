@@ -4,38 +4,62 @@ use std::any::{Any, TypeId};
 use ox_callback_manager::{CALLBACK_MANAGER, EventType};
 use uuid::Uuid;
 use std::cell::RefCell;
-use ox_persistence::PERSISTENCE_DRIVER_REGISTRY;
 
-/// Represents the hydration and persistence state of a GenericDataObject.
-#[derive(Debug, Clone, PartialEq)]
-pub enum DataObjectState {
-    /// The object was newly created in memory and does not exist in the datastore.
-    New,
-    /// The object is a shell, containing only an ID. It represents a full object in the datastore.
-    NotHydrated,
-    /// The object is fully loaded from the datastore.
-    Hydrated,
-    /// The object has been modified in memory and is out of sync with the datastore.
-    Modified,
-    /// The object in memory is in sync with the datastore.
-    Consistent,
-    /// The object is marked for deletion from the datastore.
-    Deleted,
+/// Represents a single attribute with its value, type, and conversion parameters.
+#[derive(Debug)]
+pub struct AttributeValue {
+    pub value: Box<dyn Any + Send + Sync>,
+    pub value_type: ValueType,
+    pub value_type_parameters: HashMap<String, String>,
 }
 
-/// Holds information required for a GenericDataObject to self-hydrate.
-#[derive(Debug, Clone)]
-pub struct PersistenceInfo {
-    pub driver_name: String,
-    pub location: String,
+impl AttributeValue {
+    pub fn new<T: Any + Send + Sync + Clone + 'static>(value: T, value_type: ValueType) -> Self {
+        AttributeValue {
+            value: Box::new(value),
+            value_type,
+            value_type_parameters: HashMap::new(),
+        }
+    }
+
+    pub fn with_parameters(mut self, parameters: HashMap<String, String>) -> Self {
+        self.value_type_parameters = parameters;
+        self
+    }
+
+    pub fn get_value<T: Clone + 'static>(&self) -> Option<T> {
+        self.value.downcast_ref::<T>().cloned()
+    }
+
+    pub fn is<T: 'static>(&self) -> bool {
+        self.value.is::<T>()
+    }
+
+    pub fn type_id(&self) -> TypeId {
+        self.value.type_id()
+    }
+
+    pub fn to_string(&self) -> String {
+        // This is a simplified conversion. A real implementation would use the type converter registry.
+        // For now, we'll just try to downcast to common types or default to debug print.
+        if let Some(s) = self.value.downcast_ref::<String>() {
+            s.clone()
+        } else if let Some(i) = self.value.downcast_ref::<i32>() {
+            i.to_string()
+        } else if let Some(f) = self.value.downcast_ref::<f64>() {
+            f.to_string()
+        } else if let Some(b) = self.value.downcast_ref::<bool>() {
+            b.to_string()
+        } else {
+            format!("{:?}", self.value) // Fallback to debug print
+        }
+    }
 }
 
 /// The main generic data object structure
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GenericDataObject {
     attributes: HashMap<String, AttributeValue>,
-    pub state: DataObjectState,
-    pub persistence_info: Option<PersistenceInfo>,
     pub identifier_name: String,
 }
 
@@ -44,66 +68,14 @@ impl GenericDataObject {
     pub fn new(identifier_name: &str, id: Option<Uuid>) -> Self {
         let mut object = Self {
             attributes: HashMap::new(),
-            state: DataObjectState::New,
-            persistence_info: None,
             identifier_name: identifier_name.to_string(),
         };
 
         let guid = id.unwrap_or_else(Uuid::new_v4);
         // Store the UUID as a string for universal compatibility and serialization.
         object.set(identifier_name, guid.to_string()).unwrap();
-        // Setting the ID shouldn't change the state from New
-        object.state = DataObjectState::New;
 
         object
-    }
-
-    /// Hydrates the object by loading its full data from the datastore.
-    fn hydrate(&mut self) -> Result<(), String> {
-        if self.state != DataObjectState::NotHydrated {
-            return Ok(()); // Already hydrated or new
-        }
-
-        let persistence_info = self.persistence_info.as_ref().ok_or("Cannot hydrate: No persistence info available.".to_string())?;
-        let id = self.get_raw_value::<String>(&self.identifier_name).ok_or("Cannot hydrate: Object has no ID.".to_string())?;
-
-        let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
-        let (driver, _) = registry.get_driver(&persistence_info.driver_name)
-            .ok_or(format!("Driver '{}' not found for hydration.", persistence_info.driver_name))?;
-
-        let restored_map = driver.restore(&persistence_info.location, &id)?;
-
-        // Clear existing attributes and populate with restored data
-        self.attributes.clear();
-        let conversion_registry = CONVERSION_REGISTRY.lock().unwrap();
-
-        for (key, (value_str, value_type, parameters)) in restored_map {
-            let converted_value = conversion_registry.convert_with_specific_converter(
-                value_type.as_str(),
-                value_type.as_str(),
-                &value_str,
-                &parameters,
-            );
-
-            if let Ok(converted_box_any) = converted_value {
-                let attr_value = AttributeValue {
-                    value: converted_box_any,
-                    value_type,
-                    value_type_parameters: parameters,
-                };
-                self.attributes.insert(key, attr_value);
-            } else {
-                let attr_value = AttributeValue {
-                    value: Box::new(value_str),
-                    value_type: ValueType::String,
-                    value_type_parameters: parameters,
-                };
-                self.attributes.insert(key, attr_value);
-            }
-        }
-
-        self.state = DataObjectState::Hydrated;
-        Ok(())
     }
 
     /// Get a value from the attributes HashMap
@@ -112,11 +84,6 @@ impl GenericDataObject {
     where
         T: Any + Clone,
     {
-        // Auto-hydrate if the object is just a shell
-        if self.state == DataObjectState::NotHydrated {
-            self.hydrate().ok()?;
-        }
-
         // Call BeforeGet callbacks
         let identifier_owned = identifier.to_string();
         self.trigger_callbacks_internal(&EventType::new("BeforeGet"), &[&identifier_owned]);
@@ -159,19 +126,9 @@ impl GenericDataObject {
 
     /// Set a value in the attributes HashMap
     pub fn set<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T) -> Result<(), String> {
-        // Auto-hydrate if the object is just a shell
-        if self.state == DataObjectState::NotHydrated {
-            self.hydrate()?;
-        }
-
         // Call BeforeSet callbacks
         let identifier_owned = identifier.to_string();
         self.trigger_callbacks_internal(&EventType::new("BeforeSet"), &[&identifier_owned, &value]);
-
-        // Update state if the object is not new
-        if self.state != DataObjectState::New {
-            self.state = DataObjectState::Modified;
-        }
 
         // Determine the value type from the input value
         let value_type = TypeConverter::infer_value_type(&value);
@@ -196,18 +153,9 @@ impl GenericDataObject {
         value_type: ValueType,
         parameters: Option<HashMap<String, String>>
     ) -> Result<(), String> {
-        // Auto-hydrate if the object is just a shell
-        if self.state == DataObjectState::NotHydrated {
-            self.hydrate()?;
-        }
-
         // Call BeforeSet callbacks
         let identifier_owned = identifier.to_string();
         self.trigger_callbacks_internal(&EventType::new("BeforeSet"), &[&identifier_owned, &value]);
-
-        if self.state != DataObjectState::New {
-            self.state = DataObjectState::Modified;
-        }
 
         let mut attr_value = AttributeValue::new(value.clone(), value_type);
         
@@ -228,7 +176,7 @@ impl GenericDataObject {
     where
         F: Fn(&dyn Any, &[&dyn Any]) + Send + Sync + 'static,
     {
-        CALLBACK_MANAGER.lock().unwrap().register_callback(event, callback);
+        CALLBACK_MANAGER.lock().unwrap().register_callback(event, Box::new(callback));
     }
 
 
@@ -290,13 +238,13 @@ impl GenericDataObject {
         serializable_map
     }
 
-    // Helper method to get a clone of the attributes map
-    pub(crate) fn get_attributes_map(&self) -> &HashMap<String, AttributeValue> {
-        &self.attributes
+    /// Clears all attributes from the GenericDataObject.
+    pub fn clear_attributes(&mut self) {
+        self.attributes.clear();
     }
 
-    // Helper method to set attributes from a map (used for unlocking)
-    pub(crate) fn _set_attributes_from_map(&mut self, attributes: HashMap<String, AttributeValue>) {
+    /// Sets the attributes of the GenericDataObject from a HashMap.
+    pub fn set_attributes(&mut self, attributes: HashMap<String, AttributeValue>) {
         self.attributes = attributes;
     }
 
@@ -307,15 +255,11 @@ impl GenericDataObject {
     ) -> Self {
         let mut gdo = GenericDataObject {
             attributes: HashMap::new(),
-            state: DataObjectState::Hydrated, // This object is considered fully hydrated
-            persistence_info: None, // We don't know the origin from just a map
             identifier_name: identifier_name.to_string(),
         };
         let registry = CONVERSION_REGISTRY.lock().unwrap();
 
         for (key, (value_str, value_type, parameters)) in serializable_map {
-            // Attempt to convert the string back to its original type
-            // This is a simplified approach and might need more robust type handling
             let converted_value = registry.convert_with_specific_converter(
                 value_type.as_str(), // Source type
                 value_type.as_str(), // Target type (attempt to restore original)
@@ -329,15 +273,15 @@ impl GenericDataObject {
                     value_type,
                     value_type_parameters: parameters,
                 };
-                self.attributes.insert(key, attr_value);
+                gdo.attributes.insert(key, attr_value);
             } else {
                 // Fallback if conversion fails, store as string
                 let attr_value = AttributeValue {
                     value: Box::new(value_str),
-                    value_type: ValueType::String,
+                    value_type: ValueType::new("string"),
                     value_type_parameters: parameters,
                 };
-                self.attributes.insert(key, attr_value);
+                gdo.attributes.insert(key, attr_value);
             }
         }
         gdo
@@ -362,7 +306,6 @@ mod tests {
         assert!(!data_object.is_empty());
         assert_eq!(data_object.len(), 1);
         assert!(data_object.has_attribute("id"));
-        assert_eq!(data_object.state, DataObjectState::New);
     }
 
     #[test]

@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ox_data_object = { path = "../" } # Dependency on the main ox_data_object crate
+ox_data_object = { path = "../" }
 ox_callback_manager = { path = "../ox_callback_manager" }
 ox_type_converter = { path = "../ox_type_converter" }
-ox_persistence = { path = "../ox_persistence" }
 uuid = { version = "1.0", features = ["v4"] }
 lazy_static = "1.4"

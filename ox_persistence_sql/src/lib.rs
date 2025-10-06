@@ -1,9 +1,9 @@
 use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
 use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
-use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
+use ox_locking::LockStatus;
 
 // A trait for SQL-specific persistence operations
 pub trait SqlPersistenceDriver: PersistenceDriver {
@@ -30,8 +30,8 @@ impl PersistenceDriver for GenericSqlDriver {
         println!("Restoring object with id: {}", id);
         // Dummy implementation
         let mut object = HashMap::new();
-        object.insert("id".to_string(), (id.to_string(), ValueType::String, HashMap::new()));
-        object.insert("name".to_string(), ("Restored Object".to_string(), ValueType::String, HashMap::new()));
+        object.insert("id".to_string(), (id.to_string(), ValueType::new("string"), HashMap::new()));
+        object.insert("name".to_string(), ("Restored Object".to_string(), ValueType::new("string"), HashMap::new()));
         Ok(object)
     }
 
@@ -40,23 +40,15 @@ impl PersistenceDriver for GenericSqlDriver {
         Ok(vec!["uuid-1".to_string(), "uuid-2".to_string()])
     }
 
-    fn restore_one(&self, _location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        println!("Restoring object with id: {}", id);
-        // Dummy implementation
-        let mut object = HashMap::new();
-        object.insert("id".to_string(), (id.to_string(), ValueType::String, HashMap::new()));
-        object.insert("name".to_string(), ("Restored Object".to_string(), ValueType::String, HashMap::new()));
-        Ok(object)
-    }
-
-    fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
-        println!("GenericSqlDriver: GDO {} lock status changed to {:?}", gdo_id, lock_status);
+    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+        println!("GenericSqlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
         println!("\n--- Preparing Generic SQL Datastore ---");
         println!("Connection Info: {:?}", connection_info);
-        println!("--- Generic SQL Datastore Prepared ---\n");
+        println!("--- Generic SQL Datastore Prepared ---
+");
         Ok(())
     }
 
@@ -121,7 +113,7 @@ impl SqlPersistenceDriver for GenericSqlDriver {
         let mut where_clauses = Vec::new();
         let mut params = HashMap::new();
         for (key, (value, _, _)) in filter {
-            where_clauses.push(format!("{} = :{}", key, key));
+            where_clauses.push(format!("{} = :{{}}", key, key));
             params.insert(key.clone(), value.clone());
         }
         let where_sql = if where_clauses.is_empty() {
