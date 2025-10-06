@@ -6,7 +6,7 @@ fn main() {
     println!("=== Generic Data Object Basic Usage Example ===\n");
 
     // Create a new generic data object
-    let mut data_object = GenericDataObject::new();
+    let mut data_object = GenericDataObject::new("id", None);
 
     // Register a callback for BeforeGet events
     CALLBACK_MANAGER.lock().unwrap().register_callback(EventType::new("BeforeGet"), |obj, params| {
@@ -96,7 +96,7 @@ fn main() {
     });
 
     // Create a new data object
-    let mut custom_data_object = GenericDataObject::new();
+    let mut custom_data_object = GenericDataObject::new("id", None);
 
     // Set a string value
     custom_data_object.set("custom", "hello").unwrap();

@@ -28,6 +28,16 @@ pub struct ColumnMetadata {
     pub additional: HashMap<String, String>,
 }
 
+/// Describes a single connection parameter required by a persistence driver.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectionParameter {
+    pub name: String,
+    pub description: String,
+    pub data_type: String, // e.g., "string", "integer", "boolean"
+    pub is_required: bool,
+    pub default_value: Option<String>,
+}
+
 #[derive(Clone)]
 pub struct DriverMetadata {
     pub name: String,
@@ -73,7 +83,6 @@ pub fn get_registered_drivers() -> Vec<DriverMetadata> {
 /// A trait for objects that can be persisted.
 pub trait Persistent {
     fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
-    fn restore(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
     fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String>;
 }
 
@@ -85,16 +94,8 @@ pub trait PersistenceDriver {
         location: &str,
     ) -> Result<(), String>;
 
-    fn restore(
-        &self,
-        location: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
-
-    fn fetch(
-        &self,
-        filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        location: &str,
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String>;
+    /// Restores a single object by its unique ID.
+    fn restore(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
 
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize);
 
@@ -102,4 +103,7 @@ pub trait PersistenceDriver {
 
     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
     fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
+
+    /// Gets the definition of connection parameters required by the driver.
+    fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
 }

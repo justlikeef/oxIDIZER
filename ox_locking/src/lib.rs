@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 use std::any::Any;
 
-use ox_data_object::generic_data_object::{AttributeValue, GenericDataObject};
+use ox_data_object::generic_data_object::{AttributeValue, GenericDataObject, DataObjectState, PersistenceInfo};
 use ox_persistence::{Persistent, PersistenceDriver, PERSISTENCE_DRIVER_REGISTRY};
 use ox_type_converter::CONVERSION_REGISTRY;
 
@@ -53,26 +53,22 @@ impl Persistent for LockableGenericDataObject {
         Ok(())
     }
 
-    fn restore(&mut self, driver_name: &str, location: &str) -> Result<(), String> {
-        let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
-        let (driver, _) = registry.get_driver(driver_name).ok_or_else(|| "Persistence driver not found.".to_string())?;
-
-        let serializable_map = driver.restore(location)?;
-        self.gdo = GenericDataObject::from_serializable_map(serializable_map);
-
-        Ok(())
-    }
-
     fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String> {
         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         let (driver, _) = registry.get_driver(driver_name).ok_or_else(|| "Persistence driver not found.".to_string())?;
 
         let filter = self.gdo.to_serializable_map();
-        let fetched_maps = driver.fetch(&filter, location)?;
+        let fetched_ids = driver.fetch(&filter, location)?;
 
         let mut fetched_objects = Vec::new();
-        for map in fetched_maps {
-            fetched_objects.push(GenericDataObject::from_serializable_map(map));
+        for id in fetched_ids {
+            let mut gdo = GenericDataObject::new(&self.gdo.identifier_name, Some(Uuid::parse_str(&id).map_err(|e| e.to_string())?));
+            gdo.state = DataObjectState::NotHydrated;
+            gdo.persistence_info = Some(PersistenceInfo {
+                driver_name: driver_name.to_string(),
+                location: location.to_string(),
+            });
+            fetched_objects.push(gdo);
         }
 
         Ok(fetched_objects)

@@ -12,7 +12,7 @@ fn main() {
     }
 
     // Create a filter object
-    let mut filter_gdo = GenericDataObject::new();
+    let mut filter_gdo = GenericDataObject::new("id", None);
     filter_gdo.set("city", "New York".to_string()).unwrap();
     let filter_object = LockableGenericDataObject::new(filter_gdo);
 

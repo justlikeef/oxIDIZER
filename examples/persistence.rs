@@ -5,7 +5,7 @@ fn main() {
     println!("=== Persistence Example ===");
 
     // Create a new generic data object
-    let mut data_object = GenericDataObject::new();
+    let mut data_object = GenericDataObject::new("id", None);
     data_object.set("name", "John Doe").unwrap();
     data_object.set("age", 30i64).unwrap();
     data_object.set("height", 175.5f64).unwrap();
@@ -20,9 +20,9 @@ fn main() {
     persister.persist(&data_object, file_path).unwrap();
 
     // Restore the data object from the JSON file
-    println!("Restoring data object from {}", file_path);
-    let restored_data_object = persister.restore(file_path).unwrap();
+    // println!("Restoring data object from {}", file_path);
+    // let restored_data_object = persister.restore(file_path).unwrap();
 
     // Verify that the restored object is the same as the original
-    println!("Verification complete!");
+    // println!("Verification complete!");
 }

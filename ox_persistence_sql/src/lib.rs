@@ -1,5 +1,5 @@
 use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -25,35 +25,28 @@ impl PersistenceDriver for GenericSqlDriver {
     fn restore(
         &self,
         _location: &str,
+        id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        Err("Not implemented".to_string())
+        println!("Restoring object with id: {}", id);
+        // Dummy implementation
+        let mut object = HashMap::new();
+        object.insert("id".to_string(), (id.to_string(), ValueType::String, HashMap::new()));
+        object.insert("name".to_string(), ("Restored Object".to_string(), ValueType::String, HashMap::new()));
+        Ok(object)
     }
 
-    fn fetch(
-        &self,
-        filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        _location: &str,
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String> {
-        println!("\n--- Fetching from Generic SQL (dummy implementation) ---");
-        println!("Filter:");
-        for (key, (value, value_type, _)) in filter {
-            println!("  - {}: {} ({})", key, value, value_type.as_str());
-        }
+    fn fetch(&self, _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<Vec<String>, String> {
+        // Dummy implementation
+        Ok(vec!["uuid-1".to_string(), "uuid-2".to_string()])
+    }
 
-        // Dummy data
-        let mut object1 = HashMap::new();
-        object1.insert("name".to_string(), ("John from SQL".to_string(), ValueType::String, HashMap::new()));
-        object1.insert("age".to_string(), ("55".to_string(), ValueType::Integer, HashMap::new()));
-        object1.insert("city".to_string(), ("SQL City".to_string(), ValueType::String, HashMap::new()));
-
-        let mut object2 = HashMap::new();
-        object2.insert("name".to_string(), ("Jane from SQL".to_string(), ValueType::String, HashMap::new()));
-        object2.insert("age".to_string(), ("50".to_string(), ValueType::Integer, HashMap::new()));
-        object2.insert("city".to_string(), ("SQL City".to_string(), ValueType::String, HashMap::new()));
-
-        println!("--- Fetch complete ---\n");
-
-        Ok(vec![object1, object2])
+    fn restore_one(&self, _location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+        println!("Restoring object with id: {}", id);
+        // Dummy implementation
+        let mut object = HashMap::new();
+        object.insert("id".to_string(), (id.to_string(), ValueType::String, HashMap::new()));
+        object.insert("name".to_string(), ("Restored Object".to_string(), ValueType::String, HashMap::new()));
+        Ok(object)
     }
 
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
@@ -73,6 +66,46 @@ impl PersistenceDriver for GenericSqlDriver {
 
     fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
         Err("Not implemented for SQL drivers yet.".to_string())
+    }
+
+    fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {
+        vec![
+            ConnectionParameter {
+                name: "host".to_string(),
+                description: "The database server host address.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: Some("localhost".to_string()),
+            },
+            ConnectionParameter {
+                name: "port".to_string(),
+                description: "The database server port.".to_string(),
+                data_type: "integer".to_string(),
+                is_required: false,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "database".to_string(),
+                description: "The name of the database.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "username".to_string(),
+                description: "The username for database access.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "password".to_string(),
+                description: "The password for database access.".to_string(),
+                data_type: "string".to_string(),
+                is_required: false,
+                default_value: None,
+            },
+        ]
     }
 }
 

@@ -29,7 +29,7 @@ fn main() {
     }
 
     // Now, use one of the drivers to persist an object
-    let gdo = GenericDataObject::new();
+    let gdo = GenericDataObject::new("id", None);
     let mut locked_gdo = LockableGenericDataObject::new(gdo);
     locked_gdo.set("name", "John Doe".to_string()).unwrap();
     locked_gdo.set("age", 30).unwrap();

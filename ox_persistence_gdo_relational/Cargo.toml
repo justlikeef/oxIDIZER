@@ -1,0 +1,11 @@
+[package]
+name = "ox_persistence_gdo_relational"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_persistence = { path = "../ox_persistence" }
+ox_data_object = { path = "../" }
+uuid = { version = "1.8.0", features = ["v4"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }

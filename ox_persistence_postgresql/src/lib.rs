@@ -2,7 +2,7 @@ use ox_data_object::{
     generic_data_object::GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -24,18 +24,20 @@ impl PersistenceDriver for PostgresqlDriver {
     fn restore(
         &self,
         location: &str,
+        id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
         // Delegate to GenericSqlDriver
-        GenericSqlDriver.restore(location)
+        GenericSqlDriver.restore(location, id)
     }
 
-    fn fetch(
-        &self,
-        filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        location: &str,
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String> {
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
         // Delegate to GenericSqlDriver
         GenericSqlDriver.fetch(filter, location)
+    }
+
+    fn restore_one(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+        // Delegate to GenericSqlDriver
+        GenericSqlDriver.restore_one(location, id)
     }
 
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
@@ -57,6 +59,53 @@ impl PersistenceDriver for PostgresqlDriver {
     fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
         // TODO: Implement by querying information_schema.columns
         Err("Not implemented for PostgreSQL driver yet.".to_string())
+    }
+
+    fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {
+        vec![
+            ConnectionParameter {
+                name: "host".to_string(),
+                description: "The PostgreSQL server host address.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: Some("localhost".to_string()),
+            },
+            ConnectionParameter {
+                name: "port".to_string(),
+                description: "The PostgreSQL server port.".to_string(),
+                data_type: "integer".to_string(),
+                is_required: false,
+                default_value: Some("5432".to_string()),
+            },
+            ConnectionParameter {
+                name: "database".to_string(),
+                description: "The name of the PostgreSQL database.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "username".to_string(),
+                description: "The username for PostgreSQL database access.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "password".to_string(),
+                description: "The password for PostgreSQL database access.".to_string(),
+                data_type: "string".to_string(),
+                is_required: false,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "service_name".to_string(),
+                description: "The PostgreSQL service name (alternative to host/port/db). If provided, other connection details might be ignored.".to_string(),
+                data_type: "string".to_string(),
+                is_required: false,
+                default_value: None,
+            },
+        ]
     }
 }
 

@@ -2,7 +2,7 @@ use ox_data_object::{
     GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, PersistenceDriver, register_persistence_driver, DriverMetadata};
+use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, PersistenceDriver, register_persistence_driver, DriverMetadata, ConnectionParameter};
 
 #[derive(Serialize, Deserialize)]
 struct SerializableAttributeValue {
@@ -42,36 +42,125 @@ impl PersistenceDriver for YamlDriver {
     fn restore(
         &self,
         location: &str,
+        id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let mut file = File::open(location).map_err(|e| e.to_string())?;
-        let mut yaml = String::new();
-        file.read_to_string(&mut yaml).map_err(|e| e.to_string())?;
-        let deserialized_data: HashMap<String, SerializableAttributeValue> = 
-            serde_yaml::from_str(&yaml).map_err(|e| e.to_string())?;
+        // This is inefficient as it reads the whole file to find one object.
+        // It assumes the dataset is the first key in the location string, separated by a colon.
+        let parts: Vec<&str> = location.splitn(2, ':').collect();
+        let (file_path, dataset_name) = if parts.len() == 2 {
+            (parts[0], parts[1])
+        } else {
+            return Err("Location for restore must be in 'filepath:dataset' format".to_string());
+        };
 
-        let serializable_map: HashMap<String, (String, ValueType, HashMap<String, String>)> = 
-            deserialized_data
-                .into_iter()
-                .map(|(key, serializable_attr)| {
-                    (
-                        key,
-                        (
-                            serializable_attr.value,
-                            serializable_attr.value_type,
-                            serializable_attr.value_type_parameters,
-                        ),
-                    )
-                })
-                .collect();
-        Ok(serializable_map)
+        let file = File::open(file_path).map_err(|e| e.to_string())?;
+        let yaml_value: serde_yaml::Value = serde_yaml::from_reader(file).map_err(|e| e.to_string())?;
+
+        let root_map = yaml_value.as_mapping().ok_or("YAML root is not a mapping")?;
+        let dataset_seq = root_map
+            .get(&serde_yaml::Value::String(dataset_name.to_string()))
+            .and_then(|v| v.as_sequence())
+            .ok_or(format!("Dataset '{}' not found or is not a sequence", dataset_name))?;
+
+        for item in dataset_seq {
+            if let Some(map) = item.as_mapping() {
+                if let Some(id_val) = map.get(&serde_yaml::Value::String("id".to_string())) {
+                    if id_val.as_str() == Some(id) {
+                        // Found the object, now convert it to the serializable map format.
+                        let mut serializable_map = HashMap::new();
+                        for (key, value) in map {
+                            if let Some(key_str) = key.as_str() {
+                                // This is a massive simplification. We're assuming all values are strings.
+                                let value_str = value.as_str().unwrap_or("").to_string();
+                                let value_type = match value {
+                                    serde_yaml::Value::Number(_) => ValueType::new("float"),
+                                    serde_yaml::Value::Bool(_) => ValueType::new("boolean"),
+                                    _ => ValueType::new("string"),
+                                };
+                                serializable_map.insert(key_str.to_string(), (value_str, value_type, HashMap::new()));
+                            }
+                        }
+                        return Ok(serializable_map);
+                    }
+                }
+            }
+        }
+
+        Err(format!("Object with id '{}' not found in dataset '{}'", id, dataset_name))
     }
 
-    fn fetch(
-        &self,
-        _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        _location: &str,
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String> {
-        unimplemented!()
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+        // This is a simplified fetch for YAML. It assumes the `location` points to a file,
+        // and the first key in the filter is the dataset name, and the rest are filters.
+        let dataset_name = filter.keys().next().ok_or("Filter must contain a dataset name".to_string())?;
+        
+        let file = File::open(location).map_err(|e| e.to_string())?;
+        let yaml_value: serde_yaml::Value = serde_yaml::from_reader(file).map_err(|e| e.to_string())?;
+        
+        let root_map = yaml_value.as_mapping().ok_or("YAML root is not a mapping")?;
+        let dataset_seq = root_map
+            .get(&serde_yaml::Value::String(dataset_name.clone()))
+            .and_then(|v| v.as_sequence())
+            .ok_or(format!("Dataset '{}' not found or is not a sequence", dataset_name))?;
+
+        let mut ids = Vec::new();
+        for item in dataset_seq {
+            if let Some(map) = item.as_mapping() {
+                // This simplified version just returns all IDs. A real implementation would filter here.
+                if let Some(id_val) = map.get(&serde_yaml::Value::String("id".to_string())) {
+                    if let Some(id_str) = id_val.as_str() {
+                        ids.push(id_str.to_string());
+                    }
+                }
+            }
+        }
+        Ok(ids)
+    }
+
+    fn restore_one(&self, location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+        // This is inefficient as it reads the whole file to find one object.
+        // It assumes the dataset is the first key in the location string, separated by a colon.
+        let parts: Vec<&str> = location.splitn(2, ':').collect();
+        let (file_path, dataset_name) = if parts.len() == 2 {
+            (parts[0], parts[1])
+        } else {
+            return Err("Location for restore_one must be in 'filepath:dataset' format".to_string());
+        };
+
+        let file = File::open(file_path).map_err(|e| e.to_string())?;
+        let yaml_value: serde_yaml::Value = serde_yaml::from_reader(file).map_err(|e| e.to_string())?;
+
+        let root_map = yaml_value.as_mapping().ok_or("YAML root is not a mapping")?;
+        let dataset_seq = root_map
+            .get(&serde_yaml::Value::String(dataset_name.to_string()))
+            .and_then(|v| v.as_sequence())
+            .ok_or(format!("Dataset '{}' not found or is not a sequence", dataset_name))?;
+
+        for item in dataset_seq {
+            if let Some(map) = item.as_mapping() {
+                if let Some(id_val) = map.get(&serde_yaml::Value::String("id".to_string())) {
+                    if id_val.as_str() == Some(id) {
+                        // Found the object, now convert it to the serializable map format.
+                        let mut serializable_map = HashMap::new();
+                        for (key, value) in map {
+                            if let Some(key_str) = key.as_str() {
+                                // This is a massive simplification. We're assuming all values are strings.
+                                let value_str = value.as_str().unwrap_or("").to_string();
+                                let value_type = match value {
+                                    serde_yaml::Value::Number(_) => ValueType::new("float"),
+                                    serde_yaml::Value::Bool(_) => ValueType::new("boolean"),
+                                    _ => ValueType::new("string"),
+                                };
+                                serializable_map.insert(key_str.to_string(), (value_str, value_type, HashMap::new()));
+                            }
+                        }
+                        return Ok(serializable_map);
+                    }
+                }
+            }
+        }
+
+        Err(format!("Object with id '{}' not found in dataset '{}'", id, dataset_name))
     }
 
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
@@ -141,5 +230,17 @@ impl PersistenceDriver for YamlDriver {
             name: dataset_name.to_string(),
             columns,
         })
+    }
+
+    fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {
+        vec![
+            ConnectionParameter {
+                name: "path".to_string(),
+                description: "The path to the YAML data file.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+        ]
     }
 }

@@ -45,7 +45,7 @@ fn main() {
     }
 
     // Create a new LockableGenericDataObject
-    let gdo = GenericDataObject::new();
+    let gdo = GenericDataObject::new("id", None);
     let mut locked_gdo = LockableGenericDataObject::new(gdo);
 
     println!("Setting initial values...");

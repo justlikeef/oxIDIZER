@@ -2,7 +2,7 @@ use ox_data_object::{
     GenericDataObject,
     AttributeValue,
 };
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata};
+use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter};
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -25,16 +25,17 @@ impl PersistenceDriver for FlatfileDriver {
     fn restore(
         &self,
         _location: &str,
+        _id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
         Err("Not implemented".to_string())
     }
 
-    fn fetch(
-        &self,
-        _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        _location: &str,
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String> {
-        unimplemented!()
+    fn fetch(&self, _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<Vec<String>, String> {
+        Err("Fetch not implemented for FlatfileDriver".to_string())
+    }
+
+    fn restore_one(&self, _location: &str, _id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+        Err("Restore_one not implemented for FlatfileDriver".to_string())
     }
 
     fn notify_lock_status_change(&self, lock_status: LockStatus, gdo_id: usize) {
@@ -94,6 +95,25 @@ impl PersistenceDriver for FlatfileDriver {
             name: dataset_name.to_string(),
             columns,
         })
+    }
+
+    fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {
+        vec![
+            ConnectionParameter {
+                name: "path".to_string(),
+                description: "The path to the directory containing the data files.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "definition_file".to_string(),
+                description: "The path to the YAML file that defines the data structure.".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+        ]
     }
 }
 
