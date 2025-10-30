@@ -1,5 +1,5 @@
 use ox_data_object::generic_data_object::AttributeValue;
-use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, PersistenceDriver, register_persistence_driver, DriverMetadata, ConnectionParameter};
+use ox_persistence::{DataSet, ColumnDefinition, ColumnMetadata, PersistenceDriver, DriverMetadata, ConnectionParameter, ModuleCompatibility};
 use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::Arc;
+use libc::{c_char, c_void};
+use std::ffi::{CStr, CString};
+use serde_json; // For serializing metadata to JSON
 
 #[derive(Serialize, Deserialize)]
 struct SerializableAttributeValue {
@@ -196,11 +199,54 @@ impl PersistenceDriver for YamlDriver {
     }
 }
 
-pub fn init() {
+// C-compatible function to get driver metadata
+#[no_mangle]
+pub extern "C" fn get_driver_metadata_json() -> *mut c_char {
+    let mut compatible_modules = HashMap::new();
+    compatible_modules.insert(
+        "ox_data_broker_server".to_string(),
+        ModuleCompatibility {
+            human_name: "YAML Persistence Driver".to_string(),
+            crate_type: "Data Source Driver".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        },
+    );
+
     let metadata = DriverMetadata {
-        name: "yaml".to_string(),
-        description: "A driver for YAML files.".to_string(),
-        version: "0.1.0".to_string(),
+        name: "ox_persistence_yaml".to_string(),
+        description: "A persistence driver for YAML files.".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        compatible_modules,
     };
-    register_persistence_driver(Arc::new(YamlDriver), metadata);
+
+    let json_string = serde_json::to_string(&metadata).expect("Failed to serialize metadata");
+    CString::new(json_string).expect("Failed to create CString").into_raw()
+}
+
+// C-compatible function to create a new driver instance
+#[no_mangle]
+pub extern "C" fn create_driver() -> *mut c_void {
+    let driver = Arc::new(YamlDriver);
+    let trait_object: Arc<dyn PersistenceDriver + Send + Sync> = driver;
+    Box::into_raw(Box::new(trait_object)) as *mut c_void
+}
+
+// C-compatible function to destroy a driver instance
+#[no_mangle]
+pub extern "C" fn destroy_driver(ptr: *mut c_void) {
+    if ptr.is_null() {
+        return;
+    }
+    unsafe {
+        // Reconstruct the Box and let it drop
+        let _ = Box::from_raw(ptr as *mut Arc<dyn PersistenceDriver + Send + Sync>);
+    }
+}
+
+// The init function is no longer responsible for registering the driver directly.
+// It can be used for any other initialization logic if needed.
+#[no_mangle]
+pub extern "C" fn init() {
+    // No direct registration here, as the server will handle it after loading
+    // the driver dynamically.
 }

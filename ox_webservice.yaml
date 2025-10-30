@@ -1,0 +1,4 @@
+port: 3000
+modules:
+  - name: ox_data_broker
+log_output_path: "ox_webservice.log"

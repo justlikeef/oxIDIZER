@@ -3,6 +3,9 @@ name = "ox_persistence_json"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 ox_persistence = { path = "../ox_persistence" }
 ox_locking = { path = "../ox_locking" }
@@ -10,3 +13,4 @@ ox_data_object = { path = "../" }
 ox_type_converter = { path = "../ox_type_converter" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+libc = "0.2"

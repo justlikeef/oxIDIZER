@@ -1,11 +1,12 @@
-use ox_persistence::{
-    PersistenceDriver, DriverMetadata, DataObjectState, PersistenceInfo,
-    DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, PERSISTENCE_DRIVER_REGISTRY
-};
+use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, ModuleCompatibility, PERSISTENCE_DRIVER_REGISTRY};
 use ox_type_converter::ValueType;
 use ox_locking::LockStatus;
 use std::collections::HashMap;
 use std::sync::Arc;
+use libc::{c_char, c_void};
+use std::ffi::{CStr, CString};
+use serde_json;
+use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
 
 pub struct GdoRelationalDriver {
     internal_driver_name: String,
@@ -139,14 +140,55 @@ impl PersistenceDriver for GdoRelationalDriver {
     }
 }
 
-pub fn init() {
+// C-compatible function to get driver metadata
+#[no_mangle]
+pub extern "C" fn get_driver_metadata_json() -> *mut c_char {
+    let mut compatible_modules = HashMap::new();
+    compatible_modules.insert(
+        "ox_data_broker_server".to_string(),
+        ModuleCompatibility {
+            human_name: "GDO Relational Driver".to_string(),
+            crate_type: "Data Source Driver".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        },
+    );
+
     let metadata = DriverMetadata {
-        name: "gdo_relational".to_string(),
+        name: "ox_persistence_gdo_relational".to_string(),
         description: "A driver for managing relationships between GDOs across multiple datastores.".to_string(),
-        version: "0.1.0".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        compatible_modules,
     };
-    // This driver needs configuration, so it cannot be registered with a default instance.
-    // It should be instantiated and registered by the application with its specific internal_driver_name and internal_location.
-    // For demonstration, we'll register a dummy one.
-    // register_persistence_driver(Arc::new(GdoRelationalDriver::new("json".to_string(), "relationships.json".to_string())), metadata);
+
+    let json_string = serde_json::to_string(&metadata).expect("Failed to serialize metadata");
+    CString::new(json_string).expect("Failed to create CString").into_raw()
+}
+
+// C-compatible function to create a new driver instance
+#[no_mangle]
+pub extern "C" fn create_driver() -> *mut c_void {
+    // This driver needs configuration, so it cannot be instantiated without parameters.
+    // The server will need to call a different function to create it with parameters.
+    // For now, we return null to indicate it cannot be created generically.
+    std::ptr::null_mut()
+}
+
+// C-compatible function to destroy a driver instance
+#[no_mangle]
+pub extern "C" fn destroy_driver(ptr: *mut c_void) {
+    if ptr.is_null() {
+        return;
+    }
+    unsafe {
+        // Reconstruct the Box and let it drop
+        let _ = Box::from_raw(ptr as *mut Arc<dyn PersistenceDriver + Send + Sync>);
+    }
+}
+
+// The init function is no longer responsible for registering the driver directly.
+// It can be used for any other initialization logic if needed.
+#[no_mangle]
+pub extern "C" fn init() {
+    // No direct registration here, as the server will handle it after loading
+    // the driver dynamically.
 }

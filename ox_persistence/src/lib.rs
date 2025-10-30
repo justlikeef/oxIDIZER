@@ -61,11 +61,19 @@ pub struct ConnectionParameter {
     pub default_value: Option<String>,
 }
 
-#[derive(Clone, Serialize)]
-pub struct DriverMetadata {
-    pub name: String,
-    pub description: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModuleCompatibility {
+    pub human_name: String,
+    pub crate_type: String,
     pub version: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct DriverMetadata {
+    pub name: String, // The crate name, e.g., "ox_persistence_flatfile"
+    pub version: String, // The crate version
+    pub description: String,
+    pub compatible_modules: HashMap<String, ModuleCompatibility>,
 }
 
 pub struct PersistenceDriverRegistry {
@@ -100,6 +108,10 @@ pub fn register_persistence_driver(driver: Arc<dyn PersistenceDriver + Send + Sy
 
 pub fn get_registered_drivers() -> Vec<DriverMetadata> {
     PERSISTENCE_DRIVER_REGISTRY.lock().unwrap().get_all_drivers()
+}
+
+pub fn unregister_persistence_driver(driver_name: &str) {
+    PERSISTENCE_DRIVER_REGISTRY.lock().unwrap().drivers.remove(driver_name);
 }
 
 
@@ -137,6 +149,6 @@ pub trait PersistenceDriver {
     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
     fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
 
-    /// Gets the definition of connection parameters required by the driver.
+/// Gets the definition of connection parameters required by the driver.
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
 }

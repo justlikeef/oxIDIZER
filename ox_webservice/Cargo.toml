@@ -1,0 +1,29 @@
+[package]
+name = "ox_webservice"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1.36", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+clap = { version = "4.0", features = ["derive"] }
+toml = "0.8"
+serde-xml-rs = "0.6"
+libloading = "0.8"
+notify = "6.0"
+tera = "1.19"
+
+ox_persistence = { path = "../ox_persistence" }
+ox_persistence_api = { path = "../ox_persistence_api" }
+ox_locking = { path = "../ox_locking" }
+libc = "0.2"
+windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
+ox_data_broker = { path = "../ox_data_broker" }
+sysinfo = "0.30"
+
+[build-dependencies]
+vergen = { version = "8.0.0", features = ["build", "cargo", "rustc", "si"] }

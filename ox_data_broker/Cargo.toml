@@ -1,23 +1,60 @@
 [package]
-name = "ox_data_broker_server"
+name = "ox_data_broker"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+
+crate-type = ["cdylib"]
+
+
+
 [dependencies]
+
 axum = "0.7"
+
 tokio = { version = "1.36", features = ["full"] }
+
 serde = { version = "1.0", features = ["derive"] }
+
 serde_json = "1.0"
 
+serde_yaml = "0.9"
+
+clap = { version = "4.0", features = ["derive"] }
+
+toml = "0.8"
+
+serde-xml-rs = "0.6"
+
+libloading = "0.8"
+
+notify = "6.0"
+
+
+
 ox_persistence = { path = "../ox_persistence" }
+
 ox_persistence_api = { path = "../ox_persistence_api" }
+
 ox_persistence_flatfile = { path = "../ox_persistence_flatfile" }
+
 ox_persistence_json = { path = "../ox_persistence_json" }
+
 ox_persistence_mssql = { path = "../ox_persistence_mssql" }
+
 ox_persistence_mysql = { path = "../ox_persistence_mysql" }
+
 ox_persistence_postgresql = { path = "../ox_persistence_postgresql" }
-ox_persistence_sql = { path = "../ox_persistence_sql" }
+
+
+
 ox_persistence_xml = { path = "../ox_persistence_xml" }
+
 ox_persistence_yaml = { path = "../ox_persistence_yaml" }
+
 ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
+
 ox_locking = { path = "../ox_locking" }
+libc = "0.2"
+

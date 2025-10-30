@@ -1,7 +1,11 @@
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
+use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ConnectionParameter, ModuleCompatibility};
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
+use libc::{c_char, c_void};
+use std::ffi::{CStr, CString};
+use serde_json;
+use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
 
 // A trait for SQL-specific persistence operations
 pub trait SqlPersistenceDriver: PersistenceDriver {
@@ -45,8 +49,7 @@ impl PersistenceDriver for GenericSqlDriver {
     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
         println!("\n--- Preparing Generic SQL Datastore ---");
         println!("Connection Info: {:?}", connection_info);
-        println!("--- Generic SQL Datastore Prepared ---
-");
+        println!("--- Generic SQL Datastore Prepared ---\n");
         Ok(())
     }
 
@@ -121,13 +124,4 @@ impl SqlPersistenceDriver for GenericSqlDriver {
         };
         (where_sql, params)
     }
-}
-
-pub fn init() {
-    let metadata = DriverMetadata {
-        name: "sql".to_string(),
-        description: "A generic SQL database driver.".to_string(),
-        version: "0.1.0".to_string(),
-    };
-    register_persistence_driver(Arc::new(GenericSqlDriver), metadata);
 }
