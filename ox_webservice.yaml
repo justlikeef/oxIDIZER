@@ -1,4 +1,8 @@
 port: 3000
 modules:
-  - name: ox_data_broker
+  - name: ox_content
+    params:
+      config_file: "ox_content.yaml"
+      mimetypes_file: "mimetypes.yaml"
+  - name: ox_server_info
 log_output_path: "ox_webservice.log"
