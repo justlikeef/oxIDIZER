@@ -1,5 +1,6 @@
-use ox_data_object::{GenericDataObject, AttributeValue, ValueType, TypeConverter, CONVERSION_REGISTRY};
-use ox_callback_manager::{CallbackManager, CALLBACK_MANAGER, EventType, CallbackError, CallbackAction, CallbackResult};
+use ox_data_object::generic_data_object::{GenericDataObject, AttributeValue};
+use ox_type_converter::{ValueType, TypeConverter, CONVERSION_REGISTRY};
+use ox_callback_manager::{CallbackManager, CALLBACK_MANAGER, EventType, CallbackError, CallbackAction, CallbackResult, CallbackFn};
 use std::collections::HashMap;
 use std::any::Any;
 use uuid::Uuid;

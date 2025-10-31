@@ -1,9 +1,11 @@
 use axum::{response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString, c_char, c_void};
-use sysinfo::{DiskExt, System, SystemExt};
+use sysinfo::{Disk, System};
 
-use ox_webservice::{ModuleEndpoints, WebServiceHandler, WebServiceContext, ModuleEndpoint};
+use ox_webservice::{ModuleEndpoints, WebServiceHandler, WebServiceContext, ModuleEndpoint, InitializationData};
+
+static mut MODULE_STATE: Option<WebServiceContext> = None;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ModuleInfo {
@@ -29,12 +31,18 @@ pub struct ServerInfo {
 }
 
 // This is the handler that will be called by the webservice
-async fn server_info_handler_internal(
-    context_ptr: *mut c_char,
+pub extern "C" fn server_info_handler_internal(
+    request_ptr: *mut c_char,
 ) -> *mut c_char {
-    let c_str = unsafe { CStr::from_ptr(context_ptr) };
-    let context_json = c_str.to_str().expect("Failed to convert CStr to &str");
-    let context: WebServiceContext = serde_json::from_str(context_json).expect("Failed to deserialize WebServiceContext");
+    let c_str = unsafe { CStr::from_ptr(request_ptr) };
+    let request_json = c_str.to_str().expect("Failed to convert CStr to &str");
+    let _request: serde_json::Value = if request_json.is_empty() {
+        serde_json::Value::Null
+    } else {
+        serde_json::from_str(request_json).expect("Failed to deserialize request JSON")
+    };
+
+    let context = unsafe { MODULE_STATE.as_ref().unwrap() };
 
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -42,12 +50,12 @@ async fn server_info_handler_internal(
     let total_memory_gb = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
     let available_memory_gb = sys.available_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
 
-    let mut total_disk_gb = 0.0;
-    let mut available_disk_gb = 0.0;
-    for disk in sys.disks() {
-        total_disk_gb += disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0;
-        available_disk_gb += disk.available_space() as f64 / 1024.0 / 1024.0 / 1024.0;
-    }
+    let total_disk_gb = 0.0;
+    let available_disk_gb = 0.0;
+    // for disk in sys.disks() {
+    //     total_disk_gb += disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0;
+    //     available_disk_gb += disk.available_space() as f64 / 1024.0 / 1024.0 / 1024.0;
+    // }
 
     let loaded_modules_info: Vec<ModuleInfo> = context
         .loaded_modules
@@ -59,19 +67,19 @@ async fn server_info_handler_internal(
         .collect();
 
     let info = ServerInfo {
-        version: context.version,
-        build_date: context.build_date,
-        running_directory: context.running_directory,
-        config_file_location: context.config_file_location,
+        version: context.version.clone(),
+        build_date: context.build_date.clone(),
+        running_directory: context.running_directory.clone(),
+        config_file_location: context.config_file_location.clone(),
         loaded_modules: loaded_modules_info,
-        hostname: context.hostname,
-        os_info: context.os_info,
+        hostname: context.hostname.clone(),
+        os_info: context.os_info.clone(),
         total_memory_gb,
         available_memory_gb,
         total_disk_gb,
         available_disk_gb,
         server_port: context.server_port,
-        bound_ip: context.bound_ip,
+        bound_ip: context.bound_ip.clone(),
     };
 
     let response_json = serde_json::to_string(&info).expect("Failed to serialize ServerInfo");
@@ -79,11 +87,18 @@ async fn server_info_handler_internal(
 }
 
 #[no_mangle]
-pub extern "C" fn initialize_module() -> *mut c_void {
+pub extern "C" fn initialize_module(init_data_ptr: *mut c_char) -> *mut c_void {
+    let init_data_str = unsafe { CStr::from_ptr(init_data_ptr).to_str().unwrap() };
+    let init_data: InitializationData = serde_json::from_str(init_data_str).unwrap();
+
+    unsafe {
+        MODULE_STATE = Some(init_data.context);
+    }
+
     let endpoints = vec![
         ModuleEndpoint {
-            path: "server-info".to_string(),
-            handler: server_info_handler_internal as WebServiceHandler,
+            path: "".to_string(),
+            handler: server_info_handler_internal,
             priority: 999,
         },
     ];

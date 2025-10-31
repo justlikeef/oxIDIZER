@@ -1,8 +1,15 @@
 port: 3000
 modules:
   - name: ox_content
+    priority: 1000
+    params:
+      config_file: "ox_content_error.yaml"
+      mimetypes_file: "mimetypes.yaml"
+  - name: ox_content
+    priority: 999
     params:
       config_file: "ox_content.yaml"
       mimetypes_file: "mimetypes.yaml"
   - name: ox_server_info
-log_output_path: "ox_webservice.log"
+    priority: 10
+log_level: debug

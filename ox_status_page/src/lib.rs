@@ -1,8 +1,8 @@
 use libc::{c_char, c_void};
 use std::ffi::{CStr, CString};
-use minijinja::{Environment, Source};
+use minijinja::{Environment};
 use serde_json;
-use ox_webservice::{ModuleEndpoints, WebServiceHandler, WebServiceContext};
+use ox_webservice::{ModuleEndpoints, WebServiceHandler, WebServiceContext, ModuleEndpoint};
 
 // The HTML template for the status page
 const STATUS_PAGE_TEMPLATE: &str = r#"
@@ -58,6 +58,14 @@ pub extern "C" fn status_page_handler(_request_ptr: *mut c_char) -> *mut c_char 
         running_directory: "Unknown".to_string(), // Placeholder
         config_file_location: "Unknown".to_string(), // Placeholder
         loaded_modules: vec![], // Placeholder
+        hostname: "Unknown".to_string(),
+        os_info: "Unknown".to_string(),
+        total_memory_gb: 0.0,
+        available_memory_gb: 0.0,
+        total_disk_gb: 0.0,
+        available_disk_gb: 0.0,
+        server_port: 0,
+        bound_ip: "0.0.0.0".to_string(),
     };
 
     let mut env = Environment::new();
@@ -79,7 +87,7 @@ pub extern "C" fn status_page_handler(_request_ptr: *mut c_char) -> *mut c_char 
 #[no_mangle]
 pub extern "C" fn initialize_module() -> *mut c_void {
     let endpoints = vec![
-        ("/status".to_string(), status_page_handler as WebServiceHandler),
+        ModuleEndpoint { path: "/status".to_string(), handler: status_page_handler, priority: 0 },
     ];
     let boxed_endpoints = Box::new(ModuleEndpoints { endpoints });
     Box::into_raw(boxed_endpoints) as *mut c_void

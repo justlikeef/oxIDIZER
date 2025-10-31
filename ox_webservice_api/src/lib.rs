@@ -48,6 +48,8 @@ pub struct WebServiceContext {
     pub available_disk_gb: f64,
     pub server_port: u16,
     pub bound_ip: String,
+    #[serde(skip)]
+    pub render_template_fn: Option<unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,11 +86,5 @@ impl<'de> Deserialize<'de> for ModuleEndpoint {
 
 unsafe extern "C" fn dummy_handler(_request_ptr: *mut c_char) -> *mut c_char {
     // Return a null pointer or an empty string
-    std::ptr::null_mut()
-}
-
-#[no_mangle]
-pub extern "C" fn render_template_ffi(template_name_ptr: *mut c_char, data_ptr: *mut c_char) -> *mut c_char {
-    // This will be implemented in ox_webservice/src/main.rs
     std::ptr::null_mut()
 }

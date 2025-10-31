@@ -1,21 +1,30 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::fs;
 use std::path::PathBuf;
 use libc::c_char;
-use serde_json::json;
+use base64::engine::Engine as _;
+use base64::engine::general_purpose::STANDARD;
 
-use crate::ModuleState;
 use super::template_handler;
 
 pub fn stream_handler(file_path: PathBuf, mimetype: &str) -> *mut c_char {
     match fs::read(file_path) {
         Ok(content) => {
+            let body_content = if mimetype.starts_with("text/") || mimetype.contains("javascript") || mimetype.contains("json") {
+                // Assume UTF-8 for text-based content
+                String::from_utf8_lossy(&content).into_owned()
+            } else {
+                // Base64 encode binary content
+                STANDARD.encode(&content)
+            };
+
             let response = serde_json::json!({
                 "headers": {
                     "Content-Type": mimetype
                 },
-                "body": content
+                "body": body_content
             });
+            println!("DEBUG: stream_handler response: {}", response.to_string());
             CString::new(response.to_string()).unwrap().into_raw()
         }
         Err(_) => not_found_handler(),
@@ -23,22 +32,11 @@ pub fn stream_handler(file_path: PathBuf, mimetype: &str) -> *mut c_char {
 }
 
 pub fn not_found_handler() -> *mut c_char {
+    println!("DEBUG: not_found_handler called");
     let state = unsafe { crate::MODULE_STATE.as_ref().unwrap() };
-    let mut error_template_path = state.content_root.clone();
-    error_template_path.push("errors");
+    let mut error_template_path = state.error_path.clone();
     error_template_path.push("404.jinja2");
 
-    let rendered_response_ptr = template_handler::template_handler(error_template_path, "text/html");
-    let rendered_response_str = unsafe { CStr::from_ptr(rendered_response_ptr).to_str().unwrap() };
-    let rendered_response: serde_json::Value = serde_json::from_str(rendered_response_str).unwrap();
-    let rendered_body = rendered_response["body"].as_str().unwrap_or("Error rendering 404 template");
-
-    let response = serde_json::json!({
-        "status": 404,
-        "headers": {
-            "Content-Type": "text/html"
-        },
-        "body": rendered_body
-    });
-    CString::new(response.to_string()).unwrap().into_raw()
+    // Directly return the JSON string from template_handler
+    template_handler::template_handler(error_template_path, "text/html")
 }

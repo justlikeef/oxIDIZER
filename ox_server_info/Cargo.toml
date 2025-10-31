@@ -4,11 +4,14 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 axum = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sysinfo = "0.30"
+sysinfo = "0.31"
 libloading = "0.8"
 ox_webservice = { path = "../ox_webservice" }
 libc = "0.2"

@@ -1,9 +1,6 @@
-use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet, ConnectionParameter};
-use ox_locking::LockStatus;
-use ox_type_converter::ValueType;
+use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter};
 use std::collections::HashMap;
-use std::sync::Arc;
-use serde::{Deserialize, Serialize};
+use ox_type_converter::ValueType;
 
 pub struct OxPersistenceApiDriver;
 
