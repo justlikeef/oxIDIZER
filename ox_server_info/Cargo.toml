@@ -11,10 +11,12 @@ crate-type = ["cdylib"]
 axum = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sysinfo = "0.31"
+sysinfo = "0.37.2"
 libloading = "0.8"
 ox_webservice = { path = "../ox_webservice" }
 libc = "0.2"
+log = "0.4"
+ox_webservice_api = { path = "../ox_webservice_api" }
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "cargo", "rustc", "si"] }

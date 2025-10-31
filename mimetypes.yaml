@@ -1,10 +1,10 @@
 mimetypes:
   - extension: "html"
     mimetype: "text/html"
-    handler: "stream"
+    handler: "template"
   - extension: "htm"
     mimetype: "text/html"
-    handler: "stream"
+    handler: "template"
   - extension: "css"
     mimetype: "text/css"
     handler: "stream"

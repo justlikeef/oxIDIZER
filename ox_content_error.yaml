@@ -1,7 +1,7 @@
-content_root: "C:\\Users\\justl\\source\\repos\\oxDataObject\\content\\www"
+content_root: "C:\\Users\\justl\\source\\repos\\oxDataObject\\content\\error"
 default_documents:
   - document: "index.jinja2"
   - document: "index.html"
   - document: "default.html"
 urls:
-  - url: "*"
+  - url: "error/"

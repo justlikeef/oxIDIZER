@@ -14,12 +14,14 @@ use sysinfo::{System};
 use tera::Tera;
 use log::{info, debug, trace, error};
 use env_logger::Env;
+use futures::future::BoxFuture;
 
 use libloading::{Library, Symbol};
 
 use std::panic;
 
-use ox_webservice::{ModuleEndpoints, ModuleEndpoint, WebServiceContext};
+use ox_webservice_api::{ModuleEndpoints, ModuleEndpoint, WebServiceContext, SendableWebServiceHandler};
+use axum::http::StatusCode;
 
 static mut GLOBAL_TERA: Option<Arc<Tera>> = None;
 
@@ -38,6 +40,8 @@ struct ServerConfig {
     log_output_path: Option<String>,
     #[serde(default = "default_log_level")]
     log_level: String,
+    #[serde(default)]
+    error_handler: Option<ModuleConfig>,
 }
 
 fn default_log_level() -> String {
@@ -126,6 +130,26 @@ async fn main() {
     let server_config_path = Path::new(&cli.config);
     let mut server_config: ServerConfig = load_config_from_path(server_config_path, &cli.log_level);
 
+    let error_handler_config_arc = if let Some(eh_module_config) = &server_config.error_handler {
+        if let Some(params) = &eh_module_config.params {
+            if let Some(config_file_value) = params.get("config_file") {
+                if let Some(config_file_str) = config_file_value.as_str() {
+                    let config_path = PathBuf::from(config_file_str);
+                    match ox_webservice_errorhandler::ErrorHandlerConfig::from_yaml_file(&config_path) {
+                        Ok(cfg) => {
+                            info!("Successfully loaded error handler configuration from {:?}", config_path);
+                            Some(Arc::new(cfg))
+                        },
+                        Err(e) => {
+                            error!("Failed to load error handler configuration from {:?}: {}", config_path, e);
+                            None
+                        }
+                    }
+                } else { None }
+            } else { None }
+        } else { None }
+    } else { None };
+
     // --- Apply CLI Log Output Path Override ---
     // CLI takes precedence over config file for log output
     if log_file_path.is_some() {
@@ -133,26 +157,28 @@ async fn main() {
     }
 
     // --- Redirect output if log_output_path is specified ---
-    // Temporarily commented out for debugging
-    // if let Some(path) = &server_config.log_output_path {
-    //     info!("Redirecting output to {}", path);
-    //     let file = OpenOptions::new()
-    //         .create(true)
-    //         .write(true)
-    //         .append(true)
-    //         .open(&path)
-    //         .expect(&format!("Failed to open log file: {}", path));
-    //     
-    //     let file_handle = file.as_raw_handle();
-    //
-    //     unsafe {
-    //         // Redirect stdout
-    //         SetStdHandle(STD_OUTPUT_HANDLE, file_handle as isize);
-    //         // Redirect stderr
-    //         SetStdHandle(STD_ERROR_HANDLE, file_handle as isize);
-    //     }
-    //     info!("Output redirected to {}", path);
-    // }
+    if let Some(path) = &server_config.log_output_path {
+        info!("Redirecting output to {}", path);
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(&path)
+            .expect(&format!("Failed to open log file: {}", path));
+        
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::System::Console::{SetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
+
+        let file_handle = file.as_raw_handle();
+
+        unsafe {
+            // Redirect stdout
+            SetStdHandle(STD_OUTPUT_HANDLE, file_handle as isize);
+            // Redirect stderr
+            SetStdHandle(STD_ERROR_HANDLE, file_handle as isize);
+        }
+        info!("Output redirected to {}", path);
+    }
 
     // --- Override/Supplement Modules from CLI ---
     if let Some(cli_modules) = cli.modules {
@@ -174,17 +200,20 @@ async fn main() {
             .collect();
     }
 
-    // --- Initialize Tera --- 
-    let tera_instance = match Tera::new("templates/**/*.html") {
-        Ok(t) => {
-            info!("Tera templates initialized successfully.");
-            t
-        },
-        Err(e) => {
-            error!("Parsing error(s) in Tera templates: {}", e);
-            ::std::process::exit(1);
-        }
-    };
+        // --- Initialize Tera ---
+        let tera_instance = match Tera::new("content/**/*.html") {
+            Ok(mut t) => {
+                t.add_raw_templates(vec![
+                    ("jinja2_templates", "{% include \"content/**/*.jinja2\" %}")
+                ]).unwrap();
+                info!("Tera templates initialized successfully.");
+                t
+            },
+            Err(e) => {
+                error!("Parsing error(s) in Tera templates: {}", e);
+                ::std::process::exit(1);
+            }
+        };
 
     unsafe {
         GLOBAL_TERA = Some(Arc::new(tera_instance));
@@ -196,6 +225,7 @@ async fn main() {
     let mut loaded_modules: Vec<Arc<LoadedModule>> = Vec::new();
     let mut specific_endpoints: Vec<(Arc<LoadedModule>, ModuleEndpoint)> = Vec::new();
     let mut wildcard_endpoints: Vec<(Arc<LoadedModule>, ModuleEndpoint)> = Vec::new();
+    let mut error_handler_module: Option<Arc<LoadedModule>> = None;
 
     // Collect module names for WebServiceContext
     let module_names: Vec<String> = server_config.modules.iter().map(|m| m.name.clone()).collect();
@@ -220,7 +250,6 @@ async fn main() {
         available_disk_gb: 0.0, // Will be updated by the module if needed
         server_port: server_config.port,
         bound_ip: addr.ip().to_string(),
-        render_template_fn: Some(render_template_ffi),
     };
 
     for module_config in server_config.modules.into_iter() {
@@ -242,12 +271,12 @@ async fn main() {
             Ok(library) => {
                 info!("Successfully loaded module: {}", module_name);
                 unsafe {
-                    let initialize_module_fn: Symbol<unsafe extern "C" fn(*mut c_char) -> *mut c_void> = library
+                    let initialize_module_fn: Symbol<unsafe extern "C" fn(*mut c_char, unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> *mut c_void> = library
                         .get(b"initialize_module")
                         .expect(&format!("Failed to find 'initialize_module' in {}", module_name));
 
                     // Prepare the initialization data
-                    let init_data = ox_webservice::InitializationData {
+                    let init_data = ox_webservice_api::InitializationData {
                         context: initial_context.clone(), // Clone the context
                         params: module_config.params.clone().unwrap_or(Value::Null),
                     };
@@ -255,7 +284,7 @@ async fn main() {
                     let init_data_json = serde_json::to_string(&init_data).unwrap();
                     let init_data_cstring = CString::new(init_data_json).unwrap();
                     
-                    let module_endpoints_ptr = initialize_module_fn(init_data_cstring.into_raw());
+                    let module_endpoints_ptr = initialize_module_fn(init_data_cstring.into_raw(), render_template_ffi);
                     let boxed_module_endpoints = Box::from_raw(module_endpoints_ptr as *mut ModuleEndpoints);
                     let module_endpoints = *boxed_module_endpoints;
 
@@ -283,6 +312,15 @@ async fn main() {
             }
             Err(e) => {
                 error!("Failed to load module {}: {}", module_name, e);
+                if let Some(eh_config) = error_handler_config_arc.clone() {
+                    // In a real scenario, you might want to collect these errors and present them
+                    // or shut down the server if a critical module fails.
+                    // For now, we'll just log and continue, but the error handler could be used
+                    // to generate a specific error page if the server were to start in a degraded state.
+                    // This part is tricky because we are still in the initialization phase of the server.
+                    // We can't return an axum response here directly.
+                    // For now, we'll just log the error and skip the module.
+                }
             }
         }
     }
@@ -292,44 +330,94 @@ async fn main() {
     wildcard_endpoints.sort_by_key(|(_, endpoint)| endpoint.priority);
 
     // Register all specific module endpoints with Axum
+    let error_handler_config_arc_for_specific_endpoints = error_handler_config_arc.clone();
     for (loaded_module, endpoint) in specific_endpoints {
         let full_url = format!("/{}", endpoint.path);
-        let handler_fn_clone = endpoint.handler;
-        let handler_library_clone = loaded_module._library.clone(); // Get the library from loaded_module
-        let module_name_clone = loaded_module.module_name.clone(); // Get the module name from loaded_module
+        let module_name_clone = loaded_module.module_name.clone();
+        let handler_fn_for_closure = endpoint.handler; // Get handler_fn here
+        let error_handler_config_for_handler_in_closure = error_handler_config_arc_for_specific_endpoints.clone();
 
-        let axum_handler = move |req: axum::http::Request<axum::body::Body>| {
-            let _handler_library_clone = handler_library_clone.clone(); // Use the cloned library
+        let axum_handler = move |req: axum::http::Request<axum::body::Body>| -> futures::future::BoxFuture<'static, axum::response::Response> {
             let _handler_module_name_clone = module_name_clone.clone(); // Use the cloned module name
-            async move {
+            
+            Box::pin(async move {
                 let path = req.uri().path().to_string();
                 let request_json = serde_json::json!({ "path": path }).to_string();
                 let request_cstring = CString::new(request_json).unwrap();
 
-                unsafe {
-                    let response_ptr = handler_fn_clone(request_cstring.into_raw());
-                    println!("DEBUG: response_ptr: {:?}", response_ptr);
+                let handler_result = tokio::task::spawn_blocking(move || {
+                    call_module_handler(handler_fn_for_closure, request_cstring, path.clone())
+                }).await.unwrap(); // .unwrap() to get the Result from the spawned task
 
-                    let c_str = CStr::from_ptr(response_ptr);
-                    println!("DEBUG: c_str: {:?}", c_str);
-                    let response_json = c_str.to_str().expect("Failed to convert CStr to &str");
-                    println!("DEBUG: response_json in ox_webservice: {}", response_json);
+                match handler_result {
+                    Ok(json_value) => {
+                        let status_code = 404 as u16;
+                        debug!("Extracted status code: {}", status_code);
+                        let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
+                        let content_type = json_value.get("headers").and_then(|h| h.get("Content-Type")).and_then(|ct| ct.as_str()).unwrap_or("application/json").to_string();
 
-                    let _ = CString::from_raw(response_ptr as *mut c_char);
+                        let mut response = axum::response::Response::builder()
+                            .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK))
+                            .header(axum::http::header::CONTENT_TYPE, content_type);
+                        
+                        // Add other headers if they exist in json_value.get("headers")
+                        if let Some(headers_map) = json_value.get("headers").and_then(|h| h.as_object()) {
+                            for (key, value) in headers_map {
+                                if key != "Content-Type" {
+                                    if let Some(header_value) = value.as_str() {
+                                        response = response.header(key, header_value);
+                                    }
+                                }
+                            }
+                        }
 
-                    Json(serde_json::from_str::<serde_json::Value>(response_json).unwrap()).into_response()
+                        response.body(axum::body::Body::from(body)).unwrap().into_response()
+                    },
+                    Err(e) => {
+                        error!("{}", e);
+                        if let Some(eh_config) = error_handler_config_for_handler_in_closure {
+                            ox_webservice_errorhandler::handle_error(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "Internal Server Error".to_string(),
+                                e,
+                                PathBuf::from("ox_webservices_errorhandler.yaml"),
+                            ).await.into_response()
+                        } else {
+                            let error_json = serde_json::json!({
+                                "status": 500,
+                                "body": format!("Internal Server Error: {}", e)
+                            }).to_string();
+                            match serde_json::from_str::<serde_json::Value>(&error_json) {
+                                Ok(json_value) => {
+                                    let status_code = json_value.get("status").and_then(|s| s.as_u64()).unwrap_or(500) as u16;
+                                    let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
+                                    axum::response::Response::builder()
+                                        .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
+                                        .header(axum::http::header::CONTENT_TYPE, "application/json")
+                                        .body(axum::body::Body::from(body)).unwrap().into_response()
+                                },
+                                Err(e) => {
+                                    error!("Failed to parse internal error JSON: {}", e);
+                                    (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
+                                }
+                            }
+                        }
+                    }
                 }
-            }
+            })
         };
+
         app = app.route(&full_url, get(axum_handler));
     }
 
     info!("Major process state: Registering fallback handler for wildcard routes.");
     // Register a fallback handler for wildcard routes
     let shared_wildcard_endpoints = Arc::new(wildcard_endpoints);
+    let error_handler_config_for_fallback = error_handler_config_arc.clone();
     app = app.fallback(move |req: axum::http::Request<axum::body::Body>| {
         let path = req.uri().path().to_string();
         let wildcard_endpoints_clone = shared_wildcard_endpoints.clone();
+        let error_handler_config_for_fallback_clone = error_handler_config_for_fallback.clone();
         async move {
             for (loaded_module, endpoint) in wildcard_endpoints_clone.iter() {
                 // Check if the path matches the wildcard handler (which is always true for a fallback)
@@ -340,18 +428,61 @@ async fn main() {
 
                 let dummy_request = CString::new(format!("{{\"path\":\"{}\"}}", path)).unwrap();
                 unsafe {
-                    let response_ptr = handler_fn_clone(dummy_request.into_raw());
+                    let response_ptr = (handler_fn_clone.0)(dummy_request.into_raw());
 
                     let c_str = CStr::from_ptr(response_ptr);
-                    let response_json = c_str.to_str().expect("Failed to convert CStr to &str");
+                    let response_json = match c_str.to_str().map_err(|e| format!("Failed to convert CStr to &str: {}", e)) {
+                    Ok(s) => s.to_string(),
+                    Err(e) => {
+                        error!("{}", e);
+                        return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Failed to convert CStr to &str").into_response();
+                    }
+                };
 
                     let _ = CString::from_raw(response_ptr as *mut c_char);
 
-                    return Json(serde_json::from_str::<serde_json::Value>(response_json).unwrap()).into_response();
+                    match serde_json::from_str::<serde_json::Value>(&response_json) {
+                        Ok(json_value) => {
+                            let status_code = 404 as u16;
+                            debug!("Extracted status code: {}", status_code);
+                            let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
+                            let content_type = json_value.get("headers").and_then(|h| h.get("Content-Type")).and_then(|ct| ct.as_str()).unwrap_or("application/json").to_string();
+
+                            let mut response = axum::response::Response::builder()
+                                .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK))
+                                .header(axum::http::header::CONTENT_TYPE, content_type);
+                            
+                            // Add other headers if they exist in json_value.get("headers")
+                            if let Some(headers_map) = json_value.get("headers").and_then(|h| h.as_object()) {
+                                for (key, value) in headers_map {
+                                    if key != "Content-Type" {
+                                        if let Some(header_value) = value.as_str() {
+                                            response = response.header(key, header_value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            return response.body(axum::body::Body::from(body)).unwrap().into_response();
+                        },
+                        Err(e) => {
+                            error!("Failed to parse JSON response from module handler: {}", e);
+                            // Fallback to a generic 500 error if the module's response is invalid JSON
+                            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Invalid module response").into_response();
+                        }
+                    }
                 }
             }
             // If no wildcard handler returns a response, then it's a 404
-            (axum::http::StatusCode::NOT_FOUND, "Not Found").into_response()
+                            if let Some(eh_config) = error_handler_config_for_fallback_clone {
+                                return ox_webservice_errorhandler::handle_error(
+                                    StatusCode::NOT_FOUND,
+                                    "Not Found".to_string(),
+                                    format!("The requested URL '{}' was not found.", path),
+                                    PathBuf::from(cli.config.clone()).parent().unwrap().join("ox_webservice_errorhandler.yaml"),
+                                ).await.into_response();            } else {
+                (axum::http::StatusCode::NOT_FOUND, "Not Found").into_response()
+            }
         }
     });
 
@@ -422,6 +553,28 @@ macro_rules! debug_println {
             println!($($arg)*);
         }
     };
+}
+
+fn call_module_handler(
+    handler_fn: SendableWebServiceHandler,
+    request_cstring: CString,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    unsafe {
+        let response_ptr = (handler_fn.0)(request_cstring.into_raw());
+
+        if response_ptr.is_null() {
+            error!("Handler returned a null pointer for path: {}", path);
+            return Err(format!("Handler for path '{}' returned a null response.", path));
+        }
+
+        let c_str = CStr::from_ptr(response_ptr as *mut c_char);
+        let response_json_str = c_str.to_str().map_err(|e| format!("Failed to convert CStr to &str: {}", e))?.to_string();
+
+        let _ = CString::from_raw(response_ptr as *mut c_char); // Deallocate the memory
+
+        serde_json::from_str(&response_json_str).map_err(|e| format!("Failed to parse JSON from module handler: {}", e))
+    }
 }
 
 #[no_mangle]

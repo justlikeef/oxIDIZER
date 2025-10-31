@@ -19,7 +19,7 @@ members = [
     "ox_data_broker",
     "ox_webservice",
     "ox_status_page",
-    "ox_data_object_manager", "ox_server_info", "ox_webservice_api", "ox_content",
+    "ox_data_object_manager", "ox_server_info", "ox_webservice_api", "ox_content", "ox_webservice_errorhandler",
 ]
 
 [package]

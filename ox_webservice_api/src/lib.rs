@@ -5,11 +5,17 @@ use serde_json::Value;
 // Define the C-compatible function signature for handlers
 pub type WebServiceHandler = unsafe extern "C" fn(*mut c_char) -> *mut c_char;
 
+#[derive(Debug, Clone, Copy)] // Copy is important for raw function pointers
+pub struct SendableWebServiceHandler(pub WebServiceHandler);
+
+unsafe impl Send for SendableWebServiceHandler {}
+unsafe impl Sync for SendableWebServiceHandler {}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct ModuleEndpoint {
     pub path: String,
     #[serde(skip)]
-    pub handler: WebServiceHandler,
+    pub handler: SendableWebServiceHandler,
     pub priority: u16,
 }
 
@@ -48,8 +54,6 @@ pub struct WebServiceContext {
     pub available_disk_gb: f64,
     pub server_port: u16,
     pub bound_ip: String,
-    #[serde(skip)]
-    pub render_template_fn: Option<unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,7 +82,7 @@ impl<'de> Deserialize<'de> for ModuleEndpoint {
         let helper = ModuleEndpointHelper::deserialize(deserializer)?;
         Ok(ModuleEndpoint {
             path: helper.path,
-            handler: dummy_handler, // Assign a dummy handler
+            handler: SendableWebServiceHandler(dummy_handler), // Assign a dummy handler wrapped in SendableWebServiceHandler
             priority: helper.priority,
         })
     }
