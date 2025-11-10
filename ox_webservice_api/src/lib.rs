@@ -1,94 +1,89 @@
 use libc::{c_char, c_void};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
+use axum::response::{IntoResponse, Response};
+use std::future::Future;
 
 // Define the C-compatible function signature for handlers
 pub type WebServiceHandler = unsafe extern "C" fn(*mut c_char) -> *mut c_char;
 
 #[derive(Debug, Clone, Copy)] // Copy is important for raw function pointers
+#[repr(C)]
 pub struct SendableWebServiceHandler(pub WebServiceHandler);
 
 unsafe impl Send for SendableWebServiceHandler {}
 unsafe impl Sync for SendableWebServiceHandler {}
 
-#[derive(Debug, Serialize, Clone)]
-pub struct ModuleEndpoint {
-    pub path: String,
-    #[serde(skip)]
-    pub handler: SendableWebServiceHandler,
-    pub priority: u16,
-}
+pub type InitializeModuleFn = unsafe extern "C" fn(*mut c_void, unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> SendableWebServiceHandler;
 
-// This struct will be returned by dynamically loaded modules
-// It contains a list of endpoints, each with a URL path and a raw function pointer to its handler
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ModuleEndpoints {
-    pub endpoints: Vec<ModuleEndpoint>,
-}
-
-// C-compatible function to destroy ModuleEndpoints instance
-#[no_mangle]
-pub extern "C" fn destroy_module_endpoints(ptr: *mut c_void) {
-    if ptr.is_null() {
-        return;
-    }
-    unsafe {
-        // Reconstruct the Box and let it drop
-        let _ = Box::from_raw(ptr as *mut ModuleEndpoints);
-    }
-}
 
 // Context struct to be passed to dynamically loaded modules
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct WebServiceContext {
-    pub version: String,
-    pub build_date: String,
-    pub running_directory: String,
-    pub config_file_location: String,
-    pub loaded_modules: Vec<String>,
-    pub hostname: String,
-    pub os_info: String,
-    pub total_memory_gb: f64,
-    pub available_memory_gb: f64,
-    pub total_disk_gb: f64,
-    pub available_disk_gb: f64,
-    pub server_port: u16,
-    pub bound_ip: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InitializationData {
-    pub context: WebServiceContext,
-    pub params: Value,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ModuleInfo {
-    pub name: String,
-    pub endpoints: Vec<String>,
-}
-
-impl<'de> Deserialize<'de> for ModuleEndpoint {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct ModuleEndpointHelper {
-            path: String,
-            priority: u16,
+impl Default for WebServiceContext {
+    fn default() -> Self {
+        Self {
         }
-
-        let helper = ModuleEndpointHelper::deserialize(deserializer)?;
-        Ok(ModuleEndpoint {
-            path: helper.path,
-            handler: SendableWebServiceHandler(dummy_handler), // Assign a dummy handler wrapped in SendableWebServiceHandler
-            priority: helper.priority,
-        })
     }
 }
 
-unsafe extern "C" fn dummy_handler(_request_ptr: *mut c_char) -> *mut c_char {
-    // Return a null pointer or an empty string
-    std::ptr::null_mut()
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ModuleConfig {
+    pub name: String,
+    #[serde(default)]
+    pub params: Option<Value>,
+    #[serde(default)]
+    pub error_path: Option<String>,
 }
+
+impl Default for ModuleConfig {
+    fn default() -> Self {
+        ModuleConfig {
+            name: String::new(),
+            params: None,
+            error_path: None,
+        }
+    }
+}
+
+// C-compatible function signature for error handlers
+pub type CErrorHandlerFn = unsafe extern "C" fn(
+    *mut c_void, // A pointer to the actual error handler instance (self)
+    u16,         // status_code as u16
+    *mut c_char, // message as CString
+    *mut c_char, // context as CString
+    *mut c_char, // params as CString (JSON string)
+    *mut c_char, // module_context as CString (JSON string)
+) -> *mut c_char; // Returned HTML as CString
+
+// C-compatible struct to represent an error handler
+#[repr(C)]
+pub struct CErrorHandler {
+    pub instance_ptr: *mut c_void, // Pointer to the actual ErrorHandler instance
+    pub handle_error_fn: CErrorHandlerFn,
+}
+
+unsafe impl Send for CErrorHandler {}
+unsafe impl Sync for CErrorHandler {}
+
+// Type alias for the factory function that creates CErrorHandler
+pub type ErrorHandlerFactory = unsafe extern "C" fn(*mut c_void) -> *mut CErrorHandler;
+
+#[derive(Debug, Clone, Copy)]
+pub struct SendableCErrorHandler(pub *mut CErrorHandler);
+
+unsafe impl Send for SendableCErrorHandler {}
+unsafe impl Sync for SendableCErrorHandler {}
+
+pub trait ErrorHandler {
+    fn handle_error(&self, status_code: u16, message: &str, context: &str, params: &Value, module_context: &str) -> String;
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InitializationData {
+    pub config_path: String,
+    pub context: WebServiceContext,
+}
+

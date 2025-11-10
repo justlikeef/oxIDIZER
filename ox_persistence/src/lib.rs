@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use ox_data_object::generic_data_object::{GenericDataObject};
+use ox_data_object::{GenericDataObject};
 use ox_type_converter::ValueType;
 use serde::{Deserialize, Serialize};
 

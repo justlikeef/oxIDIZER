@@ -1,0 +1,52 @@
+ Project: oxDataObject (Rust workspace)
+    2 Goal: Modular, extensible web service.
+    3 Core: ox_webservice (bin)
+    4   Role: Orchestrator. Loads/manages dynamic modules (.so).
+    5   Config: ox_webservice.yaml (YAML). Defines port, modules, error_handler.
+    6   Module Loading: libloading crate. FFI (C ABI).
+    7     `initialize_module` (standard modules)
+    8     `create_error_handler` (error handler module)
+    9   FFI Data Flow:
+   10     `ox_webservice` -> `ModuleConfig` (struct pointer) -> Module FFI fn
+   11     Module FFI fn -> `ModuleEndpoints` (struct pointer) -> `ox_webservice`
+   12     `ox_webservice` -> `CErrorHandler` (struct pointer) -> Error Handler FFI fn
+   13   Memory Mgmt: Explicit FFI ownership transfer. `Box::into_raw` (module gives), `Box::from_raw`
+      (ox_webservice takes). `LoadedErrorHandler` (ox_webservice) implements `Drop` to call module's
+      `destroy_error_handler` (FFI fn) for deallocation.
+   14   Routing: axum framework. Maps module-provided endpoints to handlers.
+   15   Request Flow:
+   16     1. Request received.
+   17     2. Matched against module endpoints (priority-based).
+   18     3. If match: call module's handler.
+   19     4. If no match (404) or handler error (500): call error handler module.
+   20     5. Error handler returns HTML.
+   21 Modules: (cdylib crates)
+   22   Standard (e.g., ox_content):
+   23     `initialize_module(module_config_ptr: *mut c_void, render_template_ffi: FFI_FN) -> *mut c_void
+      (ModuleEndpoints)`
+   24     `module_config_ptr` points to `ModuleConfig` (from `ox_webservice_api`).
+   25     Reads own config (e.g., ox_content.yaml) based on `module_config.params`.
+   26     Returns `ModuleEndpoints` (list of `ModuleEndpoint` structs, each with `path`, `priority`,
+      `SendableWebServiceHandler` (FFI fn pointer)).
+   27   Error Handler (ox_webservice_errorhandler_jinja2):
+   28     `create_error_handler(module_config_ptr: *mut c_void) -> *mut CErrorHandler`
+   29     `module_config_ptr` points to `ModuleConfig` (from `ox_webservice_api`).
+   30     Reads own config (e.g., ox_webservice_errorhandler_jinja2.yaml) based on `module_config.params`.
+   31     Uses `tera` for Jinja2 templating.
+   32     `handle_error_c(handler_ptr: *mut c_void, status: u16, msg: *mut c_char, ctx: *mut c_char, params: *mut
+      c_char) -> *mut c_char (HTML)`
+   33     `destroy_error_handler(handler_ptr: *mut CErrorHandler)`
+   34 API Crate: ox_webservice_api (lib)
+   35   Role: Defines shared FFI types/signatures/structs.
+   36   Key Types:
+   37     `ModuleConfig`: (name, params: Option<Value>, error_path: Option<String>, context: WebServiceContext).
+      Passed as `*mut c_void`.
+   38     `WebServiceContext`: (version, build_date, running_directory, etc.). Default impl.
+   39     `ModuleEndpoint`: (path, handler: SendableWebServiceHandler, priority). Custom `Deserialize` to skip
+      `handler`.
+   40     `ModuleEndpoints`: Vec<ModuleEndpoint>.
+   41     `CErrorHandler`: (instance_ptr: *mut c_void, handle_error_fn: CErrorHandlerFn).
+   42     `InitializeModuleFn`: `unsafe extern "C" fn(*mut c_void, FFI_FN) -> *mut c_void`.
+   43     `CErrorHandlerFn`: `unsafe extern "C" fn(*mut c_void, u16, *mut c_char, *mut c_char, *mut c_char) -> *mut
+      c_char`.
+   44     `ErrorHandlerFactory`: `unsafe extern "C" fn(*mut c_void) -> *mut CErrorHandler`.

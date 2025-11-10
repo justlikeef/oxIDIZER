@@ -52,32 +52,20 @@ pub extern "C" fn status_page_handler(_request_ptr: *mut c_char) -> *mut c_char 
     // For the status page, we don't need request data, so we ignore it.
 
     // Get context information (this is a placeholder, actual context will be passed)
-    let context = WebServiceContext {
-        version: "0.1.0".to_string(), // Placeholder
-        build_date: "Unknown".to_string(), // Placeholder
-        running_directory: "Unknown".to_string(), // Placeholder
-        config_file_location: "Unknown".to_string(), // Placeholder
-        loaded_modules: vec![], // Placeholder
-        hostname: "Unknown".to_string(),
-        os_info: "Unknown".to_string(),
-        total_memory_gb: 0.0,
-        available_memory_gb: 0.0,
-        total_disk_gb: 0.0,
-        available_disk_gb: 0.0,
-        server_port: 0,
-        bound_ip: "0.0.0.0".to_string(),
-    };
+    let context = WebServiceContext::default();
 
     let mut env = Environment::new();
     env.add_template("status_page", STATUS_PAGE_TEMPLATE).unwrap();
 
     let tmpl = env.get_template("status_page").unwrap();
     let rendered = tmpl.render(minijinja::context! {
-        version => context.version,
-        build_date => context.build_date,
-        running_directory => context.running_directory,
-        config_file_location => context.config_file_location,
-        loaded_modules => context.loaded_modules,
+        // These fields are no longer directly available in WebServiceContext
+        // They should be obtained from ox_server_info
+        version => "Unknown".to_string(),
+        build_date => "Unknown".to_string(),
+        running_directory => "Unknown".to_string(),
+        config_file_location => "Unknown".to_string(),
+        loaded_modules => vec!["Unknown".to_string()],
     }).unwrap();
 
     CString::new(rendered).expect("Failed to create CString from rendered template").into_raw()

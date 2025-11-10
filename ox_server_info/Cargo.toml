@@ -15,6 +15,7 @@ sysinfo = "0.37.2"
 libloading = "0.8"
 ox_webservice = { path = "../ox_webservice" }
 libc = "0.2"
+log4rs = "1.2.0"
 log = "0.4"
 ox_webservice_api = { path = "../ox_webservice_api" }
 

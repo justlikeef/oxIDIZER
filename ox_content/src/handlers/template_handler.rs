@@ -11,7 +11,7 @@ pub fn template_handler(file_path: PathBuf, mimetype: &str, render_fn: unsafe ex
         Ok(content) => {
             let template_name = {
                 let state = unsafe { crate::MODULE_STATE.as_ref().ok_or_else(|| "Module state not initialized".to_string())? };
-                let stripped_path = file_path.strip_prefix(&state.webservice_context.running_directory)
+                let stripped_path = file_path.strip_prefix(&state.content_root)
                     .unwrap_or(&file_path);
                 stripped_path.to_str()
                     .ok_or_else(|| format!("Invalid UTF-8 in path: {}", stripped_path.display()))?

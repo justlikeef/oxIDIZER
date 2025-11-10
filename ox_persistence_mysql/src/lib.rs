@@ -3,13 +3,15 @@ use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
-use ox_persistence_sql::{SqlPersistenceDriver, GenericSqlDriver};
+use ox_persistence_sql::SqlPersistenceDriver;
 use libc::{c_char, c_void};
 use std::ffi::{CStr, CString};
 use serde_json;
 use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
 
-pub struct MySqlDriver;
+pub struct MySqlDriver {
+    sql_driver: SqlPersistenceDriver,
+}
 
 impl PersistenceDriver for MySqlDriver {
     fn persist(
@@ -17,8 +19,8 @@ impl PersistenceDriver for MySqlDriver {
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
     ) -> Result<(), String> {
-        // Delegate to GenericSqlDriver
-        GenericSqlDriver.persist(serializable_map, location)
+        // Delegate to SqlPersistenceDriver
+        self.sql_driver.persist(serializable_map, location)
     }
 
     fn restore(
@@ -26,13 +28,13 @@ impl PersistenceDriver for MySqlDriver {
         location: &str,
         id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        // Delegate to GenericSqlDriver
-        GenericSqlDriver.restore(location, id)
+        // Delegate to SqlPersistenceDriver
+        self.sql_driver.restore(location, id)
     }
 
     fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
-        // Delegate to GenericSqlDriver
-        GenericSqlDriver.fetch(filter, location)
+        // Delegate to SqlPersistenceDriver
+        self.sql_driver.fetch(filter, location)
     }
 
     fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
@@ -97,19 +99,7 @@ impl PersistenceDriver for MySqlDriver {
     }
 }
 
-impl SqlPersistenceDriver for MySqlDriver {
-    fn execute_query(&self, query: &str, params: &HashMap<String, String>) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, String> {
-        // This would be the actual MySQL specific query execution
-        println!("Executing MySQL query: {}", query);
-        println!("With params: {:?}", params);
-        // Dummy implementation
-        Ok(vec![])
-    }
 
-    fn build_where_clause(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>) -> (String, HashMap<String, String>) {
-        GenericSqlDriver.build_where_clause(filter)
-    }
-}
 
 // C-compatible function to get driver metadata
 #[no_mangle]
@@ -138,7 +128,9 @@ pub extern "C" fn get_driver_metadata_json() -> *mut c_char {
 // C-compatible function to create a new driver instance
 #[no_mangle]
 pub extern "C" fn create_driver() -> *mut c_void {
-    let driver = Arc::new(MySqlDriver);
+    let driver = Arc::new(MySqlDriver {
+        sql_driver: SqlPersistenceDriver,
+    });
     let trait_object: Arc<dyn PersistenceDriver + Send + Sync> = driver;
     Box::into_raw(Box::new(trait_object)) as *mut c_void
 }

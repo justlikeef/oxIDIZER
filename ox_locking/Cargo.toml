@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ox_data_object = { path = "../" }
+ox_data_object = { path = "../ox_data_object" }
 ox_callback_manager = { path = "../ox_callback_manager" }
 ox_type_converter = { path = "../ox_type_converter" }
 uuid = { version = "1.0", features = ["v4"] }

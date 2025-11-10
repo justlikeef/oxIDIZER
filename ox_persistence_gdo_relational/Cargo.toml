@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ox_persistence = { path = "../ox_persistence" }
-ox_data_object = { path = "../" }
+ox_data_object = { path = "../ox_data_object" }
 ox_type_converter = { path = "../ox_type_converter" }
 ox_locking = { path = "../ox_locking" }
 uuid = { version = "1.8.0", features = ["v4"] }

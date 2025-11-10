@@ -1,6 +1,6 @@
-use axum::{routing::get, Json, Router, response::IntoResponse};
+use axum::{routing::get, Json, Router, response::{IntoResponse, Html}};
 use clap::Parser;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap; // Keep this for now, might be needed later
 use std::ffi::{CStr, CString, c_char, c_void};
@@ -20,10 +20,13 @@ use libloading::{Library, Symbol};
 
 use std::panic;
 
-use ox_webservice_api::{ModuleEndpoints, ModuleEndpoint, WebServiceContext, SendableWebServiceHandler};
+use ox_webservice_api::{ModuleConfig, WebServiceContext, SendableWebServiceHandler, CErrorHandler, CErrorHandlerFn};
 use axum::http::StatusCode;
+use regex::Regex;
 
 static mut GLOBAL_TERA: Option<Arc<Tera>> = None;
+
+
 
 #[derive(Debug, Deserialize)]
 struct TemplateQuery {
@@ -33,7 +36,6 @@ struct TemplateQuery {
 
 #[derive(Debug, Deserialize)]
 struct ServerConfig {
-    port: u16,
     #[serde(default)] // Allow modules to be optional in the config file
     modules: Vec<ModuleConfig>,
     #[serde(default)] // Allow log_output_path to be optional
@@ -42,28 +44,42 @@ struct ServerConfig {
     log_level: String,
     #[serde(default)]
     error_handler: Option<ModuleConfig>,
+    server: ServerDetails, // New field
+}
+
+#[derive(Debug, Deserialize)]
+struct ServerDetails {
+    port: u16,
+    bind_address: String,
 }
 
 fn default_log_level() -> String {
     "info".to_string()
 }
 
-#[derive(Debug, Deserialize, Clone)]
-struct ModuleConfig {
-    name: String,
-    #[serde(default)]
-    params: Option<Value>,
-    #[serde(default)]
-    error_path: Option<String>,
-}
 
 
-// A wrapper for a dynamically loaded module
+
 struct LoadedModule {
     _library: Arc<Library>, // Keep the library loaded as an Arc
     module_name: String,
-    endpoints: Vec<ModuleEndpoint>,
+    handler: SendableWebServiceHandler, // Store the handler directly
     module_config: ModuleConfig,
+}
+
+struct LoadedErrorHandler {
+    _library: Arc<Library>,
+    c_error_handler: CErrorHandler,
+    destroy_fn: unsafe extern "C" fn(*mut CErrorHandler),
+}
+
+impl Drop for LoadedErrorHandler {
+    fn drop(&mut self) {
+        info!("Dropping LoadedErrorHandler for module: {:?}", self.c_error_handler.instance_ptr);
+        unsafe {
+            (self.destroy_fn)(&mut self.c_error_handler);
+        }
+    }
 }
 
 
@@ -90,9 +106,19 @@ struct Cli {
     #[arg(short, long, default_value = "info")]
     log_level: String,
 
-    /// Path to the error templates for ox_content module
-    #[arg(long)]
-    ox_content_error_path: Option<String>,
+    /// Pass parameters to modules, e.g., -p ox_content:error_path=www/error_cli
+    #[arg(short = 'p', long, value_parser = parse_key_val, action = clap::ArgAction::Append)]
+    module_params: Vec<(String, Value)>,
+}
+
+fn parse_key_val(s: &str) -> Result<(String, Value), String> {
+    let pos = s.find(':').ok_or_else(|| format!("invalid KEY:VALUE format: no `:` found in `{}`", s))?;
+    let key = s[..pos].to_string();
+    let rest = &s[pos + 1..];
+    let pos = rest.find('=').ok_or_else(|| format!("invalid PARAM=VALUE format: no `=` found in `{}`", rest))?;
+    let param_key = rest[..pos].to_string();
+    let value = rest[pos + 1..].to_string();
+    Ok((key, serde_json::json!({ param_key: value })))
 }
 
 
@@ -101,7 +127,9 @@ async fn main() {
     let cli = Cli::parse();
 
     // Initialize logger based on CLI log level
-    env_logger::Builder::from_env(Env::default().default_filter_or(&cli.log_level)).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or(&cli.log_level))
+        .filter_level(log::LevelFilter::Debug) // Explicitly set filter level to Debug
+        .init();
 
     info!("Starting ox_webservice...");
     debug!("CLI arguments: {:?}", cli);
@@ -130,25 +158,7 @@ async fn main() {
     let server_config_path = Path::new(&cli.config);
     let mut server_config: ServerConfig = load_config_from_path(server_config_path, &cli.log_level);
 
-    let error_handler_config_arc = if let Some(eh_module_config) = &server_config.error_handler {
-        if let Some(params) = &eh_module_config.params {
-            if let Some(config_file_value) = params.get("config_file") {
-                if let Some(config_file_str) = config_file_value.as_str() {
-                    let config_path = PathBuf::from(config_file_str);
-                    match ox_webservice_errorhandler::ErrorHandlerConfig::from_yaml_file(&config_path) {
-                        Ok(cfg) => {
-                            info!("Successfully loaded error handler configuration from {:?}", config_path);
-                            Some(Arc::new(cfg))
-                        },
-                        Err(e) => {
-                            error!("Failed to load error handler configuration from {:?}: {}", config_path, e);
-                            None
-                        }
-                    }
-                } else { None }
-            } else { None }
-        } else { None }
-    } else { None };
+
 
     // --- Apply CLI Log Output Path Override ---
     // CLI takes precedence over config file for log output
@@ -166,11 +176,15 @@ async fn main() {
             .open(&path)
             .expect(&format!("Failed to open log file: {}", path));
         
+#[cfg(target_os = "windows")]
         use std::os::windows::io::AsRawHandle;
+        #[cfg(target_os = "windows")]
         use windows_sys::Win32::System::Console::{SetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
 
+        #[cfg(target_os = "windows")]
         let file_handle = file.as_raw_handle();
 
+        #[cfg(target_os = "windows")]
         unsafe {
             // Redirect stdout
             SetStdHandle(STD_OUTPUT_HANDLE, file_handle as isize);
@@ -186,26 +200,35 @@ async fn main() {
         server_config.modules = cli_modules
             .into_iter()
             .map(|name| {
-                let mut module_config = ModuleConfig {
+                ModuleConfig {
                     name,
                     params: None,
                     error_path: None,
-                };
-                // Apply CLI specific overrides
-                if module_config.name == "ox_content" {
-                    module_config.error_path = cli.ox_content_error_path.clone();
                 }
-                module_config
             })
             .collect();
     }
 
+    // --- Merge CLI parameters into module configs ---
+    for (module_name, cli_params) in &cli.module_params {
+        if let Some(module_config) = server_config.modules.iter_mut().find(|m| &m.name == module_name) {
+            if let Some(existing_params) = &mut module_config.params {
+                if let Value::Object(map) = existing_params {
+                    if let Value::Object(cli_map) = cli_params {
+                        for (k, v) in cli_map {
+                            map.insert(k.clone(), v.clone());
+                        }
+                    }
+                }
+            } else {
+                module_config.params = Some(cli_params.clone());
+            }
+        }
+    }
+
         // --- Initialize Tera ---
         let tera_instance = match Tera::new("content/**/*.html") {
-            Ok(mut t) => {
-                t.add_raw_templates(vec![
-                    ("jinja2_templates", "{% include \"content/**/*.jinja2\" %}")
-                ]).unwrap();
+            Ok(t) => {
                 info!("Tera templates initialized successfully.");
                 t
             },
@@ -223,36 +246,67 @@ async fn main() {
     // --- Dynamically Load Modules and Register Routes ---
     let mut app = Router::new();
     let mut loaded_modules: Vec<Arc<LoadedModule>> = Vec::new();
-    let mut specific_endpoints: Vec<(Arc<LoadedModule>, ModuleEndpoint)> = Vec::new();
-    let mut wildcard_endpoints: Vec<(Arc<LoadedModule>, ModuleEndpoint)> = Vec::new();
-    let mut error_handler_module: Option<Arc<LoadedModule>> = None;
+    let mut error_handler_module: Option<Arc<LoadedErrorHandler>> = None;
 
-    // Collect module names for WebServiceContext
-    let module_names: Vec<String> = server_config.modules.iter().map(|m| m.name.clone()).collect();
+    let addr = SocketAddr::from(([127, 0, 0, 1], server_config.server.port));
 
-    // System Info for WebServiceContext
-    let os_info = format!("{} {}", System::name().unwrap_or_else(|| "Unknown".to_string()), System::os_version().unwrap_or_else(|| "Unknown".to_string()));
-    let hostname = System::host_name().unwrap_or_else(|| "Unknown".to_string());
-    let running_directory = std::env::current_dir().unwrap().to_str().unwrap().to_string();
-    let addr = SocketAddr::from(([127, 0, 0, 1], server_config.port));
 
-    let initial_context = WebServiceContext {
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        build_date: env!("VERGEN_BUILD_TIMESTAMP").to_string(),
-        running_directory: running_directory.clone(),
-        config_file_location: cli.config.clone(),
-        loaded_modules: module_names.clone(),
-        hostname: hostname.clone(),
-        os_info: os_info.clone(),
-        total_memory_gb: 0.0, // Will be updated by the module if needed
-        available_memory_gb: 0.0, // Will be updated by the module if needed
-        total_disk_gb: 0.0, // Will be updated by the module if needed
-        available_disk_gb: 0.0, // Will be updated by the module if needed
-        server_port: server_config.port,
-        bound_ip: addr.ip().to_string(),
-    };
 
-    for module_config in server_config.modules.into_iter() {
+    if let Some(eh_module_config) = &server_config.error_handler {
+        let module_name = &eh_module_config.name;
+        info!("Attempting to load error handler module: {}", module_name);
+        let library_file_name = if cfg!(target_os = "windows") {
+            format!("{}.dll", module_name)
+        } else if cfg!(target_os = "macos") {
+            format!("lib{}.dylib", module_name)
+        } else {
+            format!("lib{}.so", module_name)
+        };
+
+        let library_path = PathBuf::from(library_file_name);
+
+        debug!("Attempting to load module: {} from {:?}", module_name, library_path);
+
+        match unsafe { Library::new(&library_path) } {
+            Ok(library) => {
+                info!("Successfully loaded module: {}", module_name);
+                let current_library = Arc::new(library); // Wrap library in Arc for sharing
+                unsafe {
+                    let create_error_handler_fn: Symbol<unsafe extern "C" fn(*mut c_void) -> *mut CErrorHandler> = current_library
+                        .get(b"create_error_handler")
+                        .expect(&format!("Failed to find 'create_error_handler' in error handler module {}", module_name));
+
+                    let destroy_error_handler_fn: Symbol<unsafe extern "C" fn(*mut CErrorHandler)> = current_library
+                        .get(b"destroy_error_handler")
+                        .expect(&format!("Failed to find 'destroy_error_handler' in error handler module {}", module_name));
+
+                    let c_error_handler_ptr = create_error_handler_fn(&*eh_module_config as *const ModuleConfig as *mut c_void);
+                    if c_error_handler_ptr.is_null() {
+                        error!("create_error_handler returned a null pointer. Error handler not loaded.");
+                    } else {
+                        let boxed_c_error_handler = Box::from_raw(c_error_handler_ptr);
+                        error_handler_module = Some(Arc::new(LoadedErrorHandler {
+                            _library: current_library.clone(),
+                            c_error_handler: *boxed_c_error_handler,
+                            destroy_fn: *destroy_error_handler_fn,
+                        }));
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Failed to load module {}: {}", module_name, e);
+            }
+        }
+    }
+
+    for module_config in server_config.modules.iter_mut().filter(|m| {
+        if let Some(eh_config) = &server_config.error_handler {
+            m.name != eh_config.name
+        } else {
+            true
+        }
+    }) {
+        // Create a new WebServiceContext for each module
         let module_name = &module_config.name;
         info!("Attempting to load module: {}", module_name);
         let library_file_name = if cfg!(target_os = "windows") {
@@ -271,179 +325,90 @@ async fn main() {
             Ok(library) => {
                 info!("Successfully loaded module: {}", module_name);
                 unsafe {
-                    let initialize_module_fn: Symbol<unsafe extern "C" fn(*mut c_char, unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> *mut c_void> = library
+                    let initialize_module_fn: Symbol<ox_webservice_api::InitializeModuleFn> = library
                         .get(b"initialize_module")
                         .expect(&format!("Failed to find 'initialize_module' in {}", module_name));
 
                     // Prepare the initialization data
-                    let init_data = ox_webservice_api::InitializationData {
-                        context: initial_context.clone(), // Clone the context
-                        params: module_config.params.clone().unwrap_or(Value::Null),
-                    };
-
-                    let init_data_json = serde_json::to_string(&init_data).unwrap();
-                    let init_data_cstring = CString::new(init_data_json).unwrap();
-                    
-                    let module_endpoints_ptr = initialize_module_fn(init_data_cstring.into_raw(), render_template_ffi);
-                    let boxed_module_endpoints = Box::from_raw(module_endpoints_ptr as *mut ModuleEndpoints);
-                    let module_endpoints = *boxed_module_endpoints;
+                    let module_config_ptr = &*module_config as *const ModuleConfig as *mut c_void;
+                    let module_handler = initialize_module_fn(module_config_ptr, render_template_ffi);
 
                     let current_library = Arc::new(library); // Wrap library in Arc for sharing
 
                     let loaded_module = Arc::new(LoadedModule {
                         _library: current_library.clone(),
                         module_name: module_name.clone(),
-                        endpoints: module_endpoints.endpoints.clone(),
+                        handler: module_handler, // Store the handler directly
                         module_config: module_config.clone(),
                     });
-
-                    for endpoint in module_endpoints.endpoints {
-                        info!("Registering route: /{}/{}", module_name, endpoint.path);
-
-                        if endpoint.path == "*" {
-                            wildcard_endpoints.push((loaded_module.clone(), endpoint));
-                        } else {
-                            specific_endpoints.push((loaded_module.clone(), endpoint));
-                        }
-                    }
 
                     loaded_modules.push(loaded_module);
                 }
             }
             Err(e) => {
                 error!("Failed to load module {}: {}", module_name, e);
-                if let Some(eh_config) = error_handler_config_arc.clone() {
-                    // In a real scenario, you might want to collect these errors and present them
-                    // or shut down the server if a critical module fails.
-                    // For now, we'll just log and continue, but the error handler could be used
-                    // to generate a specific error page if the server were to start in a degraded state.
-                    // This part is tricky because we are still in the initialization phase of the server.
-                    // We can't return an axum response here directly.
-                    // For now, we'll just log the error and skip the module.
+            }
+        }
+    }
+
+    // Share the error_handler_module across all specific endpoint handlers and the fallback
+    let shared_error_handler_module = error_handler_module.clone();
+
+    // Store loaded modules with their regex patterns and priorities
+    #[derive(Clone)]
+    struct RouteEntry {
+        module: Arc<LoadedModule>,
+        regex: Regex,
+        priority: u16,
+    }
+
+    let mut route_entries: Vec<RouteEntry> = Vec::new();
+
+    for module_config in server_config.modules.iter() {
+        if let Some(urls) = &module_config.params.as_ref().and_then(|p| p.get("urls")).and_then(|u| u.as_array()) {
+            for url_value in urls.iter() {
+                if let Some(url_str) = url_value.as_str() {
+                    let regex = Regex::new(url_str).expect("Invalid regex in module URL configuration");
+                    if let Some(loaded_module) = loaded_modules.iter().find(|m| m.module_name == module_config.name) { // Corrected: m.name instead of m.module_name
+                        route_entries.push(RouteEntry {
+                            module: loaded_module.clone(),
+                            regex,
+                            priority: module_config.params.as_ref().and_then(|p| p.get("priority")).and_then(|pr| pr.as_u64()).unwrap_or(0) as u16,
+                        });
+                    }
                 }
             }
         }
     }
 
-    info!("Major process state: Registering specific module endpoints.");
-    // Sort wildcard endpoints by priority (lowest to highest)
-    wildcard_endpoints.sort_by_key(|(_, endpoint)| endpoint.priority);
+    // Sort route entries by priority (lowest to highest)
+    route_entries.sort_by_key(|entry| entry.priority);
 
-    // Register all specific module endpoints with Axum
-    let error_handler_config_arc_for_specific_endpoints = error_handler_config_arc.clone();
-    for (loaded_module, endpoint) in specific_endpoints {
-        let full_url = format!("/{}", endpoint.path);
-        let module_name_clone = loaded_module.module_name.clone();
-        let handler_fn_for_closure = endpoint.handler; // Get handler_fn here
-        let error_handler_config_for_handler_in_closure = error_handler_config_arc_for_specific_endpoints.clone();
+    let shared_route_entries = Arc::new(route_entries);
+    let shared_error_handler_module_for_fallback = shared_error_handler_module.clone();
 
-        let axum_handler = move |req: axum::http::Request<axum::body::Body>| -> futures::future::BoxFuture<'static, axum::response::Response> {
-            let _handler_module_name_clone = module_name_clone.clone(); // Use the cloned module name
-            
-            Box::pin(async move {
-                let path = req.uri().path().to_string();
-                let request_json = serde_json::json!({ "path": path }).to_string();
-                let request_cstring = CString::new(request_json).unwrap();
-
-                let handler_result = tokio::task::spawn_blocking(move || {
-                    call_module_handler(handler_fn_for_closure, request_cstring, path.clone())
-                }).await.unwrap(); // .unwrap() to get the Result from the spawned task
-
-                match handler_result {
-                    Ok(json_value) => {
-                        let status_code = 404 as u16;
-                        debug!("Extracted status code: {}", status_code);
-                        let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
-                        let content_type = json_value.get("headers").and_then(|h| h.get("Content-Type")).and_then(|ct| ct.as_str()).unwrap_or("application/json").to_string();
-
-                        let mut response = axum::response::Response::builder()
-                            .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK))
-                            .header(axum::http::header::CONTENT_TYPE, content_type);
-                        
-                        // Add other headers if they exist in json_value.get("headers")
-                        if let Some(headers_map) = json_value.get("headers").and_then(|h| h.as_object()) {
-                            for (key, value) in headers_map {
-                                if key != "Content-Type" {
-                                    if let Some(header_value) = value.as_str() {
-                                        response = response.header(key, header_value);
-                                    }
-                                }
-                            }
-                        }
-
-                        response.body(axum::body::Body::from(body)).unwrap().into_response()
-                    },
-                    Err(e) => {
-                        error!("{}", e);
-                        if let Some(eh_config) = error_handler_config_for_handler_in_closure {
-                            ox_webservice_errorhandler::handle_error(
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                "Internal Server Error".to_string(),
-                                e,
-                                PathBuf::from("ox_webservices_errorhandler.yaml"),
-                            ).await.into_response()
-                        } else {
-                            let error_json = serde_json::json!({
-                                "status": 500,
-                                "body": format!("Internal Server Error: {}", e)
-                            }).to_string();
-                            match serde_json::from_str::<serde_json::Value>(&error_json) {
-                                Ok(json_value) => {
-                                    let status_code = json_value.get("status").and_then(|s| s.as_u64()).unwrap_or(500) as u16;
-                                    let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
-                                    axum::response::Response::builder()
-                                        .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
-                                        .header(axum::http::header::CONTENT_TYPE, "application/json")
-                                        .body(axum::body::Body::from(body)).unwrap().into_response()
-                                },
-                                Err(e) => {
-                                    error!("Failed to parse internal error JSON: {}", e);
-                                    (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-        };
-
-        app = app.route(&full_url, get(axum_handler));
-    }
-
-    info!("Major process state: Registering fallback handler for wildcard routes.");
-    // Register a fallback handler for wildcard routes
-    let shared_wildcard_endpoints = Arc::new(wildcard_endpoints);
-    let error_handler_config_for_fallback = error_handler_config_arc.clone();
     app = app.fallback(move |req: axum::http::Request<axum::body::Body>| {
         let path = req.uri().path().to_string();
-        let wildcard_endpoints_clone = shared_wildcard_endpoints.clone();
-        let error_handler_config_for_fallback_clone = error_handler_config_for_fallback.clone();
+        let route_entries_clone = shared_route_entries.clone();
+        let error_handler_for_fallback_clone = shared_error_handler_module_for_fallback.clone();
+
         async move {
-            for (loaded_module, endpoint) in wildcard_endpoints_clone.iter() {
-                // Check if the path matches the wildcard handler (which is always true for a fallback)
-                // and then call the handler.
-                let handler_fn_clone = endpoint.handler;
-                let _handler_library_clone = loaded_module._library.clone(); // Get the library from loaded_module
-                let _handler_module_name_clone = loaded_module.module_name.clone(); // Get the module name from loaded_module
+            for entry in route_entries_clone.iter() {
+                debug!("Checking module: {} with regex: {} against path: {}", entry.module.module_name, entry.regex.as_str(), path);
+                if entry.regex.is_match(&path) {
+                    debug!("Module {} regex matched for path: {}", entry.module.module_name, path);
+                    let handler_fn_for_closure = entry.module.handler;
+                    let request_json = serde_json::json!({ "path": path }).to_string();
+                    let request_cstring = CString::new(request_json).unwrap();
+                    let path_for_error_handler = path.clone(); // Clone path here for use in error handler
 
-                let dummy_request = CString::new(format!("{{\"path\":\"{}\"}}", path)).unwrap();
-                unsafe {
-                    let response_ptr = (handler_fn_clone.0)(dummy_request.into_raw());
+                    let handler_result = tokio::task::spawn_blocking(move || {
+                        call_module_handler(handler_fn_for_closure, request_cstring, path.clone())
+                    }).await.unwrap();
 
-                    let c_str = CStr::from_ptr(response_ptr);
-                    let response_json = match c_str.to_str().map_err(|e| format!("Failed to convert CStr to &str: {}", e)) {
-                    Ok(s) => s.to_string(),
-                    Err(e) => {
-                        error!("{}", e);
-                        return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Failed to convert CStr to &str").into_response();
-                    }
-                };
-
-                    let _ = CString::from_raw(response_ptr as *mut c_char);
-
-                    match serde_json::from_str::<serde_json::Value>(&response_json) {
+                    match handler_result {
                         Ok(json_value) => {
-                            let status_code = 404 as u16;
+                            let status_code = json_value.get("status").and_then(|s| s.as_u64()).unwrap_or(200) as u16;
                             debug!("Extracted status code: {}", status_code);
                             let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
                             let content_type = json_value.get("headers").and_then(|h| h.get("Content-Type")).and_then(|ct| ct.as_str()).unwrap_or("application/json").to_string();
@@ -452,7 +417,6 @@ async fn main() {
                                 .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK))
                                 .header(axum::http::header::CONTENT_TYPE, content_type);
                             
-                            // Add other headers if they exist in json_value.get("headers")
                             if let Some(headers_map) = json_value.get("headers").and_then(|h| h.as_object()) {
                                 for (key, value) in headers_map {
                                     if key != "Content-Type" {
@@ -465,23 +429,114 @@ async fn main() {
 
                             return response.body(axum::body::Body::from(body)).unwrap().into_response();
                         },
-                        Err(e) => {
-                            error!("Failed to parse JSON response from module handler: {}", e);
-                            // Fallback to a generic 500 error if the module's response is invalid JSON
-                            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Invalid module response").into_response();
-                        }
+            Err(e) => {
+                error!("Module returned an error: {}", e);
+                let status_code = e.get("status").and_then(|s| s.as_u64()).unwrap_or(500) as u16;
+                let status = StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+                let message = e.get("message").and_then(|m| m.as_str()).unwrap_or("").to_string();
+                let module_name = entry.module.module_name.clone();
+                let module_context = e.get("module_context").and_then(|c| c.as_str()).unwrap_or("");
+
+                // Start of handle_error_request logic
+                if let Some(eh_wrapper_arc) = &error_handler_for_fallback_clone {
+                    let eh = &eh_wrapper_arc.c_error_handler;
+                    let status_code_u16 = status.as_u16();
+                    let message_cstring = CString::new(message).expect("CString::new failed");
+                            error!("ox_webservice: Module returning error: module_name = {}", module_name); // Temporarily added logging
+                            let module_name_cstring = CString::new(module_name.clone()).expect("CString::new failed"); // This is being passed
+                                    let params_json = serde_json::json!({
+                                        "request_method": req.method().as_str(),
+                                        "request_path": path_for_error_handler, // Use the cloned path
+                                        "user_agent": req.headers().get("User-Agent").and_then(|h| h.to_str().ok()).unwrap_or("Unknown"),
+                                        "timestamp": chrono::Utc::now().to_rfc3339(),
+                                    }).to_string();                    let params_cstring = CString::new(params_json).expect("CString::new failed");
+                    let module_context_cstring = CString::new(module_context).expect("CString::new failed");
+
+                    error!("ox_webservice: Calling error handler handle_error_fn for status_code: {}", status_code_u16);
+                    let response_ptr = unsafe {
+                        (eh.handle_error_fn)(
+                            eh.instance_ptr,
+                            status_code_u16,
+                            message_cstring.into_raw(),
+                            module_name_cstring.into_raw(), // Pass module_name here
+                            params_cstring.into_raw(),
+                            module_context_cstring.into_raw(),
+                        )
+                    };
+
+                    let html_response = if response_ptr.is_null() {
+                        error!("handle_error_fn returned a null pointer. Returning generic error HTML.");
+                        "<h1>Internal Server Error</h1><p>Error handler returned null.</p>".to_string()
+                    } else {
+                        let c_str = unsafe { CStr::from_ptr(response_ptr) };
+                        let response = c_str.to_str().unwrap().to_string();
+                        unsafe { CString::from_raw(response_ptr) }; // Deallocate the CString
+                        response
+                    };
+
+                    return axum::response::Response::builder()
+                        .status(status)
+                        .header(axum::http::header::CONTENT_TYPE, "text/html")
+                        .body(axum::body::Body::from(html_response))
+                        .unwrap()
+                        .into_response();
+                } else {
+                    let reason = status.canonical_reason().unwrap_or("Internal Server Error");
+                    return (status, format!("{} {}", status.as_u16(), reason)).into_response();
+                }
+                // End of handle_error_request logic
+            }
                     }
                 }
             }
-            // If no wildcard handler returns a response, then it's a 404
-                            if let Some(eh_config) = error_handler_config_for_fallback_clone {
-                                return ox_webservice_errorhandler::handle_error(
-                                    StatusCode::NOT_FOUND,
-                                    "Not Found".to_string(),
-                                    format!("The requested URL '{}' was not found.", path),
-                                    PathBuf::from(cli.config.clone()).parent().unwrap().join("ox_webservice_errorhandler.yaml"),
-                                ).await.into_response();            } else {
-                (axum::http::StatusCode::NOT_FOUND, "Not Found").into_response()
+
+            // If no module handled the request, use the default 404 or error handler
+            if let Some(eh_wrapper_arc) = &error_handler_for_fallback_clone {
+                let eh = &eh_wrapper_arc.c_error_handler;
+                let status_code_u16 = StatusCode::NOT_FOUND.as_u16();
+                let message_cstring = CString::new("Not Found").unwrap();
+                let module_name_cstring = CString::new("Unknown Module".to_string()).unwrap(); // Renamed to module_name_cstring
+                let params_json = serde_json::json!({
+                    "request_method": req.method().as_str(),
+                    "request_path": path,
+                    "user_agent": req.headers().get("User-Agent").and_then(|h| h.to_str().ok()).unwrap_or("Unknown"),
+                    "timestamp": chrono::Utc::now().to_rfc3339(),
+                }).to_string();
+                let params_cstring = CString::new(params_json).unwrap();
+
+                let module_context_cstring = CString::new("").unwrap();
+                error!("ox_webservice: Calling error handler handle_error_fn for status_code: {}", status_code_u16);
+                let response_ptr = unsafe {
+                    (eh.handle_error_fn)(
+                        eh.instance_ptr,
+                        status_code_u16,
+                        message_cstring.into_raw(),
+                        module_name_cstring.into_raw(), // Pass module_name here
+                        params_cstring.into_raw(),
+                        module_context_cstring.into_raw(),
+                    )
+                };
+
+                let html_response = if response_ptr.is_null() {
+                    error!("handle_error_fn returned a null pointer. Returning generic error HTML.");
+                    "<h1>Internal Server Error</h1><p>Error handler returned null.</p>".to_string()
+                } else {
+                    let c_str = unsafe { CStr::from_ptr(response_ptr) };
+                    let response = c_str.to_str().unwrap().to_string();
+                    unsafe { CString::from_raw(response_ptr) }; // Deallocate the CString
+                    response
+                };
+
+                axum::response::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .header(axum::http::header::CONTENT_TYPE, "text/html")
+                    .body(axum::body::Body::from(html_response))
+                    .unwrap()
+                    .into_response()
+            } else {
+                let status = axum::http::StatusCode::NOT_FOUND;
+                let reason = status.canonical_reason().unwrap_or("Not Found");
+                return (status, format!("{} {}", status.as_u16(), reason)).into_response();
             }
         }
     });
@@ -493,7 +548,7 @@ async fn main() {
 
     // Run it
     info!("listening on {}", addr);
-    println!("DEBUG: Test println from ox_webservice main.rs");
+
     let listener = TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -559,13 +614,16 @@ fn call_module_handler(
     handler_fn: SendableWebServiceHandler,
     request_cstring: CString,
     path: String,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, serde_json::Value> {
     unsafe {
         let response_ptr = (handler_fn.0)(request_cstring.into_raw());
 
         if response_ptr.is_null() {
             error!("Handler returned a null pointer for path: {}", path);
-            return Err(format!("Handler for path '{}' returned a null response.", path));
+            return Err(serde_json::json!({
+                "status": 500,
+                "message": format!("Handler for path '{}' returned a null response.", path)
+            }));
         }
 
         let c_str = CStr::from_ptr(response_ptr as *mut c_char);
@@ -573,7 +631,17 @@ fn call_module_handler(
 
         let _ = CString::from_raw(response_ptr as *mut c_char); // Deallocate the memory
 
-        serde_json::from_str(&response_json_str).map_err(|e| format!("Failed to parse JSON from module handler: {}", e))
+        let json_value: serde_json::Value = serde_json::from_str(&response_json_str)
+            .map_err(|e| format!("Failed to parse JSON from module handler: {}", e))?;
+
+        // If the module's response contains a status code >= 400, treat it as an error
+        if let Some(status_code) = json_value.get("status").and_then(|s| s.as_u64()) {
+            if status_code >= 400 {
+                return Err(json_value);
+            }
+        }
+
+        Ok(json_value)
     }
 }
 

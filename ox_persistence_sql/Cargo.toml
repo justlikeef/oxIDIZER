@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 ox_persistence = { path = "../ox_persistence" }
 ox_type_converter = { path = "../ox_type_converter" }
+ox_data_object = { path = "../ox_data_object" }
+ox_locking = { path = "../ox_locking" }
 libc = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

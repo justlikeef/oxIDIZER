@@ -1,0 +1,16 @@
+verify that ox_webservice meets the stated requirements, and builds and runs without ox_webservice_errorhandler_jina2 loading using the simple config file in the root directory configuring it to load no modules or error_handler.  You should be able to run ox_webservices in the background, monitoring the logs for issues, and verify that it runs without crashing.  You should be able to request doesnotexist.html using a command line tool to verify that you get a 404 not found.  you can use run_and_test.sh to run and test the server.
+
+ox_webservices_errorhandler_jinja is configured to use /mnt/c/Users/justl/source/repos/oxDataObject/content/error_debug for content_root which is where it should be looking for the jinja template files to process.  There is a template named 404.jinja2 that should be rendered for the return page. You should be able to run ox_webservices in the background, monitoring the logs for issues, and verify that it runs without crashing.  You should be able to request doesnotexist.html using a command line tool to verify that you get 404 page rendered by ox_webservices_errorhandler_jinja2.  you can use run_and_test.sh to run and test the server.
+
+
+
+, but that is not what being returned to the requester. I don't think it is a tera initializaiton issue.  Can ox_webservice_errorhandler_jinja2 find its configuration file?    
+
+
+> I have said 5 or 6 times that you should not be worried about the other modules in the project.  Right now  │
+│   we are working on ox_webservices, ox_webservices_errorhandler_jinja2, ox_webservices_api, and ox_content.   │
+│   That's it.  Do not continue to look into the other crates until told to.  
+
+ details about the server, os, etc. should not be handled by ox_webserver.  That should be handled in        │
+│   ox_server_info.  ox_webserver should do nothing that register modules, route requests to the correct        │
+│   modules, and handle errors.    

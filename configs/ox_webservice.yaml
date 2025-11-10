@@ -1,0 +1,15 @@
+server:
+  port: 3000
+  bind_address: "0.0.0.0"
+modules:
+  - name: ox_content
+    priority: 999
+    params:
+      config_file: "/mnt/c/Users/justl/source/repos/oxDataObject/ox_content.yaml"
+      urls:
+        - ".*"
+error_handler:
+  name: ox_webservice_errorhandler_jinja2
+  params:
+    config_file: "/mnt/c/Users/justl/source/repos/oxDataObject/ox_webservice_errorhandler_jinja2.yaml"
+log_level: "debug"

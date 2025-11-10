@@ -3,9 +3,9 @@ use axum::{
 };
 use std::ffi::{CStr, CString, c_char, c_void};
 use sysinfo::{System};
-use log::{info};
+use log::{info, debug};
 
-use ox_webservice_api::{ModuleEndpoints, ModuleEndpoint, SendableWebServiceHandler, InitializationData};
+use ox_webservice::{ModuleEndpoints, ModuleEndpoint, SendableWebServiceHandler, InitializationData};
 
 #[no_mangle]
 pub extern "C" fn initialize_module(init_data_ptr: *mut c_char) -> *mut c_void {
@@ -28,7 +28,7 @@ pub extern "C" fn initialize_module(init_data_ptr: *mut c_char) -> *mut c_void {
 }
 
 extern "C" fn server_info_handler_internal(request_ptr: *mut c_char) -> *mut c_char {
-    println!("DEBUG: server_info_handler_internal called");
+    debug!("server_info_handler_internal called");
     let request_str = unsafe { CStr::from_ptr(request_ptr).to_str().unwrap() };
     let request: serde_json::Value = serde_json::from_str(request_str).unwrap();
     let path = request.get("path").and_then(|v| v.as_str()).unwrap_or("");

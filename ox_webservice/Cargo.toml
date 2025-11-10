@@ -18,8 +18,11 @@ notify = "6.0"
 tera = "1.19"
 once_cell = "1.19"
 log = "0.4"
-env_logger = "0.11"
+anyhow = "1.0"
+env_logger = "0.11.3"
+ox_webservice_errorhandler_jinja2 = { path = "../ox_webservice_errorhandler_jinja2" }
 futures = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
 
 ox_persistence = { path = "../ox_persistence" }
 ox_persistence_api = { path = "../ox_persistence_api" }
@@ -27,8 +30,9 @@ ox_locking = { path = "../ox_locking" }
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
 ox_webservice_api = { path = "../ox_webservice_api" }
-ox_webservice_errorhandler = { path = "../ox_webservice_errorhandler" }
+
 sysinfo = "0.30"
+regex = "1.10"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "cargo", "rustc", "si"] }
