@@ -1,9 +1,10 @@
 #!/bin/bash
 
-LOG_FILE="ox_webservice.log"
-SERVER_PID_FILE="ox_webservice.pid"
+WORKSPACE_DIR="/mnt/c/Users/justl/source/repos/oxIDIZER"
+SERVER_PID_FILE="$WORKSPACE_DIR/ox_webservice.pid"
 
 if [ -f "$SERVER_PID_FILE" ]; then
+    echo "Retreiving server PID..."
     SERVER_PID=$(cat $SERVER_PID_FILE)
     echo "Stopping server with PID $SERVER_PID..."
     kill $SERVER_PID 2>/dev/null
@@ -12,10 +13,4 @@ if [ -f "$SERVER_PID_FILE" ]; then
     echo "Server stopped."
 else
     echo "No server PID file found. Is the server running?"
-fi
-
-if [ -f "$LOG_FILE" ]; then
-    echo "Removing log file $LOG_FILE..."
-    rm -f $LOG_FILE
-    echo "Log file removed."
 fi

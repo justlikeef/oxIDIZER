@@ -1,0 +1,10 @@
+server:
+  port: 3000
+  bind_address: "0.0.0.0"
+modules:
+error_handler:
+  name: ox_webservice_errorhandler_jinja2
+  params:
+    config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigInvalid/ox_webservice_errorhandler_jinja2.yaml
+    "
+log_level: "debug"

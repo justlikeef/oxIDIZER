@@ -106,20 +106,42 @@ pub struct ErrorHandlerConfig {
 pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void) -> *mut CErrorHandler {
     let result = panic::catch_unwind(|| {
         let module_config = unsafe { &*(module_config_ptr as *mut ModuleConfig) };
-        let params = module_config.params.as_ref().unwrap();
+        let params = match module_config.params.as_ref() {
+            Some(p) => p,
+            None => {
+                error!("ox_webservice_errorhandler_jinja2: Module parameters are missing.");
+                return std::ptr::null_mut();
+            }
+        };
 
         let config_file_name = params.get("config_file").and_then(|v| v.as_str()).unwrap_or("ox_webservice_errorhandler_jinja2.yaml");
         log::debug!("ox_webservice_errorhandler_jinja2: Attempting to read config file: {}", config_file_name);
 
-        let mut file = std::fs::File::open(config_file_name).expect("Failed to open error handler config file");
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Failed to read error handler config file");
+        let contents = match std::fs::read_to_string(config_file_name) {
+            Ok(c) => c,
+            Err(e) => {
+                error!("ox_webservice_errorhandler_jinja2: Failed to read error handler config file '{}': {}", config_file_name, e);
+                return std::ptr::null_mut();
+            }
+        };
         log::debug!("ox_webservice_errorhandler_jinja2: Config file content: {}", contents);
 
-        let config: ErrorHandlerConfig = serde_yaml::from_str(&contents).expect("Failed to deserialize ErrorHandlerConfig");
+        let config: ErrorHandlerConfig = match serde_yaml::from_str(&contents) {
+            Ok(c) => c,
+            Err(e) => {
+                error!("ox_webservice_errorhandler_jinja2: Failed to deserialize ErrorHandlerConfig: {}", e);
+                return std::ptr::null_mut();
+            }
+        };
         log::debug!("ox_webservice_errorhandler_jinja2: Parsed ErrorHandlerConfig: {:?}", config);
 
-        let error_handler = Jinja2ErrorHandler::new(config).expect("Failed to create Jinja2ErrorHandler");
+        let error_handler = match Jinja2ErrorHandler::new(config) {
+            Ok(eh) => eh,
+            Err(e) => {
+                error!("ox_webservice_errorhandler_jinja2: Failed to create Jinja2ErrorHandler: {}", e);
+                return std::ptr::null_mut();
+            }
+        };
 
         let c_error_handler = Box::new(CErrorHandler {
             instance_ptr: Box::into_raw(Box::new(error_handler)) as *mut c_void,

@@ -1,3 +1,36 @@
+
+use std::error::Error;
+use std::fmt;
+
+
+#[derive(Debug)]
+enum ConfigError {
+    NotFound,
+    ReadError(std::io::Error),
+    ParseError(String),
+    UnsupportedFormat,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConfigError::NotFound => write!(f, "Configuration file not found"),
+            ConfigError::ReadError(e) => write!(f, "Error reading configuration file: {}", e),
+            ConfigError::ParseError(e) => write!(f, "Error parsing configuration file: {}", e),
+            ConfigError::UnsupportedFormat => write!(f, "Unsupported configuration file format"),
+        }
+    }
+}
+
+impl Error for ConfigError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ConfigError::ReadError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 use axum::{routing::get, Json, Router, response::{IntoResponse, Html}};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -156,7 +189,13 @@ async fn main() {
 
     // --- Load Server Configuration ---
     let server_config_path = Path::new(&cli.config);
-    let mut server_config: ServerConfig = load_config_from_path(server_config_path, &cli.log_level);
+    let mut server_config: ServerConfig = match load_config_from_path(server_config_path, &cli.log_level) {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Failed to load configuration: {}", e);
+            std::process::exit(1);
+        }
+    };
 
 
 
@@ -552,20 +591,20 @@ async fn main() {
     let listener = TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
-fn load_config_from_path(path: &Path, cli_log_level: &str) -> ServerConfig {
+fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfig, ConfigError> {
     debug!("Loading config from: {:?}", path);
     trace!("File extension: {:?}", path.extension());
 
     if !path.exists() {
         error!("Configuration file not found at {:?}", path);
-        std::process::exit(1);
+        return Err(ConfigError::NotFound);
     }
 
     let mut file = File::open(path)
-        .expect(&format!("Failed to open server configuration file: {:?}", path));
+        .map_err(ConfigError::ReadError)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)
-        .expect(&format!("Could not read server configuration file: {:?}", path));
+        .map_err(ConfigError::ReadError)?;
 
     debug!("Content read from config file: \n{}", contents);
 
@@ -578,23 +617,23 @@ fn load_config_from_path(path: &Path, cli_log_level: &str) -> ServerConfig {
     match path.extension().and_then(|s| s.to_str()) {
         Some("yaml") | Some("yml") => {
             debug!("Parsing as YAML");
-            serde_yaml::from_str(&contents).expect("Could not parse YAML server config")
+            serde_yaml::from_str(&contents).map_err(|e| ConfigError::ParseError(e.to_string()))
         }
         Some("json") => {
             debug!("Parsing as JSON");
-            serde_json::from_str(&contents).expect("Could not parse JSON server config")
+            serde_json::from_str(&contents).map_err(|e| ConfigError::ParseError(e.to_string()))
         }
         Some("toml") => {
             debug!("Parsing as TOML");
-            toml::from_str(&contents).expect("Could not parse TOML server config")
+            toml::from_str(&contents).map_err(|e| ConfigError::ParseError(e.to_string()))
         }
         Some("xml") => {
             debug!("Parsing as XML");
-            serde_xml_rs::from_str(&contents).expect("Could not parse XML server config")
+            serde_xml_rs::from_str(&contents).map_err(|e| ConfigError::ParseError(e.to_string()))
         }
         _ => {
             error!("Unsupported server config file format: {:?}. Exiting.", path.extension());
-            std::process::exit(1);
+            Err(ConfigError::UnsupportedFormat)
         }
     }
 }

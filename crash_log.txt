@@ -1,1 +1,0 @@
-bash: line 1: export LD_LIBRARY_PATH=./target/release && RUST_BACKTRACE=1 RUST_LOG=debug ./target/debug/ox_webservice -c ox_webservice.yaml -m ox_content,ox_webservice_errorhandler_jinja2 --log-level debug: No such file or directory

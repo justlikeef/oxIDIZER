@@ -56,41 +56,44 @@ static mut MODULE_STATE: Option<ModuleState> = None;
 pub extern "C" fn initialize_module(module_config_ptr: *mut c_void, render_template_fn_ptr: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> SendableWebServiceHandler {
     debug!("ox_content: Entering initialize_module function.");
     let module_config = unsafe { &*(module_config_ptr as *mut ModuleConfig) };
-    let params = module_config.params.as_ref().unwrap();
+    let params = match module_config.params.as_ref() {
+        Some(p) => p,
+        None => {
+            error!("ox_content: Module parameters are missing.");
+            return SendableWebServiceHandler(error_handler_500);
+        }
+    };
 
     debug!("ox_content: Initializing module...");
-    debug!("ox_content: Config file: {}", params.get("config_file").and_then(|v| v.as_str()).unwrap_or("ox_content.yaml"));
-
     let config_file_name = params.get("config_file").and_then(|v| v.as_str()).unwrap_or("ox_content.yaml");
 
     debug!("ox_content: Attempting to read content config file: {}", config_file_name);
-    let content_config = match fs::read_to_string(config_file_name) {
+    let content_config: ContentConfig = match fs::read_to_string(config_file_name) {
         Ok(content) => match serde_yaml::from_str::<ContentConfig>(&content) {
             Ok(config) => config,
             Err(e) => {
                 error!("ox_content: Failed to parse content config file {}: {}", config_file_name, e);
-                panic!("Failed to parse content config file: {}", e);
+                return SendableWebServiceHandler(error_handler_500);
             }
         },
         Err(e) => {
             error!("ox_content: Failed to read content config file {}: {}", config_file_name, e);
-            panic!("Failed to read content config file: {}", e);
+            return SendableWebServiceHandler(error_handler_500);
         }
     };
+
     let mimetype_file_name = &content_config.mimetypes_file;
-
-
-    let mimetype_config = match fs::read_to_string(mimetype_file_name) {
+    let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
         Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
             Ok(config) => config,
             Err(e) => {
                 error!("ox_content: Failed to parse mimetype config file {}: {}", mimetype_file_name, e);
-                panic!("Failed to parse mimetype config file: {}", e);
+                return SendableWebServiceHandler(error_handler_500);
             }
         },
         Err(e) => {
             error!("ox_content: Failed to read mimetype config file {}: {}", mimetype_file_name, e);
-            panic!("Failed to read mimetype config file: {}", e);
+            return SendableWebServiceHandler(error_handler_500);
         }
     };
 
@@ -110,6 +113,17 @@ pub extern "C" fn initialize_module(module_config_ptr: *mut c_void, render_templ
     }
 
     SendableWebServiceHandler(content_handler)
+}
+
+extern "C" fn error_handler_500(_request_ptr: *mut c_char) -> *mut c_char {
+    let error_response = serde_json::json!({
+        "status": 500,
+        "message": "ox_content module failed to initialize.",
+        "headers": {
+            "Content-Type": "text/html"
+        }
+    });
+    CString::new(error_response.to_string()).unwrap().into_raw()
 }
 
 

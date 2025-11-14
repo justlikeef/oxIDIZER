@@ -1,5 +1,5 @@
-content_root: "/mnt/c/Users/justl/source/repos/oxDataObject/content/www"
-mimetypes_file: "/mnt/c/Users/justl/source/repos/oxDataObject/mimetypes.yaml"
+content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/content/layouts/default/www"
+mimetypes_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/mimetypes.yaml"
 default_documents:
   - document: "index.jinja2"
   - document: "index.html"
