@@ -71,10 +71,7 @@ struct TemplateQuery {
 struct ServerConfig {
     #[serde(default)] // Allow modules to be optional in the config file
     modules: Vec<ModuleConfig>,
-    #[serde(default)] // Allow log_output_path to be optional
-    log_output_path: Option<String>,
-    #[serde(default = "default_log_level")]
-    log_level: String,
+    log4rs_config: String,
     #[serde(default)]
     error_handler: Option<ModuleConfig>,
     server: ServerDetails, // New field
@@ -85,13 +82,6 @@ struct ServerDetails {
     port: u16,
     bind_address: String,
 }
-
-fn default_log_level() -> String {
-    "info".to_string()
-}
-
-
-
 
 struct LoadedModule {
     _library: Arc<Library>, // Keep the library loaded as an Arc
@@ -131,14 +121,6 @@ struct Cli {
     #[arg(short, long, value_delimiter = ',')]
     modules: Option<Vec<String>>,
 
-    /// Path to a file to redirect stdout and stderr
-    #[arg(long)]
-    log_output_path: Option<String>,
-
-    /// Set the logging level (trace, debug, info, warn, error)
-    #[arg(short, long, default_value = "info")]
-    log_level: String,
-
     /// Pass parameters to modules, e.g., -p ox_content:error_path=www/error_cli
     #[arg(short = 'p', long, value_parser = parse_key_val, action = clap::ArgAction::Append)]
     module_params: Vec<(String, Value)>,
@@ -159,79 +141,29 @@ fn parse_key_val(s: &str) -> Result<(String, Value), String> {
 async fn main() {
     let cli = Cli::parse();
 
-    // Initialize logger based on CLI log level
-    env_logger::Builder::from_env(Env::default().default_filter_or(&cli.log_level))
-        .filter_level(log::LevelFilter::Debug) // Explicitly set filter level to Debug
-        .init();
-
-    info!("Starting ox_webservice...");
-    debug!("CLI arguments: {:?}", cli);
-
-    // --- Configure Logging ---
-    let log_file_path = cli.log_output_path.clone(); // Clone for potential use after config load
-
-    // Set up custom panic hook
-    if let Some(path) = &log_file_path {
-        let path_clone = path.clone();
-        panic::set_hook(Box::new(move |panic_info| {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .append(true)
-                .open(&path_clone)
-                .expect(&format!("Failed to open log file in panic hook: {}", path_clone));
-            
-            writeln!(file, "PANIC: {}", panic_info).expect("Failed to write panic info to log file");
-            let _ = file.flush(); // Attempt to flush
-        }));
-    }
-
-
     // --- Load Server Configuration ---
     let server_config_path = Path::new(&cli.config);
-    let mut server_config: ServerConfig = match load_config_from_path(server_config_path, &cli.log_level) {
+    let mut server_config: ServerConfig = match load_config_from_path(server_config_path, "info") {
         Ok(config) => config,
         Err(e) => {
-            error!("Failed to load configuration: {}", e);
+            // Can't use logger here, as it's not initialized yet.
+            eprintln!("Failed to load configuration: {}", e);
             std::process::exit(1);
         }
     };
 
-
-
-    // --- Apply CLI Log Output Path Override ---
-    // CLI takes precedence over config file for log output
-    if log_file_path.is_some() {
-        server_config.log_output_path = log_file_path;
-    }
-
-    // --- Redirect output if log_output_path is specified ---
-    if let Some(path) = &server_config.log_output_path {
-        info!("Redirecting output to {}", path);
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(true)
-            .open(&path)
-            .expect(&format!("Failed to open log file: {}", path));
-        
-#[cfg(target_os = "windows")]
-        use std::os::windows::io::AsRawHandle;
-        #[cfg(target_os = "windows")]
-        use windows_sys::Win32::System::Console::{SetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
-
-        #[cfg(target_os = "windows")]
-        let file_handle = file.as_raw_handle();
-
-        #[cfg(target_os = "windows")]
-        unsafe {
-            // Redirect stdout
-            SetStdHandle(STD_OUTPUT_HANDLE, file_handle as isize);
-            // Redirect stderr
-            SetStdHandle(STD_ERROR_HANDLE, file_handle as isize);
+    // Initialize log4rs, which will take over from env_logger
+    match log4rs::init_file(&server_config.log4rs_config, Default::default()) {
+        Ok(_) => info!("log4rs initialized successfully, taking over from temporary logger."),
+        Err(e) => {
+            eprintln!("Failed to initialize log4rs from {}: {}. Exiting.", server_config.log4rs_config, e);
+            std::process::exit(1);
         }
-        info!("Output redirected to {}", path);
     }
+
+    info!("Starting ox_webservice...");
+    debug!("CLI arguments: {:?}", cli);
+
 
     // --- Override/Supplement Modules from CLI ---
     if let Some(cli_modules) = cli.modules {

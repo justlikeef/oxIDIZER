@@ -1,0 +1,6 @@
+2025-11-14T18:13:09.489945382-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:13:09.490357810-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:13:09.490683431-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/000003-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:13:09.728700854-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:13:09.729356341-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:13:09.749366510-05:00 INFO ox_webservice - listening on 127.0.0.1:3000

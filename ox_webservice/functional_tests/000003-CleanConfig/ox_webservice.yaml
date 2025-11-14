@@ -1,0 +1,6 @@
+server:
+  port: 3000
+  bind_address: "0.0.0.0"
+modules:
+error_handler:
+log4rs_config: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice/functional_tests/000003-CleanConfig/log4rs.yaml"
