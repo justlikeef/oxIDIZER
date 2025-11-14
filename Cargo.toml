@@ -1,3 +1,8 @@
+[package]
+name = "oxIDIZER"
+version = "0.0.1"
+resolver = "2"
+
 [workspace]
 members = [
     "ox_callback_manager",
