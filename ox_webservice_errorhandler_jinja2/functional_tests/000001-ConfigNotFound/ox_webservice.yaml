@@ -1,9 +1,0 @@
-server:
-  port: 3000
-  bind_address: "0.0.0.0"
-modules:
-error_handler:
-  name: ox_webservice_errorhandler_jinja2
-  params:
-    config_file: "notfound.yaml"
-log_level: "debug"

@@ -4,3 +4,66 @@
 2025-11-14T18:13:09.728700854-05:00 INFO ox_webservice - Tera templates initialized successfully.
 2025-11-14T18:13:09.729356341-05:00 INFO ox_webservice - Major process state: Initializing modules.
 2025-11-14T18:13:09.749366510-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:25:51.024581017-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:25:51.025182999-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:25:51.026206075-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/000003-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:25:51.290383809-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:25:51.291007182-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:25:51.322401346-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:28:05.216286861-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:28:05.216629866-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:28:05.216913573-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/000003-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:28:05.372327762-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:28:05.372886709-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:28:05.391757428-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:36:40.782643096-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:36:40.783187227-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:36:40.783494428-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/000001-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:36:41.092001167-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:36:41.092547088-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:36:41.124141597-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:36:41.124500003-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T18:36:41.387016023-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:36:41.468499492-05:00 ERROR ox_webservice - create_error_handler returned a null pointer. Error handler not loaded.
+2025-11-14T18:36:41.469734590-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:36:52.781061474-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:36:52.781476954-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:36:52.781807944-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/000001-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:36:52.937099247-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:36:52.937599828-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:36:52.954868100-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:36:52.955219068-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T18:36:53.090471053-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:36:53.128871844-05:00 ERROR ox_webservice - create_error_handler returned a null pointer. Error handler not loaded.
+2025-11-14T18:36:53.130055312-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:37:09.333237200-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:37:09.333548159-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:37:09.333818395-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/000001-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:37:09.473525751-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:37:09.474011297-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:37:09.489209332-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:37:09.489673806-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T18:37:09.605984312-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:37:09.639085552-05:00 ERROR ox_webservice - create_error_handler returned a null pointer. Error handler not loaded.
+2025-11-14T18:37:09.639960824-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:42:21.781984098-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:42:21.782269327-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:42:21.782536297-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:42:21.938265884-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:42:21.939152157-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:42:21.956468056-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:42:21.956821185-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T18:42:22.092968135-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:42:22.115647409-05:00 ERROR ox_webservice - create_error_handler returned a null pointer. Error handler not loaded.
+2025-11-14T18:42:22.116681277-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T18:53:19.887647611-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T18:53:19.887936170-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T18:53:19.888167561-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T18:53:19.976822907-05:00 DEBUG globset - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
+2025-11-14T18:53:20.032237428-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T18:53:20.032658636-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T18:53:20.047254121-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:53:20.047633201-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T18:53:20.176645612-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T18:53:20.199385843-05:00 ERROR ox_webservice - create_error_handler returned a null pointer. Error handler not loaded.
+2025-11-14T18:53:20.200457477-05:00 INFO ox_webservice - listening on 127.0.0.1:3000

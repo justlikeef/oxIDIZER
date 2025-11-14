@@ -114,7 +114,13 @@ pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void) -> *mut C
             }
         };
 
-        let config_file_name = params.get("config_file").and_then(|v| v.as_str()).unwrap_or("ox_webservice_errorhandler_jinja2.yaml");
+        let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
+            Some(name) => name,
+            None => {
+                error!("ox_webservice_errorhandler_jinja2: 'config_file' parameter is missing or not a string.");
+                return std::ptr::null_mut();
+            }
+        };
         log::debug!("ox_webservice_errorhandler_jinja2: Attempting to read config file: {}", config_file_name);
 
         let contents = match std::fs::read_to_string(config_file_name) {
