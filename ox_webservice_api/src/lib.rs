@@ -1,4 +1,4 @@
-use libc::{c_char, c_void};
+use libc::{c_char, c_void, c_uint};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use axum::response::{IntoResponse, Response};
@@ -14,7 +14,22 @@ pub struct SendableWebServiceHandler(pub WebServiceHandler);
 unsafe impl Send for SendableWebServiceHandler {}
 unsafe impl Sync for SendableWebServiceHandler {}
 
-pub type InitializeModuleFn = unsafe extern "C" fn(*mut c_void, unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> SendableWebServiceHandler;
+#[repr(C)]
+pub enum LogLevel {
+    Error = 1,
+    Warn = 2,
+    Info = 3,
+    Debug = 4,
+    Trace = 5,
+}
+
+pub type LogCallback = unsafe extern "C" fn(level: LogLevel, message: *const c_char);
+
+pub type InitializeModuleFn = unsafe extern "C" fn(
+    *mut c_void,
+    unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
+    LogCallback, // Add this
+) -> SendableWebServiceHandler;
 
 
 // Context struct to be passed to dynamically loaded modules
@@ -69,13 +84,12 @@ unsafe impl Send for CErrorHandler {}
 unsafe impl Sync for CErrorHandler {}
 
 // Type alias for the factory function that creates CErrorHandler
-pub type ErrorHandlerFactory = unsafe extern "C" fn(*mut c_void) -> *mut CErrorHandler;
+pub type ErrorHandlerFactory = unsafe extern "C" fn(*mut c_void, LogCallback) -> *mut CErrorHandler; // Add LogCallback
 
 #[derive(Debug, Clone, Copy)]
 pub struct SendableCErrorHandler(pub *mut CErrorHandler);
 
 unsafe impl Send for SendableCErrorHandler {}
-unsafe impl Sync for SendableCErrorHandler {}
 
 pub trait ErrorHandler {
     fn handle_error(&self, status_code: u16, message: &str, context: &str, params: &Value, module_context: &str) -> String;

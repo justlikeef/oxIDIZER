@@ -33,10 +33,10 @@ if [ "$MODE" == "isolated" ]; then
   "$SCRIPTS_DIR/stop_server.sh"
 
   # Check for correct  message in the log file
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
-      echo "Found initializing message in log"
+  if grep -q "Returning generic error" "$TEST_DIR/logs/ox_webservice.log"; then
+      echo "Found generic error message in log"
   else
-      echo "Did not find intiializing message in log"
+      echo "Did not find generic error message in log"
       echo "Test FAILED"
       exit $FAILED
   fi
@@ -57,6 +57,8 @@ if [ "$MODE" == "isolated" ]; then
     echo "Test PASSED"
     exit $PASSED
   else
+    echo "Did not find 404 Not Found in curl output..."
+
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       echo "Server Logs:"

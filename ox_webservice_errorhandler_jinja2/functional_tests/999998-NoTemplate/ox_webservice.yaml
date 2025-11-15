@@ -1,0 +1,9 @@
+log4rs_config: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/log4rs.yaml"
+server:
+  port: 3000
+  bind_address: "0.0.0.0"
+modules:
+error_handler:
+  name: ox_webservice_errorhandler_jinja2
+  params:
+    config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice_errorhandler_jinja2.yaml"

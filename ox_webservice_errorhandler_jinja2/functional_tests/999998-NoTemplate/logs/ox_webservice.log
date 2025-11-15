@@ -1,0 +1,27 @@
+2025-11-14T21:23:33.588889283-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T21:23:33.589340132-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T21:23:33.589645139-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T21:23:33.761214231-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T21:23:33.761747743-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T21:23:33.779253386-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T21:23:33.779848970-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T21:23:33.906224748-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T21:23:33.945554938-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Attempting to read config file: /mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice_errorhandler_jinja2.yaml
+2025-11-14T21:23:33.952633598-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Config file content: content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/test_template"
+
+2025-11-14T21:23:33.974057658-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Parsed ErrorHandlerConfig: ErrorHandlerConfig { content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/test_template" }
+2025-11-14T21:23:33.974406479-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: new: Initializing Tera with content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/test_template"
+2025-11-14T21:23:34.014422945-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T21:23:35.189331974-05:00 ERROR ox_webservice - ox_webservice: Calling error handler handle_error_fn for status_code: 404
+2025-11-14T21:23:35.189784057-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Inside catch_unwind closure.
+2025-11-14T21:23:35.190067583-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before message_ptr to_string_lossy.
+2025-11-14T21:23:35.190347306-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before module_name_ptr to_string_lossy.
+2025-11-14T21:23:35.190679377-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before params_ptr to_string_lossy.
+2025-11-14T21:23:35.190949266-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before serde_json::from_str(params_json).
+2025-11-14T21:23:35.193270583-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before calling handler.handle_error.
+2025-11-14T21:23:35.193575605-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Entering handle_error for status_code: 404.
+2025-11-14T21:23:35.193854232-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: status_text: Not Found.
+2025-11-14T21:23:35.202297210-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Context created.
+2025-11-14T21:23:35.208143165-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Template 404.jinja2 not found, checking for index.jinja2.
+2025-11-14T21:23:35.209271285-05:00 WARN ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Neither 404.jinja2 nor index.jinja2 found. Returning generic error.
+2025-11-14T21:23:35.213488133-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before CString::new(html).

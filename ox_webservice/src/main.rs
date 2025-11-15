@@ -45,7 +45,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use sysinfo::{System};
 use tera::Tera;
-use log::{info, debug, trace, error};
+use log::{info, debug, trace, error, warn}; // Added warn
 use env_logger::Env;
 use futures::future::BoxFuture;
 
@@ -53,7 +53,7 @@ use libloading::{Library, Symbol};
 
 use std::panic;
 
-use ox_webservice_api::{ModuleConfig, WebServiceContext, SendableWebServiceHandler, CErrorHandler, CErrorHandlerFn};
+use ox_webservice_api::{ModuleConfig, WebServiceContext, SendableWebServiceHandler, CErrorHandler, CErrorHandlerFn, LogCallback, LogLevel, ErrorHandlerFactory, InitializeModuleFn}; // Added LogCallback, LogLevel, ErrorHandlerFactory, InitializeModuleFn
 use axum::http::StatusCode;
 use regex::Regex;
 
@@ -134,6 +134,19 @@ fn parse_key_val(s: &str) -> Result<(String, Value), String> {
     let param_key = rest[..pos].to_string();
     let value = rest[pos + 1..].to_string();
     Ok((key, serde_json::json!({ param_key: value })))
+}
+
+// Implement the C-style logging callback function
+#[no_mangle]
+pub unsafe extern "C" fn log_callback(level: LogLevel, message: *const c_char) {
+    let message = CStr::from_ptr(message).to_string_lossy();
+    match level {
+        LogLevel::Error => error!("{}", message),
+        LogLevel::Warn => warn!("{}", message),
+        LogLevel::Info => info!("{}", message),
+        LogLevel::Debug => debug!("{}", message),
+        LogLevel::Trace => trace!("{}", message),
+    }
 }
 
 
@@ -243,7 +256,7 @@ async fn main() {
                 info!("Successfully loaded module: {}", module_name);
                 let current_library = Arc::new(library); // Wrap library in Arc for sharing
                 unsafe {
-                    let create_error_handler_fn: Symbol<unsafe extern "C" fn(*mut c_void) -> *mut CErrorHandler> = current_library
+                    let create_error_handler_fn: Symbol<ErrorHandlerFactory> = current_library
                         .get(b"create_error_handler")
                         .expect(&format!("Failed to find 'create_error_handler' in error handler module {}", module_name));
 
@@ -251,7 +264,7 @@ async fn main() {
                         .get(b"destroy_error_handler")
                         .expect(&format!("Failed to find 'destroy_error_handler' in error handler module {}", module_name));
 
-                    let c_error_handler_ptr = create_error_handler_fn(&*eh_module_config as *const ModuleConfig as *mut c_void);
+                    let c_error_handler_ptr = create_error_handler_fn(&*eh_module_config as *const ModuleConfig as *mut c_void, log_callback);
                     if c_error_handler_ptr.is_null() {
                         error!("create_error_handler returned a null pointer. Error handler not loaded.");
                     } else {
@@ -296,13 +309,13 @@ async fn main() {
             Ok(library) => {
                 info!("Successfully loaded module: {}", module_name);
                 unsafe {
-                    let initialize_module_fn: Symbol<ox_webservice_api::InitializeModuleFn> = library
+                    let initialize_module_fn: Symbol<InitializeModuleFn> = library
                         .get(b"initialize_module")
                         .expect(&format!("Failed to find 'initialize_module' in {}", module_name));
 
                     // Prepare the initialization data
                     let module_config_ptr = &*module_config as *const ModuleConfig as *mut c_void;
-                    let module_handler = initialize_module_fn(module_config_ptr, render_template_ffi);
+                    let module_handler = initialize_module_fn(module_config_ptr, render_template_ffi, log_callback);
 
                     let current_library = Arc::new(library); // Wrap library in Arc for sharing
 

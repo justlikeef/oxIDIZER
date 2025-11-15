@@ -45,6 +45,15 @@ if [ "$MODE" == "isolated" ]; then
         echo "No panics detected in log file."
     fi
 
+    # Check for correct error message in the log file
+    if grep -q "Failed to read error handler config file" "$TEST_DIR/logs/ox_webservice.log"; then
+        echo "Found read error in log"
+    else
+        echo "Did not find read error in log"
+        echo "Test FAILED"
+        exit $FAILED
+    fi
+
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       echo "Server Logs:"

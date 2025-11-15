@@ -1,14 +1,28 @@
 use std::panic;
 use std::io::{self, Read, Write};
 use axum::http::StatusCode;
-use log::{debug, error, warn};
-use ox_webservice_api::{CErrorHandler, ErrorHandler, ErrorHandlerFactory, ModuleConfig};
+use ox_webservice_api::{CErrorHandler, ErrorHandler, ModuleConfig, LogCallback, LogLevel};
 use serde::Deserialize;
 use serde_json::Value;
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::path::PathBuf;
 use tera::{Context, Tera};
 use regex::Regex;
+
+static mut LOGGER_CALLBACK: Option<LogCallback> = None;
+
+macro_rules! module_log {
+    ($level:expr, $($arg:tt)*) => ({
+        if let Some(log_cb) = unsafe { LOGGER_CALLBACK } {
+            let message = format!($($arg)*);
+            if let Ok(c_message) = CString::new(message) {
+                unsafe {
+                    log_cb($level, c_message.as_ptr());
+                }
+            }
+        }
+    });
+}
 
 pub struct Jinja2ErrorHandler {
     tera: Tera,
@@ -17,7 +31,7 @@ pub struct Jinja2ErrorHandler {
 
 impl Jinja2ErrorHandler {
     pub fn new(config: ErrorHandlerConfig) -> anyhow::Result<Self> {
-        let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: new: Initializing Tera with content_root: {:?}.\n", config.content_root).as_bytes());
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: new: Initializing Tera with content_root: {:?}", config.content_root);
         // Store the content_root in the handler for later use
         Ok(Self { tera: Tera::default(), content_root: config.content_root })
     }
@@ -25,10 +39,10 @@ impl Jinja2ErrorHandler {
 
 impl ErrorHandler for Jinja2ErrorHandler {
     fn handle_error(&self, status_code: u16, message: &str, module_name: &str, params: &Value, module_context: &str) -> String {
-        let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: Entering handle_error for status_code: {}.\n", status_code).as_bytes());
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: Entering handle_error for status_code: {}.", status_code);
         let status = StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         let status_text = status.canonical_reason().unwrap_or("Unknown Status");
-        let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: status_text: {}.\n", status_text).as_bytes());
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: status_text: {}.", status_text);
 
         let mut render_context = Context::new();
         render_context.insert("status_code", &status_code);
@@ -39,12 +53,12 @@ impl ErrorHandler for Jinja2ErrorHandler {
         render_context.insert("path", &params["request_path"]);
         render_context.insert("module_context", module_context);
         let params_string = serde_json::to_string_pretty(params).unwrap_or_else(|e| {
-            error!("Failed to pretty-print params to string: {}", e);
+            module_log!(LogLevel::Error, "Failed to pretty-print params to string: {}", e);
             params.to_string() // Fallback to compact string if pretty-printing fails
         });
         render_context.insert("server_context", &params_string);
 
-        let _ = io::stderr().write_all(b"ox_webservice_errorhandler_jinja2: handle_error: Context created.\n");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: Context created.");
 
         let template_filename = format!("{}.jinja2", status_code);
         let template_path = self.content_root.join(&template_filename);
@@ -54,41 +68,39 @@ impl ErrorHandler for Jinja2ErrorHandler {
 
         if template_path.exists() {
             final_template_name = template_filename;
-            let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Attempting to render template: {}.\n", final_template_name).as_bytes());
+            module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: Attempting to render template: {}.", final_template_name);
             let render_result = Tera::one_off(&std::fs::read_to_string(&template_path).unwrap_or_default(), &render_context, false);
             match render_result {
                 Ok(html) => html_content = html,
                 Err(e) => {
-                    let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Failed to render template '{}': {}.\n", final_template_name, e).as_bytes());
-                    error!("Failed to render template '{}': {}", final_template_name, e);
+                    module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: handle_error: Failed to render template '{}': {}.", final_template_name, e);
                     // Fallback to a generic error message
                     return format!("<h1>{} {}</h1><p>{}</p>", status_code, status_text, message);
                 }
             }
         } else {
-            let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Template {} not found, checking for index.jinja2.\n", template_filename).as_bytes());
+            module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: Template {} not found, checking for index.jinja2.", template_filename);
             final_template_name = "index.jinja2".to_string();
             let index_path = self.content_root.join(&final_template_name);
 
             if index_path.exists() {
-                let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Attempting to render template: {}.\n", final_template_name).as_bytes());
+                module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: Attempting to render template: {}.", final_template_name);
                 let render_result = Tera::one_off(&std::fs::read_to_string(&index_path).unwrap_or_default(), &render_context, false);
                 match render_result {
                     Ok(html) => html_content = html,
                     Err(e) => {
-                        let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Failed to render template '{}': {}.\n", final_template_name, e).as_bytes());
-                        error!("Failed to render template '{}': {}", final_template_name, e);
+                        module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: handle_error: Failed to render template '{}': {}.", final_template_name, e);
                         // Fallback to a generic error message
                         return format!("<h1>{} {}</h1><p>{}</p>", status_code, status_text, message);
                     }
                 }
             }
             else {
-                let _ = io::stderr().write_all(format!("ox_webservice_errorhandler_jinja2: handle_error: Neither {} nor {} found. Returning generic error.\n", template_filename, final_template_name).as_bytes());
+                module_log!(LogLevel::Warn, "ox_webservice_errorhandler_jinja2: handle_error: Neither {} nor {} found. Returning generic error.", template_filename, final_template_name);
                 return format!("<h1>{} {}</h1><p>{}</p>", status_code, status_text, message);
             }
         }
-        let _ = io::stderr().write_all(b"ox_webservice_errorhandler_jinja2: handle_error: Template rendered successfully.\n");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error: Template rendered successfully.");
         html_content
     }
 }
@@ -103,13 +115,17 @@ pub struct ErrorHandlerConfig {
 // ... (some other code)
 
 #[no_mangle]
-pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void) -> *mut CErrorHandler {
+pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void, log_callback: LogCallback) -> *mut CErrorHandler {
+    unsafe {
+        LOGGER_CALLBACK = Some(log_callback);
+    }
+
     let result = panic::catch_unwind(|| {
         let module_config = unsafe { &*(module_config_ptr as *mut ModuleConfig) };
         let params = match module_config.params.as_ref() {
             Some(p) => p,
             None => {
-                error!("ox_webservice_errorhandler_jinja2: Module parameters are missing.");
+                module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: Module parameters are missing. config_file parameter is required.");
                 return std::ptr::null_mut();
             }
         };
@@ -117,34 +133,34 @@ pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void) -> *mut C
         let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
-                error!("ox_webservice_errorhandler_jinja2: 'config_file' parameter is missing or not a string.");
+                module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: 'config_file' parameter is missing or not a string.");
                 return std::ptr::null_mut();
             }
         };
-        log::debug!("ox_webservice_errorhandler_jinja2: Attempting to read config file: {}", config_file_name);
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: Attempting to read config file: {}", config_file_name);
 
         let contents = match std::fs::read_to_string(config_file_name) {
             Ok(c) => c,
             Err(e) => {
-                error!("ox_webservice_errorhandler_jinja2: Failed to read error handler config file '{}': {}", config_file_name, e);
+                module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: Failed to read error handler config file '{}': {}", config_file_name, e);
                 return std::ptr::null_mut();
             }
         };
-        log::debug!("ox_webservice_errorhandler_jinja2: Config file content: {}", contents);
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: Config file content: {}", contents);
 
         let config: ErrorHandlerConfig = match serde_yaml::from_str(&contents) {
             Ok(c) => c,
             Err(e) => {
-                error!("ox_webservice_errorhandler_jinja2: Failed to deserialize ErrorHandlerConfig: {}", e);
+                module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: Failed to deserialize ErrorHandlerConfig: {}", e);
                 return std::ptr::null_mut();
             }
         };
-        log::debug!("ox_webservice_errorhandler_jinja2: Parsed ErrorHandlerConfig: {:?}", config);
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: Parsed ErrorHandlerConfig: {:?}", config);
 
         let error_handler = match Jinja2ErrorHandler::new(config) {
             Ok(eh) => eh,
             Err(e) => {
-                error!("ox_webservice_errorhandler_jinja2: Failed to create Jinja2ErrorHandler: {}", e);
+                module_log!(LogLevel::Error, "ox_webservice_errorhandler_jinja2: Failed to create Jinja2ErrorHandler: {}", e);
                 return std::ptr::null_mut();
             }
         };
@@ -160,7 +176,7 @@ pub extern "C" fn create_error_handler(module_config_ptr: *mut c_void) -> *mut C
     match result {
         Ok(ptr) => ptr,
         Err(e) => {
-            error!("Panic occurred in create_error_handler: {:?}. Returning null.", e);
+            module_log!(LogLevel::Error, "Panic occurred in create_error_handler: {:?}. Returning null.", e);
             std::ptr::null_mut() // Return a null pointer on error
         }
     }
@@ -179,23 +195,23 @@ unsafe extern "C" fn handle_error_c(
     module_context_ptr: *mut c_char,
 ) -> *mut c_char {
     let result = panic::catch_unwind(|| {
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Inside catch_unwind closure.");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Inside catch_unwind closure.");
         let handler = &mut *(instance_ptr as *mut Jinja2ErrorHandler);
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before message_ptr to_string_lossy.");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before message_ptr to_string_lossy.");
         let message = CStr::from_ptr(message_ptr).to_string_lossy().into_owned();
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before module_name_ptr to_string_lossy.");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before module_name_ptr to_string_lossy.");
         let module_name = CStr::from_ptr(module_name_ptr).to_string_lossy().into_owned();
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before params_ptr to_string_lossy.");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before params_ptr to_string_lossy.");
         let params_json = CStr::from_ptr(params_ptr).to_string_lossy().into_owned();
         let module_context_json = CStr::from_ptr(module_context_ptr).to_string_lossy().into_owned();
         
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before serde_json::from_str(params_json).");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before serde_json::from_str(params_json).");
         let params: Value = serde_json::from_str(&params_json).unwrap_or_default();
 
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before calling handler.handle_error.");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before calling handler.handle_error.");
         let html = handler.handle_error(status_code, &message, &module_name, &params, &module_context_json);
         
-        debug!("ox_webservice_errorhandler_jinja2: handle_error_c: Before CString::new(html).");
+        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: handle_error_c: Before CString::new(html).");
         CString::new(html).unwrap().into_raw()
     });
 

@@ -1,6 +1,28 @@
-2025-11-14T18:13:09.489144722-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-11-14T18:13:09.490210715-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-11-14T18:13:09.490519362-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/000003-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
-2025-11-14T18:13:09.728430475-05:00 INFO ox_webservice - Tera templates initialized successfully.
-2025-11-14T18:13:09.728882652-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-11-14T18:13:09.749101012-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T20:15:23.042971132-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T20:15:23.043516178-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T20:15:23.044293014-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T20:15:23.209705905-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T20:15:23.210541728-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T20:15:23.229785558-05:00 INFO ox_webservice - Attempting to load error handler module: ox_webservice_errorhandler_jinja2
+2025-11-14T20:15:23.230114988-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-11-14T20:15:23.362703726-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-11-14T20:15:23.402767520-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Attempting to read config file: /mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/ox_webservice_errorhandler_jinja2.yaml
+2025-11-14T20:15:23.412689358-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Config file content: content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/test_template"
+
+2025-11-14T20:15:23.434761510-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Parsed ErrorHandlerConfig: ErrorHandlerConfig { content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/test_template" }
+2025-11-14T20:15:23.435130026-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: new: Initializing Tera with content_root: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/test_template"
+2025-11-14T20:15:23.479738321-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T20:15:24.647009233-05:00 ERROR ox_webservice - ox_webservice: Calling error handler handle_error_fn for status_code: 404
+2025-11-14T20:15:24.647473215-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Inside catch_unwind closure.
+2025-11-14T20:15:24.647745548-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before message_ptr to_string_lossy.
+2025-11-14T20:15:24.647995782-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before module_name_ptr to_string_lossy.
+2025-11-14T20:15:24.648243794-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before params_ptr to_string_lossy.
+2025-11-14T20:15:24.648544719-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before serde_json::from_str(params_json).
+2025-11-14T20:15:24.650870972-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before calling handler.handle_error.
+2025-11-14T20:15:24.651184238-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: Entering handle_error for status_code: 404.
+2025-11-14T20:15:24.651560736-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: status_text: Not Found.
+2025-11-14T20:15:24.659311423-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Context created.
+2025-11-14T20:15:24.664584911-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Template 404.jinja2 not found, checking for index.jinja2.
+2025-11-14T20:15:24.666513653-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Attempting to render template: index.jinja2.
+2025-11-14T20:15:24.726384111-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error: Template rendered successfully.
+2025-11-14T20:15:24.726754496-05:00 DEBUG ox_webservice - ox_webservice_errorhandler_jinja2: handle_error_c: Before CString::new(html).

@@ -33,7 +33,6 @@ if [ "$MODE" == "isolated" ]; then
   # Check if the process is running
   if ps -p $SERVER_PID > /dev/null; then
     echo "Server process with PID $SERVER_PID is running."
-    echo "Test FAILED"
     # Stop the server
     "$SCRIPTS_DIR/stop_server.sh"
 
@@ -42,15 +41,12 @@ if [ "$MODE" == "isolated" ]; then
       echo "Server Logs:"
       cat $TEST_DIR/logs/ox_webservice.log
     fi
+
+    echo "Test FAILED"
     exit $FAILED
+
   else
     echo "Server process with PID $SERVER_PID is not running."
-
-    # Output the log file
-    if [ "$LOGGING_LEVEL" == "debug" ]; then
-      echo "Server Logs:"
-      cat $TEST_DIR/logs/ox_webservice.log
-    fi
 
     # Check for panics in the log file
     if grep -q "panic" "$TEST_DIR/logs/ox_webservice.log"; then
@@ -59,6 +55,21 @@ if [ "$MODE" == "isolated" ]; then
         exit $FAILED
     else
         echo "No panics detected in log file."
+    fi
+
+    # Check for correct error message in the log file
+    if grep -q "Error parsing configuration file" "$TEST_DIR/logs/ox_webservice.log"; then
+        echo "Found config parsing error in log"
+    else
+        echo "Did not find error in log"
+        echo "Test FAILED"
+        exit $FAILED
+    fi
+
+    # Output the log file
+    if [ "$LOGGING_LEVEL" == "debug" ]; then
+      echo "Server Logs:"
+      cat $TEST_DIR/logs/ox_webservice.log
     fi
 
     echo "Test PASSED"

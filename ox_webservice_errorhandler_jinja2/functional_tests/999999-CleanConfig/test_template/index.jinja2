@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <title>{{status_code}} - {{status_text}}</title>
+        <link rel="stylesheet" href="status.css" type="text/css" media="screen">
+    </head>
+    <body>
+        <div id="ox_logo" class="ox_logo"><img src="/images/oxWebServicesLogo.png" alt="oxLogo"/></div>
+        <div class="client_error" id="error_header">{{status_code}} - {{status_text}}</div>
+        <div class="client_error" id="module_name">{{ message }}</div>
+        <div id="debug">
+            <div id="debug_header">Debug Information:</div>
+            <div id="debu_info">
+                <div class="debug_field" id="status_code">Status Code: {{status_code}}</div>
+                <div class="debug_field" id="status_text">Status Text: {{status_text}}</div>
+                <div class="debug_field" id="message">Message: {{message}}</div>
+                <div class="debug_field" id="server_context">Server Context: {{server_context}}</div>
+                <div class="debug_field" id="module_name">Module: {{module_name}}</div>
+                <div class="debug_field" id="module_context">Module Context: {{module_context}}</div>
+            </div>
+        </div>
+    </body>
+</html>

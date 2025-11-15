@@ -1,6 +1,6 @@
-2025-11-14T18:28:05.215578410-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-11-14T18:28:05.216485140-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-11-14T18:28:05.216772655-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/000003-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
-2025-11-14T18:28:05.371934233-05:00 INFO ox_webservice - Tera templates initialized successfully.
-2025-11-14T18:28:05.372578706-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-11-14T18:28:05.391568784-05:00 INFO ox_webservice - listening on 127.0.0.1:3000
+2025-11-14T20:09:12.915652456-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-14T20:09:12.916194288-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-14T20:09:12.916527070-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "ox_webservice/functional_tests/999999-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-14T20:09:13.066314889-05:00 INFO ox_webservice - Tera templates initialized successfully.
+2025-11-14T20:09:13.066660335-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-14T20:09:13.084244899-05:00 INFO ox_webservice - listening on 127.0.0.1:3000

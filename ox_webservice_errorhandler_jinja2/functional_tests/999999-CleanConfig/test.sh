@@ -32,27 +32,42 @@ if [ "$MODE" == "isolated" ]; then
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh"
 
+  # Check for correct  message in the log file
+  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
+      echo "Found initializing message in log"
+  else
+      echo "Did not find intiializing message in log"
+      echo "Test FAILED"
+      exit $FAILED
+  fi
+
   # Check the output
-  if echo "$CURL_OUTPUT" | grep -q "404 Not Found"; then
+  if echo "$CURL_OUTPUT" | grep -q "oxWebServicesLogo"; then
+    echo "Found oxWebServicesLogo in curl output..."
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       echo "Server Logs:"
       cat $TEST_DIR/logs/ox_webservice.log
+
+      echo "Curl Output:"
+      echo "$CURL_OUTPUT"
     fi
 
     echo "Test PASSED"
     exit $PASSED
   else
+    echo "Did not find oxWebServicesLogo in curl output..."
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       echo "Server Logs:"
       cat $TEST_DIR/logs/ox_webservice.log
     fi
 
-    echo "Test FAILED"
-    echo "Output was: $CURL_OUTPUT"
+    echo "Curl Output:"
+    echo "$CURL_OUTPUT"
 
+    echo "Test FAILED"   
     exit $FAILED
   fi
 fi
