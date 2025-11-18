@@ -1,0 +1,7 @@
+    UnmodifiedContinue, // Did nothing, continue in current phase
+    ModifiedContinue,   // Modified context, continue in current phase
+    UnmodifiedNextPhase,  // Did nothing, skip to next phase
+    ModifiedNextPhase,    // Modified context, skip to next phase
+    UnmodifiedJumpToError, // Did nothing, jump to PreErrorHandling phase
+    ModifiedJumpToError,   // Modified context, jump to PreErrorHandling phase
+    HaltProcessing,     // Fatal error, stop pipeline immediately
