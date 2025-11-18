@@ -1,10 +1,47 @@
 use libc::{c_char, c_void};
-use ox_webservice_api::{ModuleConfig, SendableWebServiceHandler, InitializationData};
+use ox_webservice_api::{
+    ModuleInterface, LogCallback, LogLevel, RequestContext, HandlerResult,
+    GetRequestMethodFn, GetRequestPathFn, GetRequestQueryFn, GetRequestHeaderFn, GetRequestHeadersFn,
+    GetRequestBodyFn, GetSourceIpFn, SetRequestPathFn, SetRequestHeaderFn, SetSourceIpFn, GetResponseStatusFn,
+    GetResponseHeaderFn, SetResponseStatusFn, SetResponseHeaderFn, SetResponseBodyFn,
+};
 use serde::Deserialize;
+use serde_json::Value;
 use std::ffi::{CStr, CString};
 use std::fs;
 use std::path::{PathBuf};
-use log::{debug, error};
+use std::panic;
+
+// --- Static FFI Function Pointers ---
+static mut LOGGER_CALLBACK: Option<LogCallback> = None;
+static mut GET_REQUEST_METHOD_FN: Option<GetRequestMethodFn> = None;
+static mut GET_REQUEST_PATH_FN: Option<GetRequestPathFn> = None;
+static mut GET_REQUEST_QUERY_FN: Option<GetRequestQueryFn> = None;
+static mut GET_REQUEST_HEADER_FN: Option<GetRequestHeaderFn> = None;
+static mut GET_REQUEST_HEADERS_FN: Option<GetRequestHeadersFn> = None;
+static mut GET_REQUEST_BODY_FN: Option<GetRequestBodyFn> = None;
+static mut GET_SOURCE_IP_FN: Option<GetSourceIpFn> = None;
+static mut SET_REQUEST_PATH_FN: Option<SetRequestPathFn> = None;
+static mut SET_REQUEST_HEADER_FN: Option<SetRequestHeaderFn> = None;
+static mut SET_SOURCE_IP_FN: Option<SetSourceIpFn> = None;
+static mut GET_RESPONSE_STATUS_FN: Option<GetResponseStatusFn> = None;
+static mut GET_RESPONSE_HEADER_FN: Option<GetResponseHeaderFn> = None;
+static mut SET_RESPONSE_STATUS_FN: Option<SetResponseStatusFn> = None;
+static mut SET_RESPONSE_HEADER_FN: Option<SetResponseHeaderFn> = None;
+static mut SET_RESPONSE_BODY_FN: Option<SetResponseBodyFn> = None;
+
+macro_rules! module_log {
+    ($level:expr, $($arg:tt)*) => ({
+        if let Some(log_cb) = unsafe { LOGGER_CALLBACK } {
+            let message = format!($($arg)*);
+            if let Ok(c_message) = CString::new(message) {
+                unsafe {
+                    log_cb($level, c_message.as_ptr());
+                }
+            }
+        }
+    });
+}
 
 mod handlers;
 
@@ -36,224 +73,243 @@ pub struct ContentConfig {
     mimetypes_file: String,
     #[serde(default)]
     default_documents: Vec<DocumentConfig>,
-    urls: Option<Vec<UrlConfig>>,
 }
 
-pub struct ModuleState {
+pub struct ContentModule {
     pub content_root: PathBuf,
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub render_template_fn: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
-    pub module_config: ModuleConfig,
     pub content_config: ContentConfig,
 }
 
-static mut MODULE_STATE: Option<ModuleState> = None;
+impl ContentModule {
+    pub fn new(config: ContentConfig, render_template_fn: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> anyhow::Result<Self> {
+        module_log!(LogLevel::Debug, "ox_content: new: Initializing with content_root: {:?}", config.content_root);
 
-// ... (rest of the file)
-
-#[no_mangle]
-pub extern "C" fn initialize_module(module_config_ptr: *mut c_void, render_template_fn_ptr: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> SendableWebServiceHandler {
-    debug!("ox_content: Entering initialize_module function.");
-    let module_config = unsafe { &*(module_config_ptr as *mut ModuleConfig) };
-    let params = match module_config.params.as_ref() {
-        Some(p) => p,
-        None => {
-            error!("ox_content: Module parameters are missing.");
-            return SendableWebServiceHandler(error_handler_500);
-        }
-    };
-
-    debug!("ox_content: Initializing module...");
-    let config_file_name = params.get("config_file").and_then(|v| v.as_str()).unwrap_or("ox_content.yaml");
-
-    debug!("ox_content: Attempting to read content config file: {}", config_file_name);
-    let content_config: ContentConfig = match fs::read_to_string(config_file_name) {
-        Ok(content) => match serde_yaml::from_str::<ContentConfig>(&content) {
-            Ok(config) => config,
+        let mimetype_file_name = &config.mimetypes_file;
+        let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
+            Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    module_log!(LogLevel::Error, "ox_content: Failed to parse mimetype config file {}: {}", mimetype_file_name, e);
+                    anyhow::bail!("Failed to parse mimetype config: {}", e);
+                }
+            },
             Err(e) => {
-                error!("ox_content: Failed to parse content config file {}: {}", config_file_name, e);
-                return SendableWebServiceHandler(error_handler_500);
+                module_log!(LogLevel::Error, "ox_content: Failed to read mimetype config file {}: {}", mimetype_file_name, e);
+                anyhow::bail!("Failed to read mimetype config: {}", e);
             }
-        },
-        Err(e) => {
-            error!("ox_content: Failed to read content config file {}: {}", config_file_name, e);
-            return SendableWebServiceHandler(error_handler_500);
-        }
-    };
-
-    let mimetype_file_name = &content_config.mimetypes_file;
-    let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
-        Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
-            Ok(config) => config,
-            Err(e) => {
-                error!("ox_content: Failed to parse mimetype config file {}: {}", mimetype_file_name, e);
-                return SendableWebServiceHandler(error_handler_500);
-            }
-        },
-        Err(e) => {
-            error!("ox_content: Failed to read mimetype config file {}: {}", mimetype_file_name, e);
-            return SendableWebServiceHandler(error_handler_500);
-        }
-    };
-
-    debug!("ox_content: Content root: {:?}", content_config.content_root);
-    debug!("ox_content: Mimetypes: {:?}", mimetype_config.mimetypes);
-    debug!("ox_content: Default documents: {:?}", content_config.default_documents);
-
-    unsafe {
-        MODULE_STATE = Some(ModuleState {
-            content_root: PathBuf::from(content_config.content_root.clone()),
-            mimetypes: mimetype_config.mimetypes,
-            default_documents: content_config.default_documents.clone(),
-            render_template_fn: render_template_fn_ptr,
-            module_config: module_config.clone(),
-            content_config: content_config.clone(),
-        });
-    }
-
-    SendableWebServiceHandler(content_handler)
-}
-
-extern "C" fn error_handler_500(_request_ptr: *mut c_char) -> *mut c_char {
-    let error_response = serde_json::json!({
-        "status": 500,
-        "message": "ox_content module failed to initialize.",
-        "headers": {
-            "Content-Type": "text/html"
-        }
-    });
-    CString::new(error_response.to_string()).unwrap().into_raw()
-}
-
-
-fn resolve_and_find_file(state: &ModuleState, request_path: &str) -> Option<PathBuf> {
-    let mut file_path = state.content_root.clone();
-    file_path.push(request_path.trim_start_matches('/'));
-
-    if !file_path.exists() {
-        return None;
-    }
-
-    // Prevent directory traversal attacks
-    if let Ok(canonical_path) = file_path.canonicalize() {
-        if !canonical_path.starts_with(&state.content_root) {
-            return None; // Path is outside the content root
-        }
-        file_path = canonical_path;
-    } else {
-        return None; // Path does not exist or other error
-    }
-
-    if file_path.is_dir() {
-        for doc_config in &state.default_documents {
-            let mut default_doc_candidate = file_path.clone();
-            default_doc_candidate.push(&doc_config.document);
-            if default_doc_candidate.exists() {
-                return Some(default_doc_candidate);
-            }
-        }
-        None // No default document found
-    } else {
-        Some(file_path)
-    }
-}
-
-extern "C" fn content_handler(request_ptr: *mut c_char) -> *mut c_char {
-    debug!("content_handler called");
-    let request_str = unsafe { CStr::from_ptr(request_ptr).to_str().unwrap() };
-    let request: serde_json::Value = serde_json::from_str(request_str).unwrap();
-    let path = request.get("path").and_then(|v| v.as_str()).unwrap_or("");
-
-    let state = unsafe { MODULE_STATE.as_ref().unwrap() };
-
-    if path == "/error_test" {
-        let mut module_config = state.module_config.clone();
-        module_config.error_path = Some(path.to_string());
-        let parsed_config_value = serde_json::to_value(&state.content_config).unwrap_or(serde_json::Value::Null);
-        if let Some(params) = module_config.params.as_mut() {
-            if let Some(map) = params.as_object_mut() {
-                map.insert("parsed_config".to_string(), parsed_config_value);
-            }
-        }
-        let module_context_json = serde_json::to_string(&module_config).unwrap_or_else(|_| "null".to_string());
-        let error_response = serde_json::json!({
-            "status": 500,
-            "message": "Simulated error from ox_content",
-            "context": path,
-            "module_context": module_context_json,
-            "headers": {
-                "Content-Type": "text/html"
-            }
-        });
-        debug!("ox_content: Returning simulated error response for /error_test: {}", error_response.to_string());
-        return CString::new(error_response.to_string()).unwrap().into_raw();
-    }
-
-    if let Some(file_path) = resolve_and_find_file(state, path) {
-        let extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-        let mimetype_mapping = state.mimetypes.iter().find(|m| m.extension == extension);
-
-        let handler_result = if let Some(mapping) = mimetype_mapping {
-            match mapping.handler.as_str() {
-                "stream" => handlers::stream_handler::stream_handler(file_path.clone(), &mapping.mimetype),
-                "template" => handlers::template_handler::template_handler(file_path.clone(), &mapping.mimetype, state.render_template_fn),
-                _ => Err(format!("Unsupported handler for file: {}", mapping.handler)),
-            }
-        } else {
-            // If no mimetype mapping is found, default to the stream handler with a generic mimetype.
-            handlers::stream_handler::stream_handler(file_path.clone(), "application/octet-stream")
         };
 
-        match handler_result {
-            Ok(response_string) => {
-                debug!("content_handler: Returning successful response: {}", response_string);
-                CString::new(response_string).unwrap().into_raw()
-            },
-            Err(error_message) => {
-                let mut module_config = state.module_config.clone();
-                module_config.error_path = Some(file_path.to_str().unwrap_or("unknown").to_string());
-                let parsed_config_value = serde_json::to_value(&state.content_config).unwrap_or(serde_json::Value::Null);
-                if let Some(params) = module_config.params.as_mut() {
-                    if let Some(map) = params.as_object_mut() {
-                        map.insert("parsed_config".to_string(), parsed_config_value);
-                    }
+        Ok(Self {
+            content_root: PathBuf::from(config.content_root.clone()),
+            mimetypes: mimetype_config.mimetypes,
+            default_documents: config.default_documents.clone(),
+            render_template_fn,
+            content_config: config,
+        })
+    }
+
+    pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
+        module_log!(LogLevel::Debug, "ox_content: process_request called.");
+
+        let request_path_ptr = unsafe { GET_REQUEST_PATH_FN.unwrap()(context) };
+        let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+
+        if request_path == "/error_test" {
+            unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 500); }
+            return HandlerResult::ModifiedJumpToError;
+        }
+
+        if let Some(file_path) = self.resolve_and_find_file(request_path) {
+            let extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
+            let mimetype_mapping = self.mimetypes.iter().find(|m| m.extension == extension);
+
+            let handler_result = if let Some(mapping) = mimetype_mapping {
+                match mapping.handler.as_str() {
+                    "stream" => handlers::stream_handler::stream_handler(file_path.clone(), &mapping.mimetype),
+                    "template" => handlers::template_handler::template_handler(file_path.clone(), &mapping.mimetype, self.render_template_fn, &self.content_root),
+                    _ => Err(format!("Unsupported handler for file: {}", mapping.handler)),
                 }
-                let module_context_json = serde_json::to_string(&module_config).unwrap_or_else(|_| "null".to_string());
-                let error_response = serde_json::json!({
-                    "status": 500,
-                    "message": error_message,
-                    "context": file_path.to_str().unwrap_or("unknown"),
-                    "module_context": module_context_json,
-                    "headers": {
-                        "Content-Type": "text/html"
+            } else {
+                handlers::stream_handler::stream_handler(file_path.clone(), "application/octet-stream")
+            };
+
+            match handler_result {
+                Ok((response_body, mimetype)) => {
+                    module_log!(LogLevel::Debug, "ox_content: Successfully handled request for path: {}", request_path);
+                    unsafe {
+                        if let (Some(set_body_fn), Some(set_header_fn)) = (SET_RESPONSE_BODY_FN, SET_RESPONSE_HEADER_FN) {
+                            let c_content_type_key = CString::new("Content-Type").unwrap();
+                            let c_content_type_value = CString::new(mimetype).unwrap();
+                            set_header_fn(context, c_content_type_key.as_ptr(), c_content_type_value.as_ptr());
+                            set_body_fn(context, response_body.as_ptr(), response_body.len());
+                        }
                     }
-                });
-                debug!("content_handler: Returning error response: {}", error_response.to_string());
-                CString::new(error_response.to_string()).unwrap().into_raw()
+                    HandlerResult::ModifiedContinue
+                },
+                Err(error_message) => {
+                    module_log!(LogLevel::Error, "ox_content: Error handling request for path {}: {}", request_path, error_message);
+                    unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 500); }
+                    HandlerResult::ModifiedJumpToError
+                }
             }
+        } else {
+            module_log!(LogLevel::Debug, "ox_content: File not found for path: {}", request_path);
+            unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 404); }
+            HandlerResult::UnmodifiedContinue // Let the pipeline handle the 404
         }
-    } else {
-        let mut module_config = state.module_config.clone();
-        module_config.error_path = Some(path.to_string());
-        let parsed_config_value = serde_json::to_value(&state.content_config).unwrap_or(serde_json::Value::Null);
-        if let Some(params) = module_config.params.as_mut() {
-            if let Some(map) = params.as_object_mut() {
-                map.insert("parsed_config".to_string(), parsed_config_value);
-            }
+    }
+
+    fn resolve_and_find_file(&self, request_path: &str) -> Option<PathBuf> {
+        let mut file_path = self.content_root.clone();
+        file_path.push(request_path.trim_start_matches('/'));
+
+        if !file_path.exists() {
+            return None;
         }
-        let module_context_json = serde_json::to_string(&module_config).unwrap_or_else(|_| "null".to_string());
-        let error_response = serde_json::json!({
-            "status": 404,
-            "message": "Not Found",
-            "context": path,
-            "module_name": "ox_content",
-            "module_context": module_context_json,
-            "headers": {
-                "Content-Type": "text/html"
+
+        if let Ok(canonical_path) = file_path.canonicalize() {
+            if !canonical_path.starts_with(&self.content_root) {
+                return None;
             }
+            file_path = canonical_path;
+        } else {
+            return None;
+        }
+
+        if file_path.is_dir() {
+            for doc_config in &self.default_documents {
+                let mut default_doc_candidate = file_path.clone();
+                default_doc_candidate.push(&doc_config.document);
+                if default_doc_candidate.exists() {
+                    return Some(default_doc_candidate);
+                }
+            }
+            None
+        } else {
+            Some(file_path)
+        }
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn initialize_module(
+    module_params_json_ptr: *const c_char,
+    render_template_ffi: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
+    log_callback: LogCallback,
+    // Request Getters
+    get_request_method_fn: GetRequestMethodFn,
+    get_request_path_fn: GetRequestPathFn,
+    get_request_query_fn: GetRequestQueryFn,
+    get_request_header_fn: GetRequestHeaderFn,
+    get_request_headers_fn: GetRequestHeadersFn,
+    get_request_body_fn: GetRequestBodyFn,
+    get_source_ip_fn: GetSourceIpFn,
+    // Request Setters
+    set_request_path_fn: SetRequestPathFn,
+    set_request_header_fn: SetRequestHeaderFn,
+    set_source_ip_fn: SetSourceIpFn,
+    // Response Getters
+    get_response_status_fn: GetResponseStatusFn,
+    get_response_header_fn: GetResponseHeaderFn,
+    // Response Setters
+    set_response_status_fn: SetResponseStatusFn,
+    set_response_header_fn: SetResponseHeaderFn,
+    set_response_body_fn: SetResponseBodyFn,
+) -> *mut ModuleInterface {
+    unsafe {
+        LOGGER_CALLBACK = Some(log_callback);
+        // Request Getters
+        GET_REQUEST_METHOD_FN = Some(get_request_method_fn);
+        GET_REQUEST_PATH_FN = Some(get_request_path_fn);
+        GET_REQUEST_QUERY_FN = Some(get_request_query_fn);
+        GET_REQUEST_HEADER_FN = Some(get_request_header_fn);
+        GET_REQUEST_HEADERS_FN = Some(get_request_headers_fn);
+        GET_REQUEST_BODY_FN = Some(get_request_body_fn);
+        GET_SOURCE_IP_FN = Some(get_source_ip_fn);
+        // Request Setters
+        SET_REQUEST_PATH_FN = Some(set_request_path_fn);
+        SET_REQUEST_HEADER_FN = Some(set_request_header_fn);
+        SET_SOURCE_IP_FN = Some(set_source_ip_fn);
+        // Response Getters
+        GET_RESPONSE_STATUS_FN = Some(get_response_status_fn);
+        GET_RESPONSE_HEADER_FN = Some(get_response_header_fn);
+        // Response Setters
+        SET_RESPONSE_STATUS_FN = Some(set_response_status_fn);
+        SET_RESPONSE_HEADER_FN = Some(set_response_header_fn);
+        SET_RESPONSE_BODY_FN = Some(set_response_body_fn);
+    }
+
+    let result = panic::catch_unwind(|| {
+        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() };
+        let params: Value = serde_json::from_str(module_params_json)
+            .expect("Failed to parse module params JSON");
+
+        let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
+            Some(name) => name,
+            None => {
+                module_log!(LogLevel::Error, "'config_file' parameter is missing or not a string.");
+                return std::ptr::null_mut();
+            }
+        };
+
+        let contents = match fs::read_to_string(config_file_name) {
+            Ok(c) => c,
+            Err(e) => {
+                module_log!(LogLevel::Error, "Failed to read config file '{}': {}", config_file_name, e);
+                return std::ptr::null_mut();
+            }
+        };
+
+        let config: ContentConfig = match serde_yaml::from_str(&contents) {
+            Ok(c) => c,
+            Err(e) => {
+                module_log!(LogLevel::Error, "Failed to deserialize ContentConfig: {}", e);
+                return std::ptr::null_mut();
+            }
+        };
+
+        let handler = match ContentModule::new(config, render_template_ffi) {
+            Ok(h) => h,
+            Err(e) => {
+                module_log!(LogLevel::Error, "Failed to create ContentModule: {}", e);
+                return std::ptr::null_mut();
+            }
+        };
+
+        let instance_ptr = Box::into_raw(Box::new(handler)) as *mut c_void;
+
+        let module_interface = Box::new(ModuleInterface {
+            instance_ptr,
+            handler_fn: process_request_c,
         });
-        debug!("content_handler: Returning 404 response: {}", error_response.to_string());
-        CString::new(error_response.to_string()).unwrap().into_raw()
+
+        Box::into_raw(module_interface)
+    });
+
+    match result {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            module_log!(LogLevel::Error, "Panic occurred during module initialization: {:?}.", e);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+unsafe extern "C" fn process_request_c(instance_ptr: *mut c_void, context_ptr: *mut RequestContext) -> HandlerResult {
+    let result = panic::catch_unwind(|| {
+        let handler = unsafe { &*(instance_ptr as *mut ContentModule) };
+        let context = unsafe { &mut *context_ptr };
+        handler.process_request(context)
+    });
+
+    match result {
+        Ok(handler_result) => handler_result,
+        Err(e) => {
+            module_log!(LogLevel::Error, "Panic occurred in process_request_c: {:?}.", e);
+            HandlerResult::ModifiedJumpToError
+        }
     }
 }

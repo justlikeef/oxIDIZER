@@ -31,34 +31,186 @@ impl Error for ConfigError {
     }
 }
 
-use axum::{routing::get, Json, Router, response::{IntoResponse, Html}};
+use axum::{
+    body::Body,
+    http::{Request, Response, StatusCode, HeaderMap},
+    routing::get,
+    Json, Router,
+    response::{IntoResponse, Html},
+    extract::ConnectInfo,
+};
+use tower::ServiceExt;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap; // Keep this for now, might be needed later
+use std::collections::HashMap;
 use std::ffi::{CStr, CString, c_char, c_void};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tokio::net::TcpListener;
 use sysinfo::{System};
 use tera::Tera;
-use log::{info, debug, trace, error, warn}; // Added warn
-use env_logger::Env;
+use log::{info, debug, trace, error, warn};
 use futures::future::BoxFuture;
 
 use libloading::{Library, Symbol};
+use std::convert::Infallible;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use std::future::Future;
+use once_cell::sync::Lazy;
 
+
+use regex::Regex;
 use std::panic;
 
-use ox_webservice_api::{ModuleConfig, WebServiceContext, SendableWebServiceHandler, CErrorHandler, CErrorHandlerFn, LogCallback, LogLevel, ErrorHandlerFactory, InitializeModuleFn}; // Added LogCallback, LogLevel, ErrorHandlerFactory, InitializeModuleFn
-use axum::http::StatusCode;
-use regex::Regex;
+use ox_webservice_api::{
+    ModuleConfig, WebServiceContext, LogCallback, LogLevel, InitializeModuleFn, Phase, HandlerResult,
+    RequestContext, ModuleInterface, GetRequestMethodFn, GetRequestPathFn, GetRequestQueryFn,
+    GetRequestHeaderFn, GetRequestHeadersFn, GetRequestBodyFn, GetSourceIpFn, SetRequestPathFn,
+    SetRequestHeaderFn, GetResponseStatusFn, GetResponseHeaderFn, SetResponseStatusFn,
+    SetResponseHeaderFn, SetResponseBodyFn,
+};
 
-static mut GLOBAL_TERA: Option<Arc<Tera>> = None;
+static GLOBAL_TERA: Lazy<Arc<Tera>> = Lazy::new(|| {
+    Arc::new(Tera::new("content/**/*.html").expect("Failed to parse Tera templates"))
+});
 
+// --- Pipeline State ---
+struct PipelineState {
+    // Request data
+    request_method: String,
+    request_path: String,
+    request_query: String,
+    request_headers: HeaderMap,
+    request_body: Vec<u8>,
+    source_ip: SocketAddr,
+
+    // Response data
+    status_code: u16,
+    response_headers: HeaderMap,
+    response_body: Vec<u8>,
+}
+
+// --- FFI Helper Functions ---
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_method_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    CString::new(state.request_method.as_str()).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_path_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    CString::new(state.request_path.as_str()).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_query_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    CString::new(state.request_query.as_str()).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
+    match state.request_headers.get(key) {
+        Some(value) => CString::new(value.to_str().unwrap_or("")).unwrap().into_raw(),
+        None => std::ptr::null_mut(),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_headers_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let headers: HashMap<String, String> = state.request_headers.iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+        .collect();
+    let json = serde_json::to_string(&headers).unwrap();
+    CString::new(json).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_body_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    CString::new(state.request_body.as_slice()).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_source_ip_c(context_ptr: *mut RequestContext) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    CString::new(state.source_ip.to_string()).unwrap().into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_request_path_c(context_ptr: *mut RequestContext, path_ptr: *const c_char) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let path = unsafe { CStr::from_ptr(path_ptr).to_str().unwrap() };
+    state.request_path = path.to_string();
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_request_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char, value_ptr: *const c_char) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
+    let value = unsafe { CStr::from_ptr(value_ptr).to_str().unwrap() };
+    state.request_headers.insert(axum::http::HeaderName::from_bytes(key.as_bytes()).unwrap(), axum::http::HeaderValue::from_str(value).unwrap());
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_source_ip_c(context_ptr: *mut RequestContext, ip_ptr: *const c_char) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let ip_str = unsafe { CStr::from_ptr(ip_ptr).to_str().unwrap() };
+    match ip_str.parse::<SocketAddr>() {
+        Ok(addr) => {
+            state.source_ip = addr;
+        }
+        Err(e) => {
+            error!("Failed to parse IP address '{}': {}", ip_str, e);
+        }
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_response_status_c(context_ptr: *mut RequestContext) -> u16 {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    state.status_code
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_response_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char) -> *mut c_char {
+    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
+    match state.response_headers.get(key) {
+        Some(value) => CString::new(value.to_str().unwrap_or("")).unwrap().into_raw(),
+        None => std::ptr::null_mut(),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_status_c(context_ptr: *mut RequestContext, status_code: u16) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    state.status_code = status_code;
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char, value_ptr: *const c_char) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
+    let value = unsafe { CStr::from_ptr(value_ptr).to_str().unwrap() };
+    state.response_headers.insert(axum::http::HeaderName::from_bytes(key.as_bytes()).unwrap(), axum::http::HeaderValue::from_str(value).unwrap());
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_body_c(context_ptr: *mut RequestContext, body_ptr: *const u8, body_len: usize) {
+    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
+    let body_slice = unsafe { std::slice::from_raw_parts(body_ptr, body_len) };
+    state.response_body = body_slice.to_vec();
+}
 
 
 #[derive(Debug, Deserialize)]
@@ -72,8 +224,6 @@ struct ServerConfig {
     #[serde(default)] // Allow modules to be optional in the config file
     modules: Vec<ModuleConfig>,
     log4rs_config: String,
-    #[serde(default)]
-    error_handler: Option<ModuleConfig>,
     server: ServerDetails, // New field
 }
 
@@ -86,22 +236,171 @@ struct ServerDetails {
 struct LoadedModule {
     _library: Arc<Library>, // Keep the library loaded as an Arc
     module_name: String,
-    handler: SendableWebServiceHandler, // Store the handler directly
+    module_interface: Box<ModuleInterface>, // Store the ModuleInterface
     module_config: ModuleConfig,
 }
 
-struct LoadedErrorHandler {
-    _library: Arc<Library>,
-    c_error_handler: CErrorHandler,
-    destroy_fn: unsafe extern "C" fn(*mut CErrorHandler),
+#[derive(Clone)]
+struct PipelineExecutor {
+    // This will eventually hold the modules grouped by phase
+    phases: HashMap<Phase, Vec<Arc<LoadedModule>>>,
+    // Add other fields needed for pipeline execution here
 }
 
-impl Drop for LoadedErrorHandler {
-    fn drop(&mut self) {
-        info!("Dropping LoadedErrorHandler for module: {:?}", self.c_error_handler.instance_ptr);
-        unsafe {
-            (self.destroy_fn)(&mut self.c_error_handler);
+impl PipelineExecutor {
+    fn new(
+        phases: HashMap<Phase, Vec<Arc<LoadedModule>>>,
+    ) -> Self {
+        PipelineExecutor {
+            phases,
         }
+    }
+
+    async fn execute_pipeline(self: Arc<Self>, source_ip: SocketAddr, req: Request<Body>) -> Response<Body> {
+        const PHASES: &[Phase] = &[
+            Phase::PreEarlyRequest,
+            Phase::EarlyRequest,
+            Phase::PostEarlyRequest,
+            Phase::PreAuthentication,
+            Phase::Authentication,
+            Phase::PostAuthentication,
+            Phase::PreAuthorization,
+            Phase::Authorization,
+            Phase::PostAuthorization,
+            Phase::PreContent,
+            Phase::Content,
+            Phase::PostContent,
+            Phase::PreAccounting,
+            Phase::Accounting,
+            Phase::PostAccounting,
+            Phase::PreErrorHandling,
+            Phase::ErrorHandling,
+            Phase::PostErrorHandling,
+            Phase::PreLateRequest,
+            Phase::LateRequest,
+            Phase::PostLateRequest,
+        ];
+
+        let (parts, body) = req.into_parts();
+        let body_bytes = axum::body::to_bytes(body, 1024 * 1024).await.unwrap().to_vec();
+
+        let mut state = PipelineState {
+            request_method: parts.method.to_string(),
+            request_path: parts.uri.path().to_string(),
+            request_query: parts.uri.query().unwrap_or("").to_string(),
+            request_headers: parts.headers.clone(),
+            request_body: body_bytes,
+            source_ip,
+            status_code: 200,
+            response_headers: HeaderMap::new(),
+            response_body: Vec::new(),
+        };
+
+        let mut request_context = RequestContext {
+            pipeline_state_ptr: &mut state as *mut _ as *mut c_void,
+        };
+
+        let mut content_was_handled = false; // Internal flag for the server
+        let mut current_phase_index = 0;
+        while current_phase_index < PHASES.len() {
+            let current_phase = &PHASES[current_phase_index];
+            if let Some(modules) = self.phases.get(current_phase) {
+                info!("Executing phase: {:?}", current_phase);
+                let mut jumped_to_next_phase = false;
+
+                for module in modules {
+                    // URI matching logic
+                    if let Some(uris) = &module.module_config.uris {
+                        let state = unsafe { &*request_context.pipeline_state_ptr.cast::<PipelineState>() };
+                        let full_uri = if state.request_query.is_empty() {
+                            state.request_path.clone()
+                        } else {
+                            format!("{}?{}", state.request_path, state.request_query)
+                        };
+                        let mut matched = false;
+                        for uri_pattern in uris {
+                            match Regex::new(uri_pattern) {
+                                Ok(regex) => {
+                                    if regex.is_match(&full_uri) {
+                                        matched = true;
+                                        break;
+                                    }
+                                }
+                                Err(e) => {
+                                    error!("Invalid regex pattern '{}' for module '{}': {}", uri_pattern, module.module_name, e);
+                                }
+                            }
+                        }
+                        if !matched {
+                            info!("Request URI '{}' did not match any URI patterns for module '{}'. Skipping module.", full_uri, module.module_name);
+                            continue; // Skip this module
+                        }
+                    }
+
+                    let module_interface = &module.module_interface;
+                    let handler_result = unsafe {
+                        (module_interface.handler_fn)(module_interface.instance_ptr, &mut request_context as *mut _)
+                    };
+
+                    match handler_result {
+                        HandlerResult::UnmodifiedContinue => {}
+                        HandlerResult::ModifiedContinue => {
+                            if *current_phase == Phase::Content {
+                                content_was_handled = true;
+                            }
+                        }
+                        HandlerResult::UnmodifiedNextPhase => {
+                            jumped_to_next_phase = true;
+                            break;
+                        }
+                        HandlerResult::ModifiedNextPhase => {
+                            if *current_phase == Phase::Content {
+                                content_was_handled = true;
+                            }
+                            jumped_to_next_phase = true;
+                            break;
+                        }
+                        HandlerResult::UnmodifiedJumpToError | HandlerResult::ModifiedJumpToError => {
+                            if *current_phase == Phase::Content {
+                                content_was_handled = true;
+                            }
+                            current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
+                            jumped_to_next_phase = true;
+                            break;
+                        }
+                        HandlerResult::HaltProcessing => { // Changed from Stop
+                            state.status_code = 500;
+                            return Response::builder()
+                                .status(StatusCode::from_u16(state.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
+                                .body(Body::from("Pipeline stopped by module due to fatal error."))
+                                .unwrap();
+                        }
+                    }
+                }
+
+                if jumped_to_next_phase {
+                    continue;
+                }
+            }
+
+            if *current_phase == Phase::Content && !content_was_handled {
+                info!("No content module handled the request. Setting status to 404.");
+                state.status_code = 404;
+                current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
+                continue;
+            }
+
+            current_phase_index += 1;
+        }
+
+        let mut response = Response::builder()
+            .status(StatusCode::from_u16(state.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR));
+        
+        for (key, value) in state.response_headers.iter() {
+            response = response.header(key, value);
+        }
+
+        response.body(Body::from(state.response_body)).unwrap()
     }
 }
 
@@ -137,9 +436,9 @@ fn parse_key_val(s: &str) -> Result<(String, Value), String> {
 }
 
 // Implement the C-style logging callback function
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn log_callback(level: LogLevel, message: *const c_char) {
-    let message = CStr::from_ptr(message).to_string_lossy();
+    let message = unsafe { CStr::from_ptr(message).to_string_lossy() };
     match level {
         LogLevel::Error => error!("{}", message),
         LogLevel::Warn => warn!("{}", message),
@@ -188,6 +487,9 @@ async fn main() {
                     name,
                     params: None,
                     error_path: None,
+                    phase: ox_webservice_api::Phase::Content, // Default phase
+                    priority: 0, // Default priority
+                    uris: None, // Default uris
                 }
             })
             .collect();
@@ -210,86 +512,14 @@ async fn main() {
         }
     }
 
-        // --- Initialize Tera ---
-        let tera_instance = match Tera::new("content/**/*.html") {
-            Ok(t) => {
-                info!("Tera templates initialized successfully.");
-                t
-            },
-            Err(e) => {
-                error!("Parsing error(s) in Tera templates: {}", e);
-                ::std::process::exit(1);
-            }
-        };
-
-    unsafe {
-        GLOBAL_TERA = Some(Arc::new(tera_instance));
-    }
+    // Ensure GLOBAL_TERA is initialized
+    Lazy::force(&GLOBAL_TERA);
 
     info!("Major process state: Initializing modules.");
     // --- Dynamically Load Modules and Register Routes ---
-    let mut app = Router::new();
-    let mut loaded_modules: Vec<Arc<LoadedModule>> = Vec::new();
-    let mut error_handler_module: Option<Arc<LoadedErrorHandler>> = None;
+    let mut loaded_modules: Vec<LoadedModule> = Vec::new();
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], server_config.server.port));
-
-
-
-    if let Some(eh_module_config) = &server_config.error_handler {
-        let module_name = &eh_module_config.name;
-        info!("Attempting to load error handler module: {}", module_name);
-        let library_file_name = if cfg!(target_os = "windows") {
-            format!("{}.dll", module_name)
-        } else if cfg!(target_os = "macos") {
-            format!("lib{}.dylib", module_name)
-        } else {
-            format!("lib{}.so", module_name)
-        };
-
-        let library_path = PathBuf::from(library_file_name);
-
-        debug!("Attempting to load module: {} from {:?}", module_name, library_path);
-
-        match unsafe { Library::new(&library_path) } {
-            Ok(library) => {
-                info!("Successfully loaded module: {}", module_name);
-                let current_library = Arc::new(library); // Wrap library in Arc for sharing
-                unsafe {
-                    let create_error_handler_fn: Symbol<ErrorHandlerFactory> = current_library
-                        .get(b"create_error_handler")
-                        .expect(&format!("Failed to find 'create_error_handler' in error handler module {}", module_name));
-
-                    let destroy_error_handler_fn: Symbol<unsafe extern "C" fn(*mut CErrorHandler)> = current_library
-                        .get(b"destroy_error_handler")
-                        .expect(&format!("Failed to find 'destroy_error_handler' in error handler module {}", module_name));
-
-                    let c_error_handler_ptr = create_error_handler_fn(&*eh_module_config as *const ModuleConfig as *mut c_void, log_callback);
-                    if c_error_handler_ptr.is_null() {
-                        error!("create_error_handler returned a null pointer. Error handler not loaded.");
-                    } else {
-                        let boxed_c_error_handler = Box::from_raw(c_error_handler_ptr);
-                        error_handler_module = Some(Arc::new(LoadedErrorHandler {
-                            _library: current_library.clone(),
-                            c_error_handler: *boxed_c_error_handler,
-                            destroy_fn: *destroy_error_handler_fn,
-                        }));
-                    }
-                }
-            }
-            Err(e) => {
-                error!("Failed to load module {}: {}", module_name, e);
-            }
-        }
-    }
-
-    for module_config in server_config.modules.iter_mut().filter(|m| {
-        if let Some(eh_config) = &server_config.error_handler {
-            m.name != eh_config.name
-        } else {
-            true
-        }
-    }) {
+    for module_config in server_config.modules.iter_mut() {
         // Create a new WebServiceContext for each module
         let module_name = &module_config.name;
         info!("Attempting to load module: {}", module_name);
@@ -314,19 +544,47 @@ async fn main() {
                         .expect(&format!("Failed to find 'initialize_module' in {}", module_name));
 
                     // Prepare the initialization data
-                    let module_config_ptr = &*module_config as *const ModuleConfig as *mut c_void;
-                    let module_handler = initialize_module_fn(module_config_ptr, render_template_ffi, log_callback);
+                    let module_params_json = serde_json::to_string(&module_config.params.clone().unwrap_or_default())
+                        .expect("Failed to serialize module params to JSON");
+                    let module_params_cstring = CString::new(module_params_json)
+                        .expect("Failed to create CString from module params JSON");
+                    let module_params_json_ptr = module_params_cstring.as_ptr();
+
+                    let module_interface_ptr = initialize_module_fn(
+                        module_params_json_ptr,
+                        render_template_ffi,
+                        log_callback,
+                        get_request_method_c,
+                        get_request_path_c,
+                        get_request_query_c,
+                        get_request_header_c,
+                        get_request_headers_c,
+                        get_request_body_c,
+                        get_source_ip_c,
+                        set_request_path_c,
+                        set_request_header_c,
+                        set_source_ip_c,
+                        get_response_status_c,
+                        get_response_header_c,
+                        set_response_status_c,
+                        set_response_header_c,
+                        set_response_body_c,
+                    );
+
+                    if module_interface_ptr.is_null() {
+                        error!("initialize_module for '{}' returned a null pointer. Module not loaded.", module_name);
+                        continue; // Skip this module
+                    }
+                    let module_interface = Box::from_raw(module_interface_ptr);
 
                     let current_library = Arc::new(library); // Wrap library in Arc for sharing
 
-                    let loaded_module = Arc::new(LoadedModule {
+                    loaded_modules.push(LoadedModule {
                         _library: current_library.clone(),
                         module_name: module_name.clone(),
-                        handler: module_handler, // Store the handler directly
+                        module_interface, // Store the ModuleInterface
                         module_config: module_config.clone(),
                     });
-
-                    loaded_modules.push(loaded_module);
                 }
             }
             Err(e) => {
@@ -335,206 +593,35 @@ async fn main() {
         }
     }
 
-    // Share the error_handler_module across all specific endpoint handlers and the fallback
-    let shared_error_handler_module = error_handler_module.clone();
-
-    // Store loaded modules with their regex patterns and priorities
-    #[derive(Clone)]
-    struct RouteEntry {
-        module: Arc<LoadedModule>,
-        regex: Regex,
-        priority: u16,
+    // --- Group Modules by Phase and Sort by Priority ---
+    let mut phases: HashMap<Phase, Vec<Arc<LoadedModule>>> = HashMap::new();
+    for module in loaded_modules {
+        phases.entry(module.module_config.phase).or_default().push(Arc::new(module));
     }
 
-    let mut route_entries: Vec<RouteEntry> = Vec::new();
-
-    for module_config in server_config.modules.iter() {
-        if let Some(urls) = &module_config.params.as_ref().and_then(|p| p.get("urls")).and_then(|u| u.as_array()) {
-            for url_value in urls.iter() {
-                if let Some(url_str) = url_value.as_str() {
-                    let regex = Regex::new(url_str).expect("Invalid regex in module URL configuration");
-                    if let Some(loaded_module) = loaded_modules.iter().find(|m| m.module_name == module_config.name) { // Corrected: m.name instead of m.module_name
-                        route_entries.push(RouteEntry {
-                            module: loaded_module.clone(),
-                            regex,
-                            priority: module_config.params.as_ref().and_then(|p| p.get("priority")).and_then(|pr| pr.as_u64()).unwrap_or(0) as u16,
-                        });
-                    }
-                }
-            }
-        }
+    for phase_modules in phases.values_mut() {
+        phase_modules.sort_by_key(|m| m.module_config.priority);
     }
 
-    // Sort route entries by priority (lowest to highest)
-    route_entries.sort_by_key(|entry| entry.priority);
+    let pipeline_executor = Arc::new(
+        PipelineExecutor::new(phases)
+    );
 
-    let shared_route_entries = Arc::new(route_entries);
-    let shared_error_handler_module_for_fallback = shared_error_handler_module.clone();
+    let app = Router::new()
+        .route("/", get(|| async {"Hello from ox_webservice - Pipeline active."}))
+        .layer(axum::middleware::from_fn(move |ConnectInfo(source_ip): ConnectInfo<SocketAddr>, req, _next| {
+            let executor_clone = pipeline_executor.clone();
+            Box::pin(async move {
+                executor_clone.execute_pipeline(source_ip, req).await
+            })
+        }));
 
-    app = app.fallback(move |req: axum::http::Request<axum::body::Body>| {
-        let path = req.uri().path().to_string();
-        let route_entries_clone = shared_route_entries.clone();
-        let error_handler_for_fallback_clone = shared_error_handler_module_for_fallback.clone();
-
-        async move {
-            for entry in route_entries_clone.iter() {
-                debug!("Checking module: {} with regex: {} against path: {}", entry.module.module_name, entry.regex.as_str(), path);
-                if entry.regex.is_match(&path) {
-                    debug!("Module {} regex matched for path: {}", entry.module.module_name, path);
-                    let handler_fn_for_closure = entry.module.handler;
-                    let request_json = serde_json::json!({ "path": path }).to_string();
-                    let request_cstring = CString::new(request_json).unwrap();
-                    let path_for_error_handler = path.clone(); // Clone path here for use in error handler
-
-                    let handler_result = tokio::task::spawn_blocking(move || {
-                        call_module_handler(handler_fn_for_closure, request_cstring, path.clone())
-                    }).await.unwrap();
-
-                    match handler_result {
-                        Ok(json_value) => {
-                            let status_code = json_value.get("status").and_then(|s| s.as_u64()).unwrap_or(200) as u16;
-                            debug!("Extracted status code: {}", status_code);
-                            let body = json_value.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
-                            let content_type = json_value.get("headers").and_then(|h| h.get("Content-Type")).and_then(|ct| ct.as_str()).unwrap_or("application/json").to_string();
-
-                            let mut response = axum::response::Response::builder()
-                                .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK))
-                                .header(axum::http::header::CONTENT_TYPE, content_type);
-                            
-                            if let Some(headers_map) = json_value.get("headers").and_then(|h| h.as_object()) {
-                                for (key, value) in headers_map {
-                                    if key != "Content-Type" {
-                                        if let Some(header_value) = value.as_str() {
-                                            response = response.header(key, header_value);
-                                        }
-                                    }
-                                }
-                            }
-
-                            return response.body(axum::body::Body::from(body)).unwrap().into_response();
-                        },
-            Err(e) => {
-                error!("Module returned an error: {}", e);
-                let status_code = e.get("status").and_then(|s| s.as_u64()).unwrap_or(500) as u16;
-                let status = StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-                let message = e.get("message").and_then(|m| m.as_str()).unwrap_or("").to_string();
-                let module_name = entry.module.module_name.clone();
-                let module_context = e.get("module_context").and_then(|c| c.as_str()).unwrap_or("");
-
-                // Start of handle_error_request logic
-                if let Some(eh_wrapper_arc) = &error_handler_for_fallback_clone {
-                    let eh = &eh_wrapper_arc.c_error_handler;
-                    let status_code_u16 = status.as_u16();
-                    let message_cstring = CString::new(message).expect("CString::new failed");
-                            error!("ox_webservice: Module returning error: module_name = {}", module_name); // Temporarily added logging
-                            let module_name_cstring = CString::new(module_name.clone()).expect("CString::new failed"); // This is being passed
-                                    let params_json = serde_json::json!({
-                                        "request_method": req.method().as_str(),
-                                        "request_path": path_for_error_handler, // Use the cloned path
-                                        "user_agent": req.headers().get("User-Agent").and_then(|h| h.to_str().ok()).unwrap_or("Unknown"),
-                                        "timestamp": chrono::Utc::now().to_rfc3339(),
-                                    }).to_string();                    let params_cstring = CString::new(params_json).expect("CString::new failed");
-                    let module_context_cstring = CString::new(module_context).expect("CString::new failed");
-
-                    error!("ox_webservice: Calling error handler handle_error_fn for status_code: {}", status_code_u16);
-                    let response_ptr = unsafe {
-                        (eh.handle_error_fn)(
-                            eh.instance_ptr,
-                            status_code_u16,
-                            message_cstring.into_raw(),
-                            module_name_cstring.into_raw(), // Pass module_name here
-                            params_cstring.into_raw(),
-                            module_context_cstring.into_raw(),
-                        )
-                    };
-
-                    let html_response = if response_ptr.is_null() {
-                        error!("handle_error_fn returned a null pointer. Returning generic error HTML.");
-                        "<h1>Internal Server Error</h1><p>Error handler returned null.</p>".to_string()
-                    } else {
-                        let c_str = unsafe { CStr::from_ptr(response_ptr) };
-                        let response = c_str.to_str().unwrap().to_string();
-                        unsafe { CString::from_raw(response_ptr) }; // Deallocate the CString
-                        response
-                    };
-
-                    return axum::response::Response::builder()
-                        .status(status)
-                        .header(axum::http::header::CONTENT_TYPE, "text/html")
-                        .body(axum::body::Body::from(html_response))
-                        .unwrap()
-                        .into_response();
-                } else {
-                    let reason = status.canonical_reason().unwrap_or("Internal Server Error");
-                    return (status, format!("{} {}", status.as_u16(), reason)).into_response();
-                }
-                // End of handle_error_request logic
-            }
-                    }
-                }
-            }
-
-            // If no module handled the request, use the default 404 or error handler
-            if let Some(eh_wrapper_arc) = &error_handler_for_fallback_clone {
-                let eh = &eh_wrapper_arc.c_error_handler;
-                let status_code_u16 = StatusCode::NOT_FOUND.as_u16();
-                let message_cstring = CString::new("Not Found").unwrap();
-                let module_name_cstring = CString::new("Unknown Module".to_string()).unwrap(); // Renamed to module_name_cstring
-                let params_json = serde_json::json!({
-                    "request_method": req.method().as_str(),
-                    "request_path": path,
-                    "user_agent": req.headers().get("User-Agent").and_then(|h| h.to_str().ok()).unwrap_or("Unknown"),
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                }).to_string();
-                let params_cstring = CString::new(params_json).unwrap();
-
-                let module_context_cstring = CString::new("").unwrap();
-                error!("ox_webservice: Calling error handler handle_error_fn for status_code: {}", status_code_u16);
-                let response_ptr = unsafe {
-                    (eh.handle_error_fn)(
-                        eh.instance_ptr,
-                        status_code_u16,
-                        message_cstring.into_raw(),
-                        module_name_cstring.into_raw(), // Pass module_name here
-                        params_cstring.into_raw(),
-                        module_context_cstring.into_raw(),
-                    )
-                };
-
-                let html_response = if response_ptr.is_null() {
-                    error!("handle_error_fn returned a null pointer. Returning generic error HTML.");
-                    "<h1>Internal Server Error</h1><p>Error handler returned null.</p>".to_string()
-                } else {
-                    let c_str = unsafe { CStr::from_ptr(response_ptr) };
-                    let response = c_str.to_str().unwrap().to_string();
-                    unsafe { CString::from_raw(response_ptr) }; // Deallocate the CString
-                    response
-                };
-
-                axum::response::Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .header(axum::http::header::CONTENT_TYPE, "text/html")
-                    .body(axum::body::Body::from(html_response))
-                    .unwrap()
-                    .into_response()
-            } else {
-                let status = axum::http::StatusCode::NOT_FOUND;
-                let reason = status.canonical_reason().unwrap_or("Not Found");
-                return (status, format!("{} {}", status.as_u16(), reason)).into_response();
-            }
-        }
-    });
-
-    // We need to drop the CString after the loop, but before `axum::serve`
-    // to ensure the pointer is valid during module initialization.
-    // However, `initial_context_cstring` is dropped at the end of the `main` function scope.
-    // This is fine as `initialize_module` is expected to copy the data it needs.
-
-    // Run it
-    info!("listening on {}", addr);
-
+    // Start the server
+    let addr = SocketAddr::from(([127, 0, 0, 1], server_config.server.port));
     let listener = TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+
+    info!("listening on {}", addr);
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
 fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfig, ConfigError> {
     debug!("Loading config from: {:?}", path);
@@ -594,43 +681,8 @@ macro_rules! debug_println {
     };
 }
 
-fn call_module_handler(
-    handler_fn: SendableWebServiceHandler,
-    request_cstring: CString,
-    path: String,
-) -> Result<serde_json::Value, serde_json::Value> {
-    unsafe {
-        let response_ptr = (handler_fn.0)(request_cstring.into_raw());
-
-        if response_ptr.is_null() {
-            error!("Handler returned a null pointer for path: {}", path);
-            return Err(serde_json::json!({
-                "status": 500,
-                "message": format!("Handler for path '{}' returned a null response.", path)
-            }));
-        }
-
-        let c_str = CStr::from_ptr(response_ptr as *mut c_char);
-        let response_json_str = c_str.to_str().map_err(|e| format!("Failed to convert CStr to &str: {}", e))?.to_string();
-
-        let _ = CString::from_raw(response_ptr as *mut c_char); // Deallocate the memory
-
-        let json_value: serde_json::Value = serde_json::from_str(&response_json_str)
-            .map_err(|e| format!("Failed to parse JSON from module handler: {}", e))?;
-
-        // If the module's response contains a status code >= 400, treat it as an error
-        if let Some(status_code) = json_value.get("status").and_then(|s| s.as_u64()) {
-            if status_code >= 400 {
-                return Err(json_value);
-            }
-        }
-
-        Ok(json_value)
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn render_template_ffi(template_name_ptr: *mut c_char, data_ptr: *mut c_char) -> *mut c_char {
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn render_template_ffi(template_name_ptr: *mut c_char, data_ptr: *mut c_char) -> *mut c_char {
     let template_name = unsafe { CStr::from_ptr(template_name_ptr).to_str().unwrap() };
     let data_json = unsafe { CStr::from_ptr(data_ptr).to_str().unwrap() };
 
@@ -646,9 +698,7 @@ pub extern "C" fn render_template_ffi(template_name_ptr: *mut c_char, data_ptr: 
         }
     };
 
-    let tera_instance = unsafe {
-        GLOBAL_TERA.as_ref().expect("GLOBAL_TERA not initialized")
-    };
+    let tera_instance = &GLOBAL_TERA;
 
     match tera_instance.render(template_name, &context) {
         Ok(rendered_html) => {

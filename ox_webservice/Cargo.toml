@@ -1,11 +1,12 @@
 [package]
 name = "ox_webservice"
-version = "0.1.0"
-edition = "2021"
+version = "0.0.1"
+edition = "2024"
 build = "build.rs"
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.4", features = ["util"] }
+axum = "0.7.5"
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -27,7 +28,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 ox_persistence = { path = "../ox_persistence" }
 ox_persistence_api = { path = "../ox_persistence_api" }
-ox_locking = { path = "../ox_locking" }
+
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
 ox_webservice_api = { path = "../ox_webservice_api" }
