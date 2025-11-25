@@ -1,0 +1,12 @@
+log4rs_config: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/log4rs.yaml"
+server:
+  port: 3000
+  bind_address: "0.0.0.0"
+modules:
+  - name: ox_content
+    priority: 999
+    phase: Content
+    uris:
+        - ".*"
+    params:
+      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice_errorhandler_jinja2.yaml"

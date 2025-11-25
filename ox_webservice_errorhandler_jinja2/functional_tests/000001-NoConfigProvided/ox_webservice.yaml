@@ -3,6 +3,9 @@ server:
   port: 3000
   bind_address: "0.0.0.0"
 modules:
-error_handler:
-  name: ox_webservice_errorhandler_jinja2
-  params:
+  - name: ox_webservice_errorhandler_jinja2
+    priority: 999
+    phase: ErrorHandling
+    uris:
+        - ".*"
+    params:

@@ -1,174 +1,232 @@
-use std::panic;
 use ox_webservice_api::{
-    ModuleInterface, LogCallback, LogLevel, RequestContext, HandlerResult,
-    GetRequestMethodFn, GetRequestPathFn, GetRequestQueryFn, GetRequestHeaderFn, GetRequestHeadersFn,
-    GetRequestBodyFn, GetSourceIpFn, SetRequestPathFn, SetRequestHeaderFn, SetSourceIpFn, GetResponseStatusFn,
-    GetResponseHeaderFn, SetResponseStatusFn, SetResponseHeaderFn, SetResponseBodyFn,
+    HandlerResult, LogCallback, LogLevel, ModuleInterface, RequestContext,
+    WebServiceApiV1,
 };
 use serde::Deserialize;
 use serde_json::Value;
 use std::ffi::{c_char, c_void, CStr, CString};
+use std::panic;
 use std::path::PathBuf;
 use tera::{Context, Tera};
-
-// --- Static FFI Function Pointers ---
-static mut LOGGER_CALLBACK: Option<LogCallback> = None;
-static mut GET_REQUEST_METHOD_FN: Option<GetRequestMethodFn> = None;
-static mut GET_REQUEST_PATH_FN: Option<GetRequestPathFn> = None;
-static mut GET_REQUEST_QUERY_FN: Option<GetRequestQueryFn> = None;
-static mut GET_REQUEST_HEADER_FN: Option<GetRequestHeaderFn> = None;
-static mut GET_REQUEST_HEADERS_FN: Option<GetRequestHeadersFn> = None;
-static mut GET_REQUEST_BODY_FN: Option<GetRequestBodyFn> = None;
-static mut GET_SOURCE_IP_FN: Option<GetSourceIpFn> = None;
-static mut SET_REQUEST_PATH_FN: Option<SetRequestPathFn> = None;
-static mut SET_REQUEST_HEADER_FN: Option<SetRequestHeaderFn> = None;
-static mut SET_SOURCE_IP_FN: Option<SetSourceIpFn> = None;
-static mut GET_RESPONSE_STATUS_FN: Option<GetResponseStatusFn> = None;
-static mut GET_RESPONSE_HEADER_FN: Option<GetResponseHeaderFn> = None;
-static mut SET_RESPONSE_STATUS_FN: Option<SetResponseStatusFn> = None;
-static mut SET_RESPONSE_HEADER_FN: Option<SetResponseHeaderFn> = None;
-static mut SET_RESPONSE_BODY_FN: Option<SetResponseBodyFn> = None;
-
-
-macro_rules! module_log {
-    ($level:expr, $($arg:tt)*) => ({
-        if let Some(log_cb) = unsafe { LOGGER_CALLBACK } {
-            let message = format!($($arg)*);
-            if let Ok(c_message) = CString::new(message) {
-                unsafe {
-                    log_cb($level, c_message.as_ptr());
-                }
-            }
-        }
-    });
-}
-
-pub struct Jinja2ErrorHandler {
-    content_root: PathBuf,
-}
-
-impl Jinja2ErrorHandler {
-    pub fn new(config: ErrorHandlerConfig) -> anyhow::Result<Self> {
-        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}", config.content_root);
-        Ok(Self { content_root: config.content_root })
-    }
-
-    pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
-        let status_code = unsafe { GET_RESPONSE_STATUS_FN.unwrap()(context) };
-
-        // This module only acts on requests that are already in an error state.
-        if status_code < 400 {
-            return HandlerResult::UnmodifiedContinue;
-        }
-
-        module_log!(LogLevel::Debug, "ox_webservice_errorhandler_jinja2: Handling error request with status code: {}", status_code);
-
-        let mut render_context = Context::new();
-        render_context.insert("status_code", &status_code);
-        render_context.insert("message", "An error occurred.");
-        render_context.insert("module_name", "Unknown");
-
-        let template_filename = format!("{}.jinja2", status_code);
-        let template_path = self.content_root.join(&template_filename);
-
-        let html_content = if template_path.exists() {
-            match std::fs::read_to_string(&template_path) {
-                Ok(template_str) => {
-                    match Tera::one_off(&template_str, &render_context, false) {
-                        Ok(html) => html,
-                        Err(e) => {
-                            module_log!(LogLevel::Error, "Failed to render template '{}': {}", template_filename, e);
-                            format!("<h1>Internal Server Error</h1><p>Failed to render error template.</p>")
-                        }
-                    }
-                }
-                Err(e) => {
-                    module_log!(LogLevel::Error, "Failed to read template file '{}': {}", template_filename, e);
-                    format!("<h1>Internal Server Error</h1><p>Failed to read error template file.</p>")
-                }
-            }
-        } else {
-            module_log!(LogLevel::Warn, "No specific error template found for status {}. No fallback implemented yet.", status_code);
-            format!("<h1>Error {}</h1><p>No error template configured.</p>", status_code)
-        };
-
-        unsafe {
-            if let (Some(set_body_fn), Some(set_header_fn)) = (SET_RESPONSE_BODY_FN, SET_RESPONSE_HEADER_FN) {
-                let c_body = CString::new(html_content).unwrap();
-                let c_content_type_key = CString::new("Content-Type").unwrap();
-                let c_content_type_value = CString::new("text/html").unwrap();
-
-                set_header_fn(context, c_content_type_key.as_ptr(), c_content_type_value.as_ptr());
-                set_body_fn(context, c_body.as_ptr().cast(), c_body.as_bytes().len());
-            }
-        }
-
-        HandlerResult::ModifiedContinue
-    }
-}
 
 #[derive(Debug, Deserialize)]
 pub struct ErrorHandlerConfig {
     pub content_root: PathBuf,
 }
 
+pub struct OxModule {
+    content_root: PathBuf,
+    api: WebServiceApiV1,
+}
+
+impl OxModule {
+    fn log(&self, level: LogLevel, message: String) {
+        if let Ok(c_message) = CString::new(message) {
+            unsafe {
+                (self.api.log_callback)(level, c_message.as_ptr());
+            }
+        }
+    }
+
+    pub fn new(config: ErrorHandlerConfig, api: WebServiceApiV1) -> anyhow::Result<Self> {
+        let temp_logger = |level, msg: String| {
+            if let Ok(c_message) = CString::new(msg) {
+                unsafe { (api.log_callback)(level, c_message.as_ptr()); }
+            }
+        };
+        temp_logger(
+            LogLevel::Debug,
+            format!(
+                "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}",
+                config.content_root
+            ),
+        );
+
+        Ok(Self {
+            content_root: config.content_root,
+            api,
+        })
+    }
+
+    pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
+        let status_code = unsafe { (self.api.get_response_status)(context) };
+
+        if status_code < 400 {
+            return HandlerResult::UnmodifiedContinue;
+        }
+
+        self.log(
+            LogLevel::Debug,
+            format!(
+                "ox_webservice_errorhandler_jinja2: Handling error request with status code: {}",
+                status_code
+            ),
+        );
+
+        let mut render_context = Context::new();
+        unsafe {
+            let c_str_method = (self.api.get_request_method)(context);
+            render_context.insert(
+                "request_method",
+                &CStr::from_ptr(c_str_method).to_string_lossy().into_owned(),
+            );
+
+            let c_str_path = (self.api.get_request_path)(context);
+            render_context.insert(
+                "request_path",
+                &CStr::from_ptr(c_str_path).to_string_lossy().into_owned(),
+            );
+
+            let c_str_query = (self.api.get_request_query)(context);
+            render_context.insert(
+                "request_query",
+                &CStr::from_ptr(c_str_query).to_string_lossy().into_owned(),
+            );
+
+            let c_str_headers = (self.api.get_request_headers)(context);
+            let headers_json = CStr::from_ptr(c_str_headers).to_string_lossy();
+            let headers_value: Value = serde_json::from_str(&headers_json).unwrap_or_default();
+            render_context.insert("request_headers", &headers_value);
+
+            let c_str_body = (self.api.get_request_body)(context);
+            render_context.insert(
+                "request_body",
+                &CStr::from_ptr(c_str_body).to_string_lossy().into_owned(),
+            );
+
+            let c_str_ip = (self.api.get_source_ip)(context);
+            render_context.insert(
+                "source_ip",
+                &CStr::from_ptr(c_str_ip).to_string_lossy().into_owned(),
+            );
+
+            let status_text = axum::http::StatusCode::from_u16(status_code)
+                .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+                .canonical_reason()
+                .unwrap_or("Unknown Error");
+            render_context.insert("status_code", &status_code);
+            render_context.insert("status_text", &status_text);
+
+            let module_name_key = CString::new("module_name").unwrap();
+            let module_context_key = CString::new("module_context").unwrap();
+
+            let c_str_module_name =
+                (self.api.get_module_context_value)(context, module_name_key.as_ptr());
+            let module_name_json = if !c_str_module_name.is_null() {
+                CStr::from_ptr(c_str_module_name)
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                "\"Unknown\"".to_string()
+            };
+            let module_name: String = serde_json::from_str(&module_name_json).unwrap_or("Unknown".to_string());
+
+
+            let c_str_module_context =
+                (self.api.get_module_context_value)(context, module_context_key.as_ptr());
+            let module_context = if !c_str_module_context.is_null() {
+                CStr::from_ptr(c_str_module_context)
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                "{}".to_string()
+            };
+
+            render_context.insert("message", "An error occurred.");
+            render_context.insert("module_name", &module_name);
+            render_context.insert("module_context", &module_context);
+        }
+
+        let status_template_path = self.content_root.join(format!("{}.jinja2", status_code));
+        let index_template_path = self.content_root.join("index.jinja2");
+
+        let template_to_use = if status_template_path.exists() {
+            Some(status_template_path)
+        } else if index_template_path.exists() {
+            Some(index_template_path)
+        } else {
+            None
+        };
+
+        let response_body = match template_to_use {
+            Some(path) => {
+                self.log(
+                    LogLevel::Debug,
+                    format!("Attempting to render error template: {:?}", path),
+                );
+                match std::fs::read_to_string(&path) {
+                    Ok(template_str) => {
+                        match Tera::one_off(&template_str, &render_context, false) {
+                            Ok(html) => html,
+                            Err(e) => {
+                                self.log(
+                                    LogLevel::Error,
+                                    format!("Failed to render template '{:?}': {}", path, e),
+                                );
+                                "500 Internal Server Error".to_string()
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        self.log(
+                            LogLevel::Error,
+                            format!("Failed to read template file '{:?}': {}", path, e),
+                        );
+                        "500 Internal Server Error".to_string()
+                    }
+                }
+            }
+            None => {
+                self.log(LogLevel::Warn, format!("No specific error template found for status {}. No index.jinja2 fallback found. Falling back to default text response.", status_code));
+                let reason = axum::http::StatusCode::from_u16(status_code)
+                    .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+                    .canonical_reason()
+                    .unwrap_or("Internal Server Error");
+                format!("{} {}", status_code, reason)
+            }
+        };
+
+        unsafe {
+            let c_body = CString::new(response_body).unwrap();
+            let c_content_type_key = CString::new("Content-Type").unwrap();
+            let c_content_type_value = CString::new("text/plain").unwrap();
+
+            (self.api.set_response_header)(
+                context,
+                c_content_type_key.as_ptr(),
+                c_content_type_value.as_ptr(),
+            );
+            (self.api.set_response_body)(context, c_body.as_ptr().cast(), c_body.as_bytes().len());
+        }
+
+        HandlerResult::ModifiedContinue
+    }
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
-    _render_template_ffi: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
-    log_callback: LogCallback,
-    // Request Getters
-    get_request_method_fn: GetRequestMethodFn,
-    get_request_path_fn: GetRequestPathFn,
-    get_request_query_fn: GetRequestQueryFn,
-    get_request_header_fn: GetRequestHeaderFn,
-    get_request_headers_fn: GetRequestHeadersFn,
-    get_request_body_fn: GetRequestBodyFn,
-    get_source_ip_fn: GetSourceIpFn,
-    // Request Setters
-    set_request_path_fn: SetRequestPathFn,
-    set_request_header_fn: SetRequestHeaderFn,
-    set_source_ip_fn: SetSourceIpFn,
-    // Response Getters
-    get_response_status_fn: GetResponseStatusFn,
-    get_response_header_fn: GetResponseHeaderFn,
-    // Response Setters
-    set_response_status_fn: SetResponseStatusFn,
-    set_response_header_fn: SetResponseHeaderFn,
-    set_response_body_fn: SetResponseBodyFn,
+    api: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
-    unsafe {
-        LOGGER_CALLBACK = Some(log_callback);
-        // Request Getters
-        GET_REQUEST_METHOD_FN = Some(get_request_method_fn);
-        GET_REQUEST_PATH_FN = Some(get_request_path_fn);
-        GET_REQUEST_QUERY_FN = Some(get_request_query_fn);
-        GET_REQUEST_HEADER_FN = Some(get_request_header_fn);
-        GET_REQUEST_HEADERS_FN = Some(get_request_headers_fn);
-        GET_REQUEST_BODY_FN = Some(get_request_body_fn);
-        GET_SOURCE_IP_FN = Some(get_source_ip_fn);
-        // Request Setters
-        SET_REQUEST_PATH_FN = Some(set_request_path_fn);
-        SET_REQUEST_HEADER_FN = Some(set_request_header_fn);
-        SET_SOURCE_IP_FN = Some(set_source_ip_fn);
-        // Response Getters
-        GET_RESPONSE_STATUS_FN = Some(get_response_status_fn);
-        GET_RESPONSE_HEADER_FN = Some(get_response_header_fn);
-        // Response Setters
-        SET_RESPONSE_STATUS_FN = Some(set_response_status_fn);
-        SET_RESPONSE_HEADER_FN = Some(set_response_header_fn);
-        SET_RESPONSE_BODY_FN = Some(set_response_body_fn);
-    }
-
     let result = panic::catch_unwind(|| {
-        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() };
-        let params: Value = serde_json::from_str(module_params_json)
-            .expect("Failed to parse module params JSON");
+        let api = unsafe { &*api }; // Correctly dereference api pointer
+        let temp_logger = |level, msg: String| {
+            if let Ok(c_message) = CString::new(msg) {
+                unsafe { (api.log_callback)(level, c_message.as_ptr()); } // Correctly use api.log_callback
+            }
+        };
+
+        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() }; // Wrap in unsafe
+        let params: Value =
+            serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
 
         let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
-                module_log!(LogLevel::Error, "'config_file' parameter is missing or not a string.");
+                temp_logger(
+                    LogLevel::Error,
+                    "'config_file' parameter is missing or not a string.".to_string(),
+                );
                 return std::ptr::null_mut();
             }
         };
@@ -176,7 +234,10 @@ pub unsafe extern "C" fn initialize_module(
         let contents = match std::fs::read_to_string(config_file_name) {
             Ok(c) => c,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to read config file '{}': {}", config_file_name, e);
+                temp_logger(
+                    LogLevel::Error,
+                    format!("Failed to read config file '{}': {}", config_file_name, e),
+                );
                 return std::ptr::null_mut();
             }
         };
@@ -184,15 +245,21 @@ pub unsafe extern "C" fn initialize_module(
         let config: ErrorHandlerConfig = match serde_yaml::from_str(&contents) {
             Ok(c) => c,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to deserialize ErrorHandlerConfig: {}", e);
+                temp_logger(
+                    LogLevel::Error,
+                    format!("Failed to deserialize ErrorHandlerConfig: {}", e),
+                );
                 return std::ptr::null_mut();
             }
         };
 
-        let handler = match Jinja2ErrorHandler::new(config) {
+        let handler = match OxModule::new(config, *api) {
             Ok(eh) => eh,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to create Jinja2ErrorHandler: {}", e);
+                temp_logger(
+                    LogLevel::Error,
+                    format!("Failed to create OxModule: {}", e),
+                );
                 return std::ptr::null_mut();
             }
         };
@@ -202,6 +269,7 @@ pub unsafe extern "C" fn initialize_module(
         let module_interface = Box::new(ModuleInterface {
             instance_ptr,
             handler_fn: process_request_c,
+            log_callback: api.log_callback,
         });
 
         Box::into_raw(module_interface)
@@ -210,15 +278,20 @@ pub unsafe extern "C" fn initialize_module(
     match result {
         Ok(ptr) => ptr,
         Err(e) => {
-            module_log!(LogLevel::Error, "Panic occurred during module initialization: {:?}.", e);
+            // Cannot safely log here as we might not have the api pointer.
+            eprintln!("Panic during module initialization: {:?}", e);
             std::ptr::null_mut()
         }
     }
 }
 
-unsafe extern "C" fn process_request_c(instance_ptr: *mut c_void, context_ptr: *mut RequestContext) -> HandlerResult {
+unsafe extern "C" fn process_request_c(
+    instance_ptr: *mut c_void,
+    context_ptr: *mut RequestContext,
+    log_callback: LogCallback,
+) -> HandlerResult {
     let result = panic::catch_unwind(|| {
-        let handler = unsafe { &*(instance_ptr as *mut Jinja2ErrorHandler) };
+        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
         let context = unsafe { &mut *context_ptr };
         handler.process_request(context)
     });
@@ -226,11 +299,10 @@ unsafe extern "C" fn process_request_c(instance_ptr: *mut c_void, context_ptr: *
     match result {
         Ok(handler_result) => handler_result,
         Err(e) => {
-            module_log!(LogLevel::Error, "Panic occurred in process_request_c: {:?}.", e);
-            // If the handler panics, we should signal an error to the pipeline
+            let log_msg =
+                CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
+            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); } // Correctly wrap in unsafe
             HandlerResult::ModifiedJumpToError
         }
     }
 }
-
-// No destroy_module function needed for now, as the Box will be dropped when the LoadedModule is dropped.

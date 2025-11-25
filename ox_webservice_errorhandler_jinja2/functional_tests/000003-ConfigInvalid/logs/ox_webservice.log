@@ -1,1 +1,1 @@
-Failed to load configuration: Error parsing configuration file: invalid type: string "Invalid", expected struct ServerConfig at line 2 column 1
+Failed to load configuration: Error parsing configuration file: server: missing field `_bind_address` at line 3 column 3

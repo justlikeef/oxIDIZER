@@ -1,2 +1,0 @@
-ox_webservice
-ox_webservice_errorhandler_jinja2

@@ -1,47 +1,14 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
-    ModuleInterface, LogCallback, LogLevel, RequestContext, HandlerResult,
-    GetRequestMethodFn, GetRequestPathFn, GetRequestQueryFn, GetRequestHeaderFn, GetRequestHeadersFn,
-    GetRequestBodyFn, GetSourceIpFn, SetRequestPathFn, SetRequestHeaderFn, SetSourceIpFn, GetResponseStatusFn,
-    GetResponseHeaderFn, SetResponseStatusFn, SetResponseHeaderFn, SetResponseBodyFn,
+    HandlerResult, LogCallback, LogLevel, ModuleInterface, RequestContext,
+    WebServiceApiV1,
 };
 use serde::Deserialize;
 use serde_json::Value;
 use std::ffi::{CStr, CString};
 use std::fs;
-use std::path::{PathBuf};
 use std::panic;
-
-// --- Static FFI Function Pointers ---
-static mut LOGGER_CALLBACK: Option<LogCallback> = None;
-static mut GET_REQUEST_METHOD_FN: Option<GetRequestMethodFn> = None;
-static mut GET_REQUEST_PATH_FN: Option<GetRequestPathFn> = None;
-static mut GET_REQUEST_QUERY_FN: Option<GetRequestQueryFn> = None;
-static mut GET_REQUEST_HEADER_FN: Option<GetRequestHeaderFn> = None;
-static mut GET_REQUEST_HEADERS_FN: Option<GetRequestHeadersFn> = None;
-static mut GET_REQUEST_BODY_FN: Option<GetRequestBodyFn> = None;
-static mut GET_SOURCE_IP_FN: Option<GetSourceIpFn> = None;
-static mut SET_REQUEST_PATH_FN: Option<SetRequestPathFn> = None;
-static mut SET_REQUEST_HEADER_FN: Option<SetRequestHeaderFn> = None;
-static mut SET_SOURCE_IP_FN: Option<SetSourceIpFn> = None;
-static mut GET_RESPONSE_STATUS_FN: Option<GetResponseStatusFn> = None;
-static mut GET_RESPONSE_HEADER_FN: Option<GetResponseHeaderFn> = None;
-static mut SET_RESPONSE_STATUS_FN: Option<SetResponseStatusFn> = None;
-static mut SET_RESPONSE_HEADER_FN: Option<SetResponseHeaderFn> = None;
-static mut SET_RESPONSE_BODY_FN: Option<SetResponseBodyFn> = None;
-
-macro_rules! module_log {
-    ($level:expr, $($arg:tt)*) => ({
-        if let Some(log_cb) = unsafe { LOGGER_CALLBACK } {
-            let message = format!($($arg)*);
-            if let Ok(c_message) = CString::new(message) {
-                unsafe {
-                    log_cb($level, c_message.as_ptr());
-                }
-            }
-        }
-    });
-}
+use std::path::PathBuf;
 
 mod handlers;
 
@@ -58,11 +25,6 @@ struct MimeTypeConfig {
 }
 
 #[derive(Debug, Deserialize, Clone, serde::Serialize)]
-struct UrlConfig {
-    url: String,
-}
-
-#[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct DocumentConfig {
     document: String,
 }
@@ -75,29 +37,61 @@ pub struct ContentConfig {
     default_documents: Vec<DocumentConfig>,
 }
 
-pub struct ContentModule {
+pub struct OxModule {
     pub content_root: PathBuf,
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
-    pub render_template_fn: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
     pub content_config: ContentConfig,
+    api: WebServiceApiV1,
 }
 
-impl ContentModule {
-    pub fn new(config: ContentConfig, render_template_fn: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char) -> anyhow::Result<Self> {
-        module_log!(LogLevel::Debug, "ox_content: new: Initializing with content_root: {:?}", config.content_root);
+impl OxModule {
+    fn log(&self, level: LogLevel, message: String) {
+        if let Ok(c_message) = CString::new(message) {
+            unsafe {
+                (self.api.log_callback)(level, c_message.as_ptr());
+            }
+        }
+    }
+
+    pub fn new(config: ContentConfig, api: WebServiceApiV1) -> anyhow::Result<Self> {
+        let temp_logger = |level, msg: String| {
+            if let Ok(c_message) = CString::new(msg) {
+                unsafe { (api.log_callback)(level, c_message.as_ptr()); }
+            }
+        };
+
+        temp_logger(
+            LogLevel::Debug,
+            format!(
+                "ox_content: new: Initializing with content_root: {:?}",
+                config.content_root
+            ),
+        );
 
         let mimetype_file_name = &config.mimetypes_file;
         let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
             Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
                 Ok(cfg) => cfg,
                 Err(e) => {
-                    module_log!(LogLevel::Error, "ox_content: Failed to parse mimetype config file {}: {}", mimetype_file_name, e);
+                    temp_logger(
+                        LogLevel::Error,
+                        format!(
+                            "ox_content: Failed to parse mimetype config file {}: {}",
+                            mimetype_file_name, e
+                        ),
+                    );
                     anyhow::bail!("Failed to parse mimetype config: {}", e);
                 }
             },
             Err(e) => {
-                module_log!(LogLevel::Error, "ox_content: Failed to read mimetype config file {}: {}", mimetype_file_name, e);
+                temp_logger(
+                    LogLevel::Error,
+                    format!(
+                        "ox_content: Failed to read mimetype config file {}: {}",
+                        mimetype_file_name, e
+                    ),
+                );
                 anyhow::bail!("Failed to read mimetype config: {}", e);
             }
         };
@@ -106,19 +100,19 @@ impl ContentModule {
             content_root: PathBuf::from(config.content_root.clone()),
             mimetypes: mimetype_config.mimetypes,
             default_documents: config.default_documents.clone(),
-            render_template_fn,
             content_config: config,
+            api,
         })
     }
 
     pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
-        module_log!(LogLevel::Debug, "ox_content: process_request called.");
+        self.log(LogLevel::Debug, "ox_content: process_request called.".to_string());
 
-        let request_path_ptr = unsafe { GET_REQUEST_PATH_FN.unwrap()(context) };
+        let request_path_ptr = unsafe { (self.api.get_request_path)(context) };
         let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
 
         if request_path == "/error_test" {
-            unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 500); }
+            unsafe { (self.api.set_response_status)(context, 500); }
             return HandlerResult::ModifiedJumpToError;
         }
 
@@ -128,36 +122,69 @@ impl ContentModule {
 
             let handler_result = if let Some(mapping) = mimetype_mapping {
                 match mapping.handler.as_str() {
-                    "stream" => handlers::stream_handler::stream_handler(file_path.clone(), &mapping.mimetype),
-                    "template" => handlers::template_handler::template_handler(file_path.clone(), &mapping.mimetype, self.render_template_fn, &self.content_root),
+                    "stream" => {
+                        handlers::stream_handler::stream_handler(file_path.clone(), &mapping.mimetype)
+                    }
+                    "template" => handlers::template_handler::template_handler(
+                        file_path.clone(),
+                        &mapping.mimetype,
+                        self.api.render_template,
+                        &self.content_root,
+                    ),
                     _ => Err(format!("Unsupported handler for file: {}", mapping.handler)),
                 }
             } else {
-                handlers::stream_handler::stream_handler(file_path.clone(), "application/octet-stream")
+                handlers::stream_handler::stream_handler(
+                    file_path.clone(),
+                    "application/octet-stream",
+                )
             };
 
             match handler_result {
                 Ok((response_body, mimetype)) => {
-                    module_log!(LogLevel::Debug, "ox_content: Successfully handled request for path: {}", request_path);
+                    self.log(
+                        LogLevel::Debug,
+                        format!(
+                            "ox_content: Successfully handled request for path: {}",
+                            request_path
+                        ),
+                    );
                     unsafe {
-                        if let (Some(set_body_fn), Some(set_header_fn)) = (SET_RESPONSE_BODY_FN, SET_RESPONSE_HEADER_FN) {
-                            let c_content_type_key = CString::new("Content-Type").unwrap();
-                            let c_content_type_value = CString::new(mimetype).unwrap();
-                            set_header_fn(context, c_content_type_key.as_ptr(), c_content_type_value.as_ptr());
-                            set_body_fn(context, response_body.as_ptr(), response_body.len());
-                        }
+                        let c_content_type_key = CString::new("Content-Type").unwrap();
+                        let c_content_type_value = CString::new(mimetype).unwrap();
+                        (self.api.set_response_header)(
+                            context,
+                            c_content_type_key.as_ptr(),
+                            c_content_type_value.as_ptr(),
+                        );
+                        (self.api.set_response_body)(
+                            context,
+                            response_body.as_ptr(),
+                            response_body.len(),
+                        );
                     }
                     HandlerResult::ModifiedContinue
-                },
+                }
                 Err(error_message) => {
-                    module_log!(LogLevel::Error, "ox_content: Error handling request for path {}: {}", request_path, error_message);
-                    unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 500); }
+                    self.log(
+                        LogLevel::Error,
+                        format!(
+                            "ox_content: Error handling request for path {}: {}",
+                            request_path, error_message
+                        ),
+                    );
+                    unsafe { (self.api.set_response_status)(context, 500); }
                     HandlerResult::ModifiedJumpToError
                 }
             }
         } else {
-            module_log!(LogLevel::Debug, "ox_content: File not found for path: {}", request_path);
-            unsafe { SET_RESPONSE_STATUS_FN.unwrap()(context, 404); }
+            self.log(
+                LogLevel::Debug,
+                format!("ox_content: File not found for path: {}", request_path),
+            );
+            unsafe {
+                (self.api.set_response_status)(context, 404);
+            }
             HandlerResult::UnmodifiedContinue // Let the pipeline handle the 404
         }
     }
@@ -197,60 +224,19 @@ impl ContentModule {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
-    render_template_ffi: unsafe extern "C" fn(*mut c_char, *mut c_char) -> *mut c_char,
-    log_callback: LogCallback,
-    // Request Getters
-    get_request_method_fn: GetRequestMethodFn,
-    get_request_path_fn: GetRequestPathFn,
-    get_request_query_fn: GetRequestQueryFn,
-    get_request_header_fn: GetRequestHeaderFn,
-    get_request_headers_fn: GetRequestHeadersFn,
-    get_request_body_fn: GetRequestBodyFn,
-    get_source_ip_fn: GetSourceIpFn,
-    // Request Setters
-    set_request_path_fn: SetRequestPathFn,
-    set_request_header_fn: SetRequestHeaderFn,
-    set_source_ip_fn: SetSourceIpFn,
-    // Response Getters
-    get_response_status_fn: GetResponseStatusFn,
-    get_response_header_fn: GetResponseHeaderFn,
-    // Response Setters
-    set_response_status_fn: SetResponseStatusFn,
-    set_response_header_fn: SetResponseHeaderFn,
-    set_response_body_fn: SetResponseBodyFn,
+    api_ptr: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
-    unsafe {
-        LOGGER_CALLBACK = Some(log_callback);
-        // Request Getters
-        GET_REQUEST_METHOD_FN = Some(get_request_method_fn);
-        GET_REQUEST_PATH_FN = Some(get_request_path_fn);
-        GET_REQUEST_QUERY_FN = Some(get_request_query_fn);
-        GET_REQUEST_HEADER_FN = Some(get_request_header_fn);
-        GET_REQUEST_HEADERS_FN = Some(get_request_headers_fn);
-        GET_REQUEST_BODY_FN = Some(get_request_body_fn);
-        GET_SOURCE_IP_FN = Some(get_source_ip_fn);
-        // Request Setters
-        SET_REQUEST_PATH_FN = Some(set_request_path_fn);
-        SET_REQUEST_HEADER_FN = Some(set_request_header_fn);
-        SET_SOURCE_IP_FN = Some(set_source_ip_fn);
-        // Response Getters
-        GET_RESPONSE_STATUS_FN = Some(get_response_status_fn);
-        GET_RESPONSE_HEADER_FN = Some(get_response_header_fn);
-        // Response Setters
-        SET_RESPONSE_STATUS_FN = Some(set_response_status_fn);
-        SET_RESPONSE_HEADER_FN = Some(set_response_header_fn);
-        SET_RESPONSE_BODY_FN = Some(set_response_body_fn);
-    }
-
     let result = panic::catch_unwind(|| {
+        let api = unsafe { &*api_ptr };
         let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() };
-        let params: Value = serde_json::from_str(module_params_json)
-            .expect("Failed to parse module params JSON");
+        let params: Value =
+            serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
 
         let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
-                module_log!(LogLevel::Error, "'config_file' parameter is missing or not a string.");
+                let log_msg = CString::new("'config_file' parameter is missing or not a string.").unwrap();
+                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -258,7 +244,8 @@ pub unsafe extern "C" fn initialize_module(
         let contents = match fs::read_to_string(config_file_name) {
             Ok(c) => c,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to read config file '{}': {}", config_file_name, e);
+                let log_msg = CString::new(format!("Failed to read config file '{}': {}", config_file_name, e)).unwrap();
+                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -266,15 +253,17 @@ pub unsafe extern "C" fn initialize_module(
         let config: ContentConfig = match serde_yaml::from_str(&contents) {
             Ok(c) => c,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to deserialize ContentConfig: {}", e);
+                let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
+                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
 
-        let handler = match ContentModule::new(config, render_template_ffi) {
+        let handler = match OxModule::new(config, unsafe { *api_ptr }) { // Pass dereferenced api_ptr
             Ok(h) => h,
             Err(e) => {
-                module_log!(LogLevel::Error, "Failed to create ContentModule: {}", e);
+                let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
+                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -284,6 +273,7 @@ pub unsafe extern "C" fn initialize_module(
         let module_interface = Box::new(ModuleInterface {
             instance_ptr,
             handler_fn: process_request_c,
+            log_callback: api.log_callback,
         });
 
         Box::into_raw(module_interface)
@@ -292,15 +282,20 @@ pub unsafe extern "C" fn initialize_module(
     match result {
         Ok(ptr) => ptr,
         Err(e) => {
-            module_log!(LogLevel::Error, "Panic occurred during module initialization: {:?}.", e);
+            // Cannot safely log here as we might not have the api pointer.
+            eprintln!("Panic during module initialization: {:?}", e);
             std::ptr::null_mut()
         }
     }
 }
 
-unsafe extern "C" fn process_request_c(instance_ptr: *mut c_void, context_ptr: *mut RequestContext) -> HandlerResult {
+unsafe extern "C" fn process_request_c(
+    instance_ptr: *mut c_void,
+    context_ptr: *mut RequestContext,
+    log_callback: LogCallback,
+) -> HandlerResult {
     let result = panic::catch_unwind(|| {
-        let handler = unsafe { &*(instance_ptr as *mut ContentModule) };
+        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
         let context = unsafe { &mut *context_ptr };
         handler.process_request(context)
     });
@@ -308,7 +303,9 @@ unsafe extern "C" fn process_request_c(instance_ptr: *mut c_void, context_ptr: *
     match result {
         Ok(handler_result) => handler_result,
         Err(e) => {
-            module_log!(LogLevel::Error, "Panic occurred in process_request_c: {:?}.", e);
+            let log_msg =
+                CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
+            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); }
             HandlerResult::ModifiedJumpToError
         }
     }

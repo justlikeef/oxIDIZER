@@ -1,0 +1,12 @@
+2025-11-24T21:31:10.468023682-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-11-24T21:31:10.468712205-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-11-24T21:31:10.473797465-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/ox_webservice.yaml", modules: None, module_params: [] }
+2025-11-24T21:31:10.654181459-05:00 WARN ox_webservice - URL '/extra_content_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-11-24T21:31:10.654701344-05:00 WARN ox_webservice - URL '/another_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-11-24T21:31:10.655493139-05:00 WARN ox_webservice - URL '/another_error/' specifies a module_id 'content_error_handler' that was not found.
+2025-11-24T21:31:10.655842141-05:00 WARN ox_webservice - URL '/specific_http_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-11-24T21:31:10.656297908-05:00 WARN ox_webservice - URL '/specific_https_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-11-24T21:31:10.656792503-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-11-24T21:31:10.696834044-05:00 INFO ox_webservice - Found default HTTPS configuration for server on port 3443
+2025-11-24T21:31:10.704348898-05:00 INFO ox_webservice - default (.*) server listening on https://0.0.0.0:3443
+2025-11-24T21:31:11.986350726-05:00 INFO ox_webservice - No content module handled the request. Setting status to 500.

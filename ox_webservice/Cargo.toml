@@ -18,16 +18,19 @@ libloading = "0.8"
 notify = "6.0"
 tera = "1.19"
 once_cell = "1.19"
+dashmap = "5.5.3"
 log = "0.4"
 anyhow = "1.0"
 env_logger = "0.11.3"
 log4rs = "1.2.0"
-ox_webservice_errorhandler_jinja2 = { path = "../ox_webservice_errorhandler_jinja2" }
 futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+axum-server = { version = "0.7.3", features = ["tls-rustls"] }
+tokio-rustls = "0.26.4"
+rustls = "0.23.35"
+aws-lc-rs = "1.15.1"
+rustls-pemfile = "2.1.2"
 
-ox_persistence = { path = "../ox_persistence" }
-ox_persistence_api = { path = "../ox_persistence_api" }
 
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }

@@ -3,7 +3,10 @@ server:
   port: 3000
   bind_address: "0.0.0.0"
 modules:
-error_handler:
-  name: ox_webservice_errorhandler_jinja2
-  params:
-    config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice_errorhandler_jinja2.yaml"
+  - name: ox_webservice_errorhandler_jinja2
+    priority: 999
+    phase: ErrorHandling
+    uris:
+        - ".*"
+    params:
+      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice_errorhandler_jinja2.yaml"
