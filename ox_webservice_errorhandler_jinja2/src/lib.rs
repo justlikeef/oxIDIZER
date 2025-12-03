@@ -1,6 +1,6 @@
 use ox_webservice_api::{
-    HandlerResult, LogCallback, LogLevel, ModuleInterface, RequestContext,
-    WebServiceApiV1,
+    HandlerResult, LogCallback, LogLevel, ModuleInterface,
+    WebServiceApiV1, PipelineState, AllocFn,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -8,6 +8,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic;
 use std::path::PathBuf;
 use tera::{Context, Tera};
+use bumpalo::Bump;
 
 #[derive(Debug, Deserialize)]
 pub struct ErrorHandlerConfig {
@@ -29,18 +30,12 @@ impl OxModule {
     }
 
     pub fn new(config: ErrorHandlerConfig, api: WebServiceApiV1) -> anyhow::Result<Self> {
-        let temp_logger = |level, msg: String| {
-            if let Ok(c_message) = CString::new(msg) {
-                unsafe { (api.log_callback)(level, c_message.as_ptr()); }
-            }
-        };
-        temp_logger(
-            LogLevel::Debug,
-            format!(
-                "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}",
-                config.content_root
-            ),
-        );
+        if let Ok(c_message) = CString::new(format!(
+            "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}",
+            config.content_root
+        )) {
+            unsafe { (api.log_callback)(LogLevel::Debug, c_message.as_ptr()); }
+        }
 
         Ok(Self {
             content_root: config.content_root,
@@ -48,8 +43,9 @@ impl OxModule {
         })
     }
 
-    pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
-        let status_code = unsafe { (self.api.get_response_status)(context) };
+    pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
+        let pipeline_state = unsafe { &mut *pipeline_state_ptr };
+        let status_code = unsafe { (self.api.get_response_status)(pipeline_state) };
 
         if status_code < 400 {
             return HandlerResult::UnmodifiedContinue;
@@ -65,36 +61,37 @@ impl OxModule {
 
         let mut render_context = Context::new();
         unsafe {
-            let c_str_method = (self.api.get_request_method)(context);
+            let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+            let c_str_method = (self.api.get_request_method)(pipeline_state, arena_ptr, self.api.alloc_str);
             render_context.insert(
                 "request_method",
                 &CStr::from_ptr(c_str_method).to_string_lossy().into_owned(),
             );
 
-            let c_str_path = (self.api.get_request_path)(context);
+            let c_str_path = (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str);
             render_context.insert(
                 "request_path",
                 &CStr::from_ptr(c_str_path).to_string_lossy().into_owned(),
             );
 
-            let c_str_query = (self.api.get_request_query)(context);
+            let c_str_query = (self.api.get_request_query)(pipeline_state, arena_ptr, self.api.alloc_str);
             render_context.insert(
                 "request_query",
                 &CStr::from_ptr(c_str_query).to_string_lossy().into_owned(),
             );
 
-            let c_str_headers = (self.api.get_request_headers)(context);
+            let c_str_headers = (self.api.get_request_headers)(pipeline_state, arena_ptr, self.api.alloc_str);
             let headers_json = CStr::from_ptr(c_str_headers).to_string_lossy();
             let headers_value: Value = serde_json::from_str(&headers_json).unwrap_or_default();
             render_context.insert("request_headers", &headers_value);
 
-            let c_str_body = (self.api.get_request_body)(context);
+            let c_str_body = (self.api.get_request_body)(pipeline_state, arena_ptr, self.api.alloc_str);
             render_context.insert(
                 "request_body",
                 &CStr::from_ptr(c_str_body).to_string_lossy().into_owned(),
             );
 
-            let c_str_ip = (self.api.get_source_ip)(context);
+            let c_str_ip = (self.api.get_source_ip)(pipeline_state, arena_ptr, self.api.alloc_str);
             render_context.insert(
                 "source_ip",
                 &CStr::from_ptr(c_str_ip).to_string_lossy().into_owned(),
@@ -111,7 +108,7 @@ impl OxModule {
             let module_context_key = CString::new("module_context").unwrap();
 
             let c_str_module_name =
-                (self.api.get_module_context_value)(context, module_name_key.as_ptr());
+                (self.api.get_module_context_value)(pipeline_state, module_name_key.as_ptr(), arena_ptr, self.api.alloc_str);
             let module_name_json = if !c_str_module_name.is_null() {
                 CStr::from_ptr(c_str_module_name)
                     .to_string_lossy()
@@ -123,7 +120,7 @@ impl OxModule {
 
 
             let c_str_module_context =
-                (self.api.get_module_context_value)(context, module_context_key.as_ptr());
+                (self.api.get_module_context_value)(pipeline_state, module_context_key.as_ptr(), arena_ptr, self.api.alloc_str);
             let module_context = if !c_str_module_context.is_null() {
                 CStr::from_ptr(c_str_module_context)
                     .to_string_lossy()
@@ -161,7 +158,7 @@ impl OxModule {
                             Err(e) => {
                                 self.log(
                                     LogLevel::Error,
-                                    format!("Failed to render template '{:?}': {}", path, e),
+                                    format!("Failed to render template \"{:?}\": {}", path, e),
                                 );
                                 "500 Internal Server Error".to_string()
                             }
@@ -170,7 +167,7 @@ impl OxModule {
                     Err(e) => {
                         self.log(
                             LogLevel::Error,
-                            format!("Failed to read template file '{:?}': {}", path, e),
+                            format!("Failed to read template file \"{:?}\": {}", path, e),
                         );
                         "500 Internal Server Error".to_string()
                     }
@@ -189,14 +186,14 @@ impl OxModule {
         unsafe {
             let c_body = CString::new(response_body).unwrap();
             let c_content_type_key = CString::new("Content-Type").unwrap();
-            let c_content_type_value = CString::new("text/plain").unwrap();
+            let c_content_type_value = CString::new("text/html").unwrap();
 
             (self.api.set_response_header)(
-                context,
+                pipeline_state,
                 c_content_type_key.as_ptr(),
                 c_content_type_value.as_ptr(),
             );
-            (self.api.set_response_body)(context, c_body.as_ptr().cast(), c_body.as_bytes().len());
+            (self.api.set_response_body)(pipeline_state, c_body.as_ptr().cast(), c_body.as_bytes().len());
         }
 
         HandlerResult::ModifiedContinue
@@ -209,24 +206,16 @@ pub unsafe extern "C" fn initialize_module(
     api: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
-        let api = unsafe { &*api }; // Correctly dereference api pointer
-        let temp_logger = |level, msg: String| {
-            if let Ok(c_message) = CString::new(msg) {
-                unsafe { (api.log_callback)(level, c_message.as_ptr()); } // Correctly use api.log_callback
-            }
-        };
-
-        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() }; // Wrap in unsafe
+        let api_instance = unsafe { &*api }; 
+        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() }; 
         let params: Value =
             serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
 
         let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
-                temp_logger(
-                    LogLevel::Error,
-                    "'config_file' parameter is missing or not a string.".to_string(),
-                );
+                let log_msg = CString::new("\"config_file\" parameter is missing or not a string.").unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -234,10 +223,8 @@ pub unsafe extern "C" fn initialize_module(
         let contents = match std::fs::read_to_string(config_file_name) {
             Ok(c) => c,
             Err(e) => {
-                temp_logger(
-                    LogLevel::Error,
-                    format!("Failed to read config file '{}': {}", config_file_name, e),
-                );
+                let log_msg = CString::new(format!("Failed to read config file \"{}\": {}", config_file_name, e)).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -245,21 +232,17 @@ pub unsafe extern "C" fn initialize_module(
         let config: ErrorHandlerConfig = match serde_yaml::from_str(&contents) {
             Ok(c) => c,
             Err(e) => {
-                temp_logger(
-                    LogLevel::Error,
-                    format!("Failed to deserialize ErrorHandlerConfig: {}", e),
-                );
+                let log_msg = CString::new(format!("Failed to deserialize ErrorHandlerConfig: {}", e)).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
 
-        let handler = match OxModule::new(config, *api) {
+        let handler = match OxModule::new(config, *api_instance) {
             Ok(eh) => eh,
             Err(e) => {
-                temp_logger(
-                    LogLevel::Error,
-                    format!("Failed to create OxModule: {}", e),
-                );
+                let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -269,7 +252,7 @@ pub unsafe extern "C" fn initialize_module(
         let module_interface = Box::new(ModuleInterface {
             instance_ptr,
             handler_fn: process_request_c,
-            log_callback: api.log_callback,
+            log_callback: api_instance.log_callback,
         });
 
         Box::into_raw(module_interface)
@@ -278,7 +261,6 @@ pub unsafe extern "C" fn initialize_module(
     match result {
         Ok(ptr) => ptr,
         Err(e) => {
-            // Cannot safely log here as we might not have the api pointer.
             eprintln!("Panic during module initialization: {:?}", e);
             std::ptr::null_mut()
         }
@@ -287,21 +269,22 @@ pub unsafe extern "C" fn initialize_module(
 
 unsafe extern "C" fn process_request_c(
     instance_ptr: *mut c_void,
-    context_ptr: *mut RequestContext,
+    pipeline_state_ptr: *mut PipelineState,
     log_callback: LogCallback,
+    _alloc_raw_c: AllocFn, 
+    _arena: *const c_void, 
 ) -> HandlerResult {
-    let result = panic::catch_unwind(|| {
+    let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-        let context = unsafe { &mut *context_ptr };
-        handler.process_request(context)
-    });
+        handler.process_request(pipeline_state_ptr)
+    }));
 
     match result {
         Ok(handler_result) => handler_result,
         Err(e) => {
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
-            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); } // Correctly wrap in unsafe
+            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); } 
             HandlerResult::ModifiedJumpToError
         }
     }
