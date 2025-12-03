@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt;
+use bumpalo::Bump;
 
 
 #[derive(Debug)]
@@ -41,7 +42,7 @@ use clap::Parser;
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::ffi::{CStr, CString, c_char, c_void};
+use std::ffi::{CString, c_void};
 use std::fs::File;
 use std::io::{Read, BufReader};
 use std::net::{IpAddr, SocketAddr};
@@ -64,199 +65,34 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use ox_webservice_api::{
-    ModuleConfig, LogLevel, InitializeModuleFn, Phase, HandlerResult,
-    RequestContext, ModuleInterface, WebServiceApiV1, ModuleContext, UriMatcher,
+    ModuleConfig, InitializeModuleFn, Phase, HandlerResult,
+    ModuleInterface, WebServiceApiV1, UriMatcher,
+    PipelineState,
+    log_callback,
+    alloc_str_c,
+    alloc_raw_c,
+    get_module_context_value_c,
+    set_module_context_value_c,
+    get_request_method_c,
+    get_request_path_c,
+    get_request_query_c,
+    get_request_header_c,
+    get_request_headers_c,
+    get_request_body_c,
+    get_source_ip_c,
+    set_request_path_c,
+    set_request_header_c,
+    set_source_ip_c,
+    get_response_status_c,
+    get_response_header_c,
+    set_response_status_c,
+    set_response_header_c,
+    set_response_body_c,
 };
 
 static GLOBAL_TERA: Lazy<Arc<Tera>> = Lazy::new(|| {
     Arc::new(Tera::new("content/**/*.html").expect("Failed to parse Tera templates"))
 });
-
-// --- Pipeline State ---
-struct PipelineState {
-    protocol: String,
-    request_method: String,
-    request_path: String,
-    request_query: String,
-    request_headers: HeaderMap,
-    request_body: Vec<u8>,
-    source_ip: SocketAddr,
-    status_code: u16,
-    response_headers: HeaderMap,
-    response_body: Vec<u8>,
-    module_context: ModuleContext,
-}
-
-// --- FFI Helper Functions ---
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_module_context_value_c(context_ptr: *mut RequestContext, key_ptr: *const c_char) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    let module_context_read_guard = state.module_context.read().unwrap();
-    match module_context_read_guard.get(key) {
-        Some(value) => CString::new(serde_json::to_string(value).unwrap()).unwrap().into_raw(),
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_module_context_value_c(context_ptr: *mut RequestContext, key_ptr: *const c_char, value_json_ptr: *const c_char) {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    let value_json = unsafe { CStr::from_ptr(value_json_ptr).to_str().unwrap() };
-    let value: Value = serde_json::from_str(value_json).unwrap_or_default();
-    state.module_context.write().unwrap().insert(key.to_string(), value);
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_method_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    CString::new(state.request_method.as_str()).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_path_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    CString::new(state.request_path.as_str()).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_query_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    CString::new(state.request_query.as_str()).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    match state.request_headers.get(key) {
-        Some(value) => CString::new(value.to_str().unwrap_or("")).unwrap().into_raw(),
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_headers_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let headers: HashMap<String, String> = state.request_headers.iter()
-        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-        .collect();
-    let json = serde_json::to_string(&headers).unwrap();
-    CString::new(json).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_request_body_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    CString::new(state.request_body.as_slice()).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_source_ip_c(context_ptr: *mut RequestContext) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    CString::new(state.source_ip.to_string()).unwrap().into_raw()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_request_path_c(context_ptr: *mut RequestContext, path_ptr: *const c_char) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let path = unsafe { CStr::from_ptr(path_ptr).to_str().unwrap() };
-    state.request_path = path.to_string();
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_request_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char, value_ptr: *const c_char) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    let value = unsafe { CStr::from_ptr(value_ptr).to_str().unwrap() };
-    state.request_headers.insert(axum::http::HeaderName::from_bytes(key.as_bytes()).unwrap(), axum::http::HeaderValue::from_str(value).unwrap());
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_source_ip_c(context_ptr: *mut RequestContext, ip_ptr: *const c_char) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let ip_str = unsafe { CStr::from_ptr(ip_ptr).to_str().unwrap() };
-    match ip_str.parse::<SocketAddr>() {
-        Ok(addr) => {
-            state.source_ip = addr;
-        }
-        Err(e) => {
-            error!("Failed to parse IP address '{}': {}", ip_str, e);
-        }
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_response_status_c(context_ptr: *mut RequestContext) -> u16 {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    state.status_code
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_response_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char) -> *mut c_char {
-    let state = unsafe { &*(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    match state.response_headers.get(key) {
-        Some(value) => CString::new(value.to_str().unwrap_or("")).unwrap().into_raw(),
-        None => std::ptr::null_mut(),
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_response_status_c(context_ptr: *mut RequestContext, status_code: u16) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    state.status_code = status_code;
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_response_header_c(context_ptr: *mut RequestContext, key_ptr: *const c_char, value_ptr: *const c_char) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let key = unsafe { CStr::from_ptr(key_ptr).to_str().unwrap() };
-    let value = unsafe { CStr::from_ptr(value_ptr).to_str().unwrap() };
-    state.response_headers.insert(axum::http::HeaderName::from_bytes(key.as_bytes()).unwrap(), axum::http::HeaderValue::from_str(value).unwrap());
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_response_body_c(context_ptr: *mut RequestContext, body_ptr: *const u8, body_len: usize) {
-    let state = unsafe { &mut *(*context_ptr).pipeline_state_ptr.cast::<PipelineState>() };
-    let body_slice = unsafe { std::slice::from_raw_parts(body_ptr, body_len) };
-    state.response_body = body_slice.to_vec();
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn render_template_ffi(template_name_ptr: *mut c_char, data_ptr: *mut c_char) -> *mut c_char {
-    let template_name = unsafe { CStr::from_ptr(template_name_ptr).to_str().unwrap() };
-    let data_json = unsafe { CStr::from_ptr(data_ptr).to_str().unwrap() };
-
-    debug!("render_template_ffi called for template: {}", template_name);
-    trace!("render_template_ffi data: {}", data_json);
-
-    let context = match serde_json::from_str(data_json) {
-        Ok(ctx) => tera::Context::from_value(ctx).unwrap(),
-        Err(e) => {
-            error!("Failed to parse JSON data for template rendering: {}", e);
-            let error_html = format!("<h1>Internal Server Error</h1><p>Failed to parse template data.</p><p>Error: {}</p>", e);
-            return CString::new(error_html).unwrap().into_raw();
-        }
-    };
-
-    let tera_instance = &GLOBAL_TERA;
-
-    match tera_instance.render(template_name, &context) {
-        Ok(rendered_html) => {
-            CString::new(rendered_html).unwrap().into_raw()
-        },
-        Err(e) => {
-            error!("Failed to render template '{}': {}", template_name, e);
-            let error_html = format!(
-                "<h1>Error Rendering Page</h1><p>Template '{}' not found or could not be rendered.</p><p>Error: {}</p>",
-                template_name, e
-            );
-            CString::new(error_html).unwrap().into_raw()
-        }
-    }
-}
 
 
 #[derive(Debug, Deserialize)]
@@ -341,6 +177,7 @@ impl PipelineExecutor {
         let body_bytes = axum::body::to_bytes(body, 1024 * 1024).await.unwrap().to_vec();
 
         let mut state = PipelineState {
+            arena: Bump::new(),
             protocol,
             request_method: parts.method.to_string(),
             request_path: parts.uri.path().to_string(),
@@ -357,10 +194,6 @@ impl PipelineExecutor {
         state.module_context.write().unwrap().insert("module_name".to_string(), Value::String("NONE".to_string()));
         state.module_context.write().unwrap().insert("module_context".to_string(), Value::String("No context".to_string()));
 
-        let mut request_context = RequestContext {
-            pipeline_state_ptr: &mut state as *mut _ as *mut c_void,
-        };
-
         let mut content_was_handled = false;
         let mut current_phase_index = 0;
         while current_phase_index < PHASES.len() {
@@ -371,7 +204,6 @@ impl PipelineExecutor {
 
                 for module in modules {
                     if let Some(uris) = &module.module_config.uris {
-                        let state = unsafe { &*request_context.pipeline_state_ptr.cast::<PipelineState>() };
                         let full_uri = if state.request_query.is_empty() {
                             state.request_path.clone()
                         } else {
@@ -434,8 +266,10 @@ impl PipelineExecutor {
                     let handler_result = unsafe {
                         (module_interface.handler_fn)(
                             module_interface.instance_ptr,
-                            &mut request_context as *mut _,
+                            &mut state as *mut _,
                             module_interface.log_callback,
+                            alloc_raw_c,
+                            &state.arena as *const Bump as *const c_void,
                         )
                     };
 
@@ -449,7 +283,7 @@ impl PipelineExecutor {
                     }
 
                     match handler_result {
-                        HandlerResult::UnmodifiedContinue => {}
+                        HandlerResult::UnmodifiedContinue => {} // Do nothing, continue to next module or phase
                         HandlerResult::ModifiedContinue => {
                             if *current_phase == Phase::Content {
                                 content_was_handled = true;
@@ -457,14 +291,14 @@ impl PipelineExecutor {
                         }
                         HandlerResult::UnmodifiedNextPhase => {
                             jumped_to_next_phase = true;
-                            break;
+                            break; // Break from module loop, move to next phase
                         }
                         HandlerResult::ModifiedNextPhase => {
                             if *current_phase == Phase::Content {
                                 content_was_handled = true;
                             }
                             jumped_to_next_phase = true;
-                            break;
+                            break; // Break from module loop, move to next phase
                         }
                         HandlerResult::UnmodifiedJumpToError | HandlerResult::ModifiedJumpToError => {
                             if *current_phase == Phase::Content {
@@ -472,7 +306,7 @@ impl PipelineExecutor {
                             }
                             current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
                             jumped_to_next_phase = true;
-                            break;
+                            break; // Break from module loop, jump to error handling phase
                         }
                         HandlerResult::HaltProcessing => {
                             state.status_code = 500;
@@ -485,7 +319,7 @@ impl PipelineExecutor {
                 }
 
                 if jumped_to_next_phase {
-                    continue;
+                    continue; // Continue to the next phase
                 }
             }
 
@@ -538,19 +372,6 @@ fn parse_key_val(s: &str) -> Result<(String, Value), String> {
     let value = rest[pos + 1..].to_string();
     Ok((key, serde_json::json!({ param_key: value })))
 }
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn log_callback(level: LogLevel, message: *const c_char) {
-    let message = unsafe { CStr::from_ptr(message).to_string_lossy() };
-    match level {
-        LogLevel::Error => error!("{}", message),
-        LogLevel::Warn => warn!("{}", message),
-        LogLevel::Info => info!("{}", message),
-        LogLevel::Debug => debug!("{}", message),
-        LogLevel::Trace => trace!("{}", message),
-    }
-}
-
 
 #[tokio::main]
 async fn main() {
@@ -642,7 +463,8 @@ async fn main() {
     // --- Create the WebServiceApiV1 instance ---
     let api = WebServiceApiV1 {
         log_callback,
-        render_template: render_template_ffi,
+        alloc_str: alloc_str_c,
+        alloc_raw: alloc_raw_c,
         get_module_context_value: get_module_context_value_c,
         set_module_context_value: set_module_context_value_c,
         get_request_method: get_request_method_c,
@@ -693,7 +515,7 @@ async fn main() {
 
                     let module_interface_ptr = initialize_module_fn(
                         module_params_json_ptr,
-                        &api as *const WebServiceApiV1, // Pass the API gateway
+                        &api as *const WebServiceApiV1,
                     );
 
                     if module_interface_ptr.is_null() {
@@ -735,8 +557,8 @@ async fn main() {
 
     for server in server_config.servers {
         let app = Router::new()
-            .route("/", get(|| async {"Hello from ox_webservice - Pipeline active."}))
-            .layer(axum::middleware::from_fn({
+            .route("/", get(|| async {{ "Hello from ox_webservice - Pipeline active." }}))
+            .layer(axum::middleware::from_fn({ 
                 let executor_clone = Arc::clone(&pipeline_executor);
                 let server_protocol = server.protocol.clone();
                 move |ConnectInfo(source_ip): ConnectInfo<SocketAddr>, req, _next| {
@@ -846,7 +668,7 @@ async fn main() {
 
                     info!("{} server listening on https://{}:{}", listening_on, addr.ip(), addr.port());
                     bind_rustls(addr, rustls_config)
-                        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+                        .serve(app.into_make_service_with_connect_info::<SocketAddr>()) 
                         .await
                         .unwrap();
                 } else {
