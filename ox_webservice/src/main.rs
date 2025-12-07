@@ -693,7 +693,7 @@ async fn main() {
 
 // --- Create the WebServiceApiV1 instance ---
     let api = WebServiceApiV1 {
-        log_callback: webservice_log,
+        log_callback: host_log_callback,
         alloc_str: alloc_str_c,
         alloc_raw: alloc_raw_c,
         get_module_context_value: get_module_context_value_c,
@@ -967,8 +967,8 @@ fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfi
     }
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn webservice_log(level: LogLevel, module: *const libc::c_char, message: *const libc::c_char) {
+// #[unsafe(no_mangle)] - Not needed as this is passed via pointer, not dlsym'd
+pub unsafe extern "C" fn host_log_callback(level: LogLevel, module: *const libc::c_char, message: *const libc::c_char) {
     let module_str = unsafe { CStr::from_ptr(module).to_string_lossy() };
     let message_str = unsafe { CStr::from_ptr(message).to_string_lossy() };
     

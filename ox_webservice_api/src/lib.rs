@@ -65,13 +65,7 @@ impl From<LogLevel> for log::Level {
 
 pub type LogCallback = unsafe extern "C" fn(level: LogLevel, module: *const c_char, message: *const c_char);
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn webservice_log(level: LogLevel, module: *const c_char, message: *const c_char) {
-    let module_str = unsafe { std::ffi::CStr::from_ptr(module).to_string_lossy() };
-    let message_str = unsafe { std::ffi::CStr::from_ptr(message).to_string_lossy() };
-    let level: log::Level = level.into();
-    log::log!(target: &module_str, level, "{}", message_str);
-}
+
 
 
 // Define the shared Module Context type

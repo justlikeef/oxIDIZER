@@ -46,9 +46,9 @@ if [ "$MODE" == "isolated" ]; then
   # Allow the server to start
   sleep 2
 
-  # Curl the non-existent page
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/doesnotexist.html)
-  CURL_OUTPUT=$(curl -s http://localhost:3000/doesnotexist.html)
+  # Curl the index page
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/index.html)
+  CURL_OUTPUT=$(curl -s http://localhost:3000/index.html)
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"

@@ -1,11 +1,36 @@
-2025-12-04 00:10:31 - INFO - log4rs initialized successfully, taking over from temporary logger.
-2025-12-04 00:10:31 - INFO - Starting ox_webservice...
-2025-12-04 00:10:31 - DEBUG - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999996-LoggingNotFoundTest/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-04 00:10:31 - DEBUG - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
-2025-12-04 00:10:31 - INFO - Major process state: Initializing modules.
-2025-12-04 00:10:31 - INFO - Attempting to load module: ox_content
-2025-12-04 00:10:31 - DEBUG - Attempting to load module: ox_content from "libox_content.so"
-2025-12-04 00:10:31 - INFO - Successfully loaded module: ox_content
-2025-12-04 00:10:31 - DEBUG - ox_content
-2025-12-04 00:10:31 - INFO - ox_content
-2025-12-04 00:10:31 - INFO - .* server listening on http://0.0.0.0:3000
+2025-12-06 22:19:19 - INFO - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06 22:19:19 - INFO - Starting ox_webservice...
+2025-12-06 22:19:19 - DEBUG - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999996-LoggingNotFoundTest/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06 22:19:19 - DEBUG - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
+2025-12-06 22:19:19 - INFO - Major process state: Initializing modules.
+2025-12-06 22:19:19 - INFO - Attempting to load module: ox_content
+2025-12-06 22:19:19 - DEBUG - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06 22:19:19 - INFO - Successfully loaded module: ox_content
+2025-12-06 22:19:19 - DEBUG - ox_content: new: Initializing with content_root: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999997-LoggingTest"
+2025-12-06 22:19:19 - INFO - LOGGING TEST: ox_content initialized
+2025-12-06 22:19:19 - INFO - .* server listening on http://0.0.0.0:3000
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreEarlyRequest, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: EarlyRequest, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostEarlyRequest, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreAuthentication, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: Authentication, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostAuthentication, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreAuthorization, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: Authorization, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostAuthorization, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreContent, Body: ""
+2025-12-06 22:19:21 - DEBUG - Executing phase: Content, Body: ""
+2025-12-06 22:19:21 - INFO - Executing phase: Content
+2025-12-06 22:19:21 - DEBUG - ox_content: process_request called.
+2025-12-06 22:19:21 - DEBUG - ox_content: File not found for path: /non_existent_file.html
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostContent, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreAccounting, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: Accounting, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostAccounting, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreErrorHandling, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: ErrorHandling, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostErrorHandling, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PreLateRequest, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: LateRequest, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Executing phase: PostLateRequest, Body: "404 Not Found"
+2025-12-06 22:19:21 - DEBUG - Final Response State: Status: 404, Body: "404 Not Found", Headers: {"content-type": "text/plain", "content-length": "13"}

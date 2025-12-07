@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=0
-FAILED=1
+PASSED=1
+FAILED=255
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
@@ -46,7 +46,7 @@ if [ "$MODE" == "isolated" ]; then
   sleep 2
 
   # Make a request to a non-existent file
-  curl -s http://localhost:8080/non_existent_file.html > /dev/null
+  curl -s http://localhost:3000/non_existent_file.html > /dev/null
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"

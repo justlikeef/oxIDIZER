@@ -48,3 +48,62 @@
 2025-12-04T00:10:27.059443555-05:00 ERROR ox_webservice_api - ox_content
 2025-12-04T00:10:27.059511214-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
 2025-12-04T00:10:27.060085718-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-06T21:57:21.993506076-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T21:57:21.994091902-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T21:57:21.994117760-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T21:57:21.994996751-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T21:57:21.995020936-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T21:57:21.995034552-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T21:57:21.997291710-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T21:57:21.997642648-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T21:57:21.997733613-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T21:57:22.000868976-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-06T22:07:07.595115880-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:07:07.595148743-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:07:07.595164704-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:07:07.595858418-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:07:07.595885348-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T22:07:07.595896557-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T22:07:07.597756573-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T22:07:07.597932567-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T22:07:07.597984768-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T22:07:07.600714949-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-06T22:09:59.523855296-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:09:59.524268791-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:09:59.524286401-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:09:59.524895097-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:09:59.524914604-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T22:09:59.524927283-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T22:09:59.530933962-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T22:09:59.531618640-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T22:09:59.531666204-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T22:15:27.522553174-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:15:27.522981978-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:15:27.523004906-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:15:27.524055844-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:15:27.524081283-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T22:15:27.524098275-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T22:15:27.525589907-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T22:15:27.526236929-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T22:15:27.526268962-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T22:15:27.529155222-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-06T22:16:42.134848537-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:16:42.134895543-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:16:42.134917232-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:16:42.135714543-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:16:42.135735239-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T22:16:42.135748903-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T22:16:42.136642035-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T22:16:42.136765331-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T22:16:42.136781937-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T22:16:42.139860130-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-06T22:19:15.271304770-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:19:15.272032242-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:19:15.272076971-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:19:15.272869424-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:19:15.272894452-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-06T22:19:15.272910948-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-06T22:19:15.283599154-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-06T22:19:15.288686401-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-06T22:19:15.289072827-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-06T22:19:15.291302192-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

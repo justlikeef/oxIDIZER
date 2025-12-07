@@ -1,11 +1,11 @@
-2025-12-02T23:10:48.889681552-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-02T23:10:48.889827782-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-02T23:10:48.889844343-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-02T23:10:48.890514642-05:00 WARN ox_webservice - URL '/extra_content_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-02T23:10:48.890595660-05:00 WARN ox_webservice - URL '/another_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-02T23:10:48.890610541-05:00 WARN ox_webservice - URL '/another_error/' specifies a module_id 'content_error_handler' that was not found.
-2025-12-02T23:10:48.890618617-05:00 WARN ox_webservice - URL '/specific_http_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-02T23:10:48.890640940-05:00 WARN ox_webservice - URL '/specific_https_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-02T23:10:48.890651279-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-02T23:10:48.892441180-05:00 INFO ox_webservice - Found default HTTPS configuration for server on port 3443
-2025-12-02T23:10:48.892612291-05:00 INFO ox_webservice - localhost, and default (.*) server listening on https://0.0.0.0:3443
+2025-12-06T22:18:59.348906975-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-06T22:18:59.349044104-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-06T22:18:59.349056222-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-06T22:18:59.349697040-05:00 WARN ox_webservice - URL '/extra_content_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-12-06T22:18:59.349746024-05:00 WARN ox_webservice - URL '/another_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-12-06T22:18:59.349754118-05:00 WARN ox_webservice - URL '/another_error/' specifies a module_id 'content_error_handler' that was not found.
+2025-12-06T22:18:59.349761065-05:00 WARN ox_webservice - URL '/specific_http_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-12-06T22:18:59.349767892-05:00 WARN ox_webservice - URL '/specific_https_path/' specifies a module_id 'content_handler_1' that was not found.
+2025-12-06T22:18:59.349775107-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-06T22:18:59.352947806-05:00 INFO ox_webservice - Found default HTTPS configuration for server on port 3443
+2025-12-06T22:18:59.353088452-05:00 INFO ox_webservice - localhost, and default (.*) server listening on https://0.0.0.0:3443
