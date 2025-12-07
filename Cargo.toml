@@ -7,7 +7,7 @@ resolver = "2"
 [workspace]
 members = [
     "ox_callback_manager",
-    "ox_content",
+
     "ox_data_broker",
     "ox_data_object",
     "ox_data_object_manager",
@@ -29,4 +29,6 @@ members = [
     "ox_webservice",
     "ox_webservice_api",
     "ox_webservice_errorhandler_jinja2",
+    "ox_webservice_stream",
+    "ox_webservice_template_jinja2",
 ]

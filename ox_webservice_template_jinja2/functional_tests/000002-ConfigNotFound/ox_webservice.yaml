@@ -1,0 +1,15 @@
+log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/log4rs.yaml"
+servers:
+  - port: 3000
+    bind_address: "0.0.0.0"
+    protocol: "http"
+    hosts:
+      - name: ".*"
+modules:
+  - name: ox_content
+    priority: 999
+    phase: Content
+    uris:
+      - path: ".*"
+    params:
+      config_file: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml"

@@ -1,0 +1,7 @@
+mimetypes:
+  - extension: "html"
+    mimetype: "text/html"
+    handler: "stream"
+  - extension: "txt"
+    mimetype: "text/plain"
+    handler: "stream"
