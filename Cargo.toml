@@ -10,7 +10,7 @@ members = [
 
     "ox_data_broker",
     "ox_data_object",
-    "ox_data_object_manager",
+    "ox_data_object_manager", "ox_fileproc",
     "ox_locking",
     "ox_persistence",
     "ox_persistence_api",

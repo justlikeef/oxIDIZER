@@ -12,3 +12,4 @@
 * [ ] create config processing library that all modules can use
   * [ ] should be able to include other config files
   * [ ] should be able to do replacements, for instance, the ability to set the root directory for the server config, etc.
+* [ ] add websockets support
