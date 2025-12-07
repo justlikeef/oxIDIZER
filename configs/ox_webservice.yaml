@@ -21,70 +21,25 @@ servers:
       - name:  "example-ssl-1.com"
         tls_cert_path: "configs/certs/cert1.pem"
         tls_key_path: "configs/certs/key1.pem"
-
 urls:
-  - url: "/extra_content_path/"
-    module_id: "content_handler_1"
-  - url: "/another_path/"
-    module_id: "content_handler_1"
-  - url: "/another_error/"
-    module_id: "content_error_handler"
-  # New URL entries demonstrating protocol and hostname matching
-  - protocol: "http"
-    hostname: "example-1.com"
-    url: "/specific_http_path/"
-    module_id: "content_handler_1"
-  - protocol: "https"
-    hostname: "example-ssl-1.com"
-    url: "/specific_https_path/"
-    module_id: "content_handler_1"
+  - include: "configs/mimetypes.yaml"
 
 modules:
-  - id: "x_forwarded_for"
-    name: "ox_webservice_x_forwarded_for"
-    priority: 1
-    phase: PreEarlyRequest
-    uris:
-        - path: ".*"
-  - id: "content_error_handler"
-    name: "ox_content"
+  - id: "default_stream"
+    name: "ox_webservice_stream"
     priority: 999
     phase: Content
     uris:
-        - path: "/error/"
-          protocol: "http"
-          hostname: "example-1.com"
-        - path: "/error/"
-          protocol: "https"
-          hostname: "example-ssl-1.com"
-        - path: "/another_error/" # Existing entry, but now in UriMatcher format
     params:
-      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
-  - id: "content_handler_1"
-    name: "ox_content"
-    priority: 999
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_webservice_stream.yaml"
+  - id: "default_template_jinja2"
+    name: "ox_webservice_template_jinja2"
+    priority: 998
     phase: Content
     uris:
-        - path: "/somepath/"
-        - path: "/extra_content_path/" # Existing entry, but now in UriMatcher format
-        - path: "/another_path/" # Existing entry, but now in UriMatcher format
-        - path: "/specific_http_path/"
-          protocol: "http"
-          hostname: "example-1.com"
-        - path: "/specific_https_path/"
-          protocol: "https"
-          hostname: "example-ssl-1.com"
     params:
-      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
-  - id: "default_content"
-    name: "ox_content"
-    priority: 999
-    phase: Content
-    uris:
-        - path: ".*"
-    params:
-      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
-  - id: "error_handler_main"
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_webservice_template_jinja2.yaml"
+  - id: "error_handler_jinja2"
     name: "ox_webservice_errorhandler_jinja2"
     priority: 999
     phase: ErrorHandling
