@@ -82,16 +82,25 @@ if [ "$MODE" == "isolated" ]; then
   else
     log_message "$LOGGING_LEVEL" "error" "Server process with PID $SERVER_PID is not running (or PID was empty)."
 
+    # Check for correct error message in the log file
+    if grep -q "Failed to deserialize ErrorHandlerConfig" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected deserialization error in log."
+    else
+        log_message "$LOGGING_LEVEL" "error" "Did not find expected deserialization error in log."
+        log_message "$LOGGING_LEVEL" "error" "Test FAILED"
+        exit $FAILED
+    fi
+
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
       cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
     fi
 
-    log_message "$LOGGING_LEVEL" "error" "Test FAILED"
-    exit $FAILED
-  fi
-fi
+    log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+    exit $PASSED
+  fi # This fi closes the server-not-running 'else' block
+fi # This fi closes the isolated-mode 'if' block
 
 log_message "$LOGGING_LEVEL" "error" "Invalid mode: $MODE"
 exit $FAILED

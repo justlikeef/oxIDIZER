@@ -1,0 +1,50 @@
+2025-12-03T22:04:16.220030019-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-03T22:04:16.220073617-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-03T22:04:16.220102038-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-03T22:04:16.221233191-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-03T22:04:16.221276044-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-03T22:04:16.221301318-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-03T22:04:16.222625279-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-03T22:04:16.222821954-05:00 ERROR ox_webservice_api - ox_content
+2025-12-03T22:04:16.222900800-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-03T22:04:16.223563902-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-03T22:08:25.273277128-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-03T22:08:25.273334150-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-03T22:08:25.273355982-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-03T22:08:25.274312760-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-03T22:08:25.274367840-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-03T22:08:25.274383737-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-03T22:08:25.275470259-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-03T22:08:25.275700758-05:00 ERROR ox_webservice_api - ox_content
+2025-12-03T22:08:25.275749581-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-03T22:08:25.276359738-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-04T00:05:47.627779657-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04T00:05:47.628007684-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-04T00:05:47.628592012-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04T00:05:47.638194950-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-04T00:05:47.638236955-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-04T00:05:47.638250579-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04T00:05:47.645658048-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-04T00:05:47.649347099-05:00 ERROR ox_webservice_api - ox_content
+2025-12-04T00:05:47.650022960-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-04T00:05:47.651878483-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-04T00:08:30.119637931-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04T00:08:30.119704360-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-04T00:08:30.119725121-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04T00:08:30.120580596-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-04T00:08:30.120620331-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-04T00:08:30.120650675-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04T00:08:30.121720397-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-04T00:08:30.121918222-05:00 ERROR ox_webservice_api - ox_content
+2025-12-04T00:08:30.121974110-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-04T00:08:30.122600122-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-04T00:10:27.057189447-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04T00:10:27.057252809-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-04T00:10:27.057278756-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04T00:10:27.057969459-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-04T00:10:27.058005521-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-04T00:10:27.058042459-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04T00:10:27.059255199-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-04T00:10:27.059443555-05:00 ERROR ox_webservice_api - ox_content
+2025-12-04T00:10:27.059511214-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-04T00:10:27.060085718-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

@@ -1,9 +1,5 @@
-use std::collections::HashMap;
-use ox_data_object::{GenericDataObject, AttributeValue};
-use ox_type_converter::{ValueType, TypeConverter, CONVERSION_REGISTRY};
+use ox_data_object::GenericDataObject;
 use uuid::Uuid;
-use std::any::{Any, TypeId};
-use std::sync::{Arc, Mutex};
 
 pub trait Lockable {
     fn get_gdo(&self) -> &GenericDataObject;

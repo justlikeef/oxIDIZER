@@ -1,4 +1,4 @@
-log4rs_config: "/mnt/c/Users/justl/source/repos/oxIDIZER/ox_webservice/functional_tests/001001-ConfigHTTP/log4rs.yaml"
+log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001001-ConfigHTTP/log4rs.yaml"
 servers:
   - protocol: "http"
     port: 3000

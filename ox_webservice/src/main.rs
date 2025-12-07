@@ -42,7 +42,7 @@ use clap::Parser;
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::ffi::{CString, c_void};
+use std::ffi::{CString, c_void, CStr};
 use std::fs::File;
 use std::io::{Read, BufReader};
 use std::net::{IpAddr, SocketAddr};
@@ -60,35 +60,263 @@ use rustls::ServerConfig as RustlsServerConfig;
 use axum_server::tls_rustls::RustlsConfig;
 use log::{info, debug, trace, error, warn};
 
-use libloading::{Library, Symbol};
-use once_cell::sync::Lazy;
-use regex::Regex;
-
 use ox_webservice_api::{
     ModuleConfig, InitializeModuleFn, Phase, HandlerResult,
     ModuleInterface, WebServiceApiV1, UriMatcher,
     PipelineState,
-    log_callback,
-    alloc_str_c,
-    alloc_raw_c,
-    get_module_context_value_c,
-    set_module_context_value_c,
-    get_request_method_c,
-    get_request_path_c,
-    get_request_query_c,
-    get_request_header_c,
-    get_request_headers_c,
-    get_request_body_c,
-    get_source_ip_c,
-    set_request_path_c,
-    set_request_header_c,
-    set_source_ip_c,
-    get_response_status_c,
-    get_response_header_c,
-    set_response_status_c,
-    set_response_header_c,
-    set_response_body_c,
+    LogLevel,
 };
+
+use libloading::{Library, Symbol};
+use once_cell::sync::Lazy;
+use regex::Regex;
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alloc_str_c(arena: *const c_void, s: *const libc::c_char) -> *mut libc::c_char { unsafe {
+    let arena = &*(arena as *const Bump);
+    let s = CStr::from_ptr(s).to_str().unwrap();
+    let c_string = CString::new(s).unwrap();
+    let ptr = c_string.as_ptr() as *mut libc::c_char;
+    let len = c_string.as_bytes_with_nul().len();
+    let allocated = arena.alloc_slice_copy(std::slice::from_raw_parts(ptr as *const u8, len));
+    allocated.as_mut_ptr() as *mut libc::c_char
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alloc_raw_c(arena: *mut c_void, size: usize, align: usize) -> *mut c_void { unsafe {
+    let arena = &mut *(arena as *mut Bump);
+    let layout = std::alloc::Layout::from_size_align(size, align).unwrap();
+    arena.alloc_layout(layout).as_ptr() as *mut c_void
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_module_context_value_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let key = CStr::from_ptr(key).to_str().unwrap();
+    let pipeline_state = &mut *pipeline_state_ptr;
+    let value = pipeline_state.module_context.read().unwrap().get(key).cloned();
+    if let Some(value) = value {
+        let value_str = value.to_string();
+        alloc_fn(arena, CString::new(value_str).unwrap().as_ptr())
+    } else {
+        std::ptr::null_mut()
+    }
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_module_context_value_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    value_json: *const libc::c_char,
+) { unsafe {
+    let key = CStr::from_ptr(key).to_str().unwrap().to_string();
+    let value_json = CStr::from_ptr(value_json).to_str().unwrap();
+    let value: Value = serde_json::from_str(value_json).unwrap();
+    let pipeline_state = &mut *pipeline_state_ptr;
+    pipeline_state.module_context.write().unwrap().insert(key, value);
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_method_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    alloc_fn(
+        arena,
+        CString::new(pipeline_state.request_method.as_str())
+            .unwrap()
+            .as_ptr(),
+    )
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_path_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    alloc_fn(
+        arena,
+        CString::new(pipeline_state.request_path.as_str())
+            .unwrap()
+            .as_ptr(),
+    )
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_query_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    alloc_fn(
+        arena,
+        CString::new(pipeline_state.request_query.as_str())
+            .unwrap()
+            .as_ptr(),
+    )
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_header_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let key = CStr::from_ptr(key).to_str().unwrap();
+    let pipeline_state = &*pipeline_state_ptr;
+    if let Some(value) = pipeline_state.request_headers.get(key) {
+        alloc_fn(
+            arena,
+            CString::new(value.to_str().unwrap()).unwrap().as_ptr(),
+        )
+    } else {
+        std::ptr::null_mut()
+    }
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_headers_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    let headers: HashMap<String, String> = pipeline_state
+        .request_headers
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap().to_string()))
+        .collect();
+    let headers_json = serde_json::to_string(&headers).unwrap();
+    alloc_fn(arena, CString::new(headers_json).unwrap().as_ptr())
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_request_body_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    let body_str = String::from_utf8_lossy(&pipeline_state.request_body);
+    alloc_fn(arena, CString::new(body_str.as_ref()).unwrap().as_ptr())
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_source_ip_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    alloc_fn(
+        arena,
+        CString::new(pipeline_state.source_ip.to_string())
+            .unwrap()
+            .as_ptr(),
+    )
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_request_path_c(
+    pipeline_state_ptr: *mut PipelineState,
+    path: *const libc::c_char,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    pipeline_state.request_path = CStr::from_ptr(path).to_str().unwrap().to_string();
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_request_header_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    value: *const libc::c_char,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    let key = CStr::from_ptr(key).to_str().unwrap();
+    let value = CStr::from_ptr(value).to_str().unwrap();
+    pipeline_state
+        .request_headers
+        .insert(key, value.parse().unwrap());
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_source_ip_c(
+    pipeline_state_ptr: *mut PipelineState,
+    ip: *const libc::c_char,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    pipeline_state.source_ip = CStr::from_ptr(ip).to_str().unwrap().parse().unwrap();
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_response_status_c(pipeline_state_ptr: *mut PipelineState) -> u16 { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    pipeline_state.status_code
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_status_c(
+    pipeline_state_ptr: *mut PipelineState,
+    status_code: u16,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    pipeline_state.status_code = status_code;
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_header_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    value: *const libc::c_char,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    let key = CStr::from_ptr(key).to_str().unwrap();
+    let value = CStr::from_ptr(value).to_str().unwrap();
+    pipeline_state
+        .response_headers
+        .insert(key, value.parse().unwrap());
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_response_body_c(
+    pipeline_state_ptr: *mut PipelineState,
+    body: *const u8,
+    body_len: usize,
+) { unsafe {
+    let pipeline_state = &mut *pipeline_state_ptr;
+    pipeline_state.response_body = std::slice::from_raw_parts(body, body_len).to_vec();
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_response_header_c(
+    pipeline_state_ptr: *mut PipelineState,
+    key: *const libc::c_char,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let key = CStr::from_ptr(key).to_str().unwrap();
+    let pipeline_state = &*pipeline_state_ptr;
+    if let Some(value) = pipeline_state.response_headers.get(key) {
+        alloc_fn(
+            arena,
+            CString::new(value.to_str().unwrap()).unwrap().as_ptr(),
+        )
+    } else {
+        std::ptr::null_mut()
+    }
+}}
+
+
 
 static GLOBAL_TERA: Lazy<Arc<Tera>> = Lazy::new(|| {
     Arc::new(Tera::new("content/**/*.html").expect("Failed to parse Tera templates"))
@@ -198,6 +426,7 @@ impl PipelineExecutor {
         let mut current_phase_index = 0;
         while current_phase_index < PHASES.len() {
             let current_phase = &PHASES[current_phase_index];
+            debug!("Executing phase: {:?}, Body: {:?}", current_phase, String::from_utf8_lossy(&state.response_body));
             if let Some(modules) = self.phases.get(current_phase) {
                 info!("Executing phase: {:?}", current_phase);
                 let mut jumped_to_next_phase = false;
@@ -336,6 +565,7 @@ impl PipelineExecutor {
             current_phase_index += 1;
         }
 
+        debug!("Final Response State: Status: {}, Body: {:?}, Headers: {:?}", state.status_code, String::from_utf8_lossy(&state.response_body), state.response_headers);
         let mut response = Response::builder()
             .status(StatusCode::from_u16(state.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR));
         
@@ -372,6 +602,7 @@ fn parse_key_val(s: &str) -> Result<(String, Value), String> {
     let value = rest[pos + 1..].to_string();
     Ok((key, serde_json::json!({ param_key: value })))
 }
+
 
 #[tokio::main]
 async fn main() {
@@ -460,9 +691,9 @@ async fn main() {
     info!("Major process state: Initializing modules.");
     let mut loaded_modules: Vec<LoadedModule> = Vec::new();
 
-    // --- Create the WebServiceApiV1 instance ---
+// --- Create the WebServiceApiV1 instance ---
     let api = WebServiceApiV1 {
-        log_callback,
+        log_callback: webservice_log,
         alloc_str: alloc_str_c,
         alloc_raw: alloc_raw_c,
         get_module_context_value: get_module_context_value_c,
@@ -478,10 +709,10 @@ async fn main() {
         set_request_header: set_request_header_c,
         set_source_ip: set_source_ip_c,
         get_response_status: get_response_status_c,
-        get_response_header: get_response_header_c,
         set_response_status: set_response_status_c,
         set_response_header: set_response_header_c,
         set_response_body: set_response_body_c,
+        get_response_header: get_response_header_c,
     };
 
     for module_config in server_config.modules.iter_mut() {
@@ -557,7 +788,7 @@ async fn main() {
 
     for server in server_config.servers {
         let app = Router::new()
-            .route("/", get(|| async {{ "Hello from ox_webservice - Pipeline active." }}))
+            .route("/", get(|| async {"Hello from ox_webservice - Pipeline active."}))
             .layer(axum::middleware::from_fn({ 
                 let executor_clone = Arc::clone(&pipeline_executor);
                 let server_protocol = server.protocol.clone();
@@ -736,13 +967,16 @@ fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfi
     }
 }
 
-// Custom debug macro
-#[macro_export]
-macro_rules! debug_println {
-    ($($arg:tt)*) => {
-        #[cfg(debug_assertions)]
-        {
-            println!($($arg)*);
-        }
-    };
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn webservice_log(level: LogLevel, module: *const libc::c_char, message: *const libc::c_char) {
+    let module_str = unsafe { CStr::from_ptr(module).to_string_lossy() };
+    let message_str = unsafe { CStr::from_ptr(message).to_string_lossy() };
+    
+    match level {
+        LogLevel::Error => error!(target: &module_str, "{}", message_str),
+        LogLevel::Warn => warn!(target: &module_str, "{}", message_str),
+        LogLevel::Info => info!(target: &module_str, "{}", message_str),
+        LogLevel::Debug => debug!(target: &module_str, "{}", message_str),
+        LogLevel::Trace => trace!(target: &module_str, "{}", message_str),
+    }
 }

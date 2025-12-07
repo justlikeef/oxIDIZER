@@ -1,1 +1,53 @@
-Failed to load configuration: Error parsing configuration file: server: missing field `_bind_address` at line 3 column 3
+2025-12-04T00:10:37.197383785-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04T00:10:37.197567708-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-04T00:10:37.197593364-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999998-NoTemplate/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04T00:10:37.198212277-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-04T00:10:37.198276097-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-04T00:10:37.198294455-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04T00:10:37.199364761-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-04T00:10:37.199731353-05:00 INFO ox_webservice_api - ox_content
+2025-12-04T00:10:37.200128110-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-04T00:10:39.201323319-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
+2025-12-04T00:10:39.201470022-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
+2025-12-04T00:10:39.201484811-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
+2025-12-04T00:10:39.201493190-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
+2025-12-04T00:10:39.201501297-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
+2025-12-04T00:10:39.201509558-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
+2025-12-04T00:10:39.201517479-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
+2025-12-04T00:10:39.201525270-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
+2025-12-04T00:10:39.201533221-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
+2025-12-04T00:10:39.201541380-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
+2025-12-04T00:10:39.201549176-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
+2025-12-04T00:10:39.201557456-05:00 INFO ox_webservice - Executing phase: Content
+2025-12-04T00:10:39.203643860-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: "404 Not Found"
+2025-12-04T00:10:39.203699664-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: "404 Not Found"
+2025-12-04T00:10:39.203714052-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: "404 Not Found"
+2025-12-04T00:10:39.203722262-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: "404 Not Found"
+2025-12-04T00:10:39.203730304-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.203738487-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.203746517-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.203754752-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: "404 Not Found"
+2025-12-04T00:10:39.203762735-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: "404 Not Found"
+2025-12-04T00:10:39.203771100-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: "404 Not Found"
+2025-12-04T00:10:39.209007707-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
+2025-12-04T00:10:39.209092804-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
+2025-12-04T00:10:39.209111016-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
+2025-12-04T00:10:39.209119181-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
+2025-12-04T00:10:39.209126921-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
+2025-12-04T00:10:39.209135918-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
+2025-12-04T00:10:39.209175955-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
+2025-12-04T00:10:39.209189339-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
+2025-12-04T00:10:39.209207824-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
+2025-12-04T00:10:39.209216034-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
+2025-12-04T00:10:39.209229531-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
+2025-12-04T00:10:39.209238245-05:00 INFO ox_webservice - Executing phase: Content
+2025-12-04T00:10:39.210976406-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: "404 Not Found"
+2025-12-04T00:10:39.211030154-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: "404 Not Found"
+2025-12-04T00:10:39.211044539-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: "404 Not Found"
+2025-12-04T00:10:39.211052809-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: "404 Not Found"
+2025-12-04T00:10:39.211060841-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.211068806-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.211076773-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: "404 Not Found"
+2025-12-04T00:10:39.211085-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: "404 Not Found"
+2025-12-04T00:10:39.211093096-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: "404 Not Found"
+2025-12-04T00:10:39.211101048-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: "404 Not Found"

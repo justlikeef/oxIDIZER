@@ -9,12 +9,12 @@ appenders:
   # An appender that writes to a file
   file:
     kind: file
-    path: "ox_webservice.log"
+    path: "test_log.log"
     encoder:
       pattern: "{d} {l} {t} - {m}{n}"
 
 root:
-  level: debug
+  level: info
   appenders:
     - stdout
     - file

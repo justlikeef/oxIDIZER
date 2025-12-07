@@ -46,30 +46,32 @@ if [ "$MODE" == "isolated" ]; then
   # Allow the server to start
   sleep 2
 
-  # Curl the non-existent page
-  CURL_OUTPUT=$(curl -s http://localhost:3000/doesnotexist.html)
+  # Curl the index.html page
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/index.html)
+  CURL_OUTPUT=$(curl -s http://localhost:3000/index.html)
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
 
-  # Check for correct  message in the log file
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
-      log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log"
-  else
-      log_message "$LOGGING_LEVEL" "error" "Did not find intiializing message in log"
+  # Check for panics in the log file
+  if grep -q "panic" "$TEST_DIR/logs/ox_webservice.log"; then
+      log_message "$LOGGING_LEVEL" "error" "Panic detected in log file."
       log_message "$LOGGING_LEVEL" "error" "Test FAILED"
       exit $FAILED
+  else
+      log_message "$LOGGING_LEVEL" "debug" "No panics detected in log file."
   fi
 
   # Check the output
-  if echo "$CURL_OUTPUT" | grep -q "oxWebServicesLogo"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found oxWebServicesLogo in curl output..."
+  if [ "$HTTP_STATUS" -eq 200 ] && echo "$CURL_OUTPUT" | grep -q "Hello from ox_content!"; then
+    log_message "$LOGGING_LEVEL" "notice" "Found 200 status code in header and correct content in body."
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
       cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
 
+      log_message "$LOGGING_LEVEL" "debug" "Curl Status: $HTTP_STATUS"
       log_message "$LOGGING_LEVEL" "debug" "Curl Output:"
       log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
     fi
@@ -77,13 +79,17 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
   else
-    log_message "$LOGGING_LEVEL" "error" "Did not find oxWebServicesLogo in curl output..."
+    log_message "$LOGGING_LEVEL" "error" "Did not find 200 status and/or correct body."
+    log_message "$LOGGING_LEVEL" "error" "Expected Status: 200, Actual: $HTTP_STATUS"
+    log_message "$LOGGING_LEVEL" "error" "Expected Body: 'Hello from ox_content!', Actual: '$CURL_OUTPUT'"
+
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
       cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
     fi
 
+    log_message "$LOGGING_LEVEL" "debug" "Curl Status: $HTTP_STATUS"
     log_message "$LOGGING_LEVEL" "debug" "Curl Output:"
     log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
 

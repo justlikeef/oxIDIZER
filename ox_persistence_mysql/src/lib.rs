@@ -1,13 +1,12 @@
 use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ConnectionParameter, ModuleCompatibility};
-use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
 use ox_persistence_sql::SqlPersistenceDriver;
 use libc::{c_char, c_void};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use serde_json;
-use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
+ // Added for DriverMetadata serialization
 
 pub struct MySqlDriver {
     sql_driver: SqlPersistenceDriver,

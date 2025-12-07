@@ -10,32 +10,26 @@ use std::path::PathBuf;
 use tera::{Context, Tera};
 use bumpalo::Bump;
 
+const MODULE_NAME: &str = "ox_webservice_errorhandler_jinja2";
+
 #[derive(Debug, Deserialize)]
 pub struct ErrorHandlerConfig {
     pub content_root: PathBuf,
 }
 
-pub struct OxModule {
+pub struct OxModule<'a> {
     content_root: PathBuf,
-    api: WebServiceApiV1,
+    api: &'a WebServiceApiV1,
 }
 
-impl OxModule {
-    fn log(&self, level: LogLevel, message: String) {
-        if let Ok(c_message) = CString::new(message) {
-            unsafe {
-                (self.api.log_callback)(level, c_message.as_ptr());
-            }
-        }
-    }
-
-    pub fn new(config: ErrorHandlerConfig, api: WebServiceApiV1) -> anyhow::Result<Self> {
-        if let Ok(c_message) = CString::new(format!(
+impl<'a> OxModule<'a> {
+    pub fn new(config: ErrorHandlerConfig, api: &'a WebServiceApiV1) -> anyhow::Result<Self> {
+        let module_name = CString::new(MODULE_NAME).unwrap();
+        let message = CString::new(format!(
             "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}",
             config.content_root
-        )) {
-            unsafe { (api.log_callback)(LogLevel::Debug, c_message.as_ptr()); }
-        }
+        )).unwrap();
+        unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
 
         Ok(Self {
             content_root: config.content_root,
@@ -51,13 +45,12 @@ impl OxModule {
             return HandlerResult::UnmodifiedContinue;
         }
 
-        self.log(
-            LogLevel::Debug,
-            format!(
-                "ox_webservice_errorhandler_jinja2: Handling error request with status code: {}",
-                status_code
-            ),
-        );
+        let module_name = CString::new(MODULE_NAME).unwrap();
+        let message = CString::new(format!(
+            "ox_webservice_errorhandler_jinja2: Handling error request with status code: {}",
+            status_code
+        )).unwrap();
+        unsafe { (self.api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
 
         let mut render_context = Context::new();
         unsafe {
@@ -114,7 +107,7 @@ impl OxModule {
                     .to_string_lossy()
                     .into_owned()
             } else {
-                "\"Unknown\"".to_string()
+                "\"Unknown\"".to_string() 
             };
             let module_name: String = serde_json::from_str(&module_name_json).unwrap_or("Unknown".to_string());
 
@@ -147,34 +140,34 @@ impl OxModule {
 
         let response_body = match template_to_use {
             Some(path) => {
-                self.log(
-                    LogLevel::Debug,
-                    format!("Attempting to render error template: {:?}", path),
-                );
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                let message = CString::new(format!("Attempting to render error template: {:?}", path)).unwrap();
+                unsafe { (self.api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
+
                 match std::fs::read_to_string(&path) {
                     Ok(template_str) => {
                         match Tera::one_off(&template_str, &render_context, false) {
                             Ok(html) => html,
                             Err(e) => {
-                                self.log(
-                                    LogLevel::Error,
-                                    format!("Failed to render template \"{:?}\": {}", path, e),
-                                );
+                                let module_name = CString::new(MODULE_NAME).unwrap();
+                                let message = CString::new(format!("Failed to render template \"{:?}\": {}", path, e)).unwrap();
+                                unsafe { (self.api.log_callback)(LogLevel::Error, module_name.as_ptr(), message.as_ptr()); }
                                 "500 Internal Server Error".to_string()
                             }
                         }
                     }
                     Err(e) => {
-                        self.log(
-                            LogLevel::Error,
-                            format!("Failed to read template file \"{:?}\": {}", path, e),
-                        );
+                        let module_name = CString::new(MODULE_NAME).unwrap();
+                        let message = CString::new(format!("Failed to read template file \"{:?}\": {}", path, e)).unwrap();
+                        unsafe { (self.api.log_callback)(LogLevel::Error, module_name.as_ptr(), message.as_ptr()); }
                         "500 Internal Server Error".to_string()
                     }
                 }
             }
             None => {
-                self.log(LogLevel::Warn, format!("No specific error template found for status {}. No index.jinja2 fallback found. Falling back to default text response.", status_code));
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                let message = CString::new(format!("No specific error template found for status {}. No index.jinja2 fallback found. Falling back to default text response.", status_code)).unwrap();
+                unsafe { (self.api.log_callback)(LogLevel::Warn, module_name.as_ptr(), message.as_ptr()); }
                 let reason = axum::http::StatusCode::from_u16(status_code)
                     .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
                     .canonical_reason()
@@ -215,7 +208,8 @@ pub unsafe extern "C" fn initialize_module(
             Some(name) => name,
             None => {
                 let log_msg = CString::new("\"config_file\" parameter is missing or not a string.").unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -224,7 +218,8 @@ pub unsafe extern "C" fn initialize_module(
             Ok(c) => c,
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to read config file \"{}\": {}", config_file_name, e)).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -233,16 +228,18 @@ pub unsafe extern "C" fn initialize_module(
             Ok(c) => c,
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to deserialize ErrorHandlerConfig: {}", e)).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
 
-        let handler = match OxModule::new(config, *api_instance) {
+        let handler = match OxModule::new(config, api_instance) {
             Ok(eh) => eh,
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -283,8 +280,10 @@ unsafe extern "C" fn process_request_c(
         Ok(handler_result) => handler_result,
         Err(e) => {
             let log_msg =
-                CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
-            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); } 
+                format!("Panic occurred in process_request_c: {:?}.", e);
+            let c_log_msg = CString::new(log_msg).unwrap();
+            let module_name = CString::new(MODULE_NAME).unwrap();
+            unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), c_log_msg.as_ptr()); } 
             HandlerResult::ModifiedJumpToError
         }
     }

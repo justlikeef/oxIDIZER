@@ -67,8 +67,22 @@ if [ "$MODE" == "isolated" ]; then
         log_message "$LOGGING_LEVEL" "error" "Panic detected in log file."
         log_message "$LOGGING_LEVEL" "error" "Test FAILED"
         exit $FAILED
+    fi
+
+    # Check for correct error message in the log file
+    if grep -q "Failed to deserialize ContentConfig" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected deserialization error in log."
+    elif grep -q "Failed to parse mimetype config" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected mimetype config parsing error in log."
     else
-        log_message "$LOGGING_LEVEL" "debug" "No panics detected in log file."
+      log_message "$LOGGING_LEVEL" "error" "Did not find expected deserialization error in log."
+      log_message "$LOGGING_LEVEL" "error" "Test FAILED"
+      # Output the log file
+      if [ "$LOGGING_LEVEL" == "debug" ]; then
+        log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
+        cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
+      fi
+       exit $FAILED
     fi
 
     # Output the log file

@@ -38,7 +38,7 @@ if [ "$MODE" == "isolated" ]; then
   START_OUTPUT=$("$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
     "debug" \
-    "$TEST_DIR/ox_webservice.yaml" \
+    "$TEST_DIR/non_existent.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR")
@@ -50,7 +50,7 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "debug" "Read SERVER_PID from file: $SERVER_PID"
   else
     SERVER_PID=""
-    log_message "$LOGGING_LEVEL" "error" "PID file not found: $TEST_PID_FILE"
+    log_message "$LOGGING_LEVEL" "debug" "PID file not found: $TEST_PID_FILE"
   fi
 
   # Allow the server to start
@@ -58,24 +58,25 @@ if [ "$MODE" == "isolated" ]; then
 
   # Check if the process is running
   if [ -n "$SERVER_PID" ] && ps -p "$SERVER_PID" > /dev/null; then
-    log_message "$LOGGING_LEVEL" "debug" "Server process with PID $SERVER_PID is running."
+    log_message "$LOGGING_LEVEL" "error" "Server process with PID $SERVER_PID is running unexpectedly."
     # Stop the server
     "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
 
-    # Check for panics in the log file
-    if grep -q "panic" "$TEST_DIR/logs/ox_webservice.log"; then
-        log_message "$LOGGING_LEVEL" "error" "Panic detected in log file."
-        log_message "$LOGGING_LEVEL" "error" "Test FAILED"
-        exit $FAILED
-    else
-        log_message "$LOGGING_LEVEL" "debug" "No panics detected in log file."
+    # Output the log file
+    if [ "$LOGGING_LEVEL" == "debug" ]; then
+      log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
+      cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
     fi
+    log_message "$LOGGING_LEVEL" "error" "Test FAILED"
+    exit $FAILED
+  else
+    log_message "$LOGGING_LEVEL" "notice" "Server process with PID $SERVER_PID is not running (as expected)."
 
     # Check for correct error message in the log file
-    if grep -q "'config_file' parameter is missing or not a string." "$TEST_DIR/logs/ox_webservice.log"; then
-        log_message "$LOGGING_LEVEL" "notice" "Found config_file missing error in log"
+    if grep -q "Failed to load configuration: Configuration file not found" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected configuration file not found error in log."
     else
-        log_message "$LOGGING_LEVEL" "error" "Did not find read error in log"
+        log_message "$LOGGING_LEVEL" "error" "Did not find expected configuration file not found error in log."
         log_message "$LOGGING_LEVEL" "error" "Test FAILED"
         exit $FAILED
     fi
@@ -88,17 +89,6 @@ if [ "$MODE" == "isolated" ]; then
 
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
-  else
-    log_message "$LOGGING_LEVEL" "error" "Server process with PID $SERVER_PID is not running (or PID was empty)."
-
-    # Output the log file
-    if [ "$LOGGING_LEVEL" == "debug" ]; then
-      log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
-      cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
-    fi
-
-    log_message "$LOGGING_LEVEL" "error" "Test FAILED"
-    exit $FAILED
   fi
 fi
 

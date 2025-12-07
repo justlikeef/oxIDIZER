@@ -4,10 +4,11 @@ x509_extensions = v3_req
 prompt = no
 
 [req_distinguished_name]
-CN = sni-test-localhost
+CN = localhost
 
 [v3_req]
 subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = localhost
+DNS.2 = example.com

@@ -1,0 +1,11 @@
+2025-12-04 00:10:31 - INFO - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04 00:10:31 - INFO - Starting ox_webservice...
+2025-12-04 00:10:31 - DEBUG - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999996-LoggingNotFoundTest/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04 00:10:31 - DEBUG - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
+2025-12-04 00:10:31 - INFO - Major process state: Initializing modules.
+2025-12-04 00:10:31 - INFO - Attempting to load module: ox_content
+2025-12-04 00:10:31 - DEBUG - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04 00:10:31 - INFO - Successfully loaded module: ox_content
+2025-12-04 00:10:31 - DEBUG - ox_content
+2025-12-04 00:10:31 - INFO - ox_content
+2025-12-04 00:10:31 - INFO - .* server listening on http://0.0.0.0:3000

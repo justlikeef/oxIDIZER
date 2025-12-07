@@ -6,6 +6,7 @@ DEFAULT_SUPPORT_SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 DEFAULT_TEST_LIBS_DIR="$SCRIPT_DIR/functional_tests/common"
 DEFAULT_RUNNING_MODE="isolated"
 DEFAULT_LOGGING_LEVEL="info"
+DEFAULT_TARGET="debug"
 MODULE_FILE=""
 
 # Source the logging function
@@ -28,6 +29,7 @@ SUPPORT_SCRIPTS_DIR=$DEFAULT_SUPPORT_SCRIPTS_DIR
 TEST_LIBS_DIR=$DEFAULT_TEST_LIBS_DIR
 RUNNING_MODE=$DEFAULT_RUNNING_MODE
 LOGGING_LEVEL=$DEFAULT_LOGGING_LEVEL
+TARGET=$DEFAULT_TARGET
 
 # Use getopt to parse arguments
 TEMP=$(getopt -o f:s:t:m:l:h --long file:,scripts-dir:,test-libs-dir:,mode:,log-level:,help -n 'run_functional_tests.sh' -- "$@")
@@ -150,7 +152,7 @@ for module in "${MODULES[@]}"; do
         log_message "$LOGGING_LEVEL" "info" "Running test: $TEST_NAME"
 
         # Execute the test script
-        OUTPUT=$("$test_script" "$SUPPORT_SCRIPTS_DIR" "$TEST_LIBS_DIR" "$RUNNING_MODE" "$LOGGING_LEVEL")
+        OUTPUT=$("$test_script" "$SUPPORT_SCRIPTS_DIR" "$TEST_LIBS_DIR" "$RUNNING_MODE" "$LOGGING_LEVEL" "$TARGET")
         exit_code=$?
 
         result_modules+=("$module")

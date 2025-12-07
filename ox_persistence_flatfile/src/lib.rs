@@ -2,12 +2,11 @@ use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ColumnDefinitio
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use ox_locking::LockStatus;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
 use std::sync::Arc;
 use libc::{c_char, c_void};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use serde_json;
 
 pub struct FlatfileDriver;

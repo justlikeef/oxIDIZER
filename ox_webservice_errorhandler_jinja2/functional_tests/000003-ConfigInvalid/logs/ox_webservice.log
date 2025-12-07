@@ -1,1 +1,10 @@
-Failed to load configuration: Error parsing configuration file: server: missing field `_bind_address` at line 3 column 3
+2025-12-02T23:10:58.082632325-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-02T23:10:58.082774920-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-02T23:10:58.082792120-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000003-ConfigInvalid/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-02T23:10:58.083487385-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-02T23:10:58.083569241-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2
+2025-12-02T23:10:58.083588428-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-12-02T23:10:58.084696964-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-12-02T23:10:58.084938664-05:00 ERROR ox_webservice_api - Failed to deserialize ErrorHandlerConfig: invalid type: string "INVALID", expected struct ErrorHandlerConfig
+2025-12-02T23:10:58.085006533-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_errorhandler_jinja2' returned a null pointer. Module not loaded.
+2025-12-02T23:10:58.085493770-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

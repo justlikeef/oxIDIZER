@@ -41,7 +41,7 @@ export LD_LIBRARY_PATH="$WORKSPACE_DIR/target/$TARGET"
 log_message "$LOG_LEVEL" "debug" "LD_LIBRARY_PATH set to $LD_LIBRARY_PATH"
 
 log_message "$LOG_LEVEL" "debug" "Executing: $WORKSPACE_DIR/target/$TARGET/ox_webservice -c \"$CONFIG_FILE\" > \"$LOG_FILE\" 2>&1 &"
-$WORKSPACE_DIR/target/debug/ox_webservice -c "$CONFIG_FILE" > "$LOG_FILE" 2>&1 &
+$WORKSPACE_DIR/target/$TARGET/ox_webservice -c "$CONFIG_FILE" > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"
 log_message "$LOG_LEVEL" "info" "Server started with PID $SERVER_PID. Output redirected to $LOG_FILE"

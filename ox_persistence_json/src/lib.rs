@@ -1,11 +1,5 @@
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter};
-use ox_data_object::{GenericDataObject, AttributeValue};
-use ox_locking::{LockStatus};
-use std::sync::Arc;
-use libc::{c_char, c_void};
-use std::ffi::{CStr, CString};
-use serde_json;
-use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
+ // Added for DriverMetadata serialization
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
 

@@ -1,4 +1,4 @@
-log4rs_config: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/log4rs.yaml"
+log4rs_config: "/home/justlikeef/repos/oxIDIZER/configs/log4rs.yaml"
 servers:
   - protocol: "http"
     port: 3000
@@ -40,6 +40,12 @@ urls:
     module_id: "content_handler_1"
 
 modules:
+  - id: "x_forwarded_for"
+    name: "ox_webservice_x_forwarded_for"
+    priority: 1
+    phase: PreEarlyRequest
+    uris:
+        - path: ".*"
   - id: "content_error_handler"
     name: "ox_content"
     priority: 999
@@ -53,7 +59,7 @@ modules:
           hostname: "example-ssl-1.com"
         - path: "/another_error/" # Existing entry, but now in UriMatcher format
     params:
-      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/ox_content.yaml"
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
   - id: "content_handler_1"
     name: "ox_content"
     priority: 999
@@ -69,7 +75,7 @@ modules:
           protocol: "https"
           hostname: "example-ssl-1.com"
     params:
-      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/ox_content.yaml"
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
   - id: "default_content"
     name: "ox_content"
     priority: 999
@@ -77,7 +83,7 @@ modules:
     uris:
         - path: ".*"
     params:
-      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/ox_content.yaml"
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_content.yaml"
   - id: "error_handler_main"
     name: "ox_webservice_errorhandler_jinja2"
     priority: 999
@@ -85,4 +91,4 @@ modules:
     uris:
         - path: ".*"
     params:
-      config_file: "/mnt/c/Users/justl/source/repos/oxIDIZER/configs/ox_webservice_errorhandler_jinja2.yaml"
+      config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_webservice_errorhandler_jinja2.yaml"

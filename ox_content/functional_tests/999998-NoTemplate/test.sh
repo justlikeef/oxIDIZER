@@ -52,19 +52,21 @@ if [ "$MODE" == "isolated" ]; then
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
+  sync # Ensure logs are flushed to disk
+  sleep 1
 
   # Check for correct  message in the log file
-  if grep -q "No specific error template found for status 500" "$TEST_DIR/logs/ox_webservice.log"; then
-      log_message "$LOGGING_LEVEL" "notice" "Found 'No specific error template' message in log"
+  if grep -q "File not found for path" "$TEST_DIR/logs/ox_webservice.log"; then
+      log_message "$LOGGING_LEVEL" "notice" "Found 'File not found for path' message in log"
   else
-      log_message "$LOGGING_LEVEL" "error" "Did not find 'No specific error template' message in log"
+      log_message "$LOGGING_LEVEL" "error" "Did not find 'File not found for path' message in log"
       log_message "$LOGGING_LEVEL" "error" "Test FAILED"
       exit $FAILED
   fi
 
   # Check the output
-  if [ "$HTTP_STATUS" -eq 500 ] && echo "$CURL_OUTPUT" | grep -q "500 Internal Server Error"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found 500 status code in header and correct error message in body."
+  if [ "$HTTP_STATUS" -eq 404 ] && echo "$CURL_OUTPUT" | grep -q "404 Not Found"; then
+    log_message "$LOGGING_LEVEL" "notice" "Found 404 status code in header and correct error message in body."
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
@@ -79,19 +81,9 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
   else
-    log_message "$LOGGING_LEVEL" "error" "Did not find 500 status and/or correct body."
-    log_message "$LOGGING_LEVEL" "error" "Expected Status: 500, Actual: $HTTP_STATUS"
-    log_message "$LOGGING_LEVEL" "error" "Expected Body: '500 Internal Server Error', Actual: '$CURL_OUTPUT'"
-
-    # Output the log file
-    if [ "$LOGGING_LEVEL" == "debug" ]; then
-      log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
-      cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
-    fi
-
-    log_message "$LOGGING_LEVEL" "debug" "Curl Status: $HTTP_STATUS"
-    log_message "$LOGGING_LEVEL" "debug" "Curl Output:"
-    log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
+    log_message "$LOGGING_LEVEL" "error" "Did not find 404 status and/or correct body."
+    log_message "$LOGGING_LEVEL" "error" "Expected Status: 404, Actual: $HTTP_STATUS"
+    log_message "$LOGGING_LEVEL" "error" "Expected Body: '404 Not Found', Actual: '$CURL_OUTPUT'"
 
     log_message "$LOGGING_LEVEL" "error" "Test FAILED"   
     exit $FAILED

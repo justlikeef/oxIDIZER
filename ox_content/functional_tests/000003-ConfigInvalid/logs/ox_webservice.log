@@ -1,1 +1,10 @@
-Failed to load configuration: Error parsing configuration file: server: missing field `_bind_address` at line 3 column 3
+2025-12-04T00:10:29.088762828-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-04T00:10:29.088978259-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-04T00:10:29.089008966-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000003-ConfigInvalid/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-04T00:10:29.089711987-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-04T00:10:29.089776465-05:00 INFO ox_webservice - Attempting to load module: ox_content
+2025-12-04T00:10:29.089792547-05:00 DEBUG ox_webservice - Attempting to load module: ox_content from "libox_content.so"
+2025-12-04T00:10:29.090955918-05:00 INFO ox_webservice - Successfully loaded module: ox_content
+2025-12-04T00:10:29.091243852-05:00 ERROR ox_webservice_api - ox_content
+2025-12-04T00:10:29.091299427-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
+2025-12-04T00:10:29.091843024-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

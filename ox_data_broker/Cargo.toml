@@ -58,4 +58,5 @@ ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 libc = "0.2"
 ox_webservice_api = { path = "../ox_webservice_api" }
+bumpalo = "3.19.0"
 

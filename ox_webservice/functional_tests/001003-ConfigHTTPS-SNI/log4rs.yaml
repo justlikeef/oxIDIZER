@@ -28,3 +28,26 @@ loggers:
       - file
     additive: false # Do not send to root
 
+  # Set the log level for ox_webservice_errorhandler_jinja2 to debug
+  ox_webservice_errorhandler_jinja2:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false
+
+  # Set the log level for ox_content to debug
+  ox_content:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false
+
+  # Set the log level for ox_server_info to debug
+  ox_server_info:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false

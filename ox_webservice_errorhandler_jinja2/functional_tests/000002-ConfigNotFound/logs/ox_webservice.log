@@ -1,1 +1,10 @@
-Failed to load configuration: Error parsing configuration file: server: missing field `_bind_address` at line 3 column 3
+2025-12-02T23:10:56.045578142-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-02T23:10:56.045740786-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-02T23:10:56.045757751-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-02T23:10:56.046605989-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-02T23:10:56.046663507-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2
+2025-12-02T23:10:56.046683907-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_errorhandler_jinja2 from "libox_webservice_errorhandler_jinja2.so"
+2025-12-02T23:10:56.047922889-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_errorhandler_jinja2
+2025-12-02T23:10:56.048178911-05:00 ERROR ox_webservice_api - Failed to read config file "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000002-ConfigNotFound/non_existent.yaml": No such file or directory (os error 2)
+2025-12-02T23:10:56.048251622-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_errorhandler_jinja2' returned a null pointer. Module not loaded.
+2025-12-02T23:10:56.048837336-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

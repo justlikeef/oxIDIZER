@@ -1,12 +1,11 @@
 use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, ModuleCompatibility, PERSISTENCE_DRIVER_REGISTRY};
 use ox_type_converter::ValueType;
-use ox_locking::LockStatus;
 use std::collections::HashMap;
 use std::sync::Arc;
 use libc::{c_char, c_void};
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use serde_json;
-use serde::{Serialize, Deserialize}; // Added for DriverMetadata serialization
+ // Added for DriverMetadata serialization
 
 pub struct GdoRelationalDriver {
     internal_driver_name: String,

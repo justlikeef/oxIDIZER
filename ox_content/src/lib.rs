@@ -1,7 +1,7 @@
-use libc::{c_char, c_void};
+use libc::{c_void, c_char};
 use ox_webservice_api::{
-    HandlerResult, LogCallback, LogLevel, ModuleInterface, RequestContext,
-    WebServiceApiV1,
+    HandlerResult, LogCallback, LogLevel, ModuleInterface,
+    WebServiceApiV1, AllocFn, PipelineState,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -9,8 +9,12 @@ use std::ffi::{CStr, CString};
 use std::fs;
 use std::panic;
 use std::path::PathBuf;
+use anyhow::Result;
+use bumpalo::Bump;
 
 mod handlers;
+
+const MODULE_NAME: &str = "ox_content";
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct MimeTypeMapping {
@@ -37,61 +41,56 @@ pub struct ContentConfig {
     default_documents: Vec<DocumentConfig>,
 }
 
-pub struct OxModule {
+pub struct OxModule<'a> {
     pub content_root: PathBuf,
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub content_config: ContentConfig,
-    api: WebServiceApiV1,
+    api: &'a WebServiceApiV1,
 }
 
-impl OxModule {
+impl<'a> OxModule<'a> {
     fn log(&self, level: LogLevel, message: String) {
         if let Ok(c_message) = CString::new(message) {
+            let module_name = CString::new(MODULE_NAME).unwrap();
             unsafe {
-                (self.api.log_callback)(level, c_message.as_ptr());
+                (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
             }
         }
     }
 
-    pub fn new(config: ContentConfig, api: WebServiceApiV1) -> anyhow::Result<Self> {
-        let temp_logger = |level, msg: String| {
-            if let Ok(c_message) = CString::new(msg) {
-                unsafe { (api.log_callback)(level, c_message.as_ptr()); }
-            }
-        };
-
-        temp_logger(
-            LogLevel::Debug,
-            format!(
-                "ox_content: new: Initializing with content_root: {:?}",
-                config.content_root
-            ),
-        );
+    pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+        if let Ok(c_message) = CString::new(format!(
+            "ox_content: new: Initializing with content_root: {:?}",
+            config.content_root
+        )) {
+            let module_name = CString::new(MODULE_NAME).unwrap();
+            unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), c_message.as_ptr()); }
+        }
 
         let mimetype_file_name = &config.mimetypes_file;
         let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
             Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
                 Ok(cfg) => cfg,
                 Err(e) => {
-                    temp_logger(
-                        LogLevel::Error,
-                        format!(
-                            "ox_content: Failed to parse mimetype config file {}: {}",
-                            mimetype_file_name, e
-                        ),
-                    );
+                    if let Ok(c_message) = CString::new(format!(
+                        "ox_content: Failed to parse mimetype config file {}: {}",
+                        mimetype_file_name, e
+                    )) {
+                        let module_name = CString::new(MODULE_NAME).unwrap();
+                        unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                    }
                     anyhow::bail!("Failed to parse mimetype config: {}", e);
                 }
             },
             Err(e) => {
-                temp_logger(
-                    LogLevel::Error,
-                    format!(
-                        "ox_content: Failed to read mimetype config file {}: {}",
-                        mimetype_file_name, e
-                    ),
-                );
+                if let Ok(c_message) = CString::new(format!(
+                    "ox_content: Failed to read mimetype config file {}: {}",
+                    mimetype_file_name, e
+                )) {
+                    let module_name = CString::new(MODULE_NAME).unwrap();
+                    unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                }
                 anyhow::bail!("Failed to read mimetype config: {}", e);
             }
         };
@@ -105,14 +104,17 @@ impl OxModule {
         })
     }
 
-    pub fn process_request(&self, context: &mut RequestContext) -> HandlerResult {
+    pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         self.log(LogLevel::Debug, "ox_content: process_request called.".to_string());
 
-        let request_path_ptr = unsafe { (self.api.get_request_path)(context) };
+        let pipeline_state = unsafe { &mut *pipeline_state_ptr };
+        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+
+        let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
         let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
 
         if request_path == "/error_test" {
-            unsafe { (self.api.set_response_status)(context, 500); }
+            unsafe { (self.api.set_response_status)(pipeline_state, 500); }
             return HandlerResult::ModifiedJumpToError;
         }
 
@@ -128,8 +130,6 @@ impl OxModule {
                     "template" => handlers::template_handler::template_handler(
                         file_path.clone(),
                         &mapping.mimetype,
-                        self.api.render_template,
-                        &self.content_root,
                     ),
                     _ => Err(format!("Unsupported handler for file: {}", mapping.handler)),
                 }
@@ -153,12 +153,12 @@ impl OxModule {
                         let c_content_type_key = CString::new("Content-Type").unwrap();
                         let c_content_type_value = CString::new(mimetype).unwrap();
                         (self.api.set_response_header)(
-                            context,
+                            pipeline_state,
                             c_content_type_key.as_ptr(),
                             c_content_type_value.as_ptr(),
                         );
                         (self.api.set_response_body)(
-                            context,
+                            pipeline_state,
                             response_body.as_ptr(),
                             response_body.len(),
                         );
@@ -173,7 +173,7 @@ impl OxModule {
                             request_path, error_message
                         ),
                     );
-                    unsafe { (self.api.set_response_status)(context, 500); }
+                    unsafe { (self.api.set_response_status)(pipeline_state, 500); }
                     HandlerResult::ModifiedJumpToError
                 }
             }
@@ -183,9 +183,17 @@ impl OxModule {
                 format!("ox_content: File not found for path: {}", request_path),
             );
             unsafe {
-                (self.api.set_response_status)(context, 404);
+                (self.api.set_response_status)(pipeline_state, 404);
+                let c_body = CString::new("404 Not Found").unwrap();
+                let c_content_type_key = CString::new("Content-Type").unwrap();
+                let c_content_type_value = CString::new("text/plain").unwrap();
+                (self.api.set_response_header)(pipeline_state, c_content_type_key.as_ptr(), c_content_type_value.as_ptr());
+                let c_content_length_key = CString::new("Content-Length").unwrap();
+                let c_content_length_value = CString::new(c_body.as_bytes().len().to_string()).unwrap();
+                (self.api.set_response_header)(pipeline_state, c_content_length_key.as_ptr(), c_content_length_value.as_ptr());
+                (self.api.set_response_body)(pipeline_state, c_body.as_ptr().cast(), c_body.as_bytes().len());
             }
-            HandlerResult::UnmodifiedContinue // Let the pipeline handle the 404
+            HandlerResult::ModifiedContinue
         }
     }
 
@@ -227,7 +235,7 @@ pub unsafe extern "C" fn initialize_module(
     api_ptr: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
-        let api = unsafe { &*api_ptr };
+        let api_instance = unsafe { &*api_ptr };
         let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() };
         let params: Value =
             serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
@@ -236,7 +244,10 @@ pub unsafe extern "C" fn initialize_module(
             Some(name) => name,
             None => {
                 let log_msg = CString::new("'config_file' parameter is missing or not a string.").unwrap();
-                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                let _ = panic::catch_unwind(|| {
+                    unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                });
                 return std::ptr::null_mut();
             }
         };
@@ -245,7 +256,10 @@ pub unsafe extern "C" fn initialize_module(
             Ok(c) => c,
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to read config file '{}': {}", config_file_name, e)).unwrap();
-                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                let _ = panic::catch_unwind(|| {
+                    unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                });
                 return std::ptr::null_mut();
             }
         };
@@ -254,16 +268,23 @@ pub unsafe extern "C" fn initialize_module(
             Ok(c) => c,
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
-                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
 
-        let handler = match OxModule::new(config, unsafe { *api_ptr }) { // Pass dereferenced api_ptr
-            Ok(h) => h,
+        let handler = match OxModule::new(config, api_instance) {
+            Ok(h) => {
+                let log_msg = CString::new("LOGGING TEST: ox_content initialized").unwrap();
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Info, module_name.as_ptr(), log_msg.as_ptr()); }
+                h
+            },
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
-                unsafe { (api.log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+                let module_name = CString::new(MODULE_NAME).unwrap();
+                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -273,7 +294,7 @@ pub unsafe extern "C" fn initialize_module(
         let module_interface = Box::new(ModuleInterface {
             instance_ptr,
             handler_fn: process_request_c,
-            log_callback: api.log_callback,
+            log_callback: api_instance.log_callback,
         });
 
         Box::into_raw(module_interface)
@@ -291,21 +312,23 @@ pub unsafe extern "C" fn initialize_module(
 
 unsafe extern "C" fn process_request_c(
     instance_ptr: *mut c_void,
-    context_ptr: *mut RequestContext,
+    pipeline_state_ptr: *mut PipelineState,
     log_callback: LogCallback,
+    _alloc_fn: AllocFn,
+    _arena: *const c_void, 
 ) -> HandlerResult {
-    let result = panic::catch_unwind(|| {
+    let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-        let context = unsafe { &mut *context_ptr };
-        handler.process_request(context)
-    });
+        handler.process_request(pipeline_state_ptr)
+    }));
 
     match result {
         Ok(handler_result) => handler_result,
         Err(e) => {
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
-            unsafe { (log_callback)(LogLevel::Error, log_msg.as_ptr()); }
+            let module_name = CString::new(MODULE_NAME).unwrap();
+            unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
             HandlerResult::ModifiedJumpToError
         }
     }
