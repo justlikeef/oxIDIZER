@@ -39,6 +39,7 @@ rustls-pemfile = "2.1.2"
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
 ox_webservice_api = { path = "../ox_webservice_api" }
+ox_fileproc = { path = "../ox_fileproc" }
 
 sysinfo = "0.30"
 regex = "1.10"

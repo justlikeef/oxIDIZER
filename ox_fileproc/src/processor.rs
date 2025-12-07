@@ -274,7 +274,7 @@ fn kdl_entry_to_value(val: &kdl::KdlValue) -> Value {
         kdl::KdlValue::Float(f) => serde_json::Number::from_f64(*f).map(Value::Number).unwrap_or(Value::Null),
         kdl::KdlValue::Bool(b) => Value::Bool(*b),
         kdl::KdlValue::Null => Value::Null,
-        _ => Value::String(val.to_string()),
+        // All variants covered, no need for catch-all
     }
 }
 

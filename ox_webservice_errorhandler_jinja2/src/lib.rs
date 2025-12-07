@@ -214,23 +214,23 @@ pub unsafe extern "C" fn initialize_module(
             }
         };
 
-        let contents = match std::fs::read_to_string(config_file_name) {
-            Ok(c) => c,
+        let config_path = PathBuf::from(config_file_name);
+        
+        let config: ErrorHandlerConfig = match ox_fileproc::process_file(&config_path, 5) {
+            Ok(value) => match serde_json::from_value(value) {
+                Ok(c) => c,
+                Err(e) => {
+                     let log_msg = CString::new(format!("Failed to deserialize ErrorHandlerConfig: {}", e)).unwrap();
+                     let module_name = CString::new(MODULE_NAME).unwrap();
+                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                     return std::ptr::null_mut();
+                }
+            },
             Err(e) => {
-                let log_msg = CString::new(format!("Failed to read config file \"{}\": {}", config_file_name, e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                return std::ptr::null_mut();
-            }
-        };
-
-        let config: ErrorHandlerConfig = match serde_yaml::from_str(&contents) {
-            Ok(c) => c,
-            Err(e) => {
-                let log_msg = CString::new(format!("Failed to deserialize ErrorHandlerConfig: {}", e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                return std::ptr::null_mut();
+                 let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
+                 let module_name = CString::new(MODULE_NAME).unwrap();
+                 unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                 return std::ptr::null_mut();
             }
         };
 

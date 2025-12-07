@@ -69,29 +69,32 @@ impl<'a> OxModule<'a> {
         }
 
         let mimetype_file_name = &config.mimetypes_file;
-        let mimetype_config: MimeTypeConfig = match fs::read_to_string(mimetype_file_name) {
-            Ok(content) => match serde_yaml::from_str::<MimeTypeConfig>(&content) {
+        let mimetype_path = PathBuf::from(mimetype_file_name);
+        
+        // Use ox_fileproc for mimetypes config
+        let mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
+            Ok(value) => match serde_json::from_value(value) {
                 Ok(cfg) => cfg,
                 Err(e) => {
-                    if let Ok(c_message) = CString::new(format!(
-                        "ox_webservice_stream: Failed to parse mimetype config file {}: {}",
+                     if let Ok(c_message) = CString::new(format!(
+                        "ox_webservice_stream: Failed to deserialize mimetype config file {}: {}",
                         mimetype_file_name, e
                     )) {
                         let module_name = CString::new(MODULE_NAME).unwrap();
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
-                    anyhow::bail!("Failed to parse mimetype config: {}", e);
+                    anyhow::bail!("Failed to deserialize mimetype config: {}", e);
                 }
             },
             Err(e) => {
                 if let Ok(c_message) = CString::new(format!(
-                    "ox_webservice_stream: Failed to read mimetype config file {}: {}",
+                    "ox_webservice_stream: Failed to process mimetype config file {}: {}",
                     mimetype_file_name, e
                 )) {
-                    let module_name = CString::new(MODULE_NAME).unwrap();
-                    unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                     let module_name = CString::new(MODULE_NAME).unwrap();
+                     unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                 }
-                anyhow::bail!("Failed to read mimetype config: {}", e);
+                anyhow::bail!("Failed to process mimetype config: {}", e);
             }
         };
 
@@ -238,25 +241,26 @@ pub unsafe extern "C" fn initialize_module(
             }
         };
 
-        let contents = match fs::read_to_string(config_file_name) {
-            Ok(c) => c,
+        let config_path = PathBuf::from(config_file_name);
+        
+        // Use ox_fileproc for module config
+        let config: ContentConfig = match ox_fileproc::process_file(&config_path, 5) {
+            Ok(value) => match serde_json::from_value(value) {
+                Ok(c) => c,
+                Err(e) => {
+                     let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
+                     let module_name = CString::new(MODULE_NAME).unwrap();
+                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                     return std::ptr::null_mut();
+                }
+            },
             Err(e) => {
-                let log_msg = CString::new(format!("Failed to read config file '{}': {}", config_file_name, e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                let _ = panic::catch_unwind(|| {
-                    unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                });
-                return std::ptr::null_mut();
-            }
-        };
-
-        let config: ContentConfig = match serde_yaml::from_str(&contents) {
-            Ok(c) => c,
-            Err(e) => {
-                let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                return std::ptr::null_mut();
+                 let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
+                 let module_name = CString::new(MODULE_NAME).unwrap();
+                 let _ = panic::catch_unwind(|| {
+                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                 });
+                 return std::ptr::null_mut();
             }
         };
 

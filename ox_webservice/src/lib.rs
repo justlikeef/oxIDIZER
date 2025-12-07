@@ -2,8 +2,6 @@ pub use ox_webservice_api::*;
 
 use std::error::Error;
 use std::fmt;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use serde::Deserialize;
 use log::{debug, trace, error};
@@ -85,41 +83,20 @@ pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerC
         error!("Configuration file not found at {:?}", path);
         return Err(ConfigError::NotFound);
     }
+    
+    // Use ox_fileproc to process the file (supports include, variables, multi-format)
+    let value = ox_fileproc::process_file(path, 5)
+        .map_err(|e| ConfigError::ReadError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
 
-    let mut file = File::open(path)
-        .map_err(ConfigError::ReadError)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
-        .map_err(ConfigError::ReadError)?;
-
-    debug!("Content read from config file: \n{}", contents);
+    let contents = serde_json::to_string_pretty(&value)
+        .map_err(|e| ConfigError::Deserialization(e.to_string()))?;
 
     if cli_log_level == "trace" {
-        trace!("Parsed config file content:\n{}", contents);
+        trace!("Processed config content:\n{}", contents);
     } else if cli_log_level == "debug" {
-        debug!("Parsed config file content:\n{}", contents);
+        debug!("Processed config content:\n{}", contents);
     }
 
-    match path.extension().and_then(|s| s.to_str()) {
-        Some("yaml") | Some("yml") => {
-            debug!("Parsing as YAML");
-            serde_yaml::from_str(&contents).map_err(|e| ConfigError::Deserialization(e.to_string()))
-        }
-        Some("json") => {
-            debug!("Parsing as JSON");
-            serde_json::from_str(&contents).map_err(|e| ConfigError::Deserialization(e.to_string()))
-        }
-        Some("toml") => {
-            debug!("Parsing as TOML");
-            toml::from_str(&contents).map_err(|e| ConfigError::Deserialization(e.to_string()))
-        }
-        Some("xml") => {
-            debug!("Parsing as XML");
-            serde_xml_rs::from_str(&contents).map_err(|e| ConfigError::Deserialization(e.to_string()))
-        }
-        _ => {
-            error!("Unsupported server config file format: {:?}. Exiting.", path.extension());
-            Err(ConfigError::UnsupportedFileExtension)
-        }
-    }
+    // Deserialize the processed JSON value into ServerConfig
+    serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(e.to_string()))
 }
