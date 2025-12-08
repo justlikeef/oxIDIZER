@@ -21,23 +21,51 @@ pub struct TypeConverter;
 
 impl TypeConverter {
     /// Infer the value type from the input value
-    pub fn infer_value_type<T: 'static>(_value: &T) -> ValueType {
-        use std::any::TypeId;
+    /// Infer the value type from the input value
+    pub fn infer_value_type<T: 'static>(value: &T) -> ValueType {
+        use std::any::{TypeId, Any};
         
         let type_id = TypeId::of::<T>();
         
-        if type_id == TypeId::of::<String>() || type_id == TypeId::of::<&str>() {
-            ValueType::new("string")
-        } else if type_id == TypeId::of::<i32>() || type_id == TypeId::of::<i64>() || type_id == TypeId::of::<u32>() || type_id == TypeId::of::<u64>() {
-            ValueType::new("integer")
+        if type_id == TypeId::of::<String>() {
+             if let Some(s) = (value as &dyn Any).downcast_ref::<String>() {
+                 return Self::infer_from_string(s);
+             }
+        } else if type_id == TypeId::of::<&str>() {
+             if let Some(s) = (value as &dyn Any).downcast_ref::<&str>() {
+                 return Self::infer_from_string(s);
+             }
+        }
+        
+        if type_id == TypeId::of::<i32>() || type_id == TypeId::of::<i64>() || type_id == TypeId::of::<u32>() || type_id == TypeId::of::<u64>() {
+            ValueType::Integer
         } else if type_id == TypeId::of::<f32>() || type_id == TypeId::of::<f64>() {
-            ValueType::new("float")
+            ValueType::Float
         } else if type_id == TypeId::of::<bool>() {
-            ValueType::new("boolean")
+            ValueType::Boolean
         } else {
             // For custom types, use the type name
             let type_name = std::any::type_name::<T>();
-            ValueType::new(type_name)
+            // Avoid marking String as Custom if downcast failed (unlikely)
+            if type_name == "alloc::string::String" || type_name == "str" || type_name == "&str" {
+                ValueType::String
+            } else {
+                ValueType::Custom(type_name.to_string())
+            }
+        }
+    }
+
+    fn infer_from_string(value: &str) -> ValueType {
+        if value.parse::<i64>().is_ok() {
+            ValueType::Integer
+        } else if value.parse::<f64>().is_ok() {
+            ValueType::Float
+        } else if value.parse::<bool>().is_ok() {
+            ValueType::Boolean
+        } else if chrono::DateTime::parse_from_rfc3339(value).is_ok() {
+            ValueType::DateTime
+        } else {
+            ValueType::String
         }
     }
 
@@ -46,27 +74,59 @@ impl TypeConverter {
         value.to_string()
     }
 
-    /// Validate if a value can be converted to the specified type
-    pub fn can_convert_to(value: &str, value_type: &ValueType) -> bool {
-        match value_type.as_str() {
-            "string" | "String" => true,
-            "integer" | "Integer" | "int" | "i32" | "i64" => {
-                value.parse::<i64>().is_ok()
-            },
-            "float" | "Float" | "f32" | "f64" | "double" => {
-                value.parse::<f64>().is_ok()
-            },
-            "boolean" | "Boolean" | "bool" => {
-                value.parse::<bool>().is_ok()
-            },
-            _ => {
-                // For custom types, we assume they can be converted
-                // This could be enhanced with a registry of custom converters
-                true
-            },
+    /// Check if a value can be converted to the target type
+    pub fn can_convert_to(value: &str, value_type: &ValueType, target_type: &ValueType) -> bool {
+        // If types are the same, conversion is always possible (identity)
+        if value_type == target_type {
+            return true;
+        }
+
+        match target_type {
+            ValueType::String => true, // Everything can be a string
+            ValueType::Integer => value.parse::<i64>().is_ok(),
+            ValueType::Float => value.parse::<f64>().is_ok(),
+            ValueType::Boolean => value.parse::<bool>().is_ok(),
+            ValueType::DateTime => chrono::DateTime::parse_from_rfc3339(value).is_ok(),
+            ValueType::Binary => false, // Cannot easily check binary validness from string without context
+            ValueType::List(_) => false, // Complex types handled separately
+            ValueType::Map => false,
+            ValueType::Custom(_) => true, // Custom types assume flexible conversion for now
         }
     }
 
+    /// Coerce a string value to the target type's string representation if possible
+    pub fn coerce_string(value: &str, target_type: &ValueType) -> String {
+        match target_type {
+            ValueType::Integer => {
+                 if value.parse::<i64>().is_ok() {
+                     value.to_string()
+                 } else if let Ok(f) = value.parse::<f64>() {
+                     (f as i64).to_string()
+                 } else {
+                     value.to_string()
+                 }
+            },
+            ValueType::Float => {
+                if value.parse::<f64>().is_ok() {
+                     value.to_string()
+                } else {
+                     value.to_string()
+                }
+            },
+            ValueType::Boolean => {
+                 if let Ok(b) = value.parse::<bool>() {
+                     b.to_string()
+                 } else {
+                     match value.to_lowercase().as_str() {
+                         "1" | "yes" | "on" => "true".to_string(),
+                         "0" | "no" | "off" => "false".to_string(),
+                         _ => value.to_string()
+                     }
+                 }
+            },
+            _ => value.to_string()
+        }
+    }
     /// Get supported type names
     pub fn supported_types() -> Vec<&'static str> {
         vec![
@@ -74,6 +134,7 @@ impl TypeConverter {
             "integer", "Integer", "int", "i32", "i64",
             "float", "Float", "f32", "f64", "double",
             "boolean", "Boolean", "bool",
+            "datetime", "DateTime",
         ]
     }
 
@@ -89,18 +150,18 @@ mod tests {
 
     #[test]
     fn test_infer_value_type() {
-        assert_eq!(TypeConverter::infer_value_type(&"hello"), ValueType::new("string"));
-        assert_eq!(TypeConverter::infer_value_type(&42), ValueType::new("integer"));
-        assert_eq!(TypeConverter::infer_value_type(&3.14), ValueType::new("float"));
-        assert_eq!(TypeConverter::infer_value_type(&true), ValueType::new("boolean"));
+        assert_eq!(TypeConverter::infer_value_type(&"hello"), ValueType::String);
+        assert_eq!(TypeConverter::infer_value_type(&42), ValueType::Integer);
+        assert_eq!(TypeConverter::infer_value_type(&3.14), ValueType::Float);
+        assert_eq!(TypeConverter::infer_value_type(&true), ValueType::Boolean);
     }
 
     #[test]
     fn test_can_convert_to() {
-        assert!(TypeConverter::can_convert_to("123", &ValueType::new("integer")));
-        assert!(TypeConverter::can_convert_to("123.45", &ValueType::new("float")));
-        assert!(TypeConverter::can_convert_to("true", &ValueType::new("boolean")));
-        assert!(!TypeConverter::can_convert_to("not_a_number", &ValueType::new("integer")));
+        assert!(TypeConverter::can_convert_to("123", &ValueType::Integer));
+        assert!(TypeConverter::can_convert_to("123.45", &ValueType::Float));
+        assert!(TypeConverter::can_convert_to("true", &ValueType::Boolean));
+        assert!(!TypeConverter::can_convert_to("not_a_number", &ValueType::Integer));
     }
 
     #[test]

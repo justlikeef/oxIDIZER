@@ -37,6 +37,9 @@ use axum::{
     routing::get,
     extract::ConnectInfo,
     Router,
+    extract::FromRequest,
+    extract::ws::{WebSocketUpgrade, WebSocket, Message, CloseFrame},
+    response::IntoResponse,
 };
 use clap::Parser;
 use serde::Deserialize;
@@ -392,7 +395,16 @@ impl PipelineExecutor {
         PipelineExecutor { phases }
     }
 
-    async fn execute_pipeline(self: Arc<Self>, source_ip: SocketAddr, req: Request<Body>, protocol: String) -> Response<Body> {
+    async fn execute_pipeline_internal(
+        self: Arc<Self>, 
+        source_ip: SocketAddr, 
+        method: String, 
+        path: String, 
+        query: String, 
+        headers: HeaderMap, 
+        body_bytes: Vec<u8>, 
+        protocol: String
+    ) -> (u16, HeaderMap, Vec<u8>) {
         const PHASES: &[Phase] = &[
             Phase::PreEarlyRequest, Phase::EarlyRequest, Phase::PostEarlyRequest, Phase::PreAuthentication,
             Phase::Authentication, Phase::PostAuthentication, Phase::PreAuthorization, Phase::Authorization,
@@ -401,16 +413,13 @@ impl PipelineExecutor {
             Phase::PostErrorHandling, Phase::PreLateRequest, Phase::LateRequest, Phase::PostLateRequest,
         ];
 
-        let (parts, body) = req.into_parts();
-        let body_bytes = axum::body::to_bytes(body, 1024 * 1024).await.unwrap().to_vec();
-
         let mut state = PipelineState {
             arena: Bump::new(),
             protocol,
-            request_method: parts.method.to_string(),
-            request_path: parts.uri.path().to_string(),
-            request_query: parts.uri.query().unwrap_or("").to_string(),
-            request_headers: parts.headers.clone(),
+            request_method: method,
+            request_path: path,
+            request_query: query,
+            request_headers: headers,
             request_body: body_bytes,
             source_ip,
             status_code: 200,
@@ -512,7 +521,7 @@ impl PipelineExecutor {
                     }
 
                     match handler_result {
-                        HandlerResult::UnmodifiedContinue => {} // Do nothing, continue to next module or phase
+                        HandlerResult::UnmodifiedContinue => {} 
                         HandlerResult::ModifiedContinue => {
                             if *current_phase == Phase::Content {
                                 content_was_handled = true;
@@ -520,14 +529,14 @@ impl PipelineExecutor {
                         }
                         HandlerResult::UnmodifiedNextPhase => {
                             jumped_to_next_phase = true;
-                            break; // Break from module loop, move to next phase
+                            break; 
                         }
                         HandlerResult::ModifiedNextPhase => {
                             if *current_phase == Phase::Content {
                                 content_was_handled = true;
                             }
                             jumped_to_next_phase = true;
-                            break; // Break from module loop, move to next phase
+                            break; 
                         }
                         HandlerResult::UnmodifiedJumpToError | HandlerResult::ModifiedJumpToError => {
                             if *current_phase == Phase::Content {
@@ -535,20 +544,17 @@ impl PipelineExecutor {
                             }
                             current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
                             jumped_to_next_phase = true;
-                            break; // Break from module loop, jump to error handling phase
+                            break; 
                         }
                         HandlerResult::HaltProcessing => {
                             state.status_code = 500;
-                            return Response::builder()
-                                .status(StatusCode::from_u16(state.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR))
-                                .body(Body::from("Pipeline stopped by module due to fatal error."))
-                                .unwrap();
+                            return (500, HeaderMap::new(), Vec::from("Pipeline stopped by module due to fatal error."));
                         }
                     }
                 }
 
                 if jumped_to_next_phase {
-                    continue; // Continue to the next phase
+                    continue; 
                 }
             }
 
@@ -565,15 +571,145 @@ impl PipelineExecutor {
             current_phase_index += 1;
         }
 
-        debug!("Final Response State: Status: {}, Body: {:?}, Headers: {:?}", state.status_code, String::from_utf8_lossy(&state.response_body), state.response_headers);
+        (state.status_code, state.response_headers, state.response_body)
+    }
+
+    async fn execute_pipeline(self: Arc<Self>, source_ip: SocketAddr, req: Request<Body>, protocol: String) -> Response<Body> {
+        let (parts, body) = req.into_parts();
+        let body_bytes = axum::body::to_bytes(body, 1024 * 1024).await.unwrap().to_vec();
+
+        let request_method = parts.method.to_string();
+        let request_path = parts.uri.path().to_string();
+        let request_query = parts.uri.query().unwrap_or("").to_string();
+
+        let is_upgrade = parts.headers.get("upgrade")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.eq_ignore_ascii_case("websocket"))
+            .unwrap_or(false);
+
+        let (status_code, response_headers, response_body) = self.clone().execute_pipeline_internal(
+            source_ip,
+            request_method.clone(),
+            request_path.clone(),
+            request_query.clone(),
+            parts.headers.clone(),
+            body_bytes.clone(),
+            protocol.clone()
+        ).await;
+
+        if is_upgrade && (status_code == 200 || status_code == 101) {
+            let req = Request::from_parts(parts, Body::from(body_bytes));
+            match WebSocketUpgrade::from_request(req, &()).await {
+                 Ok(ws) => {
+                     let executor = self.clone();
+                     let path_clone = request_path.clone();
+                     let protocol_clone = protocol.clone();
+                     
+                     let mut response = ws.on_upgrade(move |socket| {
+                         executor.handle_socket(socket, source_ip, path_clone, protocol_clone)
+                     }).into_response();
+
+                     // Merge headers from pipeline response (e.g. Set-Cookie)
+                     for (key, value) in response_headers.iter() {
+                         response.headers_mut().insert(key, value.clone());
+                     }
+                     return response.map(|b| Body::from(b)); // Convert axum Body to our Body equivalent?
+                     // axum::body::Body is expected. ws response has Body.
+                     // But verify generic types. Response<Body> vs Response<BoxBody>? 
+                     // Axum 0.7 uses Body.
+                 }
+                 Err(e) => {
+                     error!("Failed to extract WebSocketUpgrade: {}", e);
+                     return e.into_response().map(|b| Body::from(b));
+                 }
+            }
+        }
+
+        debug!("Final Response State: Status: {}, Body: {:?}, Headers: {:?}", status_code, String::from_utf8_lossy(&response_body), response_headers);
         let mut response = Response::builder()
-            .status(StatusCode::from_u16(state.status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR));
+            .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR));
         
-        for (key, value) in state.response_headers.iter() {
+        for (key, value) in response_headers.iter() {
             response = response.header(key, value);
         }
 
-        response.body(Body::from(state.response_body)).unwrap()
+        response.body(Body::from(response_body)).unwrap()
+    }
+
+    async fn handle_socket(
+        self: Arc<Self>, 
+        mut socket: WebSocket, 
+        source_ip: SocketAddr, 
+        path: String,
+        protocol: String
+    ) {
+        info!("WebSocket connection established for {}", source_ip);
+        
+        while let Some(msg) = socket.recv().await {
+            let msg = match msg {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!("WebSocket error: {}", e);
+                    break;
+                }
+            };
+
+            match msg {
+                Message::Text(t) => {
+                    let (status, _, body) = self.clone().execute_pipeline_internal(
+                        source_ip,
+                        "WEBSOCKET".to_string(),
+                        path.clone(),
+                        "".to_string(),
+                        HeaderMap::new(),
+                        t.as_bytes().to_vec(),
+                        protocol.clone()
+                    ).await;
+                    
+                    if status == 200 {
+                        if let Ok(response_text) = String::from_utf8(body) {
+                             if let Err(e) = socket.send(Message::Text(response_text)).await {
+                                 error!("Failed to send WebSocket text message: {}", e);
+                                 break;
+                             }
+                        }
+                    } else {
+                        if let Err(e) = socket.send(Message::Close(Some(CloseFrame { code: 1000, reason: "Request Failed".into()}))).await {
+                             error!("Failed to send Close frame: {}", e);
+                        }
+                        break;
+                    }
+                }
+                Message::Binary(b) => {
+                     let (status, _, body) = self.clone().execute_pipeline_internal(
+                        source_ip,
+                        "WEBSOCKET".to_string(),
+                        path.clone(),
+                        "".to_string(),
+                        HeaderMap::new(),
+                        b,
+                        protocol.clone()
+                    ).await;
+
+                    if status == 200 {
+                         if let Err(e) = socket.send(Message::Binary(body)).await {
+                             error!("Failed to send WebSocket binary message: {}", e);
+                             break;
+                         }
+                    } else {
+                         if let Err(e) = socket.send(Message::Close(Some(CloseFrame { code: 1000, reason: "Request Failed".into()}))).await {
+                             error!("Failed to send Close frame: {}", e);
+                        }
+                        break;
+                    }
+                }
+                Message::Close(_) => {
+                    info!("Client closed WebSocket connection");
+                    break;
+                }
+                _ => {} // Ping/Pong handled by axum
+            }
+        }
     }
 }
 
@@ -639,6 +775,7 @@ async fn main() {
                     name,
                     params: None,
                     error_path: None,
+                    path: None,
                     phase: ox_webservice_api::Phase::Content,
                     priority: 0,
                     uris: None,
@@ -718,15 +855,35 @@ async fn main() {
     for module_config in server_config.modules.iter_mut() {
         let module_name = &module_config.name;
         info!("Attempting to load module: {}", module_name);
-        let library_file_name = if cfg!(target_os = "windows") {
-            format!("{}.dll", module_name)
-        } else if cfg!(target_os = "macos") {
-            format!("lib{}.dylib", module_name)
+        let library_path = if let Some(path) = &module_config.path {
+            let path_buf = PathBuf::from(path);
+            if path_buf.extension().is_some() {
+                path_buf
+            } else {
+                let extension = if cfg!(target_os = "windows") {
+                    "dll"
+                } else if cfg!(target_os = "macos") {
+                    "dylib"
+                } else {
+                    "so"
+                };
+                // We can't just set_extension because we want to append likely?
+                // Actually set_extension works well if there is no extension.
+                // But path might be "libs/my_lib" -> "libs/my_lib.so"
+                let mut p = path_buf.clone();
+                p.set_extension(extension);
+                p
+            }
         } else {
-            format!("lib{}.so", module_name)
+            let library_file_name = if cfg!(target_os = "windows") {
+                format!("{}.dll", module_name)
+            } else if cfg!(target_os = "macos") {
+                format!("lib{}.dylib", module_name)
+            } else {
+                format!("lib{}.so", module_name)
+            };
+            PathBuf::from(library_file_name)
         };
-
-        let library_path = PathBuf::from(library_file_name);
 
         debug!("Attempting to load module: {} from {:?}", module_name, library_path);
 

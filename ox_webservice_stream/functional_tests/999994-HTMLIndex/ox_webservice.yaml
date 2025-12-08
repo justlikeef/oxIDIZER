@@ -5,11 +5,16 @@ servers:
     protocol: "http"
     hosts:
       - name: ".*"
+
+urls:
+  - url: ".*"
+    module_id: "test_content"
+
 modules:
-  - name: ox_content
+  - id: "test_content"
+    name: "ox_webservice_stream"
     priority: 999
     phase: Content
     uris:
-      - path: ".*"
     params:
       config_file: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999994-HTMLIndex/ox_content.yaml"

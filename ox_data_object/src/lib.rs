@@ -43,6 +43,8 @@ impl AttributeValue {
     pub fn to_string(&self) -> String {
         if let Some(s) = self.value.downcast_ref::<String>() {
             s.clone()
+        } else if let Some(s) = self.value.downcast_ref::<&str>() {
+            s.to_string()
         } else if let Some(i) = self.value.downcast_ref::<i32>() {
             i.to_string()
         } else if let Some(f) = self.value.downcast_ref::<f64>() {
@@ -94,8 +96,8 @@ impl GenericDataObject {
             let target_type = TypeConverter::infer_value_type(&T::default());
             let registry = CONVERSION_REGISTRY.lock().unwrap();
             match registry.convert_with_specific_converter(
-                attr_value.value_type.as_str(),
-                target_type.as_str(),
+                &attr_value.value_type.as_str(),
+                &target_type.as_str(),
                 &string_value,
                 &attr_value.value_type_parameters
             ) {
@@ -163,7 +165,8 @@ impl GenericDataObject {
     
     pub fn to_serializable_map(&self) -> HashMap<String, (String, ValueType, HashMap<String, String>)> {
         self.attributes.iter().map(|(k, v)| {
-            (k.clone(), (v.to_string(), v.value_type.clone(), v.value_type_parameters.clone()))
+            let coerced_value = TypeConverter::coerce_string(&v.to_string(), &v.value_type);
+            (k.clone(), (coerced_value, v.value_type.clone(), v.value_type_parameters.clone()))
         }).collect()
     }
 
@@ -191,8 +194,8 @@ impl GenericDataObject {
 
         for (key, (value_str, value_type, parameters)) in serializable_map {
             let converted_value = registry.convert_with_specific_converter(
-                value_type.as_str(),
-                value_type.as_str(),
+                &value_type.as_str(),
+                &value_type.as_str(),
                 &value_str,
                 &parameters,
             );
@@ -237,11 +240,31 @@ mod tests {
     #[test]
     fn test_set_and_get_string() {
         let mut data_object = GenericDataObject::new("id", None);
-        data_object.set("name", "John Doe").unwrap();
+        data_object.set("name", "John Doe".to_string());
         assert!(data_object.has_attribute("name"));
-        let value: String = data_object.get("name").unwrap().unwrap();
+        let value: String = data_object.get("name").unwrap();
         assert_eq!(value, "John Doe");
     }
 
+    #[test]
+    fn test_to_serializable_map_coercion() {
+        let mut data_object = GenericDataObject::new("id", None);
+        // Set a float value but claim it is an Integer
+        data_object.set_with_type("age", 25.5_f64, ValueType::Integer, None);
+        
+        // Also set a boolean from number
+        data_object.set_with_type("is_active", "1".to_string(), ValueType::Boolean, None);
 
+        let map = data_object.to_serializable_map();
+        
+        // Check age: should be "25" (coerced from 25.5)
+        let (age_str, age_type, _) = map.get("age").unwrap();
+        assert_eq!(age_str, "25");
+        assert_eq!(*age_type, ValueType::Integer);
+
+        // Check is_active: should be "true" (coerced from "1")
+        let (active_str, active_type, _) = map.get("is_active").unwrap();
+        assert_eq!(active_str, "true");
+        assert_eq!(*active_type, ValueType::Boolean);
+    }
 }

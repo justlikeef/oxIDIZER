@@ -3,6 +3,55 @@ use std::sync::{Arc, Mutex};
 use ox_data_object::{GenericDataObject};
 use ox_type_converter::ValueType;
 use serde::{Deserialize, Serialize};
+use std::ffi::{c_void, CString};
+use libc::c_char;
+
+/// A C-compatible buffer for passing data across FFI boundaries.
+/// The `ptr` points to the data, `len` is the valid length, and `cap` is the capacity (if managed by Rust Vec).
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct OxBuffer {
+    pub ptr: *mut u8,
+    pub len: usize,
+    pub cap: usize,
+}
+
+impl OxBuffer {
+    /// Creates a generic empty buffer.
+    pub fn empty() -> Self {
+        Self { ptr: std::ptr::null_mut(), len: 0, cap: 0 }
+    }
+
+    /// Creates an OxBuffer from a Rust String.
+    /// The buffer now owns the memory. To free it, call `free_ox_buffer`.
+    pub fn from_str(s: String) -> Self {
+        let mut v = s.into_bytes();
+        let buf = Self {
+            ptr: v.as_mut_ptr(),
+            len: v.len(),
+            cap: v.capacity(),
+        };
+        std::mem::forget(v); // Prevent Rust from deallocating the Vec
+        buf
+    }
+    
+    /// Converts the buffer back to a Rust String (unsafe).
+    pub unsafe fn to_string(&self) -> String {
+        if self.ptr.is_null() {
+            return String::new();
+        }
+        let slice = std::slice::from_raw_parts(self.ptr, self.len);
+        String::from_utf8_lossy(slice).into_owned()
+    }
+}
+
+/// Frees the memory associated with an OxBuffer created by Rust.
+#[no_mangle]
+pub unsafe extern "C" fn free_ox_buffer(buf: OxBuffer) {
+    if !buf.ptr.is_null() {
+        let _ = Vec::from_raw_parts(buf.ptr, buf.len, buf.cap);
+    }
+}
 
 /// Represents the hydration and persistence state of a GenericDataObject.
 #[derive(Debug, Clone, PartialEq)]

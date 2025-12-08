@@ -42,6 +42,9 @@ You can define variables and substitute them within string values in your config
 Variables are defined in a `substitutions` section (key) within the file. This can be either an inline map or a path to another file.
 
 **Inline Definition:**
+<details>
+<summary>JSON</summary>
+
 ```json
 {
   "substitutions": {
@@ -53,13 +56,147 @@ Variables are defined in a `substitutions` section (key) within the file. This c
 }
 ```
 
+</details>
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+substitutions:
+  BASE_URL: "https://api.example.com"
+  TIMEOUT: "5000"
+url: "${BASE_URL}/v1"
+timeout: "${TIMEOUT}"
+```
+
+</details>
+
+<details>
+<summary>TOML</summary>
+
+```toml
+url = "${BASE_URL}/v1"
+timeout = "${TIMEOUT}"
+
+[substitutions]
+BASE_URL = "https://api.example.com"
+TIMEOUT = "5000"
+```
+
+</details>
+
+<details>
+<summary>XML</summary>
+
+```xml
+<root>
+  <substitutions>
+    <BASE_URL>https://api.example.com</BASE_URL>
+    <TIMEOUT>5000</TIMEOUT>
+  </substitutions>
+  <url>${BASE_URL}/v1</url>
+  <timeout>${TIMEOUT}</timeout>
+</root>
+```
+
+</details>
+
+<details>
+<summary>JSON5</summary>
+
+```json5
+{
+  substitutions: {
+    BASE_URL: "https://api.example.com",
+    TIMEOUT: "5000",
+  },
+  url: "${BASE_URL}/v1",
+  timeout: "${TIMEOUT}",
+}
+```
+
+</details>
+
+<details>
+<summary>KDL</summary>
+
+```kdl
+substitutions {
+    BASE_URL "https://api.example.com"
+    TIMEOUT "5000"
+}
+url "${BASE_URL}/v1"
+timeout "${TIMEOUT}"
+```
+
+</details>
+
 **File-Based Definition:**
+<details>
+<summary>JSON</summary>
+
 ```json
 {
   "substitutions": "variables.json",
   "url": "${BASE_URL}/v1"
 }
 ```
+
+</details>
+
+<details>
+<summary>YAML</summary>
+
+```yaml
+substitutions: "variables.yaml"
+url: "${BASE_URL}/v1"
+```
+
+</details>
+
+<details>
+<summary>TOML</summary>
+
+```toml
+substitutions = "variables.toml"
+url = "${BASE_URL}/v1"
+```
+
+</details>
+
+<details>
+<summary>XML</summary>
+
+```xml
+<root>
+  <substitutions>variables.xml</substitutions>
+  <url>${BASE_URL}/v1</url>
+</root>
+```
+
+</details>
+
+<details>
+<summary>JSON5</summary>
+
+```json5
+{
+  substitutions: "variables.json5",
+  url: "${BASE_URL}/v1",
+}
+```
+
+</details>
+
+<details>
+<summary>KDL</summary>
+
+```kdl
+substitutions "variables.kdl"
+url "${BASE_URL}/v1"
+```
+
+</details>
 
 **Behavior:**
 *   Variables follow lexical scoping: usage in the current file uses definitions from the current file or inherited from the parent.
@@ -85,6 +222,9 @@ You can include the content of other files using the special `include` key.
 
 ## Example Usage
 
+<details>
+<summary>JSON</summary>
+
 **main.json**
 ```json
 {
@@ -107,7 +247,129 @@ You can include the content of other files using the special `include` key.
 }
 ```
 
-**Result:**
+</details>
+
+<details>
+<summary>YAML</summary>
+
+**main.yaml**
+```yaml
+substitutions:
+  ENV: "production"
+server:
+  include: "server_config.yaml"
+  port: 8080
+```
+
+**server_config.yaml**
+```yaml
+host: "0.0.0.0"
+port: 9090
+environment: "${ENV}"
+```
+
+</details>
+
+<details>
+<summary>TOML</summary>
+
+**main.toml**
+```toml
+[substitutions]
+ENV = "production"
+
+[server]
+include = "server_config.toml"
+port = 8080
+```
+
+**server_config.toml**
+```toml
+host = "0.0.0.0"
+port = 9090
+environment = "${ENV}"
+```
+
+</details>
+
+<details>
+<summary>XML</summary>
+
+**main.xml**
+```xml
+<root>
+  <substitutions>
+    <ENV>production</ENV>
+  </substitutions>
+  <server>
+    <include>server_config.xml</include>
+    <port>8080</port>
+  </server>
+</root>
+```
+
+**server_config.xml**
+```xml
+<root>
+  <host>0.0.0.0</host>
+  <port>9090</port>
+  <environment>${ENV}</environment>
+</root>
+```
+
+</details>
+
+<details>
+<summary>JSON5</summary>
+
+**main.json5**
+```json5
+{
+  substitutions: {
+    ENV: "production",
+  },
+  server: {
+    include: "server_config.json5",
+    port: 8080,
+  },
+}
+```
+
+**server_config.json5**
+```json5
+{
+  host: "0.0.0.0",
+  port: 9090,
+  environment: "${ENV}",
+}
+```
+
+</details>
+
+<details>
+<summary>KDL</summary>
+
+**main.kdl**
+```kdl
+substitutions {
+    ENV "production"
+}
+server {
+    include "server_config.kdl"
+    port 8080
+}
+```
+
+**server_config.kdl**
+```kdl
+host "0.0.0.0"
+port 9090
+environment "${ENV}"
+```
+
+</details>
+
+**Result (Common for all formats):**
 ```json
 {
   "server": {
@@ -117,4 +379,4 @@ You can include the content of other files using the special `include` key.
   }
 }
 ```
-*Note: `port` is 8080 because `main.json` overrides the included value.*
+*Note: `port` is 8080 because `main` overrides the included value.*

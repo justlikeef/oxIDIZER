@@ -1,11 +1,14 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/log4rs.yaml"
+log4rs_config: /home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/log4rs.yaml
 server:
   port: 3000
-  bind_address: "0.0.0.0"
+  bind_address: 0.0.0.0
 modules:
-  - name: ox_webservice_errorhandler_jinja2
-    priority: 999
-    phase: ErrorHandling
-    uris:
-      - path: ".*"
-    params:
+- id: test_module_0
+  name: ox_webservice_errorhandler_jinja2
+  priority: 999
+  phase: ErrorHandling
+  uris: null
+  params: {}
+urls:
+- url: .*
+  module_id: test_module_0

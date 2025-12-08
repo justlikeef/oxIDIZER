@@ -1,3 +1,4 @@
+
 log4rs_config: "/home/justlikeef/repos/oxIDIZER/configs/log4rs.yaml"
 servers:
   - protocol: "http"
@@ -47,3 +48,17 @@ modules:
         - path: ".*"
     params:
       config_file: "/home/justlikeef/repos/oxIDIZER/configs/ox_webservice_errorhandler_jinja2.yaml"
+  - id: "forwarded_for"
+    name: "ox_webservice_forwarded_for"
+    priority: 100
+    phase: PreEarlyRequest
+    path: "target/debug/libox_webservice_forwarded_for"
+    uris:
+        - path: ".*"
+  - id: "restore_ip"
+    name: "ox_webservice_restore_ip"
+    priority: 100
+    phase: PostLateRequest
+    path: "target/debug/libox_webservice_restore_ip"
+    uris:
+        - path: ".*"

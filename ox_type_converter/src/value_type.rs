@@ -4,35 +4,69 @@ use serde::{Serialize, Deserialize};
 
 /// Represents the type of a value stored in the data object
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ValueType(pub String);
+pub enum ValueType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+    Binary,
+    /// A list of items, where all items share the same type
+    List(Box<ValueType>),
+    /// A map (key-value pairs), representing a nested object structure
+    Map,
+    /// A timestamp or date-time value
+    DateTime,
+    /// Fallback for custom or unknown types, storing the type name as a string
+    Custom(String),
+}
 
 impl ValueType {
-    /// Create a new ValueType with the given type name
+    /// Create a new ValueType from a string representation
+    /// This is for backward compatibility and parsing
     pub fn new(type_name: &str) -> Self {
-        Self(type_name.to_string())
+        match type_name.to_lowercase().as_str() {
+            "string" => ValueType::String,
+            "integer" | "int" => ValueType::Integer,
+            "float" | "double" => ValueType::Float,
+            "boolean" | "bool" => ValueType::Boolean,
+            "binary" | "blob" => ValueType::Binary,
+            "map" | "object" => ValueType::Map,
+            "datetime" | "date" | "timestamp" => ValueType::DateTime,
+            _ => ValueType::Custom(type_name.to_string()),
+        }
     }
     
-    /// Get the type name as a string slice
-    pub fn as_str(&self) -> &str {
-        &self.0
+    /// Get the type name as a string slice (for internal logic that still expects strings)
+    pub fn as_str(&self) -> String {
+        self.to_string()
     }
 }
 
 impl From<&str> for ValueType {
     fn from(s: &str) -> Self {
-        Self(s.to_string())
+        ValueType::new(s)
     }
 }
 
 impl From<String> for ValueType {
     fn from(s: String) -> Self {
-        Self(s)
+        ValueType::new(&s)
     }
 }
 
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            ValueType::String => write!(f, "string"),
+            ValueType::Integer => write!(f, "integer"),
+            ValueType::Float => write!(f, "float"),
+            ValueType::Boolean => write!(f, "boolean"),
+            ValueType::Binary => write!(f, "binary"),
+            ValueType::List(inner) => write!(f, "list<{}>", inner),
+            ValueType::Map => write!(f, "map"),
+            ValueType::DateTime => write!(f, "datetime"),
+            ValueType::Custom(s) => write!(f, "{}", s),
+        }
     }
 }
 

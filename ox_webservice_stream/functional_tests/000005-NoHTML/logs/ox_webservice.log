@@ -1,1 +1,56 @@
-Failed to initialize log4rs from /home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999998-NoTemplate/log4rs.yaml: No such file or directory (os error 2). Exiting.
+2025-12-07T10:50:34.870904491-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-07T10:50:34.871075363-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-07T10:50:34.871087883-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/000005-NoHTML/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-07T10:50:34.871675311-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
+2025-12-07T10:50:34.871723768-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-07T10:50:34.871735014-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_stream
+2025-12-07T10:50:34.871743487-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_stream from "libox_webservice_stream.so"
+2025-12-07T10:50:34.871865929-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_stream
+2025-12-07T10:50:34.872625839-05:00 INFO ox_webservice_stream - ox_webservice_stream initialized
+2025-12-07T10:50:34.875153486-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-07T10:50:36.875010217-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
+2025-12-07T10:50:36.875150933-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
+2025-12-07T10:50:36.875160151-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
+2025-12-07T10:50:36.875168144-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
+2025-12-07T10:50:36.875175950-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
+2025-12-07T10:50:36.875183677-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
+2025-12-07T10:50:36.875191341-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
+2025-12-07T10:50:36.875199054-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
+2025-12-07T10:50:36.875206762-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
+2025-12-07T10:50:36.875214763-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
+2025-12-07T10:50:36.875222435-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
+2025-12-07T10:50:36.875230488-05:00 INFO ox_webservice - Executing phase: Content
+2025-12-07T10:50:36.877064497-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: ""
+2025-12-07T10:50:36.877114974-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: ""
+2025-12-07T10:50:36.877123972-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: ""
+2025-12-07T10:50:36.877131876-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: ""
+2025-12-07T10:50:36.877139660-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
+2025-12-07T10:50:36.877147727-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
+2025-12-07T10:50:36.877155517-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
+2025-12-07T10:50:36.877163513-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
+2025-12-07T10:50:36.877171199-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
+2025-12-07T10:50:36.877188950-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
+2025-12-07T10:50:36.877196897-05:00 DEBUG ox_webservice - Final Response State: Status: 200, Body: "", Headers: {}
+2025-12-07T10:50:36.882943024-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
+2025-12-07T10:50:36.883011768-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
+2025-12-07T10:50:36.883020483-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
+2025-12-07T10:50:36.883027830-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
+2025-12-07T10:50:36.883034962-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
+2025-12-07T10:50:36.883042065-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
+2025-12-07T10:50:36.883057999-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
+2025-12-07T10:50:36.883065075-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
+2025-12-07T10:50:36.883072119-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
+2025-12-07T10:50:36.883079064-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
+2025-12-07T10:50:36.883085989-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
+2025-12-07T10:50:36.883093395-05:00 INFO ox_webservice - Executing phase: Content
+2025-12-07T10:50:36.885245895-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: ""
+2025-12-07T10:50:36.885355507-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: ""
+2025-12-07T10:50:36.885387725-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: ""
+2025-12-07T10:50:36.885399813-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: ""
+2025-12-07T10:50:36.885432148-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
+2025-12-07T10:50:36.885448461-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
+2025-12-07T10:50:36.885460733-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
+2025-12-07T10:50:36.885486262-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
+2025-12-07T10:50:36.885498951-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
+2025-12-07T10:50:36.885511515-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
+2025-12-07T10:50:36.885523598-05:00 DEBUG ox_webservice - Final Response State: Status: 200, Body: "", Headers: {}

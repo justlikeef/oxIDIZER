@@ -1,7 +1,7 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001001-ConfigHTTP/log4rs.yaml"
+log4rs_config: /home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001001-ConfigHTTP/log4rs.yaml
 servers:
-  - protocol: "http"
-    port: 3000
-    bind_address: "0.0.0.0"
-    hosts:
-      - name: ".*"
+- protocol: http
+  port: 3000
+  bind_address: 0.0.0.0
+  hosts:
+  - name: .*

@@ -132,6 +132,8 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub uris: Option<Vec<UriMatcher>>,
     #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
     pub error_path: Option<String>,
     #[serde(default = "default_phase")]
     pub phase: Phase,
@@ -146,6 +148,7 @@ impl Default for ModuleConfig {
             name: String::new(),
             params: None,
             uris: None,
+            path: None,
             error_path: None,
             phase: default_phase(),
             priority: 0,

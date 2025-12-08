@@ -9,6 +9,7 @@ license = "MIT"
 [dependencies]
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [lib]
 name = "ox_type_converter"

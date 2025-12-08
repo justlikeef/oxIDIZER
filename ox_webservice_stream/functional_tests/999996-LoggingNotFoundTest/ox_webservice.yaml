@@ -1,15 +1,18 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999997-LoggingTest/log4rs.yaml"
+log4rs_config: /home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/log4rs.yaml
 servers:
-  - port: 3000
-    bind_address: "0.0.0.0"
-    protocol: "http"
-    hosts:
-      - name: ".*"
+- port: 3000
+  bind_address: 0.0.0.0
+  protocol: http
+  hosts:
+  - name: .*
 modules:
-  - name: ox_content
-    priority: 999
-    phase: Content
-    uris:
-      - path: ".*"
-    params:
-      config_file: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999997-LoggingTest/ox_content.yaml"
+- id: test_module_0
+  name: ox_webservice_stream
+  priority: 999
+  phase: Content
+  uris: null
+  params:
+    config_file: /home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_content.yaml
+urls:
+- url: .*
+  module_id: test_module_0

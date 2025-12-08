@@ -107,3 +107,25 @@
 2025-12-06T22:19:15.288686401-05:00 ERROR ox_content - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
 2025-12-06T22:19:15.289072827-05:00 ERROR ox_webservice - initialize_module for 'ox_content' returned a null pointer. Module not loaded.
 2025-12-06T22:19:15.291302192-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-07T10:50:27.746113517-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-07T10:50:27.746443602-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-07T10:50:27.746477227-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-07T10:50:27.747242556-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
+2025-12-07T10:50:27.747271694-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-07T10:50:27.747284663-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_stream
+2025-12-07T10:50:27.747299543-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_stream from "libox_webservice_stream.so"
+2025-12-07T10:50:27.749666996-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_stream
+2025-12-07T10:50:27.752120250-05:00 ERROR ox_webservice_stream - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-07T10:50:27.752145520-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_stream' returned a null pointer. Module not loaded.
+2025-12-07T10:50:27.754662029-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-07T10:55:47.778429992-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
+2025-12-07T10:55:47.778755551-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-07T10:55:47.778773289-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
+2025-12-07T10:55:47.779405729-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
+2025-12-07T10:55:47.779440374-05:00 INFO ox_webservice - Major process state: Initializing modules.
+2025-12-07T10:55:47.779451925-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_template_jinja2
+2025-12-07T10:55:47.779465483-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_template_jinja2 from "libox_webservice_template_jinja2.so"
+2025-12-07T10:55:47.787144891-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_template_jinja2
+2025-12-07T10:55:47.792318746-05:00 ERROR ox_webservice_template_jinja2 - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
+2025-12-07T10:55:47.792374146-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
+2025-12-07T10:55:47.794373530-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000

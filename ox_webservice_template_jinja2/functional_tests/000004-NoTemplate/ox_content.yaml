@@ -1,4 +1,3 @@
-content_root: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000004-NoTemplate/test_content"
-mimetypes_file: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000004-NoTemplate/mimetypes.yaml"
+content_root: /home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000004-NoTemplate/test_content
 default_documents:
-  - document: "index.html"
+- document: index.html
