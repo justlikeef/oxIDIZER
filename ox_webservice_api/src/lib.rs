@@ -106,6 +106,9 @@ pub struct WebServiceApiV1 {
     pub set_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, status_code: u16),
     pub set_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value: *const c_char),
     pub set_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, body: *const u8, body_len: usize),
+
+    // Server Metrics
+    pub get_server_metrics: unsafe extern "C" fn(arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
 }
 
 pub type InitializeModuleFn = unsafe extern "C" fn(

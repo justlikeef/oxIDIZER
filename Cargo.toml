@@ -13,16 +13,17 @@ members = [
     "ox_data_object_manager", "ox_fileproc",
     "ox_locking",
     "ox_persistence",
-    "ox_persistence_api",
-    "ox_persistence_datastore_flatfile",
     "ox_persistence_gdo_relational",
-    "ox_persistence_datastore_json",
-    "ox_persistence_datastore_mssql",
-    "ox_persistence_datastore_mysql",
-    "ox_persistence_datastore_postgresql",
-    "ox_persistence_sql",
-    "ox_persistence_datastore_xml",
-    "ox_persistence_datastore_yaml",
+    "ox_persistence/drivers/ox_persistence_api",
+    "ox_persistence/drivers/ox_persistence_driver_flatfile",
+    "ox_persistence/drivers/ox_persistence_driver_json",
+    "ox_persistence/drivers/ox_persistence_driver_mssql",
+    "ox_persistence/drivers/ox_persistence_driver_mysql",
+    "ox_persistence/drivers/ox_persistence_driver_postgresql",
+    "ox_persistence/drivers/ox_persistence_driver_sql",
+    "ox_persistence/drivers/ox_persistence_driver_xml",
+    "ox_persistence/drivers/ox_persistence_driver_yaml",
+    "ox_persistence/ox_persistence_datastore_drivermanager",
     "ox_type_converter",
     "ox_webservice",
     "ox_webservice_api",
@@ -31,4 +32,21 @@ members = [
     "ox_webservice_template_jinja2",
     "ox_webservice_forwarded_for",
     "ox_webservice_restore_ip",
+    "ox_webservice_redirect",
+    "ox_webservice_rewrite", "ox_webservice_status",
 ]
+
+[dependencies]
+ox_data_object = { path = "ox_data_object" }
+ox_locking = { path = "ox_locking" }
+ox_persistence = { path = "ox_persistence" }
+ox_persistence_driver_sql = { path = "ox_persistence/drivers/ox_persistence_driver_sql" }
+ox_persistence_driver_mysql = { path = "ox_persistence/drivers/ox_persistence_driver_mysql" }
+ox_persistence_driver_json = { path = "ox_persistence/drivers/ox_persistence_driver_json" }
+ox_persistence_driver_flatfile = { path = "ox_persistence/drivers/ox_persistence_driver_flatfile" }
+ox_persistence_driver_mssql = { path = "ox_persistence/drivers/ox_persistence_driver_mssql" }
+ox_persistence_driver_postgresql = { path = "ox_persistence/drivers/ox_persistence_driver_postgresql" }
+ox_persistence_driver_xml = { path = "ox_persistence/drivers/ox_persistence_driver_xml" }
+ox_persistence_driver_yaml = { path = "ox_persistence/drivers/ox_persistence_driver_yaml" }
+serde_yaml = "0.9"
+serde = { version = "1.0", features = ["derive"] }

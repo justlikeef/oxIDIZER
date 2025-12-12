@@ -1,0 +1,18 @@
+[package]
+name = "ox_webservice_redirect"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ox_webservice_api = { path = "../ox_webservice_api" }
+ox_fileproc = { path = "../ox_fileproc" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.10"
+libc = "0.2"
+anyhow = "1.0"
+log = "0.4"
+bumpalo = "3.19.0"

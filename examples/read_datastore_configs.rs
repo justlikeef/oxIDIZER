@@ -4,14 +4,14 @@ use std::sync::Arc;
 use serde::Deserialize;
 
 use ox_persistence::{register_persistence_driver, get_registered_drivers, DriverMetadata, Persistent, PersistenceDriver};
-use ox_persistence_mysql;
-use ox_persistence_json;
-use ox_persistence_sql;
-use ox_persistence_flatfile;
-use ox_persistence_mssql;
-use ox_persistence_postgresql;
-use ox_persistence_xml;
-use ox_persistence_yaml;
+use ox_persistence_driver_mysql;
+use ox_persistence_driver_json;
+use ox_persistence_driver_sql;
+use ox_persistence_driver_flatfile;
+use ox_persistence_driver_mssql;
+use ox_persistence_driver_postgresql;
+use ox_persistence_driver_xml;
+use ox_persistence_driver_yaml;
 
 // Struct to represent the datastore configuration from YAML
 #[derive(Debug, Deserialize)]
@@ -25,14 +25,14 @@ struct DatastoreConfig {
 
 fn main() {
     // Initialize all the drivers, which will register themselves
-    ox_persistence_mysql::init();
-    ox_persistence_json::init();
-    ox_persistence_sql::init();
-    ox_persistence_flatfile::init();
-    ox_persistence_mssql::init();
-    ox_persistence_postgresql::init();
-    ox_persistence_xml::init();
-    ox_persistence_yaml::init();
+    ox_persistence_driver_mysql::init();
+    ox_persistence_driver_json::init();
+    ox_persistence_driver_sql::init();
+    ox_persistence_driver_flatfile::init();
+    ox_persistence_driver_mssql::init();
+    ox_persistence_driver_postgresql::init();
+    ox_persistence_driver_xml::init();
+    ox_persistence_driver_yaml::init();
 
     println!("Registered persistence drivers:");
     let drivers = get_registered_drivers();

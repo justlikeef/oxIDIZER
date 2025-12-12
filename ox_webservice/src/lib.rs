@@ -1,4 +1,5 @@
 pub use ox_webservice_api::*;
+pub mod pipeline;
 
 use std::error::Error;
 use std::fmt;
@@ -38,8 +39,9 @@ impl Error for ConfigError {
     }
 }
 
-// Structs need to be public for main.rs to use them.
-#[derive(Debug, Deserialize)]
+use serde::Serialize;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UrlRoute {
     #[serde(default)]
     pub protocol: Option<String>,
@@ -49,31 +51,31 @@ pub struct UrlRoute {
     pub module_id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ServerConfig {
     #[serde(default)]
     pub urls: Vec<UrlRoute>,
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
     pub log4rs_config: String,
+    pub enable_metrics: Option<bool>,
     pub servers: Vec<ServerDetails>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct HostDetails {
     pub name: String,
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ServerDetails {
     pub protocol: String,
     pub port: u16,
     pub bind_address: String,
     pub hosts: Vec<HostDetails>,
 }
-
 
 pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfig, ConfigError> {
     debug!("Loading config from: {:?}", path);

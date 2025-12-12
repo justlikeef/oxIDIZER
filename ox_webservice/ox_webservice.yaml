@@ -1,0 +1,24 @@
+log4rs_config: "log4rs.yaml"
+servers:
+  - protocol: "http"
+    port: 8080
+    bind_address: "127.0.0.1"
+    hosts:
+      - name: "localhost"
+        tls_cert_path: null
+        tls_key_path: null
+
+modules:
+  - name: "ox_webservice_redirect"
+    phase: "EarlyRequest"
+    priority: 10
+    path: "../target/debug/libox_webservice_redirect.so"
+    params:
+      config_file: "redirect_rules.yaml"
+
+  - name: "ox_webservice_rewrite"
+    phase: "EarlyRequest"
+    priority: 20
+    path: "../target/debug/libox_webservice_rewrite.so"
+    params:
+      config_file: "rewrite_rules.yaml"

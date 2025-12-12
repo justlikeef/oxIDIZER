@@ -46,7 +46,7 @@ impl LoadedDriver {
         let restore: RestoreFn = *lib.get(b"ox_driver_restore").map_err(|e| e.to_string())?;
         let fetch: FetchFn = *lib.get(b"ox_driver_fetch").map_err(|e| e.to_string())?;
         let free_buf: FreeBufferFn = *lib.get(b"ox_driver_free_buffer").map_err(|e| e.to_string())?;
-        let get_meta: GetMetadataFn = *lib.get(b"ox_driver_get_metadata").map_err(|e| e.to_string())?;
+        let get_meta: GetMetadataFn = *lib.get(b"ox_driver_get_driver_metadata").map_err(|e| e.to_string())?;
 
         // Initialize
         let config = CString::new("{}").unwrap();

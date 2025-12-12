@@ -1,0 +1,21 @@
+[package]
+name = "ox_webservice_status"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ox_webservice_api = { path = "../ox_webservice_api" }
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sysinfo = "0.30"
+anyhow = "1.0"
+bumpalo = "3.12"
+ox_fileproc = { path = "../ox_fileproc" }
+
+[dev-dependencies]
+tempfile = "3.8"
+axum = { version = "0.7" }

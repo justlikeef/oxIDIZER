@@ -15,7 +15,7 @@ name = "ox_persistence_mysql"
 name = "ox_persistence_postgresql"
 
 [[drivers]]
-name = "ox_persistence_sql"
+name = "ox_persistence_driver_sql"
 
 [[drivers]]
 name = "ox_persistence_xml"

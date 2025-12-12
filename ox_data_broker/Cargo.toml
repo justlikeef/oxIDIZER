@@ -27,14 +27,14 @@ serde-xml-rs = "0.6"
 notify = "6.0"
 
 ox_persistence = { path = "../ox_persistence" }
-ox_persistence_api = { path = "../ox_persistence_api" }
-ox_persistence_datastore_flatfile = { path = "../ox_persistence_datastore_flatfile" }
-ox_persistence_datastore_json = { path = "../ox_persistence_datastore_json" }
-ox_persistence_datastore_mssql = { path = "../ox_persistence_datastore_mssql" }
-ox_persistence_datastore_mysql = { path = "../ox_persistence_datastore_mysql" }
-ox_persistence_datastore_postgresql = { path = "../ox_persistence_datastore_postgresql" }
-ox_persistence_datastore_xml = { path = "../ox_persistence_datastore_xml" }
-ox_persistence_datastore_yaml = { path = "../ox_persistence_datastore_yaml" }
+ox_persistence_api = { path = "../ox_persistence/drivers/ox_persistence_api" }
+ox_persistence_driver_flatfile = { path = "../ox_persistence/drivers/ox_persistence_driver_flatfile" }
+ox_persistence_driver_json = { path = "../ox_persistence/drivers/ox_persistence_driver_json" }
+ox_persistence_driver_mssql = { path = "../ox_persistence/drivers/ox_persistence_driver_mssql" }
+ox_persistence_driver_mysql = { path = "../ox_persistence/drivers/ox_persistence_driver_mysql" }
+ox_persistence_driver_postgresql = { path = "../ox_persistence/drivers/ox_persistence_driver_postgresql" }
+ox_persistence_driver_xml = { path = "../ox_persistence/drivers/ox_persistence_driver_xml" }
+ox_persistence_driver_yaml = { path = "../ox_persistence/drivers/ox_persistence_driver_yaml" }
 ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 
