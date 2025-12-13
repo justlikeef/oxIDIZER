@@ -407,6 +407,17 @@ pub unsafe extern "C" fn get_response_header_c(
     }
 }}
 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_response_body_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    let body_str = String::from_utf8_lossy(&pipeline_state.response_body);
+    alloc_fn(arena, CString::new(body_str.as_ref()).unwrap_or(CString::new("").unwrap()).as_ptr())
+}}
+
 // =========================================================================
 
 static MODULE_METRICS_REGISTRY: Lazy<RwLock<HashMap<String, Arc<ModuleMetrics>>>> = 
@@ -459,6 +470,7 @@ impl Pipeline {
             set_source_ip: set_source_ip_c,
             get_response_status: get_response_status_c,
             get_response_header: get_response_header_c,
+            get_response_body: get_response_body_c,
             set_response_status: set_response_status_c,
             set_response_header: set_response_header_c,
             set_response_body: set_response_body_c,

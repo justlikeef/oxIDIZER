@@ -101,6 +101,7 @@ pub struct WebServiceApiV1 {
     // Response Getters
     pub get_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState) -> u16,
     pub get_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
+    pub get_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
 
     // Response Setters
     pub set_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, status_code: u16),

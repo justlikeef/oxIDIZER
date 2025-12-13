@@ -19,3 +19,4 @@ ox_fileproc = { path = "../ox_fileproc" }
 [dev-dependencies]
 tempfile = "3.8"
 axum = { version = "0.7" }
+ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }

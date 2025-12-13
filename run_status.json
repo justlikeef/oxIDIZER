@@ -1,0 +1,26 @@
+{
+    "log4rs_config": "ox_webservice/log4rs.yaml",
+    "enable_metrics": true,
+    "servers": [
+        {
+            "protocol": "http",
+            "port": 8080,
+            "bind_address": "127.0.0.1",
+            "hosts": []
+        }
+    ],
+    "modules": [
+        {
+            "name": "ox_webservice_status",
+            "path": "target/debug/libox_webservice_status.so",
+            "phase": "Content",
+            "priority": 100,
+            "params": null,
+            "uris": [
+                {
+                    "path": "/status"
+                }
+            ]
+        }
+    ]
+}

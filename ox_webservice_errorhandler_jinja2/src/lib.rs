@@ -12,6 +12,9 @@ use bumpalo::Bump;
 
 const MODULE_NAME: &str = "ox_webservice_errorhandler_jinja2";
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Deserialize)]
 pub struct ErrorHandlerConfig {
     pub content_root: PathBuf,

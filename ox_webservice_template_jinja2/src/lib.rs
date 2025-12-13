@@ -41,6 +41,16 @@ pub struct ContentConfig {
     mimetypes_file: String,
     #[serde(default)]
     default_documents: Vec<DocumentConfig>,
+    #[serde(default)]
+    on_content_conflict: Option<ContentConflictAction>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum ContentConflictAction {
+    Overwrite,
+    Append,
+    Skip,
+    Error,
 }
 
 pub struct OxModule<'a> {
@@ -117,6 +127,30 @@ impl<'a> OxModule<'a> {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
+        // --- Early Conflict Check for Skip ---
+        let existing_body_ptr = unsafe { (self.api.get_response_body)(pipeline_state, arena_ptr, self.api.alloc_str) };
+        let mut existing_body = String::new();
+        if !existing_body_ptr.is_null() {
+            existing_body = unsafe { CStr::from_ptr(existing_body_ptr).to_string_lossy().into_owned() };
+        }
+        
+        let has_existing_content = !existing_body.is_empty();
+
+        if has_existing_content {
+             match self.content_config.on_content_conflict {
+                 Some(ContentConflictAction::Skip) => {
+                     self.log(LogLevel::Debug, "ox_webservice_template_jinja2: Skipping due to existing content (early check).".to_string());
+                     return HandlerResult::UnmodifiedContinue;
+                 },
+                 Some(ContentConflictAction::Error) => {
+                     self.log(LogLevel::Error, "ox_webservice_template_jinja2: Conflict error (early check).".to_string());
+                     unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                     return HandlerResult::ModifiedJumpToError;
+                 },
+                 _ => {}
+             }
+        }
+
         let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
         if request_path_ptr.is_null() {
              self.log(LogLevel::Error, "ox_webservice_template_jinja2: get_request_path returned null.".to_string());
@@ -131,6 +165,19 @@ impl<'a> OxModule<'a> {
 
             if let Some(mapping) = mimetype_mapping {
                 if mapping.handler == "template" {
+                    
+                    // Late Conflict Check (Optimization: Skip/Error handled early)
+                    if has_existing_content {
+                         // Only Overwrite and Append reach here
+                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::Overwrite) {
+                             ContentConflictAction::Skip | ContentConflictAction::Error => {
+                                 // Should have been caught early
+                                 return HandlerResult::UnmodifiedContinue; 
+                             },
+                             _ => {} // Proceed for Overwrite/Append
+                         }
+                    }
+
                    match fs::read_to_string(&file_path) {
                         Ok(template_content) => {
                             let context = Context::new();
@@ -144,6 +191,16 @@ impl<'a> OxModule<'a> {
                                         ),
                                     );
                                     let content_bytes = rendered.into_bytes();
+                                    let mut final_content_bytes = content_bytes;
+                                     // Handle Append
+                                    if has_existing_content {
+                                        if let Some(ContentConflictAction::Append) = self.content_config.on_content_conflict {
+                                            let mut combined = existing_body.into_bytes();
+                                            combined.extend(final_content_bytes);
+                                            final_content_bytes = combined;
+                                        }
+                                    }
+
                                     unsafe {
                                         let c_content_type_key = CString::new("Content-Type").unwrap();
                                         let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
@@ -154,8 +211,8 @@ impl<'a> OxModule<'a> {
                                         );
                                         (self.api.set_response_body)(
                                             pipeline_state,
-                                            content_bytes.as_ptr(),
-                                            content_bytes.len(),
+                                            final_content_bytes.as_ptr(),
+                                            final_content_bytes.len(),
                                         );
                                     }
                                     return HandlerResult::ModifiedContinue;

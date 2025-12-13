@@ -33,7 +33,7 @@ members = [
     "ox_webservice_forwarded_for",
     "ox_webservice_restore_ip",
     "ox_webservice_redirect",
-    "ox_webservice_rewrite", "ox_webservice_status",
+    "ox_webservice_rewrite", "ox_webservice_status", "ox_webservice_test_utils",
 ]
 
 [dependencies]
