@@ -1,4 +1,9 @@
 mimetypes:
-  - extension: "txt"
+  - url: ".*[.]html$"
+    mimetype: "text/html"
+  - url: ".*[.]txt$"
     mimetype: "text/plain"
-    handler: "stream"
+  - url: ".*[.]jinja$"
+    mimetype: "text/html"
+  - url: ".*[.]jinja2$"
+    mimetype: "text/html"

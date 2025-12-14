@@ -9,7 +9,7 @@ appenders:
   # An appender that writes to a file
   file:
     kind: file
-    path: "ox_webservice.log"
+    path: "logs/ox_webservice.log"
     encoder:
       pattern: "{d} {l} {t} - {m}{n}"
 
@@ -52,8 +52,24 @@ loggers:
       - file
     additive: false
 
-  # Set the log level for ox_server_info to debug
-  ox_server_info:
+  # Set the log level for ox_webservice_status to debug
+  ox_webservice_status:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false
+
+  # Set the log level for ox_webservice_forwarded_for to debug
+  ox_webservice_forwarded_for:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false
+
+  # Set the log level for ox_webservice_restore_ip to debug
+  ox_webservice_restore_ip:
     level: debug
     appenders:
       - stdout

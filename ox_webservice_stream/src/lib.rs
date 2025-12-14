@@ -1,3 +1,4 @@
+use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
@@ -18,9 +19,10 @@ const MODULE_NAME: &str = "ox_webservice_stream";
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct MimeTypeMapping {
-    extension: String,
+    url: String,
     mimetype: String,
-    handler: String,
+    #[serde(skip)]
+    compiled_regex: Option<Regex>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -82,7 +84,7 @@ impl<'a> OxModule<'a> {
         let mimetype_path = PathBuf::from(mimetype_file_name);
         
         // Use ox_fileproc for mimetypes config
-        let mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
+        let mut mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
             Ok(value) => match serde_json::from_value(value) {
                 Ok(cfg) => cfg,
                 Err(e) => {
@@ -107,6 +109,23 @@ impl<'a> OxModule<'a> {
                 anyhow::bail!("Failed to process mimetype config: {}", e);
             }
         };
+
+        // Compile Regexes
+        for mapping in &mut mimetype_config.mimetypes {
+            match Regex::new(&mapping.url) {
+                Ok(re) => mapping.compiled_regex = Some(re),
+                Err(e) => {
+                     if let Ok(c_message) = CString::new(format!(
+                        "ox_webservice_stream: Failed to compile regex '{}': {}",
+                        mapping.url, e
+                    )) {
+                        let module_name = CString::new(MODULE_NAME).unwrap();
+                        unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                    }
+                    // Continue, just won't match. Or could fail hard. Let's log error and leave None.
+                }
+            }
+        }
 
         Ok(Self {
             content_root: PathBuf::from(config.content_root.clone()),
@@ -159,11 +178,18 @@ impl<'a> OxModule<'a> {
         let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
 
         if let Some(file_path) = self.resolve_and_find_file(request_path) {
-            let extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-            let mimetype_mapping = self.mimetypes.iter().find(|m| m.extension == extension);
+            let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+            
+            // Find first matching regex
+            let mimetype_mapping = self.mimetypes.iter().find(|m| {
+                if let Some(re) = &m.compiled_regex {
+                    re.is_match(file_name_str)
+                } else {
+                    false
+                }
+            });
 
             if let Some(mapping) = mimetype_mapping {
-                if mapping.handler == "stream" {
                     
                     // Late Conflict Check (Optimization: Skip/Error handled early)
                     if has_existing_content {
@@ -226,7 +252,20 @@ impl<'a> OxModule<'a> {
                             return HandlerResult::ModifiedJumpToError;
                         }
                     }
-                }
+
+            }
+        } else {
+             self.log(
+                LogLevel::Debug,
+                format!(
+                    "ox_webservice_stream: File not found for path: {}",
+                    request_path
+                ),
+            );
+            unsafe { 
+                (self.api.set_response_status)(pipeline_state, 404);
+                let body = CString::new("404 Not Found").unwrap();
+                (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
             }
         }
         

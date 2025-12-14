@@ -1,15 +1,15 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/log4rs.yaml"
+log4rs_config: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/log4rs.yaml"
 servers:
   - protocol: "https"
     port: 3443
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-        tls_cert_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-cert.pem"
-        tls_key_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-cert.pem"
+        tls_key_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-key.pem"
       - name:  ".*"
-        tls_cert_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-cert.pem"
-        tls_key_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-cert.pem"
+        tls_key_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-key.pem"
 urls:
   - url: "/extra_content_path/"
     module_id: "content_handler_1"

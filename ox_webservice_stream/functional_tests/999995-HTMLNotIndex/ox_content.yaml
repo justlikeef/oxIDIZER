@@ -1,4 +1,4 @@
-content_root: /home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999995-HTMLNotIndex/test_content
-mimetypes_file: /home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/999995-HTMLNotIndex/mimetypes.yaml
+content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999995-HTMLNotIndex/test_content"
+mimetypes_file: /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999995-HTMLNotIndex/mimetypes.yaml
 default_documents:
 - document: index.html

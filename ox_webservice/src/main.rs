@@ -163,7 +163,21 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf) {
         let port = server_details.port;
         let servers = server_details.hosts.clone();
 
-        let app = Router::new().route("/*path", axum::routing::any(move |req: Request<Body>| {
+        let app = Router::new()
+            .route("/", axum::routing::any({
+                let pipeline_holder_server = pipeline_holder_server.clone();
+                let protocol_clone = protocol.clone();
+                move |req: Request<Body>| {
+                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                    let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
+                    let protocol_clone = protocol_clone.clone();
+                    
+                    async move {
+                         pipeline_arc.execute_request(connect_info, req, protocol_clone).await
+                    }
+                }
+            }))
+            .route("/*path", axum::routing::any(move |req: Request<Body>| {
             let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
             let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
             let protocol_clone = protocol.clone();
@@ -184,22 +198,62 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf) {
 
              for (i, host) in servers.iter().enumerate() {
                  if let (Some(cert_path), Some(key_path)) = (&host.tls_cert_path, &host.tls_key_path) {
-                      let cert_content = std::fs::read(cert_path).expect("Failed to read cert");
-                      let key_content = std::fs::read(key_path).expect("Failed to read key");
+                      let cert_content = match std::fs::read(cert_path) {
+                          Ok(c) => c,
+                          Err(e) => {
+                              error!("Failed to read cert file {}: {}", cert_path, e);
+                              continue;
+                          }
+                      };
+                      let key_content = match std::fs::read(key_path) {
+                          Ok(c) => c,
+                          Err(e) => {
+                              error!("Failed to read key file {}: {}", key_path, e);
+                              continue;
+                          }
+                      };
                       
-                      // ... (Simplifying for brevity, assuming existing logic or simple load)
-                      // Ideally we'd copy the robust loading from original main.rs, but re-implementing briefly:
-                      let certs_parsed: Vec<CertificateDer<'static>> = certs(&mut BufReader::new(&cert_content[..])).collect::<Result<_, _>>().unwrap();
-                      let key_parsed = pkcs8_private_keys(&mut BufReader::new(&key_content[..])).next().unwrap().unwrap();
+                      let certs_parsed_res: Result<Vec<CertificateDer<'static>>, _> = certs(&mut BufReader::new(&cert_content[..])).collect();
+                      let certs_parsed = match certs_parsed_res {
+                          Ok(c) => c,
+                          Err(e) => {
+                               error!("Failed to parse certificates from {}: {}", cert_path, e);
+                               continue;
+                          }
+                      };
+
+                      let key_parsed_res = pkcs8_private_keys(&mut BufReader::new(&key_content[..])).next();
+                      let key_parsed = match key_parsed_res {
+                          Some(Ok(k)) => k,
+                          Some(Err(e)) => {
+                              error!("Failed to parse private key from {}: {}", key_path, e);
+                              continue;
+                          },
+                          None => {
+                              error!("No private keys found in {}", key_path);
+                              continue;
+                          }
+                      };
+
                       let key_der: PrivateKeyDer<'static> = key_parsed.into();
                       
-                      let signing_key = rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der).expect("Failed to create signing key");
+                      let signing_key = match rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der) {
+                          Ok(k) => k,
+                          Err(e) => {
+                              error!("Failed to create signing key from {}: {:?}", key_path, e);
+                              continue;
+                          }
+                      };
+                      
                       let certified_key = CertifiedKey::new(certs_parsed, signing_key);
 
                       if i == 0 {
                           default_cert = Some(Arc::new(certified_key.clone()));
                       }
-                      cert_resolver.add(&host.name, certified_key).expect("Failed to add SNI");
+                      if let Err(e) = cert_resolver.add(&host.name, certified_key) {
+                          error!("Failed to add SNI for host {}: {:?}", host.name, e);
+                          continue;
+                      }
                  }
              }
 

@@ -1,11 +1,5 @@
-2025-12-07T10:55:49.815329077-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:55:49.815473644-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:55:49.815490535-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:55:49.816091399-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07T10:55:49.816156392-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:55:49.816170833-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_template_jinja2
-2025-12-07T10:55:49.816180959-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_template_jinja2 from "libox_webservice_template_jinja2.so"
-2025-12-07T10:55:49.817324241-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_template_jinja2
-2025-12-07T10:55:49.818553463-05:00 ERROR ox_webservice_template_jinja2 - Failed to deserialize ContentConfig: invalid type: string "INVALID", expected struct ContentConfig
-2025-12-07T10:55:49.818635703-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
-2025-12-07T10:55:49.820946046-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-13T21:29:36.997854439-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:29:36.997999067-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:29:36.998038386-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T21:29:36.999441171-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/ox_content.yaml': mapping values are not allowed in this context at line 2 column 15
+2025-12-13T21:29:36.999757508-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'

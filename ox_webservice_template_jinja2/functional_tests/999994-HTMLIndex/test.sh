@@ -44,11 +44,12 @@ if [ "$MODE" == "isolated" ]; then
     "$TEST_WORKSPACE_DIR"
 
   # Allow the server to start
-  sleep 2
+  sleep 5
 
   # Curl the directory (should serve index.html)
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/)
-  CURL_OUTPUT=$(curl -s http://localhost:3000/)
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/)
+  CURL_OUTPUT=$(curl -s http://127.0.0.1:3000/)
+  sleep 2
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
@@ -56,7 +57,7 @@ if [ "$MODE" == "isolated" ]; then
   sleep 1
 
   # Check for correct message in the log file
-  if grep -q "ox_content: Successfully handled request for path" "$TEST_DIR/logs/ox_webservice.log"; then
+  if grep -q "ox_webservice_template_jinja2: Successfully handled request for path" "$TEST_DIR/logs/ox_webservice.log"; then
       log_message "$LOGGING_LEVEL" "notice" "Found 'Successfully handled request' message in log"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find 'Successfully handled request' message in log"

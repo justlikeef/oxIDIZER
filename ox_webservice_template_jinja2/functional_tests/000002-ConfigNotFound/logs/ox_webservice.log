@@ -1,11 +1,5 @@
-2025-12-07T10:55:47.778333582-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:55:47.778739132-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:55:47.778766109-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:55:47.779375532-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07T10:55:47.779433775-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:55:47.779448440-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_template_jinja2
-2025-12-07T10:55:47.779460902-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_template_jinja2 from "libox_webservice_template_jinja2.so"
-2025-12-07T10:55:47.787075240-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_template_jinja2
-2025-12-07T10:55:47.792276610-05:00 ERROR ox_webservice_template_jinja2 - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
-2025-12-07T10:55:47.792365738-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
-2025-12-07T10:55:47.794278898-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-13T21:29:34.953951717-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:29:34.954126695-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:29:34.954186165-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T21:29:34.956013773-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T21:29:34.956500649-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'

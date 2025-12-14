@@ -1,12 +1,12 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/configs/log4rs.yaml"
+log4rs_config: "/var/repos/oxIDIZER/configs/log4rs.yaml"
 servers:
   - protocol: "https"
     port: 3443
     bind_address: "0.0.0.0"
     hosts:
       - name:  ".*"
-        tls_cert_path: "/home/justlikeef/repos/oxIDIZER/configs/certs/cert.pem"
-        tls_key_path: "/home/justlikeef/repos/oxIDIZER/configs/certs/key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/configs/certs/cert.pem"
+        tls_key_path: "/var/repos/oxIDIZER/configs/certs/key.pem"
 urls:
   - url: "/extra_content_path/"
     module_id: "content_handler_1"

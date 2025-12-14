@@ -1,12 +1,6 @@
-2025-12-07 10:55:40 - INFO - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07 10:55:40 - INFO - Starting ox_webservice...
-2025-12-07 10:55:40 - DEBUG - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07 10:55:40 - DEBUG - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
-2025-12-07 10:55:40 - INFO - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07 10:55:40 - INFO - Major process state: Initializing modules.
-2025-12-07 10:55:40 - INFO - Attempting to load module: ox_webservice_stream
-2025-12-07 10:55:40 - DEBUG - Attempting to load module: ox_webservice_stream from "libox_webservice_stream.so"
-2025-12-07 10:55:40 - INFO - Successfully loaded module: ox_webservice_stream
-2025-12-07 10:55:40 - DEBUG - ox_webservice_stream: new: Initializing with content_root: "/home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999997-LoggingTest"
-2025-12-07 10:55:40 - INFO - ox_webservice_stream initialized
-2025-12-07 10:55:40 - INFO - .* server listening on http://0.0.0.0:3000
+2025-12-13 21:29:27 - INFO - log4rs initialized successfully.
+2025-12-13 21:29:27 - INFO - Starting ox_webservice...
+2025-12-13 21:29:27 - INFO - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13 21:29:27 - DEBUG - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest"
+2025-12-13 21:29:27 - INFO - [ox_webservice_stream] ox_webservice_stream initialized
+2025-12-13 21:29:27 - INFO - Listening on 0.0.0.0:3000

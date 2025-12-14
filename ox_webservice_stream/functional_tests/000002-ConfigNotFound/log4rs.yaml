@@ -36,8 +36,8 @@ loggers:
       - file
     additive: false
 
-  # Set the log level for ox_content to debug
-  ox_content:
+  # Set the log level for ox_webservice_stream to debug
+  ox_webservice_stream:
     level: debug
     appenders:
       - stdout
@@ -46,6 +46,14 @@ loggers:
 
   # Set the log level for ox_server_info to debug
   ox_server_info:
+    level: debug
+    appenders:
+      - stdout
+      - file
+    additive: false
+
+  # Set the log level for ox_webservice_template_jinja2 to debug
+  ox_webservice_template_jinja2:
     level: debug
     appenders:
       - stdout

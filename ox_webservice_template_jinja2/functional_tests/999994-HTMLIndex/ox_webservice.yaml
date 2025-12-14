@@ -1,7 +1,7 @@
-log4rs_config: /home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/log4rs.yaml
 servers:
 - port: 3000
-  bind_address: 0.0.0.0
+  bind_address: 127.0.0.1
   protocol: http
   hosts:
   - name: .*
@@ -12,7 +12,7 @@ modules:
   phase: Content
   uris: null
   params:
-    config_file: /home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/ox_content.yaml
+    config_file: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/ox_content.yaml
 urls:
 - url: .*
   module_id: test_module_0

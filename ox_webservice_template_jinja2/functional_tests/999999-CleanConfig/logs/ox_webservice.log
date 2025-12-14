@@ -1,49 +1,56 @@
-2025-12-07T10:56:13.318765275-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:56:13.318904602-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:56:13.318931179-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:56:13.319546888-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07T10:56:13.319651870-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:56:13.319666807-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_template_jinja2
-2025-12-07T10:56:13.319679965-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_template_jinja2 from "libox_webservice_template_jinja2.so"
-2025-12-07T10:56:13.320536691-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_template_jinja2
-2025-12-07T10:56:13.321076482-05:00 ERROR ox_webservice_template_jinja2 - Failed to deserialize ContentConfig: missing field `mimetypes_file`
-2025-12-07T10:56:13.321156538-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
-2025-12-07T10:56:13.323720795-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
-2025-12-07T10:56:15.321042405-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07T10:56:15.321199079-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
-2025-12-07T10:56:15.321215454-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07T10:56:15.321224343-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
-2025-12-07T10:56:15.321233003-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
-2025-12-07T10:56:15.321241749-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
-2025-12-07T10:56:15.321250913-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
-2025-12-07T10:56:15.321259447-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
-2025-12-07T10:56:15.321268320-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
-2025-12-07T10:56:15.321276854-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
-2025-12-07T10:56:15.321285229-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
-2025-12-07T10:56:15.321293878-05:00 INFO ox_webservice - No content module handled the request. Setting status to 500.
-2025-12-07T10:56:15.321321489-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
-2025-12-07T10:56:15.321330602-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
-2025-12-07T10:56:15.321339112-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
-2025-12-07T10:56:15.321347452-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
-2025-12-07T10:56:15.321355948-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
-2025-12-07T10:56:15.321364269-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
-2025-12-07T10:56:15.321373150-05:00 DEBUG ox_webservice - Final Response State: Status: 500, Body: "", Headers: {}
-2025-12-07T10:56:15.327873465-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07T10:56:15.328000163-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
-2025-12-07T10:56:15.328016355-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07T10:56:15.328025267-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
-2025-12-07T10:56:15.328044928-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
-2025-12-07T10:56:15.328052971-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
-2025-12-07T10:56:15.328061130-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
-2025-12-07T10:56:15.328071765-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
-2025-12-07T10:56:15.328079449-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
-2025-12-07T10:56:15.328086989-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
-2025-12-07T10:56:15.328094525-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
-2025-12-07T10:56:15.328102560-05:00 INFO ox_webservice - No content module handled the request. Setting status to 500.
-2025-12-07T10:56:15.328121184-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
-2025-12-07T10:56:15.328132052-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
-2025-12-07T10:56:15.328139787-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
-2025-12-07T10:56:15.328149175-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
-2025-12-07T10:56:15.328156955-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
-2025-12-07T10:56:15.328165942-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
-2025-12-07T10:56:15.328174434-05:00 DEBUG ox_webservice - Final Response State: Status: 500, Body: "", Headers: {}
+2025-12-13T21:30:04.661070869-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:30:04.661249053-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:30:04.661278108-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T21:30:04.663133708-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/test_content"
+2025-12-13T21:30:04.666758122-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2025-12-13T21:30:04.666902110-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 1 default documents.
+2025-12-13T21:30:04.666920692-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2 initialized
+2025-12-13T21:30:04.667120315-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+2025-12-13T21:30:06.665926924-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-13T21:30:06.666128618-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-13T21:30:06.666143713-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-13T21:30:06.666153138-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-13T21:30:06.666162183-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-13T21:30:06.666171061-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-13T21:30:06.666179864-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-13T21:30:06.666188709-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-13T21:30:06.666197584-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-13T21:30:06.666206427-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-13T21:30:06.666216012-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-13T21:30:06.666225705-05:00 INFO ox_webservice::pipeline - Executing phase: Content with 1 modules
+2025-12-13T21:30:06.666435295-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] Checking regex '.*[.]html$' against 'index.html': true
+2025-12-13T21:30:06.666753837-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Successfully handled request for path: /index.html
+2025-12-13T21:30:06.666841967-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostContent, Body len: 22
+2025-12-13T21:30:06.666857653-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAccounting, Body len: 22
+2025-12-13T21:30:06.666868920-05:00 DEBUG ox_webservice::pipeline - Executing phase: Accounting, Body len: 22
+2025-12-13T21:30:06.666878053-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAccounting, Body len: 22
+2025-12-13T21:30:06.666901680-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 22
+2025-12-13T21:30:06.666918921-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 22
+2025-12-13T21:30:06.666928223-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 22
+2025-12-13T21:30:06.666937447-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 22
+2025-12-13T21:30:06.666946318-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 22
+2025-12-13T21:30:06.666955072-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 22
+2025-12-13T21:30:06.674035710-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-13T21:30:06.674167334-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-13T21:30:06.674195319-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-13T21:30:06.674204991-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-13T21:30:06.674214138-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-13T21:30:06.674223388-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-13T21:30:06.674232553-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-13T21:30:06.674241543-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-13T21:30:06.674250960-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-13T21:30:06.674259861-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-13T21:30:06.674268832-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-13T21:30:06.674290717-05:00 INFO ox_webservice::pipeline - Executing phase: Content with 1 modules
+2025-12-13T21:30:06.674377745-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] Checking regex '.*[.]html$' against 'index.html': true
+2025-12-13T21:30:06.674676733-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Successfully handled request for path: /index.html
+2025-12-13T21:30:06.674762586-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostContent, Body len: 22
+2025-12-13T21:30:06.674778989-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAccounting, Body len: 22
+2025-12-13T21:30:06.674788327-05:00 DEBUG ox_webservice::pipeline - Executing phase: Accounting, Body len: 22
+2025-12-13T21:30:06.674799448-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAccounting, Body len: 22
+2025-12-13T21:30:06.674809836-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 22
+2025-12-13T21:30:06.674834127-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 22
+2025-12-13T21:30:06.674862462-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 22
+2025-12-13T21:30:06.674877060-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 22
+2025-12-13T21:30:06.674886203-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 22
+2025-12-13T21:30:06.674894841-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 22

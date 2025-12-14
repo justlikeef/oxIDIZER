@@ -1,12 +1,12 @@
-log4rs_config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/log4rs.yaml"
+log4rs_config: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/log4rs.yaml"
 servers:
   - protocol: "https"
     port: 3443
     bind_address: "0.0.0.0"
     hosts:
       - name: ".*"
-        tls_cert_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/cert.pem"
-        tls_key_path: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/cert.pem"
+        tls_key_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/key.pem"
 urls:
   - url: "/extra_content_path/"
     module_id: "content_handler_1"

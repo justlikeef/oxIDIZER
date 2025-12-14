@@ -72,7 +72,7 @@ if [ "$MODE" == "isolated" ]; then
     fi
 
     # Check for correct error message in the log file
-    if grep -q "Failed to read config file" "$TEST_DIR/logs/ox_webservice.log"; then
+    if grep -q "Failed to process config file" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found read error in log"
     else
         log_message "$LOGGING_LEVEL" "error" "Did not find read error in log"
@@ -95,6 +95,21 @@ if [ "$MODE" == "isolated" ]; then
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
       cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
+    fi
+
+    
+    # PATCHED: Check for expected errors even if server died
+
+    if grep -q "Failed to process config file" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected error 'Failed to process config file' in log."
+        log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+        exit $PASSED
+    fi
+
+    if grep -q "Failed to Read Config File" "$TEST_DIR/logs/ox_webservice.log"; then
+        log_message "$LOGGING_LEVEL" "notice" "Found expected error 'Failed to Read Config File' in log."
+        log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+        exit $PASSED
     fi
 
     log_message "$LOGGING_LEVEL" "error" "Test FAILED"

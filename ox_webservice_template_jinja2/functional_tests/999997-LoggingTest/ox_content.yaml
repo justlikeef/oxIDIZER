@@ -1,3 +1,5 @@
-content_root: /home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/999997-LoggingTest
+content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999997-LoggingTest"
 default_documents:
 - document: index.html
+
+mimetypes_file: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999997-LoggingTest/mimetypes.yaml

@@ -16,7 +16,15 @@ PID_FILE=${2:-$DEFAULT_DERIVED_WORKSPACE_DIR/ox_webservice.pid} # Use derived pa
 WORKSPACE_DIR=${3:-$DEFAULT_DERIVED_WORKSPACE_DIR} # Allow override, else use derived path
 
 # Source the logging function
-source "$WORKSPACE_DIR/functional_tests/common/log_function.sh"
+# Source the logging function
+# source "$WORKSPACE_DIR/functional_tests/common/log_function.sh"
+
+log_message() {
+    local level=$1
+    local msg_level=$2
+    local message=$3
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$msg_level] $message"
+}
 
 if [ -f "$PID_FILE" ]; then
     log_message "$LOG_LEVEL" "debug" "Retreiving server PID..."

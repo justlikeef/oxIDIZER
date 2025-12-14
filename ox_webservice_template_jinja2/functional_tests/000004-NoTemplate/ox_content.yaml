@@ -1,3 +1,5 @@
-content_root: /home/justlikeef/repos/oxIDIZER/ox_content/functional_tests/000004-NoTemplate/test_content
+content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000004-NoTemplate/test_content"
 default_documents:
 - document: index.html
+
+mimetypes_file: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000004-NoTemplate/mimetypes.yaml

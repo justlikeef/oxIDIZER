@@ -1,4 +1,4 @@
-log4rs_config: /home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/log4rs.yaml
 server:
   port: 3000
   bind_address: 0.0.0.0

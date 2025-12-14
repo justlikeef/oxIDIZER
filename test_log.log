@@ -129,3 +129,138 @@
 2025-12-07T10:55:47.792318746-05:00 ERROR ox_webservice_template_jinja2 - Failed to read config file '/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_content.yaml': No such file or directory (os error 2)
 2025-12-07T10:55:47.792374146-05:00 ERROR ox_webservice - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
 2025-12-07T10:55:47.794373530-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
+2025-12-13T11:59:20.756630918-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T11:59:20.757156034-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T11:59:20.757191257-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T11:59:20.760807684-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T11:59:20.760972498-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T11:59:50.978805029-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T11:59:50.978845576-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T11:59:50.978880350-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T11:59:50.986727427-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T11:59:50.986946149-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T12:07:09.816743970-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T12:07:09.817166134-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T12:07:09.817199940-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T12:07:09.820040574-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T12:07:09.820204308-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T12:19:05.208870988-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T12:19:05.209206302-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T12:19:05.209229284-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T12:19:05.211718748-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T12:19:05.211846596-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T12:19:35.460607044-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T12:19:35.460649873-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T12:19:35.460672041-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T12:19:35.466400099-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T12:19:35.466624673-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T12:21:43.782187840-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T12:21:43.782261014-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T12:21:43.782282774-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T12:21:43.782847660-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T12:21:43.782992519-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T12:22:13.966613002-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T12:22:13.966659274-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T12:22:13.966678267-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T12:22:13.968309283-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T12:22:13.968497336-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T17:16:45.879421992-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T17:16:45.879467636-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T17:16:45.879489574-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T17:16:45.880208760-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T17:16:45.880472328-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T17:17:13.971665406-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T17:17:13.971751151-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T17:17:13.971777323-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T17:17:13.973368685-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T17:17:13.973718671-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:38:55.453558231-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:38:55.454017015-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:38:55.454039096-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:38:55.469388597-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:38:55.469963672-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:39:24.026906606-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:39:24.026962957-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:39:24.026984884-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:39:24.044796726-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:39:24.046037002-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:40:41.388441490-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:40:41.388483431-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:40:41.388503635-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:40:41.389189885-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:40:41.389324051-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:41:09.936157862-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:41:09.936215427-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:41:09.936244055-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:41:09.938235570-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:41:09.938461083-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:42:51.786531044-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:42:51.786599824-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:42:51.786627665-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:42:51.787648317-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:42:51.787918271-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:43:20.340210832-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:43:20.340342527-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:43:20.340370105-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:43:20.341902811-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:43:20.342116515-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:45:29.038641975-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:45:29.038727373-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:45:29.038757773-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:45:29.039668584-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:45:29.039926155-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:48:19.939266940-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:48:19.939315083-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:48:19.939335988-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:48:19.940728428-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:48:19.940951202-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:49:24.947210162-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:49:24.947265380-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:49:24.947294911-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:49:24.947856141-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:49:24.948015608-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:52:15.345801900-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:52:15.345849607-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:52:15.345886515-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:52:15.347008341-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:52:15.347201245-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:56:27.999379057-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:56:27.999449052-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:56:27.999493306-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:56:28.000199204-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:56:28.000412736-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:57:39.865074517-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:57:39.865136574-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:57:39.865172001-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:57:39.866025947-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:57:39.866247267-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T20:59:19.772483790-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:59:19.772546762-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:59:19.772569993-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T20:59:19.773837379-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:59:19.774080001-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T20:59:27.692047703-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T20:59:27.692108704-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T20:59:27.692130005-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T20:59:27.692698230-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T20:59:27.692853837-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T21:07:00.401316901-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:07:00.401407357-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:07:00.401444145-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T21:07:00.402182317-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T21:07:00.402375572-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T21:07:29.122249126-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:07:29.122654361-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:07:29.122676397-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T21:07:29.148674048-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T21:07:29.150227285-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'
+2025-12-13T21:29:06.175077460-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:29:06.175166763-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:29:06.175209050-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T21:29:06.176068242-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T21:29:06.176369441-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-13T21:29:34.954079910-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:29:34.954141214-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:29:34.954195254-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13T21:29:34.956112352-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml': Failed to canonicalize path: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000002-ConfigNotFound/non_existent_ox_webservice_stream.yaml"
+2025-12-13T21:29:34.956528434-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_template_jinja2'

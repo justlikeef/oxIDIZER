@@ -1,6 +1,0 @@
-ox_webservice
-ox_webservice_api
-ox_webservice_x_forwarded_for
-ox_webservice_errorhandler_jinja2
-ox_webservice_stream
-ox_webservice_template_jinja2

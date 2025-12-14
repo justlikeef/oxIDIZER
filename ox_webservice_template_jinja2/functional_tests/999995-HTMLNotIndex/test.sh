@@ -56,7 +56,7 @@ if [ "$MODE" == "isolated" ]; then
   sleep 1
 
   # Check for correct message in the log file
-  if grep -q "ox_content: Successfully handled request for path" "$TEST_DIR/logs/ox_webservice.log"; then
+  if grep -q "ox_webservice_template_jinja2: Successfully handled request for path" "$TEST_DIR/logs/ox_webservice.log"; then
       log_message "$LOGGING_LEVEL" "notice" "Found 'Successfully handled request' message in log"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find 'Successfully handled request' message in log"

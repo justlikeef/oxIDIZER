@@ -1,5 +1,0 @@
-content_root: "/home/justlikeef/repos/oxIDIZER/content"
-mimetypes_file: "/home/justlikeef/repos/oxIDIZER/configs/mimetypes.yaml"
-default_documents:
-  - document: "index.html"
-  - document: "default.html"

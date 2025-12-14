@@ -1,56 +1,52 @@
-2025-12-07T10:55:43.696302335-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:55:43.696449222-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:55:43.696466572-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_stream/functional_tests/999999-CleanConfig/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:55:43.697087568-05:00 INFO ox_webservice - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07T10:55:43.697163673-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:55:43.697178014-05:00 INFO ox_webservice - Attempting to load module: ox_webservice_stream
-2025-12-07T10:55:43.697191048-05:00 DEBUG ox_webservice - Attempting to load module: ox_webservice_stream from "libox_webservice_stream.so"
-2025-12-07T10:55:43.697349111-05:00 INFO ox_webservice - Successfully loaded module: ox_webservice_stream
-2025-12-07T10:55:43.698246753-05:00 INFO ox_webservice_stream - ox_webservice_stream initialized
-2025-12-07T10:55:43.700082530-05:00 INFO ox_webservice - .* server listening on http://0.0.0.0:3000
-2025-12-07T10:55:45.702513685-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07T10:55:45.702678400-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
-2025-12-07T10:55:45.702701987-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07T10:55:45.702711484-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
-2025-12-07T10:55:45.702720720-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
-2025-12-07T10:55:45.702730096-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
-2025-12-07T10:55:45.702743224-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
-2025-12-07T10:55:45.702758174-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
-2025-12-07T10:55:45.702775304-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
-2025-12-07T10:55:45.702790058-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
-2025-12-07T10:55:45.702807762-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
-2025-12-07T10:55:45.702817053-05:00 INFO ox_webservice - Executing phase: Content
-2025-12-07T10:55:45.704779245-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: ""
-2025-12-07T10:55:45.704840713-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: ""
-2025-12-07T10:55:45.704856508-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: ""
-2025-12-07T10:55:45.704865732-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: ""
-2025-12-07T10:55:45.704874835-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
-2025-12-07T10:55:45.704883842-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
-2025-12-07T10:55:45.704892718-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
-2025-12-07T10:55:45.704902245-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
-2025-12-07T10:55:45.704911199-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
-2025-12-07T10:55:45.704920064-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
-2025-12-07T10:55:45.704929231-05:00 DEBUG ox_webservice - Final Response State: Status: 200, Body: "", Headers: {}
-2025-12-07T10:55:45.710667672-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07T10:55:45.710756775-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
-2025-12-07T10:55:45.710773041-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07T10:55:45.710782271-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
-2025-12-07T10:55:45.710802114-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
-2025-12-07T10:55:45.710811106-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
-2025-12-07T10:55:45.710823085-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
-2025-12-07T10:55:45.710831189-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
-2025-12-07T10:55:45.710839362-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
-2025-12-07T10:55:45.710847179-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
-2025-12-07T10:55:45.710855317-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
-2025-12-07T10:55:45.710863517-05:00 INFO ox_webservice - Executing phase: Content
-2025-12-07T10:55:45.712814519-05:00 DEBUG ox_webservice - Executing phase: PostContent, Body: ""
-2025-12-07T10:55:45.712910734-05:00 DEBUG ox_webservice - Executing phase: PreAccounting, Body: ""
-2025-12-07T10:55:45.712952094-05:00 DEBUG ox_webservice - Executing phase: Accounting, Body: ""
-2025-12-07T10:55:45.712965793-05:00 DEBUG ox_webservice - Executing phase: PostAccounting, Body: ""
-2025-12-07T10:55:45.712974496-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
-2025-12-07T10:55:45.712982962-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
-2025-12-07T10:55:45.712992287-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
-2025-12-07T10:55:45.713004408-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
-2025-12-07T10:55:45.713016766-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
-2025-12-07T10:55:45.713029150-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
-2025-12-07T10:55:45.713057177-05:00 DEBUG ox_webservice - Final Response State: Status: 200, Body: "", Headers: {}
+2025-12-13T21:29:30.854121325-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-13T21:29:30.854312638-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-13T21:29:30.854346325-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-13T21:29:30.857710427-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999999-CleanConfig/test_content"
+2025-12-13T21:29:30.860622-05:00 INFO ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream initialized
+2025-12-13T21:29:30.860862578-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+2025-12-13T21:29:32.852203996-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-13T21:29:32.852478947-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-13T21:29:32.852497337-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-13T21:29:32.852508708-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-13T21:29:32.852519610-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-13T21:29:32.852530354-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-13T21:29:32.852540961-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-13T21:29:32.852551621-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-13T21:29:32.852562219-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-13T21:29:32.852572770-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-13T21:29:32.852583435-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-13T21:29:32.852594650-05:00 INFO ox_webservice::pipeline - Executing phase: Content with 1 modules
+2025-12-13T21:29:32.852839795-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream: Successfully handled request for path: /index.html
+2025-12-13T21:29:32.852925152-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostContent, Body len: 22
+2025-12-13T21:29:32.852945402-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAccounting, Body len: 22
+2025-12-13T21:29:32.852957115-05:00 DEBUG ox_webservice::pipeline - Executing phase: Accounting, Body len: 22
+2025-12-13T21:29:32.852972154-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAccounting, Body len: 22
+2025-12-13T21:29:32.852989786-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 22
+2025-12-13T21:29:32.853023149-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 22
+2025-12-13T21:29:32.853040081-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 22
+2025-12-13T21:29:32.853051593-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 22
+2025-12-13T21:29:32.853064301-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 22
+2025-12-13T21:29:32.853103473-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 22
+2025-12-13T21:29:32.860107863-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-13T21:29:32.860215425-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-13T21:29:32.860233172-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-13T21:29:32.860243917-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-13T21:29:32.860254120-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-13T21:29:32.860296885-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-13T21:29:32.860335526-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-13T21:29:32.860347015-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-13T21:29:32.860357591-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-13T21:29:32.860367708-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-13T21:29:32.860377669-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-13T21:29:32.860388432-05:00 INFO ox_webservice::pipeline - Executing phase: Content with 1 modules
+2025-12-13T21:29:32.860484093-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream: Successfully handled request for path: /index.html
+2025-12-13T21:29:32.860533560-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostContent, Body len: 22
+2025-12-13T21:29:32.860551591-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAccounting, Body len: 22
+2025-12-13T21:29:32.860562571-05:00 DEBUG ox_webservice::pipeline - Executing phase: Accounting, Body len: 22
+2025-12-13T21:29:32.860572566-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAccounting, Body len: 22
+2025-12-13T21:29:32.860582644-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 22
+2025-12-13T21:29:32.860595470-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 22
+2025-12-13T21:29:32.860621525-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 22
+2025-12-13T21:29:32.860653636-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 22
+2025-12-13T21:29:32.860685086-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 22
+2025-12-13T21:29:32.860702470-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 22

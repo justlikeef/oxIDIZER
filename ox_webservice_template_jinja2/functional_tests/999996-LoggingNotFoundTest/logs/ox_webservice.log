@@ -1,31 +1,31 @@
-2025-12-07 10:56:07 - INFO - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07 10:56:07 - INFO - Starting ox_webservice...
-2025-12-07 10:56:07 - DEBUG - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999996-LoggingNotFoundTest/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07 10:56:07 - DEBUG - built glob set; 0 literals, 0 basenames, 1 extensions, 0 prefixes, 0 suffixes, 0 required extensions, 0 regexes
-2025-12-07 10:56:07 - INFO - Routing top-level URL '.*' (protocol: None, hostname: None) to module with id 'test_module_0'
-2025-12-07 10:56:07 - INFO - Major process state: Initializing modules.
-2025-12-07 10:56:07 - INFO - Attempting to load module: ox_webservice_template_jinja2
-2025-12-07 10:56:07 - DEBUG - Attempting to load module: ox_webservice_template_jinja2 from "libox_webservice_template_jinja2.so"
-2025-12-07 10:56:07 - INFO - Successfully loaded module: ox_webservice_template_jinja2
-2025-12-07 10:56:07 - ERROR - Failed to deserialize ContentConfig: missing field `mimetypes_file`
-2025-12-07 10:56:07 - ERROR - initialize_module for 'ox_webservice_template_jinja2' returned a null pointer. Module not loaded.
-2025-12-07 10:56:07 - INFO - .* server listening on http://0.0.0.0:3000
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: EarlyRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreAuthentication, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: Authentication, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PostAuthentication, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreAuthorization, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: Authorization, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PostAuthorization, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreContent, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: Content, Body: ""
-2025-12-07 10:56:09 - INFO - No content module handled the request. Setting status to 500.
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreErrorHandling, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: ErrorHandling, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PostErrorHandling, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PreLateRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: LateRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Executing phase: PostLateRequest, Body: ""
-2025-12-07 10:56:09 - DEBUG - Final Response State: Status: 500, Body: "", Headers: {}
+2025-12-13 21:29:58 - INFO - log4rs initialized successfully.
+2025-12-13 21:29:58 - INFO - Starting ox_webservice...
+2025-12-13 21:29:58 - INFO - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-13 21:29:58 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999996-LoggingNotFoundTest"
+2025-12-13 21:29:58 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2025-12-13 21:29:58 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 1 default documents.
+2025-12-13 21:29:58 - INFO - [ox_webservice_template_jinja2] ox_webservice_template_jinja2 initialized
+2025-12-13 21:29:58 - INFO - Listening on 0.0.0.0:3000
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: EarlyRequest, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreAuthentication, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: Authentication, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostAuthentication, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreAuthorization, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: Authorization, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostAuthorization, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreContent, Body len: 0
+2025-12-13 21:30:00 - DEBUG - Executing phase: Content, Body len: 0
+2025-12-13 21:30:00 - INFO - Executing phase: Content with 1 modules
+2025-12-13 21:30:00 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: File not found for path: /non_existent_file.html
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostContent, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreAccounting, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: Accounting, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostAccounting, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreErrorHandling, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: ErrorHandling, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostErrorHandling, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PreLateRequest, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: LateRequest, Body len: 13
+2025-12-13 21:30:00 - DEBUG - Executing phase: PostLateRequest, Body len: 13
