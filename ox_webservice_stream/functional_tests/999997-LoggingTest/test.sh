@@ -52,8 +52,8 @@ if [ "$MODE" == "isolated" ]; then
   sleep 1
 
   # Check for correct  message in the log file
-  if grep -q "LOGGING TEST: ox_content initialized" "$TEST_DIR/logs/ox_webservice.log"; then
-      log_message "$LOGGING_LEVEL" "notice" "Found 'LOGGING TEST: ox_content initialized' message in log"
+  if grep -q "ox_webservice_stream initialized" "$TEST_DIR/logs/ox_webservice.log"; then
+      log_message "$LOGGING_LEVEL" "notice" "Found 'ox_webservice_stream initialized' message in log"
       log_message "$LOGGING_LEVEL" "info" "Test PASSED"
       exit $PASSED
   else

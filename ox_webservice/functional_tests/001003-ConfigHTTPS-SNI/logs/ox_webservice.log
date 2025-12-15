@@ -1,11 +1,4 @@
-2025-12-07T10:50:13.381713733-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:50:13.381937488-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:50:13.381952480-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:50:13.382736115-05:00 WARN ox_webservice - URL '/extra_content_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:13.382818039-05:00 WARN ox_webservice - URL '/another_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:13.382839384-05:00 WARN ox_webservice - URL '/another_error/' specifies a module_id 'content_error_handler' that was not found.
-2025-12-07T10:50:13.382847194-05:00 WARN ox_webservice - URL '/specific_http_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:13.382854711-05:00 WARN ox_webservice - URL '/specific_https_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:13.382862572-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:50:13.386417876-05:00 INFO ox_webservice - Found default HTTPS configuration for server on port 3443
-2025-12-07T10:50:13.386594778-05:00 INFO ox_webservice - localhost, and default (.*) server listening on https://0.0.0.0:3443
+2025-12-14T12:22:04.878369659-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T12:22:04.878535437-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T12:22:04.878810846-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T12:22:04.882489982-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")

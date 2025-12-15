@@ -59,7 +59,7 @@ if [ "$MODE" == "isolated" ]; then
   fi
 
   # Check for correct initializing message in the log file (server started)
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
+  if grep -q "Listening on" "$TEST_DIR/logs/ox_webservice.log"; then
       log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log (server started)"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find initializing message in log (server failed to start)"
@@ -68,7 +68,7 @@ if [ "$MODE" == "isolated" ]; then
   fi
 
   # Check the curl output for a 500 status code
-  if echo "$CURL_OUTPUT" | head -n 1 | grep -q "500 Internal Server Error"; then
+  if echo "$CURL_OUTPUT" | head -n 1 | grep -E -q "HTTP/(1\.1|2) 500"; then
     log_message "$LOGGING_LEVEL" "notice" "Found 500 Internal Server Error status code in curl output."
     log_message "$LOGGING_LEVEL" "debug" "Curl output:"
     log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"

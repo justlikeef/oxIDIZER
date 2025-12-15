@@ -68,8 +68,8 @@ if [ "$MODE" == "isolated" ]; then
   DEFAULT_CERT_SUBJECT=$(echo QUIT | openssl s_client -connect localhost:3443 -servername randomhost | openssl x509 -noout -subject)
   log_message "$LOGGING_LEVEL" "debug" "Default Cert Subject for randomhost: $DEFAULT_CERT_SUBJECT"
   
-  if [[ "$DEFAULT_CERT_SUBJECT" != *"CN = localhost"* ]]; then
-    log_message "$LOGGING_LEVEL" "error" "Incorrect default certificate for randomhost. Expected CN=localhost, got: $DEFAULT_CERT_SUBJECT"
+  if [[ "$DEFAULT_CERT_SUBJECT" != *"CN = sni-test-localhost"* ]]; then
+    log_message "$LOGGING_LEVEL" "error" "Incorrect default certificate for randomhost. Expected CN=sni-test-localhost, got: $DEFAULT_CERT_SUBJECT"
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
       cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done

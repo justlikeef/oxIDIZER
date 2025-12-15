@@ -46,33 +46,39 @@ if [ "$MODE" == "isolated" ]; then
   # Allow the server to start
   sleep 2
 
-  # Curl the root page of the server using the default certificate
-  CURL_OUTPUT=$(curl -i -s --insecure https://localhost:3443/)
+  # Verify Certificate
+  log_message "$LOGGING_LEVEL" "info" "Verifying SSL certificate..."
+  CERT_SUBJECT=$(echo QUIT | openssl s_client -connect localhost:3443 -servername localhost 2>/dev/null | openssl x509 -noout -subject)
+  log_message "$LOGGING_LEVEL" "debug" "Certificate Subject: $CERT_SUBJECT"
 
-  # Stop the server
-  "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
-
-  # Output the log file
-  if [ "$LOGGING_LEVEL" == "debug" ]; then
-    log_message "$LOGGING_LEVEL" "debug" "Server Logs:"
-    cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
+  if [[ "$CERT_SUBJECT" != *"CN = localhost"* ]]; then
+    log_message "$LOGGING_LEVEL" "error" "Incorrect certificate. Expected CN=localhost, got: $CERT_SUBJECT"
+    "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
+    exit $FAILED
+  else
+    log_message "$LOGGING_LEVEL" "notice" "Certificate verified successfully."
   fi
 
-  # Check for correct initializing message in the log file (server started)
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
-      log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log (server started)"
+  # Perform HEAD request
+  log_message "$LOGGING_LEVEL" "info" "Performing HEAD request..."
+  CURL_OUTPUT=$(curl -I -s --insecure https://localhost:3443/)
+
+  # Check for correct message in the log file
+  if grep -q "Listening on" "$TEST_DIR/logs/ox_webservice.log"; then
+      log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find initializing message in log (server failed to start)"
       log_message "$LOGGING_LEVEL" "error" "Test FAILED"
       exit $FAILED
   fi
 
-  # Check the curl output for a 500 status code
-  if echo "$CURL_OUTPUT" | head -n 1 | grep -q "500 Internal Server Error"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found 500 Internal Server Error status code in curl output."
+  # Check the output for 500 status code
+  if echo "$CURL_OUTPUT" | head -n 1 | grep -E -q "HTTP/(1\.1|2) 500"; then
+    log_message "$LOGGING_LEVEL" "notice" "Found 500 status code in curl output..."
     log_message "$LOGGING_LEVEL" "debug" "Curl output:"
     log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+    "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
     exit $PASSED
   else
     log_message "$LOGGING_LEVEL" "error" "Did not find 500 Internal Server Error status code in curl output."

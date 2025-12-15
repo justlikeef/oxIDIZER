@@ -53,10 +53,10 @@ if [ "$MODE" == "isolated" ]; then
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
 
   # Check for correct  message in the log file
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
+  if grep -q "Listening on" "$TEST_DIR/logs/ox_webservice.log"; then
       log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log"
   else
-      log_message "$LOGGING_LEVEL" "error" "Did not find intiializing message in log"
+      log_message "$LOGGING_LEVEL" "error" "Did not find initializing message in log"
       log_message "$LOGGING_LEVEL" "error" "Test FAILED"
       exit $FAILED
   fi

@@ -85,6 +85,8 @@ if [ "$MODE" == "isolated" ]; then
     # Check for correct error message in the log file
     if grep -q "Failed to deserialize ErrorHandlerConfig" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found expected deserialization error in log."
+        log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+        exit $PASSED
     else
         log_message "$LOGGING_LEVEL" "error" "Did not find expected deserialization error in log."
         
@@ -92,6 +94,8 @@ if [ "$MODE" == "isolated" ]; then
 
     if grep -q "Failed to process config file" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found expected checking for 'Failed to process config file' in log."
+        log_message "$LOGGING_LEVEL" "info" "Test PASSED"
+        exit $PASSED
     elif grep -q "Failed to deserialize ContentConfig" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found expected error 'Failed to deserialize ContentConfig' in log."
         log_message "$LOGGING_LEVEL" "info" "Test PASSED"

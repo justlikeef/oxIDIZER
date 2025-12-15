@@ -1,5 +1,5 @@
-2025-12-13T21:29:10.391744719-05:00 INFO ox_webservice - log4rs initialized successfully.
-2025-12-13T21:29:10.391889763-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-13T21:29:10.391920979-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
-2025-12-13T21:29:10.393092670-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000003-ConfigInvalid/ox_content.yaml': mapping values are not allowed in this context at line 2 column 15
-2025-12-13T21:29:10.393276086-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'
+2025-12-14T12:22:21.722387887-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T12:22:21.722573600-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T12:22:21.722607368-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-14T12:22:21.725545874-05:00 ERROR ox_webservice::pipeline - [ox_webservice_stream] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000003-ConfigInvalid/ox_content.yaml': mapping values are not allowed in this context at line 2 column 15
+2025-12-14T12:22:21.725951352-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'ox_webservice_stream'

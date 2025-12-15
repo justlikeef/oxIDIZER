@@ -1,30 +1,22 @@
-2025-12-07T10:50:11.267017437-05:00 INFO ox_webservice - log4rs initialized successfully, taking over from temporary logger.
-2025-12-07T10:50:11.267161810-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-07T10:50:11.267173953-05:00 DEBUG ox_webservice - CLI arguments: Cli { config: "/home/justlikeef/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/ox_webservice.yaml", modules: None, module_params: [] }
-2025-12-07T10:50:11.267852808-05:00 WARN ox_webservice - URL '/extra_content_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:11.267911502-05:00 WARN ox_webservice - URL '/another_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:11.267920480-05:00 WARN ox_webservice - URL '/another_error/' specifies a module_id 'content_error_handler' that was not found.
-2025-12-07T10:50:11.267933851-05:00 WARN ox_webservice - URL '/specific_http_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:11.267941614-05:00 WARN ox_webservice - URL '/specific_https_path/' specifies a module_id 'content_handler_1' that was not found.
-2025-12-07T10:50:11.267949281-05:00 INFO ox_webservice - Major process state: Initializing modules.
-2025-12-07T10:50:11.271343119-05:00 INFO ox_webservice - Found default HTTPS configuration for server on port 3443
-2025-12-07T10:50:11.271487650-05:00 INFO ox_webservice - default (.*) server listening on https://0.0.0.0:3443
-2025-12-07T10:50:13.300697285-05:00 DEBUG ox_webservice - Executing phase: PreEarlyRequest, Body: ""
-2025-12-07T10:50:13.300849829-05:00 DEBUG ox_webservice - Executing phase: EarlyRequest, Body: ""
-2025-12-07T10:50:13.300859672-05:00 DEBUG ox_webservice - Executing phase: PostEarlyRequest, Body: ""
-2025-12-07T10:50:13.300867454-05:00 DEBUG ox_webservice - Executing phase: PreAuthentication, Body: ""
-2025-12-07T10:50:13.300875183-05:00 DEBUG ox_webservice - Executing phase: Authentication, Body: ""
-2025-12-07T10:50:13.300882364-05:00 DEBUG ox_webservice - Executing phase: PostAuthentication, Body: ""
-2025-12-07T10:50:13.300889444-05:00 DEBUG ox_webservice - Executing phase: PreAuthorization, Body: ""
-2025-12-07T10:50:13.300896518-05:00 DEBUG ox_webservice - Executing phase: Authorization, Body: ""
-2025-12-07T10:50:13.300903563-05:00 DEBUG ox_webservice - Executing phase: PostAuthorization, Body: ""
-2025-12-07T10:50:13.300910619-05:00 DEBUG ox_webservice - Executing phase: PreContent, Body: ""
-2025-12-07T10:50:13.300917688-05:00 DEBUG ox_webservice - Executing phase: Content, Body: ""
-2025-12-07T10:50:13.300927022-05:00 INFO ox_webservice - No content module handled the request. Setting status to 500.
-2025-12-07T10:50:13.300947151-05:00 DEBUG ox_webservice - Executing phase: PreErrorHandling, Body: ""
-2025-12-07T10:50:13.300961232-05:00 DEBUG ox_webservice - Executing phase: ErrorHandling, Body: ""
-2025-12-07T10:50:13.300973470-05:00 DEBUG ox_webservice - Executing phase: PostErrorHandling, Body: ""
-2025-12-07T10:50:13.300985920-05:00 DEBUG ox_webservice - Executing phase: PreLateRequest, Body: ""
-2025-12-07T10:50:13.300999756-05:00 DEBUG ox_webservice - Executing phase: LateRequest, Body: ""
-2025-12-07T10:50:13.301013432-05:00 DEBUG ox_webservice - Executing phase: PostLateRequest, Body: ""
-2025-12-07T10:50:13.301026499-05:00 DEBUG ox_webservice - Final Response State: Status: 500, Body: "", Headers: {}
+2025-12-14T12:22:02.600608941-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T12:22:02.600754313-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T12:22:02.600964842-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T12:22:02.604490519-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T12:22:04.685231764-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T12:22:04.685483124-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T12:22:04.685500859-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T12:22:04.685514813-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T12:22:04.685529020-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T12:22:04.685543571-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T12:22:04.685556883-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T12:22:04.685572584-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T12:22:04.685606325-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T12:22:04.685626901-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T12:22:04.685641472-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T12:22:04.685654608-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T12:22:04.685677996-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T12:22:04.685710579-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T12:22:04.685730779-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T12:22:04.685761956-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T12:22:04.685784383-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T12:22:04.685816068-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0

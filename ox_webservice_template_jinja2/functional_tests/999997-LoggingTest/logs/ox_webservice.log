@@ -1,8 +1,8 @@
-2025-12-13 21:30:01 - INFO - log4rs initialized successfully.
-2025-12-13 21:30:01 - INFO - Starting ox_webservice...
-2025-12-13 21:30:01 - INFO - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
-2025-12-13 21:30:01 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999997-LoggingTest"
-2025-12-13 21:30:01 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
-2025-12-13 21:30:01 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 1 default documents.
-2025-12-13 21:30:01 - INFO - [ox_webservice_template_jinja2] ox_webservice_template_jinja2 initialized
-2025-12-13 21:30:01 - INFO - Listening on 0.0.0.0:3000
+2025-12-14 12:23:13 - INFO - log4rs initialized successfully.
+2025-12-14 12:23:13 - INFO - Starting ox_webservice...
+2025-12-14 12:23:13 - INFO - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-14 12:23:13 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999997-LoggingTest"
+2025-12-14 12:23:13 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2025-12-14 12:23:13 - DEBUG - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 1 default documents.
+2025-12-14 12:23:13 - INFO - [ox_webservice_template_jinja2] ox_webservice_template_jinja2 initialized
+2025-12-14 12:23:13 - INFO - Listening on 0.0.0.0:3000

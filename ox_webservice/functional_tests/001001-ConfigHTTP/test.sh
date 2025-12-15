@@ -59,7 +59,7 @@ if [ "$MODE" == "isolated" ]; then
   fi
 
   # Check for correct  message in the log file
-  if grep -q "Major process state: Initializing modules" "$TEST_DIR/logs/ox_webservice.log"; then
+  if grep -q "Listening on" "$TEST_DIR/logs/ox_webservice.log"; then
       log_message "$LOGGING_LEVEL" "notice" "Found initializing message in log"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find intializing message in log"

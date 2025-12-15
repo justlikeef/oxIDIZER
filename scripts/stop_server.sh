@@ -31,7 +31,11 @@ if [ -f "$PID_FILE" ]; then
     SERVER_PID=$(cat "$PID_FILE")
     log_message "$LOG_LEVEL" "notice" "Stopping server with PID $SERVER_PID..."
     kill "$SERVER_PID" 2>/dev/null
-    wait "$SERVER_PID" 2>/dev/null
+    
+    # Wait for process to exit (wait command only works for child processes)
+    while kill -0 "$SERVER_PID" 2>/dev/null; do
+        sleep 0.1
+    done
     rm -f "$PID_FILE"
     log_message "$LOG_LEVEL" "info" "Server stopped."
 else

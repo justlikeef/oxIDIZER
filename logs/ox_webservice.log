@@ -47,3 +47,145 @@
 2025-12-13T20:54:07.268470891-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_restore_ip] No 'original_source_ip' found in module context. Skipping restore.
 _webservice::pipeline - Executing phase: PostLateRequest with 1 modules
 2025-12-13T20:54:07.268545477-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2025-12-14T10:03:42.916540559-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:03:42.917299750-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:03:42.920316260-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:03:42.924553354-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:03:44.962430989-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T10:03:44.962527314-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T10:03:44.962546594-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T10:03:44.962560886-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T10:03:44.962575927-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T10:03:44.962589586-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T10:03:44.962602480-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T10:03:44.962614551-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T10:03:44.962627932-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T10:03:44.962640725-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T10:03:44.962649729-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T10:03:44.962658700-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T10:03:44.962675680-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T10:03:44.962685133-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T10:03:44.962704736-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T10:03:44.962712620-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T10:03:44.962720702-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T10:03:44.962728602-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
+2025-12-14T10:04:06.928710284-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:04:06.928735126-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:04:06.928973579-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:04:06.931317489-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:04:08.966724950-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T10:04:08.966772679-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T10:04:08.966781532-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T10:04:08.966789266-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T10:04:08.966798528-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T10:04:08.966806640-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T10:04:08.966814772-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T10:04:08.966823064-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T10:04:08.966831125-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T10:04:08.966839079-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T10:04:08.966847398-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T10:04:08.966855556-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T10:04:08.966869836-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T10:04:08.966878009-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T10:04:08.966890035-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T10:04:08.966902401-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T10:04:08.966911862-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T10:04:08.966919668-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
+2025-12-14T10:10:48.377070931-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:10:48.377111159-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:10:48.377256836-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:10:48.379743818-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:17:50.736314532-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:17:50.736340122-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:17:50.736628385-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:17:50.738856951-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:20:53.897480975-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:20:53.897509549-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:20:53.897723515-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:20:53.900190100-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:28:36.663381052-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:28:36.663411005-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:28:36.663567572-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:28:36.666041667-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:28:38.702790986-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T10:28:38.702836721-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T10:28:38.702844798-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T10:28:38.702852379-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T10:28:38.702859772-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T10:28:38.702867065-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T10:28:38.702874427-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T10:28:38.702881699-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T10:28:38.702888919-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T10:28:38.702896204-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T10:28:38.702903634-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T10:28:38.702912575-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T10:28:38.702923868-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T10:28:38.702931118-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T10:28:38.702938338-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T10:28:38.702945380-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T10:28:38.702952654-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T10:28:38.702959549-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
+2025-12-14T10:36:47.947565345-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:36:47.947607766-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:36:47.947821238-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:36:47.950297285-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:44:10.108401867-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:44:10.109042294-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:44:10.109220104-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:44:10.112574460-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:47:12.173044868-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:47:12.173083626-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:47:12.173290839-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:47:12.175523396-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:52:40.166868089-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:52:40.167326959-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:52:40.167543412-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:52:40.170428265-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:56:49.798244701-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:56:49.798272149-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:56:49.798521356-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:56:49.800942117-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:59:29.870364623-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T10:59:29.870389778-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T10:59:29.870639068-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T10:59:29.872987056-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T10:59:31.907654738-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T10:59:31.907709808-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T10:59:31.907719468-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T10:59:31.907728347-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T10:59:31.907738558-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T10:59:31.907759284-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T10:59:31.907768269-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T10:59:31.907778687-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T10:59:31.907793125-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T10:59:31.907813003-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T10:59:31.907824779-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T10:59:31.907861982-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T10:59:31.907882514-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T10:59:31.907891979-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T10:59:31.907901005-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T10:59:31.907909545-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T10:59:31.907917966-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T10:59:31.907926437-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
+2025-12-14T12:21:57.654230927-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-14T12:21:57.654262216-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-14T12:21:57.654573864-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-14T12:21:57.658729960-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-14T12:22:00.247497826-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-14T12:22:00.247550130-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-14T12:22:00.247561006-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-14T12:22:00.247570964-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-14T12:22:00.247580554-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-14T12:22:00.247590035-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-14T12:22:00.247599924-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-14T12:22:00.247609385-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-14T12:22:00.247618991-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-14T12:22:00.247628392-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-14T12:22:00.247638422-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-14T12:22:00.247657022-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-14T12:22:00.247672252-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-14T12:22:00.247681554-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-14T12:22:00.247690594-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-14T12:22:00.247699449-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-14T12:22:00.247708543-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-14T12:22:00.247717204-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
