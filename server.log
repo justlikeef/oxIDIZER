@@ -1,0 +1,279 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running `target/debug/ox_webservice -c conf/ox_webservice.yaml run`
+2025-12-16T16:58:12.868718568-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-16T16:58:12.869092998-05:00 DEBUG ox_webservice - Fully processed config for "conf/ox_webservice.yaml":
+{
+  "log4rs_config": "/var/repos/oxIDIZER/conf/log4rs.yaml",
+  "modules": [
+    {
+      "id": "default_template_jinja2",
+      "name": "ox_webservice_template_jinja2",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_template_jinja2_default.yaml"
+      },
+      "phase": "Content",
+      "priority": 998,
+      "uris": [
+        {
+          "url": "[.]*"
+        }
+      ]
+    },
+    {
+      "id": "default_stream",
+      "name": "ox_webservice_stream",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_stream_default.yaml"
+      },
+      "phase": "Content",
+      "priority": 999,
+      "uris": [
+        {
+          "url": "[.]jinja$"
+        },
+        {
+          "url": "[.]jinja2$"
+        }
+      ]
+    },
+    {
+      "id": "default_error_handler",
+      "name": "ox_webservice_errorhandler_jinja2",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_errorhandler_jinja2.yaml"
+      },
+      "phase": "ErrorHandling",
+      "priority": 999,
+      "uris": [
+        {
+          "path": ".*"
+        }
+      ]
+    },
+    {
+      "id": "ping_module",
+      "name": "ox_webservice_ping",
+      "phase": "Content",
+      "priority": 500,
+      "uris": [
+        {
+          "path": "/ping/*$"
+        }
+      ]
+    },
+    {
+      "id": "status_module",
+      "name": "ox_webservice_status",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_status.yaml"
+      },
+      "phase": "Content",
+      "priority": 500,
+      "uris": [
+        {
+          "path": "/status/*$"
+        }
+      ]
+    },
+    {
+      "id": "forwarded_for",
+      "name": "ox_webservice_forwarded_for",
+      "path": "target/debug/libox_webservice_forwarded_for.so",
+      "phase": "PreEarlyRequest",
+      "priority": 100,
+      "uris": [
+        {
+          "path": ".*"
+        }
+      ]
+    },
+    {
+      "id": "restore_ip",
+      "name": "ox_webservice_restore_ip",
+      "path": "target/debug/libox_webservice_restore_ip.so",
+      "phase": "PostLateRequest",
+      "priority": 100,
+      "uris": [
+        {
+          "path": ".*"
+        }
+      ]
+    }
+  ],
+  "servers": [
+    {
+      "bind_address": "127.0.0.1",
+      "hosts": [
+        {
+          "name": "localhost"
+        },
+        {
+          "name": "example-1.com"
+        }
+      ],
+      "id": "default_http",
+      "port": 8090,
+      "protocol": "http"
+    },
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": "localhost_ssl",
+          "tls_cert_path": "conf/certs/cert.pem",
+          "tls_key_path": "conf/certs/key.pem"
+        },
+        {
+          "name": "example-ssl-1.com",
+          "tls_cert_path": "conf/certs/cert1.pem",
+          "tls_key_path": "conf/certs/key1.pem"
+        }
+      ],
+      "id": "default_https",
+      "port": 3002,
+      "protocol": "https"
+    }
+  ]
+}
+2025-12-16T16:58:12.869158295-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-16T16:58:12.869179131-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2025-12-16T16:58:12.872180626-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/www"
+2025-12-16T16:58:12.872805385-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2025-12-16T16:58:12.880066684-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 10 mimetypes.
+2025-12-16T16:58:12.880172488-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2 initialized
+2025-12-16T16:58:12.880241766-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-16T16:58:12.883534665-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/www"
+2025-12-16T16:58:12.883840022-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2025-12-16T16:58:12.890567003-05:00 INFO ox_webservice::pipeline - [ox_webservice_stream] ox_webservice_stream initialized
+2025-12-16T16:58:12.890708964-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
+2025-12-16T16:58:12.894116314-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/error_debug"
+2025-12-16T16:58:12.894244882-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_ping' from "target/debug/libox_webservice_ping.so"
+2025-12-16T16:58:12.894497112-05:00 INFO ox_webservice::pipeline - [ox_webservice_ping] ox_webservice_ping initialized
+2025-12-16T16:58:12.894572957-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2025-12-16T16:58:12.938093647-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_forwarded_for' from "target/debug/libox_webservice_forwarded_for.so"
+2025-12-16T16:58:12.938464896-05:00 INFO ox_webservice::pipeline - [ox_webservice_forwarded_for] ox_webservice_forwarded_for initialized
+2025-12-16T16:58:12.938545403-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_restore_ip' from "target/debug/libox_webservice_restore_ip.so"
+2025-12-16T16:58:12.938727330-05:00 INFO ox_webservice::pipeline - [ox_webservice_restore_ip] ox_webservice_restore_ip initialized
+2025-12-16T16:58:12.939037583-05:00 INFO ox_webservice - Listening on 127.0.0.1:8090
+2025-12-16T16:58:12.939132339-05:00 INFO ox_webservice - Listening on 0.0.0.0:3002
+
+thread 'tokio-runtime-worker' (1164702) panicked at ox_webservice/src/main.rs:281:22:
+called `Result::unwrap()` on an `Err` value: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+2025-12-16T16:58:20.505463650-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-16T16:58:20.505644077-05:00 INFO ox_webservice::pipeline - Executing phase: PreEarlyRequest with 1 modules
+2025-12-16T16:58:20.507958051-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-16T16:58:20.508039075-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-16T16:58:20.508051772-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-16T16:58:20.508062357-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-16T16:58:20.508073095-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-16T16:58:20.508083317-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-16T16:58:20.508093687-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-16T16:58:20.508103946-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-16T16:58:20.508113991-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-16T16:58:20.508124093-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-16T16:58:20.508134275-05:00 INFO ox_webservice::pipeline - Executing phase: Content with 4 modules
+2025-12-16T16:58:20.509617737-05:00 INFO ox_webservice::pipeline - Request URI '/status/' did not match any URI patterns for module 'ox_webservice_ping'. Skipping module.
+2025-12-16T16:58:20.520554778-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Skipping due to existing content (early check).
+2025-12-16T16:58:20.523606420-05:00 INFO ox_webservice::pipeline - Request URI '/status/' did not match any URI patterns for module 'ox_webservice_stream'. Skipping module.
+2025-12-16T16:58:20.523681978-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostContent, Body len: 44187
+2025-12-16T16:58:20.523696292-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAccounting, Body len: 44187
+2025-12-16T16:58:20.523707235-05:00 DEBUG ox_webservice::pipeline - Executing phase: Accounting, Body len: 44187
+2025-12-16T16:58:20.523718592-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAccounting, Body len: 44187
+2025-12-16T16:58:20.523729349-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 44187
+2025-12-16T16:58:20.523739941-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 44187
+2025-12-16T16:58:20.523750723-05:00 INFO ox_webservice::pipeline - Executing phase: ErrorHandling with 1 modules
+2025-12-16T16:58:20.525839325-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 44187
+2025-12-16T16:58:20.525915923-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 44187
+2025-12-16T16:58:20.525929519-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 44187
+2025-12-16T16:58:20.525940810-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 44187
+2025-12-16T16:58:20.525951636-05:00 INFO ox_webservice::pipeline - Executing phase: PostLateRequest with 1 modules
+2025-12-16T16:58:20.528017359-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_restore_ip] No 'original_source_ip' found in module context. Skipping restore.

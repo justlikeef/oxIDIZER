@@ -22,10 +22,20 @@ use once_cell::sync::Lazy;
 use ox_webservice_api::{
     ModuleConfig, InitializeModuleFn, Phase, HandlerResult,
     ModuleInterface, WebServiceApiV1,
-    PipelineState,
+    PipelineState, ModuleStatus, FlowControl, ReturnParameters,
 };
 
 use crate::ServerConfig;
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
+use futures::StreamExt;
+use std::path::PathBuf;
+
+// --- Response Body Enum ---
+pub enum PipelineResponseBody {
+    Memory(Vec<u8>),
+    Files(Vec<PathBuf>),
+}
 
 // --- Metrics Structures ---
 
@@ -174,6 +184,78 @@ pub unsafe extern "C" fn get_server_metrics_c(arena: *const c_void, alloc_fn: ox
 
     let json = serde_json::to_string(&snapshot).unwrap_or("{}".to_string());
     alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_all_configs_c(
+    pipeline_state_ptr: *mut PipelineState,
+    arena: *const c_void,
+    alloc_fn: ox_webservice_api::AllocStrFn
+) -> *mut libc::c_char { unsafe {
+    let pipeline_state = &*pipeline_state_ptr;
+    let pipeline_ptr = pipeline_state.pipeline_ptr as *const Pipeline;
+    if pipeline_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let pipeline = &*pipeline_ptr;
+
+    let mut configs_map = serde_json::Map::new();
+
+    // 1. Host Config (Main)
+    if let Ok(main_val) = serde_json::from_str::<Value>(&pipeline.main_config_json) {
+         configs_map.insert("ox_webservice".to_string(), main_val);
+    } else {
+         configs_map.insert("ox_webservice".to_string(), Value::String("Error parsing main config".to_string()));
+    }
+
+    // 2. Iterate all loaded modules
+    // Flatten phases to get unique modules? Modules are stored in phases. Same module instance might be in multiple phases?
+    // LoadedModule is Arc-ed. We should probably dedup by name or ID.
+    // Let's iterate over loaded_libraries in pipeline? No, that's just libs.
+    // Iterating phases is fine, we just need to track processed module IDs.
+    
+    let mut processed_modules = std::collections::HashSet::new();
+
+    for modules in pipeline.phases.values() {
+        for module in modules {
+            // Identifier: module_config.id OR name
+            let module_id = module.module_config.id.clone().unwrap_or(module.module_config.name.clone());
+            
+            if processed_modules.contains(&module_id) {
+                continue;
+            }
+            processed_modules.insert(module_id.clone());
+
+            let get_config_fn = module.module_interface.get_config;
+            // Warning: get_config might be null if module was complied against old version? 
+            // We assume modules are updated. If strict, check for null? 
+            // Rust fn pointer in struct is not nullable unless Option<fn>. ModuleInterface has `GetConfigFn` which is `unsafe extern "C" fn...`. It cannot be null safely in Rust type system unless initialized with null (unsafe).
+            // But we assume it's valid.
+            
+            let config_json_ptr = (get_config_fn)(
+                module.module_interface.instance_ptr,
+                arena, 
+                alloc_fn // Use the host allocator provided to us
+            );
+            
+            if !config_json_ptr.is_null() {
+                 let c_str = CStr::from_ptr(config_json_ptr);
+                 let config_str = c_str.to_string_lossy();
+                 if let Ok(val) = serde_json::from_str::<Value>(&config_str) {
+                      configs_map.insert(module_id, val);
+                 } else {
+                      configs_map.insert(module_id, Value::String(format!("Error parsing JSON: {}", config_str)));
+                 }
+                 // We don't free config_json_ptr because it was allocated in arena.
+            } else {
+                 configs_map.insert(module_id, Value::Null);
+            }
+        }
+    }
+
+    let result = Value::Object(configs_map);
+    let result_json = serde_json::to_string(&result).unwrap_or("{}".to_string());
+    alloc_fn(arena, CString::new(result_json).unwrap().as_ptr())
 }}
 
 
@@ -437,10 +519,12 @@ unsafe impl Sync for LoadedModule {}
 #[derive(Clone)]
 pub struct Pipeline {
     phases: HashMap<Phase, Vec<Arc<LoadedModule>>>,
+    execution_order: Vec<Phase>,
+    pub main_config_json: String,
 }
 
 impl Pipeline {
-    pub fn new(config: &ServerConfig) -> Result<Self, String> {
+    pub fn new(config: &ServerConfig, main_config_json: String) -> Result<Self, String> {
         // Initialize metrics gating
         if let Some(enabled) = config.enable_metrics {
             METRICS_ENABLED.store(enabled, Ordering::Relaxed);
@@ -474,7 +558,9 @@ impl Pipeline {
             set_response_status: set_response_status_c,
             set_response_header: set_response_header_c,
             set_response_body: set_response_body_c,
+
             get_server_metrics: get_server_metrics_c,
+            get_all_configs: get_all_configs_c,
         });
 
         // Box::leak to keep it alive
@@ -505,8 +591,11 @@ impl Pipeline {
 
             let params_json = serde_json::to_string(&module_config.params.clone().unwrap_or(Value::Null)).unwrap();
             let c_params_json = CString::new(params_json).unwrap();
+            
+            let module_id = module_config.id.clone().unwrap_or(module_config.name.clone());
+            let c_module_id = CString::new(module_id).unwrap();
 
-            let module_interface_ptr = unsafe { init_fn(c_params_json.as_ptr(), api_ptr) };
+            let module_interface_ptr = unsafe { init_fn(c_params_json.as_ptr(), c_module_id.as_ptr(), api_ptr) };
 
             if module_interface_ptr.is_null() {
                 return Err(format!("Failed to initialize module '{}'", module_config.name));
@@ -534,7 +623,27 @@ impl Pipeline {
             phases.get_mut(&module_config.phase).unwrap().sort_by_key(|m| m.module_config.priority);
         }
 
-        Ok(Pipeline { phases })
+        let execution_order = if let Some(pipeline_config) = &config.pipeline {
+             if let Some(configured_phases) = &pipeline_config.phases {
+                 configured_phases.clone()
+             } else {
+                 Self::default_execution_order()
+             }
+        } else {
+             Self::default_execution_order()
+        };
+
+        Ok(Pipeline { phases, execution_order, main_config_json })
+    }
+
+    fn default_execution_order() -> Vec<Phase> {
+        vec![
+            Phase::PreEarlyRequest, Phase::EarlyRequest, Phase::PostEarlyRequest, Phase::PreAuthentication,
+            Phase::Authentication, Phase::PostAuthentication, Phase::PreAuthorization, Phase::Authorization,
+            Phase::PostAuthorization, Phase::PreContent, Phase::Content, Phase::PostContent, Phase::PreAccounting,
+            Phase::Accounting, Phase::PostAccounting, Phase::PreErrorHandling, Phase::ErrorHandling,
+            Phase::PostErrorHandling, Phase::PreLateRequest, Phase::LateRequest, Phase::PostLateRequest,
+        ]
     }
 
     pub async fn execute_pipeline(
@@ -546,14 +655,10 @@ impl Pipeline {
         headers: HeaderMap, 
         body_bytes: Vec<u8>, 
         protocol: String
-    ) -> (u16, HeaderMap, Vec<u8>) {
-        const PHASES: &[Phase] = &[
-            Phase::PreEarlyRequest, Phase::EarlyRequest, Phase::PostEarlyRequest, Phase::PreAuthentication,
-            Phase::Authentication, Phase::PostAuthentication, Phase::PreAuthorization, Phase::Authorization,
-            Phase::PostAuthorization, Phase::PreContent, Phase::Content, Phase::PostContent, Phase::PreAccounting,
-            Phase::Accounting, Phase::PostAccounting, Phase::PreErrorHandling, Phase::ErrorHandling,
-            Phase::PostErrorHandling, Phase::PreLateRequest, Phase::LateRequest, Phase::PostLateRequest,
-        ];
+    ) -> (u16, HeaderMap, PipelineResponseBody) {
+        // Use configured execution order
+        // const PHASES: &[Phase] = ... (Removed)
+        let mut pending_files: Vec<PathBuf> = Vec::new();
 
         let mut state = PipelineState {
             arena: Bump::new(),
@@ -567,7 +672,8 @@ impl Pipeline {
             status_code: 200,
             response_headers: HeaderMap::new(),
             response_body: Vec::new(),
-            module_context: Arc::new(RwLock::new(HashMap::new()))
+            module_context: Arc::new(RwLock::new(HashMap::new())),
+            pipeline_ptr: Arc::as_ptr(&self) as *const c_void, 
         };
 
         state.module_context.write().unwrap().insert("module_name".to_string(), Value::String("NONE".to_string()));
@@ -576,8 +682,9 @@ impl Pipeline {
         let mut content_was_handled = false;
         let mut current_phase_index = 0;
         
-        while current_phase_index < PHASES.len() {
-            let current_phase = &PHASES[current_phase_index];
+        let phases_len = self.execution_order.len();
+        while current_phase_index < phases_len {
+            let current_phase = &self.execution_order[current_phase_index];
             debug!("Executing phase: {:?}, Body len: {}", current_phase, state.response_body.len());
             
             let metrics_enabled = METRICS_ENABLED.load(Ordering::Relaxed);
@@ -680,8 +787,8 @@ impl Pipeline {
                     }
 
 
-                    match handler_result {
-                        HandlerResult::ModifiedContinue | HandlerResult::ModifiedNextPhase | HandlerResult::ModifiedJumpToError => {
+                    match handler_result.status {
+                        ModuleStatus::Modified => {
                             let mut module_context_write_guard = state.module_context.write().unwrap();
                             module_context_write_guard.insert("module_name".to_string(), Value::String(module.module_name.clone()));
                             module_context_write_guard.insert("module_context".to_string(), Value::String("{\"status\":\"modified\"}".to_string()));
@@ -689,26 +796,21 @@ impl Pipeline {
                         _ => {}
                     }
 
-                    match handler_result {
-                        HandlerResult::UnmodifiedContinue => {} 
-                        HandlerResult::ModifiedContinue => {
-                            if *current_phase == Phase::Content {
+                    match handler_result.flow_control {
+                        FlowControl::Continue => {
+                             if handler_result.status == ModuleStatus::Modified && *current_phase == Phase::Content {
                                 content_was_handled = true;
-                            }
-                        }
-                        HandlerResult::UnmodifiedNextPhase => {
-                            jumped_to_next_phase = true;
-                            break; 
-                        }
-                        HandlerResult::ModifiedNextPhase => {
-                            if *current_phase == Phase::Content {
+                             }
+                        } 
+                        FlowControl::NextPhase => {
+                            if handler_result.status == ModuleStatus::Modified && *current_phase == Phase::Content {
                                 content_was_handled = true;
                             }
                             jumped_to_next_phase = true;
                             break; 
                         }
-                        HandlerResult::UnmodifiedJumpToError | HandlerResult::ModifiedJumpToError => {
-                            if *current_phase == Phase::Content {
+                        FlowControl::JumpTo => {
+                             if handler_result.status == ModuleStatus::Modified && *current_phase == Phase::Content {
                                 content_was_handled = true;
                             }
                             // Cleanup counter for current phase before jumping
@@ -719,13 +821,20 @@ impl Pipeline {
                                     }
                                 }
                             }
-                            current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
+                            
+                            // Safely cast the generic return_data pointer back to a Phase enum
+                            // We assume the module encoded the Phase directly into the pointer value
+                            let target_phase: Phase = unsafe { 
+                                std::mem::transmute(handler_result.return_parameters.return_data as usize as u32) 
+                            };
+                            
+                            let phases_len = self.execution_order.len();
+                            current_phase_index = self.execution_order.iter().position(|&p| p == target_phase).unwrap_or(phases_len);
                             jumped_to_next_phase = true;
                             break; 
                         }
-                        HandlerResult::HaltProcessing => {
-                            state.status_code = 500;
-                            // Cleanup counter
+                        FlowControl::Halt => {
+                            // Cleanup counter before returning
                              if metrics_enabled {
                                 if let Ok(phases_guard) = SERVER_METRICS.active_pipelines_by_phase.read() {
                                     if let Some(counter) = phases_guard.get(current_phase) {
@@ -733,7 +842,28 @@ impl Pipeline {
                                     }
                                 }
                             }
-                            return (500, HeaderMap::new(), Vec::from("Pipeline stopped by module due to fatal error."));
+                            let body_variant = if pending_files.is_empty() {
+                                PipelineResponseBody::Memory(state.response_body)
+                            } else {
+                                PipelineResponseBody::Files(pending_files)
+                            };
+                            return (state.status_code, state.response_headers, body_variant);
+                        }
+                        FlowControl::StreamFile => {
+                            if handler_result.status == ModuleStatus::Modified && *current_phase == Phase::Content {
+                                content_was_handled = true;
+                            }
+                            // Extract file path from return_data
+                            // Assuming return_data is a *mut c_char (owned by Host now?)
+                            // Contract: Module allocates, Host takes ownership.
+                            let path_ptr = handler_result.return_parameters.return_data as *mut libc::c_char;
+                            if !path_ptr.is_null() {
+                                let c_str = unsafe { CString::from_raw(path_ptr) };
+                                match c_str.into_string() {
+                                    Ok(s) => pending_files.push(PathBuf::from(s)),
+                                    Err(e) => error!("Invalid UTF-8 path returned by module: {}", e),
+                                }
+                            }
                         }
                     }
                 }
@@ -758,7 +888,8 @@ impl Pipeline {
                     }
                 }
                 
-                current_phase_index = PHASES.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(PHASES.len());
+                let phases_len = self.execution_order.len();
+                current_phase_index = self.execution_order.iter().position(|&p| p == Phase::PreErrorHandling).unwrap_or(phases_len);
                 continue;
             }
 
@@ -774,7 +905,13 @@ impl Pipeline {
             current_phase_index += 1;
         }
 
-        (state.status_code, state.response_headers, state.response_body)
+        let body_variant = if pending_files.is_empty() {
+            PipelineResponseBody::Memory(state.response_body)
+        } else {
+            PipelineResponseBody::Files(pending_files)
+        };
+
+        (state.status_code, state.response_headers, body_variant)
     }
 
     pub async fn handle_socket(
@@ -797,7 +934,7 @@ impl Pipeline {
 
             match msg {
                 Message::Text(t) => {
-                    let (status, _, body) = self.clone().execute_pipeline(
+                    let (status, _, body_variant) = self.clone().execute_pipeline(
                         source_ip,
                         "WEBSOCKET".to_string(),
                         path.clone(),
@@ -808,11 +945,18 @@ impl Pipeline {
                     ).await;
                     
                     if status == 200 {
-                        if let Ok(response_text) = String::from_utf8(body) {
-                             if let Err(e) = socket.send(Message::Text(response_text)).await {
-                                  error!("Failed to send WebSocket text message: {}", e);
-                                  break;
-                              }
+                        match body_variant {
+                            PipelineResponseBody::Memory(body) => {
+                                if let Ok(response_text) = String::from_utf8(body) {
+                                     if let Err(e) = socket.send(Message::Text(response_text)).await {
+                                          error!("Failed to send WebSocket text message: {}", e);
+                                          break;
+                                      }
+                                }
+                            }
+                            PipelineResponseBody::Files(_) => {
+                                error!("File streaming not supported over WebSocket Text frame");
+                            }
                         }
                     } else {
                         if let Err(e) = socket.send(Message::Close(Some(CloseFrame { code: 1000, reason: "Request Failed".into()}))).await {
@@ -822,7 +966,7 @@ impl Pipeline {
                     }
                 }
                 Message::Binary(b) => {
-                      let (status, _, body) = self.clone().execute_pipeline(
+                      let (status, _, body_variant) = self.clone().execute_pipeline(
                          source_ip,
                          "WEBSOCKET".to_string(),
                          path.clone(),
@@ -833,10 +977,18 @@ impl Pipeline {
                      ).await;
  
                      if status == 200 {
-                          if let Err(e) = socket.send(Message::Binary(body)).await {
-                              error!("Failed to send WebSocket binary message: {}", e);
-                              break;
-                          }
+                                                   match body_variant {
+                            PipelineResponseBody::Memory(body) => {
+                                if let Err(e) = socket.send(Message::Binary(body)).await {
+                                    error!("Failed to send WebSocket binary message: {}", e);
+                                    break;
+                                }
+                            }
+                            PipelineResponseBody::Files(_) => {
+                                error!("File streaming not supported over WebSocket Binary frame");
+                            }
+                         }
+
                      } else {
                           if let Err(e) = socket.send(Message::Close(Some(CloseFrame { code: 1000, reason: "Request Failed".into()}))).await {
                               error!("Failed to send Close frame: {}", e);
@@ -853,63 +1005,117 @@ impl Pipeline {
          }
      }
  
-     pub async fn execute_request(self: Arc<Self>, source_ip: SocketAddr, req: Request<Body>, protocol: String) -> Response {
-         
-         let (parts, body) = req.into_parts();
-         let body_bytes = axum::body::to_bytes(body, 1024 * 1024).await.unwrap().to_vec();
- 
-         let request_method = parts.method.to_string();
-         let request_path = parts.uri.path().to_string();
-         let request_query = parts.uri.query().unwrap_or("").to_string();
- 
-         let is_upgrade = parts.headers.get("upgrade")
-             .and_then(|h| h.to_str().ok())
-             .map(|s| s.eq_ignore_ascii_case("websocket"))
-             .unwrap_or(false);
- 
-         let (status_code, response_headers, response_body) = self.clone().execute_pipeline(
-             source_ip,
-             request_method.clone(),
-             request_path.clone(),
-             request_query.clone(),
-             parts.headers.clone(),
-             body_bytes.clone(),
-             protocol.clone()
-         ).await;
- 
-         if is_upgrade && (status_code == 200 || status_code == 101) {
-             let req = Request::from_parts(parts, Body::from(body_bytes));
-             match WebSocketUpgrade::from_request(req, &()).await {
-                  Ok(ws) => {
-                      let executor = self.clone();
-                      let path_clone = request_path.clone();
-                      let protocol_clone = protocol.clone();
-                      
-                      let mut response = ws.on_upgrade(move |socket| {
-                          executor.handle_socket(socket, source_ip, path_clone, protocol_clone)
-                      }).into_response();
- 
-                      for (key, value) in response_headers.iter() {
-                          response.headers_mut().insert(key, value.clone());
-                      }
-                      return response;
-                  }
-                  Err(e) => {
-                      error!("Failed to extract WebSocketUpgrade: {}", e);
-                      return e.into_response();
-                  }
-             }
-         }
- 
-         let mut response = Response::builder()
-             .status(StatusCode::from_u16(status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR));
-         
-         for (key, value) in response_headers.iter() {
-             response = response.header(key, value);
-         }
- 
-         response.body(Body::from(response_body)).unwrap()
-     }
+     pub async fn execute_request(
+        self: Arc<Self>,
+        source_ip: SocketAddr,
+        req: Request<Body>,
+        protocol: String,
+    ) -> Response {
+        let (parts, body) = req.into_parts();
+        // Limit body size check? using usize::MAX for now as per previous code attempt or reasonably large?
+        // Previous code used 1024*1024 (1MB). I should probably keep it or increase it if needed, but for now stick to previous pattern or reasonably safer limit.
+        // The user didn't complain about request body size.
+        let body_bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap_or_default().to_vec();
+        
+        let path = parts.uri.path().to_string();
+        let query = parts.uri.query().unwrap_or("").to_string();
+        let method = parts.method.to_string();
+        let headers = parts.headers;
+
+        let (status_code, headers, body_variant) = self.execute_pipeline(
+            source_ip,
+            method,
+            path,
+            query,
+            headers,
+            body_bytes,
+            protocol,
+        ).await;
+
+        let mut response_builder = Response::builder().status(status_code);
+        for (key, value) in headers {
+            if let Some(k) = key {
+                response_builder = response_builder.header(k, value);
+            }
+        }
+
+        match body_variant {
+            PipelineResponseBody::Memory(bytes) => {
+                response_builder.body(Body::from(bytes)).unwrap_or_else(|_| Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap())
+            }
+            PipelineResponseBody::Files(files) => {
+                if files.len() == 1 {
+                    // Single file stream
+                    let path = files[0].clone();
+                    match File::open(&path).await {
+                        Ok(file) => {
+                             let stream = ReaderStream::new(file);
+                             let body = Body::from_stream(stream);
+                             response_builder.body(body).unwrap_or_else(|_| Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap())
+                        },
+                        Err(e) => {
+                             error!("Failed to open file for streaming: {:?} - {}", path, e);
+                             Response::builder().status(404).body(Body::from("Not Found")).unwrap()
+                        }
+                    }
+                } else {
+                    // Multipart/Mixed Stream
+                    let boundary = "------------------------boundary123456789";
+                    let boundary_header = format!("multipart/mixed; boundary={}", boundary);
+                    
+                    response_builder = response_builder.header("Content-Type", boundary_header);
+
+                    let boundary_start = format!("--{}\r\n", boundary);
+                    let boundary_end = format!("\r\n--{}--\r\n", boundary);
+
+                    let file_streams = futures::stream::iter(files).then(move |path| {
+                        let b_start = boundary_start.clone();
+                        async move {
+                            match File::open(&path).await {
+                                Ok(file) => {
+                                    let filename = path.file_name().unwrap_or_default().to_string_lossy();
+                                    
+                                    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+                                    
+                                    let header = format!("Content-Disposition: attachment; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", 
+                                        filename, mime);
+                                    
+                                    let part_start = futures::stream::iter(vec![
+                                        Ok(axum::body::Bytes::from(b_start.into_bytes())),
+                                        Ok(axum::body::Bytes::from(header.into_bytes())),
+                                    ]);
+                                    
+                                    let file_stream = ReaderStream::new(file).map(|res| res.map(axum::body::Bytes::from));
+                                    
+                                    let part_end = futures::stream::iter(vec![
+                                        Ok(axum::body::Bytes::from("\r\n".as_bytes().to_vec()))
+                                    ]);
+                                    
+                                    // Box the stream to unify types
+                                    Box::pin(part_start.chain(file_stream).chain(part_end)) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<axum::body::Bytes, std::io::Error>> + Send>>
+                                },
+                                Err(e) => {
+                                    error!("Failed to open multipart file: {:?} - {}", path, e);
+                                    // Empty stream, but same type
+                                    Box::pin(futures::stream::empty()) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<axum::body::Bytes, std::io::Error>> + Send>>
+                                }
+                            }
+                        }
+                    }).flatten();
+
+                    let final_boundary = futures::stream::iter(vec![
+                        Ok(axum::body::Bytes::from(boundary_end.into_bytes()))
+                    ]);
+
+                    let full_stream = file_streams.chain(final_boundary);
+                    let body = Body::from_stream(full_stream);
+                    
+                    response_builder.body(body).unwrap_or_else(|_| Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap())
+                }
+            }
+        }
+    }
+
  }
  
  

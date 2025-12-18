@@ -1,0 +1,9 @@
+# ------------------------------------------------------------------------------
+# ox_webservice_errorhandler_jinja2 Configuration
+# ------------------------------------------------------------------------------
+# This module renders error pages (e.g. 404, 500) using Jinja2 templates.
+
+# content_root: Absolute path to the directory containing error templates.
+# The module looks for templates named after the status code (e.g., "404.html").
+content_root: "/var/repos/oxIDIZER/content/layouts/default/error_debug"
+

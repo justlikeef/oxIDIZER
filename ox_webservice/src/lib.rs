@@ -59,7 +59,15 @@ pub struct ServerConfig {
     pub modules: Vec<ModuleConfig>,
     pub log4rs_config: String,
     pub enable_metrics: Option<bool>,
+    #[serde(default)]
+    pub pipeline: Option<PipelineConfig>,
     pub servers: Vec<ServerDetails>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PipelineConfig {
+    #[serde(default)]
+    pub phases: Option<Vec<Phase>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -71,13 +79,15 @@ pub struct HostDetails {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ServerDetails {
+    #[serde(default)]
+    pub id: Option<String>,
     pub protocol: String,
     pub port: u16,
     pub bind_address: String,
     pub hosts: Vec<HostDetails>,
 }
 
-pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfig, ConfigError> {
+pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<(ServerConfig, String), ConfigError> {
     debug!("Loading config from: {:?}", path);
     trace!("File extension: {:?}", path.extension());
 
@@ -100,5 +110,7 @@ pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerC
     }
 
     // Deserialize the processed JSON value into ServerConfig
-    serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(e.to_string()))
+    let config = serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(e.to_string()))?;
+    
+    Ok((config, contents))
 }

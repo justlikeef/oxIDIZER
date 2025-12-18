@@ -2,7 +2,8 @@ use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, PipelineState,
+    WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -17,7 +18,7 @@ mod tests;
 
 const MODULE_NAME: &str = "ox_webservice_stream";
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct MimeTypeMapping {
     url: String,
     mimetype: String,
@@ -46,11 +47,13 @@ pub struct ContentConfig {
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(non_camel_case_types)]
 pub enum ContentConflictAction {
-    Overwrite,
-    Append,
-    Skip,
-    Error,
+    overwrite,
+    append,
+    skip,
+    error,
 }
 
 pub struct OxModule<'a> {
@@ -72,6 +75,8 @@ impl<'a> OxModule<'a> {
     }
 
     pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+        let _ = ox_webservice_api::init_logging(api.log_callback, MODULE_NAME);
+
         if let Ok(c_message) = CString::new(format!(
             "ox_webservice_stream: new: Initializing with content_root: {:?}",
             config.content_root
@@ -85,7 +90,12 @@ impl<'a> OxModule<'a> {
         
         // Use ox_fileproc for mimetypes config
         let mut mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
-            Ok(value) => match serde_json::from_value(value) {
+            Ok(value) => {
+                 if let Ok(json_str) = serde_json::to_string_pretty(&value) {
+                     use log::debug;
+                     debug!("Fully processed config for {:?}:\n{}", mimetype_path, json_str);
+                 }
+                 match serde_json::from_value(value) {
                 Ok(cfg) => cfg,
                 Err(e) => {
                      if let Ok(c_message) = CString::new(format!(
@@ -96,6 +106,7 @@ impl<'a> OxModule<'a> {
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
                     anyhow::bail!("Failed to deserialize mimetype config: {}", e);
+                }
                 }
             },
             Err(e) => {
@@ -139,7 +150,13 @@ impl<'a> OxModule<'a> {
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         if pipeline_state_ptr.is_null() {
             self.log(LogLevel::Error, "ox_webservice_stream: proccess_request called with null pipeline state.".to_string());
-            return HandlerResult::ModifiedJumpToError;
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+            };
         }
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
@@ -156,14 +173,26 @@ impl<'a> OxModule<'a> {
 
         if has_existing_content {
              match self.content_config.on_content_conflict {
-                 Some(ContentConflictAction::Skip) => {
+                 Some(ContentConflictAction::skip) => {
                      self.log(LogLevel::Debug, "ox_webservice_stream: Skipping due to existing content (early check).".to_string());
-                     return HandlerResult::UnmodifiedContinue;
+                     return HandlerResult {
+                        status: ModuleStatus::Unmodified,
+                        flow_control: FlowControl::Continue,
+                        return_parameters: ReturnParameters {
+                            return_data: std::ptr::null_mut(),
+                        },
+                     };
                  },
-                 Some(ContentConflictAction::Error) => {
+                 Some(ContentConflictAction::error) => {
                      self.log(LogLevel::Error, "ox_webservice_stream: Conflict error (early check).".to_string());
                      unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                     return HandlerResult::ModifiedJumpToError;
+                     return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::JumpTo,
+                        return_parameters: ReturnParameters {
+                            return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                        },
+                     };
                  },
                  _ => {}
              }
@@ -173,7 +202,13 @@ impl<'a> OxModule<'a> {
         if request_path_ptr.is_null() {
              self.log(LogLevel::Error, "ox_webservice_stream: get_request_path returned null.".to_string());
              unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-             return HandlerResult::ModifiedJumpToError;
+             return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+             };
         }
         let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
 
@@ -194,36 +229,55 @@ impl<'a> OxModule<'a> {
                     // Late Conflict Check (Optimization: Skip/Error handled early)
                     if has_existing_content {
                          // Only Overwrite and Append reach here
-                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::Overwrite) {
-                             ContentConflictAction::Skip | ContentConflictAction::Error => {
+                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
+                             ContentConflictAction::skip | ContentConflictAction::error => {
                                  // Should have been caught early
-                                 return HandlerResult::UnmodifiedContinue; 
+                                 return HandlerResult {
+                                    status: ModuleStatus::Unmodified,
+                                    flow_control: FlowControl::Continue,
+                                    return_parameters: ReturnParameters {
+                                        return_data: std::ptr::null_mut(),
+                                    },
+                                 }; 
                              },
                              _ => {} // Proceed for Overwrite/Append
                          }
                     }
 
-                    match fs::read(&file_path) {
-                        Ok(content) => {
+                    // Verify file existence and readability without loading into memory
+                    match fs::metadata(&file_path) {
+                        Ok(metadata) => {
+                             if !metadata.is_file() {
+                                  // Not a file (e.g. directory)
+                                  unsafe { (self.api.set_response_status)(pipeline_state, 404); }
+                                  return HandlerResult {
+                                     status: ModuleStatus::Modified,
+                                     flow_control: FlowControl::Continue, // Or halt?
+                                     return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+                                  };
+                             }
+                             
+                             // Check readability? fs::read check is expensive if file is large.
+                             // fs::File::open is better.
+                             if let Err(e) = fs::File::open(&file_path) {
+                                  self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", request_path, e));
+                                  unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                                  return HandlerResult {
+                                      status: ModuleStatus::Modified,
+                                      flow_control: FlowControl::JumpTo,
+                                      return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void },
+                                  };
+                             }
+
                              self.log(
                                 LogLevel::Debug,
                                 format!(
-                                    "ox_webservice_stream: Successfully handled request for path: {}",
+                                    "ox_webservice_stream: Streaming file for path: {}",
                                     request_path
                                 ),
                             );
 
-                            let mut content_bytes = content;
-                            
-                            // Handle Append
-                            if has_existing_content {
-                                if let Some(ContentConflictAction::Append) = self.content_config.on_content_conflict {
-                                    let mut combined = existing_body.into_bytes();
-                                    combined.extend(content_bytes);
-                                    content_bytes = combined;
-                                }
-                            }
-
+                            // Set Content-Type
                             unsafe {
                                 let c_content_type_key = CString::new("Content-Type").unwrap();
                                 let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
@@ -232,27 +286,48 @@ impl<'a> OxModule<'a> {
                                     c_content_type_key.as_ptr(),
                                     c_content_type_value.as_ptr(),
                                 );
-                                (self.api.set_response_body)(
-                                    pipeline_state,
-                                    content_bytes.as_ptr(),
-                                    content_bytes.len(),
-                                );
                             }
-                            return HandlerResult::ModifiedContinue;
+
+                            // Pass file path to host
+                            // Host takes ownership of the CString pointer
+                            let c_path = CString::new(file_path.to_string_lossy().into_owned()).unwrap();
+                            let return_data = c_path.into_raw() as *mut c_void;
+
+                            return HandlerResult {
+                                status: ModuleStatus::Modified,
+                                flow_control: FlowControl::StreamFile,
+                                return_parameters: ReturnParameters {
+                                    return_data,
+                                },
+                            };
                         }
                         Err(e) => {
                              self.log(
                                 LogLevel::Error,
                                 format!(
-                                    "ox_webservice_stream: Error handling request for path {}: {}",
+                                    "ox_webservice_stream: Error accessing file metadata for path {}: {}",
                                     request_path, e
                                 ),
                             );
+
                             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                            return HandlerResult::ModifiedJumpToError;
+                            return HandlerResult {
+                                status: ModuleStatus::Modified,
+                                flow_control: FlowControl::JumpTo, // Go to error handling
+                                return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void }, 
+                            };
                         }
                     }
 
+            } else {
+                // Mimetype not found, just continue but don't log error as it might be handled by another module (or not)
+                 HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters {
+                        return_data: std::ptr::null_mut(),
+                    },
+                }
             }
         } else {
              self.log(
@@ -267,9 +342,14 @@ impl<'a> OxModule<'a> {
                 let body = CString::new("404 Not Found").unwrap();
                 (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
             }
+             HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            }
         }
-        
-        HandlerResult::ModifiedContinue
     }
 
     fn resolve_and_find_file(&self, request_path: &str) -> Option<PathBuf> {
@@ -307,6 +387,7 @@ impl<'a> OxModule<'a> {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
+    _module_id: *const c_char,
     api_ptr: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
@@ -383,6 +464,7 @@ pub unsafe extern "C" fn initialize_module(
             instance_ptr,
             handler_fn: process_request_c,
             log_callback: api_instance.log_callback,
+            get_config: get_config_c,
         });
 
         Box::into_raw(module_interface)
@@ -397,23 +479,40 @@ pub unsafe extern "C" fn initialize_module(
     }
 }
 
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    log_callback: LogCallback,
-    _alloc_fn: AllocFn,
-    _arena: *const c_void, 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn process_request_c(
+    _instance_ptr: *mut c_void, 
+    pipeline_state_ptr: *mut PipelineState, 
+    _log_callback: LogCallback,
+    alloc_fn: AllocFn,
+    arena: *const c_void,
 ) -> HandlerResult {
+    ox_webservice_api::init_logging(_log_callback, "ox_webservice_stream").ok();
+    
+    // ... logic ...
+    // Note: Can't replace logic here without viewing file first, but I'll replace the function signature and known return points.
+    // Wait, I can't blindly replace return points without knowing context.
+    // I should view the files or perform comprehensive replacements.
+    // For now, I'll update signature and import statements in this tool call, then handle body.
+    // Actually, blindly replacing is risky. I used multi_replace incorrectly in thought process.
+    // I will modify imports first.
+
     // Safety check for handler instance
-    if instance_ptr.is_null() {
+    if _instance_ptr.is_null() {
         let log_msg = CString::new("ox_webservice_stream: process_request_c called with null instance_ptr").unwrap();
         let module_name = CString::new(MODULE_NAME).unwrap();
-        unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-        return HandlerResult::ModifiedJumpToError;
+        unsafe { (_log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::JumpTo,
+            return_parameters: ReturnParameters {
+                return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+            },
+        };
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
+        let handler = unsafe { &*(_instance_ptr as *mut OxModule) };
         handler.process_request(pipeline_state_ptr)
     }));
 
@@ -423,8 +522,32 @@ unsafe extern "C" fn process_request_c(
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
             let module_name = CString::new(MODULE_NAME).unwrap();
-            unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-            HandlerResult::ModifiedJumpToError
+            unsafe { (_log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+            }
         }
     }
+}
+
+unsafe extern "C" fn get_config_c(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() { return std::ptr::null_mut(); }
+    let handler = unsafe { &*(instance_ptr as *mut OxModule) };
+    
+    let mut config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
+    if let Value::Object(ref mut map) = config_val {
+         let mimetypes_val = serde_json::to_value(&handler.mimetypes).unwrap_or(Value::Null);
+         map.insert("loaded_mimetypes".to_string(), mimetypes_val);
+    }
+    
+    let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }

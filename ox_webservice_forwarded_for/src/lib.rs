@@ -1,7 +1,8 @@
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, PipelineState,
+    WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use std::ffi::{CStr, CString};
 use std::panic;
@@ -31,15 +32,24 @@ impl<'a> OxModule<'a> {
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         if pipeline_state_ptr.is_null() {
             self.log(LogLevel::Error, "Pipeline state is null".to_string());
-            return HandlerResult::ModifiedJumpToError;
+            // Safe fallback
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+            };
         }
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
         // 1. Get X-Forwarded-For header
-        let header_key = CString::new("X-Forwarded-For").unwrap();
-        let header_value_ptr = unsafe {
+        let header_key = CString::new("x-forwarded-for").unwrap();
+        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+        
+        // Use Host get_request_header
+        let header_val_ptr = unsafe {
             (self.api.get_request_header)(
                 pipeline_state,
                 header_key.as_ptr(),
@@ -48,68 +58,94 @@ impl<'a> OxModule<'a> {
             )
         };
 
-        if header_value_ptr.is_null() {
-            // Header not present, no action needed
-            return HandlerResult::UnmodifiedContinue;
+        if header_val_ptr.is_null() {
+            // Header not present, do nothing
+            return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
         }
 
-        let header_value = unsafe { CStr::from_ptr(header_value_ptr).to_string_lossy() };
-        
-        // 2. Parse the first IP
+        let header_val = unsafe { CStr::from_ptr(header_val_ptr).to_string_lossy() };
+        if header_val.is_empty() {
+             return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
+        }
+
+        // 2. Parse the FIRST IP from the list (standard practice)
         // X-Forwarded-For: <client>, <proxy1>, <proxy2>
-        let new_client_ip = match header_value.split(',').next() {
+        let new_client_ip = match header_val.split(',').next() {
             Some(ip) => ip.trim().to_string(),
-            None => return HandlerResult::UnmodifiedContinue,
+            None => {
+                 return HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters {
+                        return_data: std::ptr::null_mut(),
+                    },
+                };
+            }
         };
 
-        if new_client_ip.is_empty() {
-             return HandlerResult::UnmodifiedContinue;
-        }
-
-        // 3. Get current Source IP
-        let current_ip_ptr = unsafe {
-             (self.api.get_source_ip)(pipeline_state, arena_ptr, self.api.alloc_str)
-        };
+        // 3. Store the *original* source IP in module context for potential restoration
+        // Get current source IP
+        let current_ip_ptr = unsafe { (self.api.get_source_ip)(pipeline_state, arena_ptr, self.api.alloc_str) };
         let current_ip = if !current_ip_ptr.is_null() {
-             unsafe { CStr::from_ptr(current_ip_ptr).to_string_lossy().into_owned() }
+            unsafe { CStr::from_ptr(current_ip_ptr).to_string_lossy().into_owned() }
         } else {
             "unknown".to_string()
         };
 
-        self.log(LogLevel::Debug, format!("Found X-Forwarded-For: {}. Current IP: {}", header_value, current_ip));
-
-        // 4. Store original IP in context
-        // Context key: "original_source_ip"
         let ctx_key = CString::new("original_source_ip").unwrap();
-        let ctx_value_json = CString::new(format!("\"{}\"", current_ip)).unwrap(); // Value must be JSON
-        
+        // We act like we are storing a JSON string, so quote it? Or just raw string?
+        // The restore module expects a JSON string, so we should serialize it.
+        let val_json = serde_json::to_string(&current_ip).unwrap_or(format!("\"{}\"", current_ip));
+        let ctx_val = CString::new(val_json).unwrap();
+
         unsafe {
-            (self.api.set_module_context_value)(
-                pipeline_state,
-                ctx_key.as_ptr(),
-                ctx_value_json.as_ptr()
-            );
+            (self.api.set_module_context_value)(pipeline_state, ctx_key.as_ptr(), ctx_val.as_ptr());
         }
 
-        // 5. Update Source IP
+        // 4. Update the Source IP in PipelineState
         let new_ip_c = match CString::new(new_client_ip.clone()) {
             Ok(s) => s,
-            Err(_) => return HandlerResult::UnmodifiedContinue,
+            Err(_) => return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            },
         };
 
         unsafe {
             (self.api.set_source_ip)(pipeline_state, new_ip_c.as_ptr());
         }
 
-        self.log(LogLevel::Info, format!("Updated Source IP from {} to {} based on X-Forwarded-For", current_ip, new_client_ip));
+        self.log(LogLevel::Info, format!("Updated Source IP from {} to {} based on X-Forwarded-For: {}", current_ip, new_client_ip, header_val));
 
-        HandlerResult::ModifiedContinue
+        HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        }
     }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     _module_params_json_ptr: *const c_char,
+    _module_id: *const c_char,
     api_ptr: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
@@ -142,7 +178,17 @@ pub unsafe extern "C" fn initialize_module(
         instance_ptr,
         handler_fn: process_request_c,
         log_callback: api_instance.log_callback,
+        get_config: get_config_c,
     }))
+}
+
+unsafe extern "C" fn get_config_c(
+    _instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    let json = "null";
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
 
 unsafe extern "C" fn process_request_c(
@@ -153,7 +199,13 @@ unsafe extern "C" fn process_request_c(
     _arena: *const c_void, 
 ) -> HandlerResult {
     if instance_ptr.is_null() {
-        return HandlerResult::ModifiedJumpToError;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::JumpTo,
+            return_parameters: ReturnParameters {
+                return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+            },
+        };
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
@@ -167,7 +219,13 @@ unsafe extern "C" fn process_request_c(
              let log_msg = CString::new(format!("Panic in ox_webservice_forwarded_for: {:?}", e)).unwrap();
              let module_name = CString::new(MODULE_NAME).unwrap();
              unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-             HandlerResult::ModifiedJumpToError
+             HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+             }
         }
     }
 }
@@ -288,7 +346,14 @@ mod tests {
 
         let result = module.process_request(&mut ps as *mut _);
 
-        assert_eq!(result, HandlerResult::ModifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                target_phase: Phase::Content,
+                extra_data: std::ptr::null_mut(),
+            },
+        });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "10.0.0.1"));
         MOCK_CONTEXT.with(|ctx| {
             assert_eq!(ctx.borrow().get("original_source_ip").unwrap(), "\"127.0.0.1\"");
@@ -320,7 +385,14 @@ mod tests {
 
         let result = module.process_request(&mut ps as *mut _);
 
-        assert_eq!(result, HandlerResult::UnmodifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                target_phase: Phase::Content,
+                extra_data: std::ptr::null_mut(),
+            },
+        });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "127.0.0.1"));
     }
 }

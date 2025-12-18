@@ -5,7 +5,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+
+
 const INCLUDE_KEY: &str = "include";
+const MERGE_KEY: &str = "merge";
 const SUBSTITUTIONS_KEY: &str = "substitutions";
 
 pub fn process_file(path: &Path, max_depth: usize) -> Result<Value> {
@@ -142,52 +145,57 @@ fn substitute_value(value: &mut Value, vars: &HashMap<String, String>) {
 fn process_includes(value: &mut Value, base_path: &Path, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<()> {
     match value {
         Value::Object(map) => {
-            // Check for include key
-            if let Some(include_val) = map.remove(INCLUDE_KEY) {
-                if let Value::String(path_str) = include_val {
-                    let include_path = base_path.parent().unwrap_or(Path::new(".")).join(path_str);
-                    let included_val = load_recursive(&include_path, vars, visited, current_depth + 1, max_depth)?;
+            // Check for include OR merge key
+            let include_val = map.remove(INCLUDE_KEY).or_else(|| map.remove(MERGE_KEY));
+            
+            if let Some(path_val) = include_val {
+                if let Value::String(path_str) = path_val {
+                    let mut included_val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth)?;
                     
-                    if let Value::Object(included_map) = included_val {
-                       // Merge: Existing keys in 'map' override included keys? 
-                       // Usually: Inherit from include, override with local.
-                       // So we take included_map, extend with current 'map', then replace 'map'.
-                       let mut merged = included_map;
-                       let existing = std::mem::take(map);
-                       merged.extend(existing);
-                       *map = merged;
-                    } else {
-                        // If included value is not an object, but we are in an object...
-                        // We can't easily merge a list into an object.
-                        // Ideally, if the current object ONLY had 'include', we replace the whole value.
+                    // Handle scalar replacement if needed
+                    if !included_val.is_object() && included_val != Value::Null {
                         if map.is_empty() {
                             *value = included_val;
                             return Ok(());
                         } else {
-                             // Error or warning? "Cannot merge non-object include into object"
-                             // allow it to fail silently or error?
-                             return Err(anyhow!("Included file {:?} is not an object, cannot merge into object", include_path));
+                            return Err(anyhow!("Included content is not an object, cannot merge into object with existing keys"));
                         }
                     }
+
+                    merge_overlay_into_base(map, &mut included_val, base_path, vars, visited, current_depth, max_depth)?;
+                    return Ok(());
+
+                } else if let Value::Array(paths) = path_val {
+                    let mut combined_base = Value::Null;
+                    for p in paths {
+                        if let Value::String(path_str) = p {
+                            let val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth)?;
+                            if combined_base == Value::Null {
+                                combined_base = val;
+                            } else {
+                                smart_merge_values(&mut combined_base, val);
+                            }
+                        }
+                    }
+                    
+                    // Handle scalar replacement if combined result is scalar
+                    if !combined_base.is_object() && combined_base != Value::Null {
+                         if map.is_empty() {
+                            *value = combined_base;
+                            return Ok(());
+                        } else {
+                            return Err(anyhow!("Combined included content is not an object, cannot merge into object with existing keys"));
+                        }
+                    }
+
+                    merge_overlay_into_base(map, &mut combined_base, base_path, vars, visited, current_depth, max_depth)?;
+                    return Ok(());
                 }
             }
             
-            // Recurse for children
-            // Note: if we replaced *value, we might need to re-process? 
-            // The recursive call above `load_recursive` already processed the included file fully.
-            // So we only need to process the *remaining* keys in the current object?
-            // But we effectively merged them. The values in `map` (from `drain`) need to be processed for includes?
-            // Wait, we ran `substitute_value` on the current file content already.
-            // We call `process_includes` on the current node.
-            // If we just merged, the values from `included_map` are already fully processed.
-            // The values from `current map` (drained and re-inserted) are NOT processed for includes yet (we are doing it now).
-            // So we should iterate over the map values.
-            
-            // Re-borrow map after potential replacement
-            if let Value::Object(map) = value {
-                  for (_, v) in map {
-                      process_includes(v, base_path, vars, visited, current_depth, max_depth)?;
-                  }
+            // Recurse for children (only if no include was found/processed above)
+            for (_, v) in map {
+                process_includes(v, base_path, vars, visited, current_depth, max_depth)?;
             }
         }
         Value::Array(arr) => {
@@ -198,6 +206,148 @@ fn process_includes(value: &mut Value, base_path: &Path, vars: &HashMap<String, 
         _ => {}
     }
     Ok(())
+}
+
+fn resolve_include(base_path: &Path, path_str: &str, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<Value> {
+    let include_path = base_path.parent().unwrap_or(Path::new(".")).join(path_str);
+    
+    if include_path.is_dir() {
+        // Directory merging logic
+        let mut entries = fs::read_dir(&include_path)
+            .with_context(|| format!("Failed to read directory: {:?}", include_path))?
+            .map(|res| res.map(|e| e.path()))
+            .collect::<Result<Vec<_>, std::io::Error>>()?;
+        
+        entries.sort(); // Deterministic order
+
+        let mut combined_base = Value::Null;
+
+        for entry in entries {
+                if entry.is_file() {
+                    // Check extension
+                    let ext = entry.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                    match ext.as_str() {
+                        "json" | "yaml" | "yml" | "toml" | "xml" | "json5" | "kdl" => {
+                            let val = load_recursive(&entry, vars, visited, current_depth + 1, max_depth)?;
+                            if combined_base == Value::Null {
+                                combined_base = val;
+                            } else {
+                                smart_merge_values(&mut combined_base, val);
+                            }
+                        },
+                        _ => {} // Skip unknown
+                    }
+                }
+        }
+        
+        Ok(combined_base)
+        
+    } else {
+        // Single file logic
+        load_recursive(&include_path, vars, visited, current_depth + 1, max_depth)
+    }
+}
+
+fn merge_overlay_into_base(overlay_map: &mut Map<String, Value>, base_val: &mut Value, base_path: &Path, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<()> {
+    if let Value::Object(base_map) = base_val {
+        // included_val is BASE.
+        // Process Overlay (overlay_map is already the map from the Mutable Value passed to process_includes)
+        // We need to detach it to process its children? 
+        // Logic from before:
+        // let mut overlay_val = Value::Object(std::mem::take(map));
+        // process_includes(&mut overlay_val, ...);
+        
+        let mut overlay_val = Value::Object(std::mem::take(overlay_map));
+        process_includes(&mut overlay_val, base_path, vars, visited, current_depth, max_depth)?;
+        
+        // Merge Overlay into Base
+        if let Value::Object(overlay_map_processed) = overlay_val {
+            smart_merge_objects(base_map, overlay_map_processed);
+            *overlay_map = std::mem::take(base_map); // Result is the merged object put back into 'map'
+        }
+    } else if *base_val == Value::Null {
+            // Included nothing (e.g. empty dir).
+            let mut overlay_val = Value::Object(std::mem::take(overlay_map));
+            process_includes(&mut overlay_val, base_path, vars, visited, current_depth, max_depth)?;
+            if let Value::Object(overlay_map_processed) = overlay_val {
+                *overlay_map = overlay_map_processed;
+            }
+    } else {
+        // Base is Scalar/Array. Overlay is Object (since we are in match Value::Object).
+        // If Overlay is empty (just the include line), we replace it with Base.
+        if overlay_map.is_empty() {
+             // We can't assign *value = base_val here easily because we have &mut Map, not &mut Value.
+             // We need access to the parent Value to replace it entirely if it changes type?
+             // Actually process_includes takes &mut Value.
+             // Wait, merge_overlay_into_base takes &mut Map.
+             // This refactor is slightly tricky because the original code had access to `value` (Value enum).
+             // But here we are inside `Value::Object(map)`.
+             // We can't change `Value::Object` to `Value::String` from inside `map`.
+             // So this helper needs to operate on `value` or return a Value?
+             return Err(anyhow!("Included content is not an object, cannot merge into object with existing keys. (Scalar replacement not supported in this helper flow)"));
+        } else {
+             return Err(anyhow!("Included content is not an object, cannot merge into object with existing keys"));
+        }
+    }
+    Ok(())
+}
+
+fn smart_merge_values(base: &mut Value, overlay: Value) {
+    match (base, overlay) {
+        (Value::Object(base_map), Value::Object(overlay_map)) => {
+            smart_merge_objects(base_map, overlay_map);
+        }
+        (Value::Array(base_arr), Value::Array(overlay_arr)) => {
+            smart_merge_arrays(base_arr, overlay_arr);
+        }
+        (base_val, overlay_val) => {
+            // Default: Overlay replaces Base
+            *base_val = overlay_val;
+        }
+    }
+}
+
+fn smart_merge_objects(base: &mut Map<String, Value>, overlay: Map<String, Value>) {
+    for (k, v) in overlay {
+        if let Some(base_val) = base.get_mut(&k) {
+            smart_merge_values(base_val, v);
+        } else {
+            base.insert(k, v);
+        }
+    }
+}
+
+fn smart_merge_arrays(base: &mut Vec<Value>, overlay: Vec<Value>) {
+    // Strategy:
+    // Iterate overlay items.
+    // If Item is Object AND has "id" field: Look for matching ID in Base.
+    // If match found: Recursive merge.
+    // Else: Append.
+    
+    for overlay_item in overlay {
+        let mut merged = false;
+        
+        if let Value::Object(ref overlay_map) = overlay_item {
+            if let Some(Value::String(id)) = overlay_map.get("id") {
+                // Look for match in base
+                if let Some(base_item) = base.iter_mut().find(|bi| {
+                    if let Value::Object(bm) = bi {
+                        if let Some(Value::String(bid)) = bm.get("id") {
+                            return bid == id;
+                        }
+                    }
+                    false
+                }) {
+                    smart_merge_values(base_item, overlay_item.clone());
+                    merged = true;
+                }
+            }
+        }
+        
+        if !merged {
+            base.push(overlay_item);
+        }
+    }
 }
 
 fn kdl_to_json_value(doc: &kdl::KdlDocument) -> Result<Value> {
@@ -532,5 +682,163 @@ mod tests {
         write!(file, "").unwrap(); 
         let res = process_file(file.path(), 5);
         assert!(res.is_err());
+    }
+    #[test]
+    fn test_merge_alias() {
+        // Included file
+        let mut inc_file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        write!(inc_file, r#"{{"included": "true"}}"#).unwrap();
+        let inc_path = inc_file.path().file_name().unwrap().to_str().unwrap();
+
+        // Main file using "merge" instead of "include"
+        let mut main_file = tempfile::Builder::new().suffix(".json").tempfile_in(inc_file.path().parent().unwrap()).unwrap();
+        write!(main_file, r#"{{"merge": "{}"}}"#, inc_path).unwrap();
+
+        let val = process_file(main_file.path(), 5).unwrap();
+        assert_eq!(val["included"], "true");
+    }
+
+    #[test]
+    fn test_smart_list_merge() {
+        // Base file with list of objects with IDs
+        let mut base_file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        write!(base_file, r#"{{
+            "items": [
+                {{ "id": "1", "val": "base1" }},
+                {{ "id": "2", "val": "base2" }}
+            ]
+        }}"#).unwrap();
+        let base_path = base_file.path().file_name().unwrap().to_str().unwrap();
+
+        // Overlay file merging base and overriding item 1, adding item 3
+        let mut overlay_file = tempfile::Builder::new().suffix(".json").tempfile_in(base_file.path().parent().unwrap()).unwrap();
+        write!(overlay_file, r#"{{
+            "merge": "{}",
+            "items": [
+                {{ "id": "1", "val": "overlay1" }},
+                {{ "val": "new" }}
+            ]
+        }}"#, base_path).unwrap();
+
+        let val = process_file(overlay_file.path(), 5).unwrap();
+        
+        let items = val["items"].as_array().unwrap();
+        assert_eq!(items.len(), 3);
+        
+        // Item 1 should be merged (overlay overrides base)
+        assert_eq!(items[0]["id"], "1");
+        assert_eq!(items[0]["val"], "overlay1");
+        
+        // Item 2 should remain
+        assert_eq!(items[1]["id"], "2");
+        assert_eq!(items[1]["val"], "base2");
+        
+        // Item 3 should be appended
+        assert_eq!(items[2]["val"], "new");
+    }
+
+    #[test]
+    fn test_merge_priority() {
+        // Grandchild A (Base)
+        let mut file_a = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        write!(file_a, r#"{{"id": "1", "val": "A", "other": "A"}}"#).unwrap();
+        let path_a = file_a.path().file_name().unwrap().to_str().unwrap();
+
+        // Grandchild B (Overlay)
+        let mut file_b = tempfile::Builder::new().suffix(".json").tempfile_in(file_a.path().parent().unwrap()).unwrap();
+        write!(file_b, r#"{{"val": "B"}}"#).unwrap(); // B overrides val
+        let path_b = file_b.path().file_name().unwrap().to_str().unwrap();
+
+        // Parent (Defines list with A)
+        let mut file_parent = tempfile::Builder::new().suffix(".json").tempfile_in(file_a.path().parent().unwrap()).unwrap();
+        write!(file_parent, r#"{{
+            "items": [
+                {{ "include": "{}" }} 
+            ]
+        }}"#, path_a).unwrap();
+        let path_parent = file_parent.path().file_name().unwrap().to_str().unwrap();
+
+        // Main (Merges Parent, Overrides item with B)
+        let mut file_main = tempfile::Builder::new().suffix(".json").tempfile_in(file_a.path().parent().unwrap()).unwrap();
+        // Here, the Main file wants to override the item with ID 1.
+        // It does so by providing an item with ID 1 that INCLUDES B.
+        // Expectation: Result has ID 1, val B (from Overlay/B), other A (from Base/A).
+        write!(file_main, r#"{{
+            "merge": "{}",
+            "items": [
+                {{ "id": "1", "include": "{}" }}
+            ]
+        }}"#, path_parent, path_b).unwrap();
+
+        let val = process_file(file_main.path(), 5).unwrap();
+        let item = &val["items"][0];
+        
+        // Debug output if fails
+        // println!("Merged Item: {:?}", item);
+
+        assert_eq!(item["id"], "1");
+        assert_eq!(item["other"], "A"); // Preserved from Base
+        assert_eq!(item["val"], "B");   // Overridden by Overlay (which included B)
+    }
+
+    #[test]
+    fn test_directory_merge() {
+        // Create a directory
+        let dir = tempfile::Builder::new().prefix("test_dir").tempdir().unwrap();
+        let dir_path = dir.path();
+
+        // Create file A: { "list": [{"id":1, "v":"A"}], "base": "A" }
+        let file_a = dir_path.join("a.json");
+        fs::write(&file_a, r#"{
+            "list": [{"id":"1", "v":"A"}],
+            "base": "A"
+        }"#).unwrap();
+
+        // Create file B: { "list": [{"id":1, "v":"B"}, {"id":2, "v":"B"}], "overlay": "B" }
+        // B comes after A, so it should override id:1 with v:B
+        let file_b = dir_path.join("b.json");
+        fs::write(&file_b, r#"{
+            "list": [{"id":"1", "v":"B"}, {"id":"2", "v":"B"}],
+            "overlay": "B"
+        }"#).unwrap();
+
+        // Main file including the directory
+        let mut main_file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        // Point to the directory
+        write!(main_file, r#"{{"merge": "{}"}}"#, dir_path.to_str().unwrap()).unwrap();
+
+        let val = process_file(main_file.path(), 5).unwrap();
+        
+        // Assertions
+        assert_eq!(val["base"], "A");
+        assert_eq!(val["overlay"], "B");
+        
+        let list = val["list"].as_array().unwrap();
+        assert_eq!(list.len(), 2);
+        
+        // Item 1: ID 1 should be B
+        let item1 = list.iter().find(|i| i["id"] == "1").unwrap();
+        assert_eq!(item1["v"], "B");
+
+        // Item 2: ID 2 should be B
+        let item2 = list.iter().find(|i| i["id"] == "2").unwrap();
+        assert_eq!(item2["v"], "B");
+    }
+
+    #[test]
+    fn test_directory_merge_absolute() {
+        let dir = tempfile::Builder::new().prefix("test_dir_abs").tempdir().unwrap();
+        let dir_path = dir.path().canonicalize().unwrap(); // ensure absolute
+        
+        // Create file inside
+        fs::write(dir_path.join("a.json"), r#"{"a":1}"#).unwrap();
+
+        let mut main_file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        // Use the absolute path as string
+        // Note: tempfile paths are usually absolute, but we force verify.
+        write!(main_file, r#"{{"merge": "{}"}}"#, dir_path.to_str().unwrap()).unwrap();
+        
+        let val = process_file(main_file.path(), 5).unwrap();
+        assert_eq!(val["a"], 1);
     }
 }

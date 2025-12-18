@@ -163,6 +163,7 @@ pub unsafe extern "C" fn mock_get_response_body(ps: *mut PipelineState, _a: *con
 pub unsafe extern "C" fn mock_noop_cchar(_ps: *mut PipelineState, _v: *const c_char) {} 
 pub unsafe extern "C" fn mock_noop_cchar_2(_ps: *mut PipelineState, _k: *const c_char, _v: *const c_char) {}
 pub unsafe extern "C" fn mock_get_server_metrics(_a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() } 
+pub unsafe extern "C" fn mock_get_all_configs(_ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() } 
 
 pub fn create_mock_api() -> WebServiceApiV1 {
     WebServiceApiV1 {
@@ -188,6 +189,7 @@ pub fn create_mock_api() -> WebServiceApiV1 {
         set_response_header: mock_set_resp_header,
         set_response_body: mock_set_resp_body, 
         get_server_metrics: mock_get_server_metrics,
+        get_all_configs: mock_get_all_configs,
     }
 }
 
@@ -200,12 +202,14 @@ pub struct ModuleLoader {
 
 impl ModuleLoader {
     pub fn load(
-        init_fn: unsafe extern "C" fn(*const c_char, *const WebServiceApiV1) -> *mut ModuleInterface,
+        init_fn: unsafe extern "C" fn(*const c_char, *const c_char, *const WebServiceApiV1) -> *mut ModuleInterface,
         config_json: &str,
+        module_id: &str,
         api: &WebServiceApiV1,
     ) -> Result<Self, String> {
         let c_config = CString::new(config_json).unwrap();
-        let interface_ptr = unsafe { init_fn(c_config.as_ptr(), api as *const WebServiceApiV1) };
+        let c_id = CString::new(module_id).unwrap();
+        let interface_ptr = unsafe { init_fn(c_config.as_ptr(), c_id.as_ptr(), api as *const WebServiceApiV1) };
 
         if interface_ptr.is_null() {
             return Err("initialize_module returned null".to_string());
@@ -247,5 +251,6 @@ pub fn create_stub_pipeline_state() -> PipelineState {
         response_headers: HeaderMap::new(),
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
+        pipeline_ptr: ptr::null(),
     }
 }

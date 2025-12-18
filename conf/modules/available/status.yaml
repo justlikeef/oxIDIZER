@@ -1,0 +1,9 @@
+modules:
+  - id: "status_module"
+    name: "ox_webservice_status"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/status\/*$"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_status.yaml"

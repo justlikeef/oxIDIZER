@@ -1,4 +1,4 @@
-use libc::{c_char, c_void};
+use std::ffi::{c_char, c_void, CString};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -23,6 +23,7 @@ pub struct PipelineState {
     pub response_headers: HeaderMap,
     pub response_body: Vec<u8>,
     pub module_context: ModuleContext,
+    pub pipeline_ptr: *const c_void,
 }
 
 // Define the C-compatible function signature for handlers
@@ -34,11 +35,18 @@ pub type WebServiceHandler = unsafe extern "C" fn(
     arena: *const c_void,
 ) -> HandlerResult;
 
+pub type GetConfigFn = unsafe extern "C" fn(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char;
+
 #[repr(C)]
 pub struct ModuleInterface {
     pub instance_ptr: *mut c_void,
     pub handler_fn: WebServiceHandler,
     pub log_callback: LogCallback,
+    pub get_config: GetConfigFn,
 }
 
 #[repr(C)]
@@ -64,6 +72,46 @@ impl From<LogLevel> for log::Level {
 }
 
 pub type LogCallback = unsafe extern "C" fn(level: LogLevel, module: *const c_char, message: *const c_char);
+
+struct ModuleLogger {
+    callback: LogCallback,
+    module_name: CString,
+}
+
+impl log::Log for ModuleLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Trace
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            if let Ok(c_msg) = CString::new(format!("{}", record.args())) {
+                let level = match record.level() {
+                    log::Level::Error => LogLevel::Error,
+                    log::Level::Warn => LogLevel::Warn,
+                    log::Level::Info => LogLevel::Info,
+                    log::Level::Debug => LogLevel::Debug,
+                    log::Level::Trace => LogLevel::Trace,
+                };
+                unsafe {
+                    (self.callback)(level, self.module_name.as_ptr(), c_msg.as_ptr());
+                }
+            }
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+pub fn init_logging(callback: LogCallback, module_name: &str) -> std::result::Result<(), log::SetLoggerError> {
+    let logger = Box::new(ModuleLogger {
+        callback,
+        module_name: CString::new(module_name).unwrap(),
+    });
+    log::set_boxed_logger(logger)?;
+    log::set_max_level(log::LevelFilter::Trace);
+    Ok(())
+}
 
 
 
@@ -110,10 +158,14 @@ pub struct WebServiceApiV1 {
 
     // Server Metrics
     pub get_server_metrics: unsafe extern "C" fn(arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
+
+    // Config
+    pub get_all_configs: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
 }
 
 pub type InitializeModuleFn = unsafe extern "C" fn(
     module_params_json_ptr: *const c_char,
+    module_id: *const c_char,
     api: *const WebServiceApiV1
 ) -> *mut ModuleInterface;
 
@@ -123,6 +175,7 @@ pub struct UriMatcher {
     pub protocol: Option<String>,
     #[serde(default)]
     pub hostname: Option<String>,
+    #[serde(alias = "url")]
     pub path: String,
 }
 
@@ -192,12 +245,32 @@ pub enum Phase {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HandlerResult {
-    UnmodifiedContinue,
-    ModifiedContinue,
-    UnmodifiedNextPhase,
-    ModifiedNextPhase,
-    UnmodifiedJumpToError,
-    ModifiedJumpToError,
-    HaltProcessing,
+pub enum ModuleStatus {
+    Unmodified = 0,
+    Modified = 1,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlowControl {
+    Continue = 0, // Continue to next module in same phase
+    NextPhase = 1, // Skip remaining modules in current phase, go to next phase
+    JumpTo = 2, // Jump to specific phase
+    Halt = 3, // Stop processing immediately
+    StreamFile = 4, // Stream file from return_data path
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+
+pub struct ReturnParameters {
+    pub return_data: *mut std::ffi::c_void,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HandlerResult {
+    pub status: ModuleStatus,
+    pub flow_control: FlowControl,
+    pub return_parameters: ReturnParameters,
 }

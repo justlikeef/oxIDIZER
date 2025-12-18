@@ -1,6 +1,7 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, PipelineState, AllocFn
+    WebServiceApiV1, PipelineState, AllocFn, AllocStrFn,
+    ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -11,13 +12,13 @@ use regex::Regex;
 
 const MODULE_NAME: &str = "ox_webservice_redirect";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RedirectRule {
     pub match_pattern: String,
     pub replace_string: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RedirectConfig {
     pub rules: Vec<RedirectRule>,
 }
@@ -79,18 +80,31 @@ impl<'a> RedirectModule<'a> {
                     );
                     (self.api.set_response_body)(pipeline_state, c_body.as_ptr().cast(), c_body.as_bytes().len());
                     
-                    return HandlerResult::ModifiedJumpToError;
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::JumpTo,
+                        return_parameters: ReturnParameters {
+                            return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                        },
+                    };
                 }
             }
         }
 
-        HandlerResult::UnmodifiedContinue
+        HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        }
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
+    _module_id: *const c_char,
     api: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
@@ -145,6 +159,7 @@ pub unsafe extern "C" fn initialize_module(
             instance_ptr,
             handler_fn: process_request_c,
             log_callback: api_instance.log_callback,
+            get_config: get_config_c,
         });
 
         Box::into_raw(module_interface)
@@ -179,9 +194,27 @@ unsafe extern "C" fn process_request_c(
             let c_log_msg = CString::new(log_msg).unwrap();
             let module_name = CString::new(MODULE_NAME).unwrap();
             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), c_log_msg.as_ptr()); } 
-            HandlerResult::ModifiedJumpToError
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+            }
         }
     }
+}
+
+unsafe extern "C" fn get_config_c(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() { return std::ptr::null_mut(); }
+    let handler = unsafe { &*(instance_ptr as *mut RedirectModule) };
+    
+    let json = serde_json::to_string_pretty(&handler.config).unwrap_or("{}".to_string());
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
 
 #[cfg(test)]

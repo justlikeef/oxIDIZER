@@ -1,0 +1,23 @@
+# ------------------------------------------------------------------------------
+# ox_webservice_stream Configuration
+# ------------------------------------------------------------------------------
+# This module serves static files from a specified content root.
+
+# content_root: Absolute path to the directory containing static assets.
+content_root: "/var/repos/oxIDIZER/content/layouts/default/www"
+
+# mimetypes_file: Path to the mapping file for file extensions to MIME types.
+mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+
+# default_documents: List of filenames to look for if a directory is requested.
+default_documents:
+  - document: "index.html"
+  - document: "default.html"
+
+# on_content_conflict: Action to take if response body already exists.
+# Options:
+#   - "overwrite": Replace existing body.
+#   - "append": Append file content to existing body.
+#   - "skip": Do nothing and pass control.
+#   - "error": Return a 500 error.
+on_content_conflict: "skip"

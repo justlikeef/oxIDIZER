@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status | ox_webservice</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 1rem;
+        }
+        h1 {
+            font-weight: 800;
+            font-size: 2.25rem;
+            margin: 0;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h2 {
+            color: var(--text-primary);
+            margin-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #334155;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.25rem;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .value {
+            font-weight: 600;
+            font-family: monospace;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #334155;
+            border-radius: 4px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+        .disk-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        .json-dump {
+            background-color: #0f172a;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: #a5b4fc;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            border: 1px solid #334155;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>System Status</h1>
+                <span class="status-badge">Online</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_status.yaml</p>
+        </header>
+
+        <div class="grid">
+            <!-- System Info Card -->
+            <div class="card">
+                <h2>System Info</h2>
+                <div class="stat-row"><span class="label">Hostname</span><span class="value">HPE-RHUTTON</span></div>
+                <div class="stat-row"><span class="label">OS</span><span class="value">Ubuntu 24.04</span></div>
+                <div class="stat-row"><span class="label">Kernel</span><span class="value">6.6.87.2-microsoft-standard-WSL2</span></div>
+                <div class="stat-row"><span class="label">Uptime</span><span class="value">542894s</span></div>
+            </div>
+
+            <!-- Resources Card -->
+            <div class="card">
+                <h2>Resources</h2>
+                <div class="stat-row"><span class="label">CPU Usage</span><span class="value">6.93%</span></div>
+                <div class="stat-row"><span class="label">CPU Cores</span><span class="value">8</span></div>
+                <div class="stat-row"><span class="label">Load Avg</span><span class="value">0.41 / 0.32 / 0.27</span></div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <div class="stat-row"><span class="label">Memory</span><span class="value">3.3 / 15.5 GB</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 21.4%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="margin-bottom: 1rem;">Storage</h2>
+        <div class="grid">
+            
+                <div class="card disk-card">
+                    <h3>none</h3>
+                    <p class="subtitle">/usr/lib/modules/6.6.87.2-microsoft-standard-WSL2</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0.0%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>0.0 GB Used</span>
+                        <span>7.7 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>drivers</h3>
+                    <p class="subtitle">/usr/lib/wsl/drivers</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 82.5%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>392.6 GB Used</span>
+                        <span>475.6 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>/dev/sdd</h3>
+                    <p class="subtitle">/</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 6.8%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>68.6 GB Used</span>
+                        <span>1006.9 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>/dev/sdd</h3>
+                    <p class="subtitle">/mnt/wslg/distro</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 6.8%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>68.6 GB Used</span>
+                        <span>1006.9 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>none</h3>
+                    <p class="subtitle">/usr/lib/wsl/lib</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0.0%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>0.0 GB Used</span>
+                        <span>7.7 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>none</h3>
+                    <p class="subtitle">/mnt/wslg/versions.txt</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0.0%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>0.0 GB Used</span>
+                        <span>7.7 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>none</h3>
+                    <p class="subtitle">/mnt/wslg/doc</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0.0%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>0.0 GB Used</span>
+                        <span>7.7 GB Total</span>
+                    </div>
+                </div>
+                
+
+                <div class="card disk-card">
+                    <h3>C:\134</h3>
+                    <p class="subtitle">/mnt/c</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 82.5%"></div>
+                    </div>
+                    <div class="disk-stats">
+                        <span>392.6 GB Used</span>
+                        <span>475.6 GB Total</span>
+                    </div>
+                </div>
+                
+        </div>
+
+        <h2 style="margin-bottom: 1rem;">Server Metrics</h2>
+        <div class="grid">
+            
+                                <div class="card">
+                                     <h3>General Metrics</h3>
+                                     <div class="stat-row"><span class="label">global_memory_allocated</span><span class="value">5</span></div>
+                                </div>
+                                
+                                       <div class="card">
+                                            <h3>active_pipelines_by_phase</h3>
+                                            <div class="stat-row"><span class="label">Accounting</span><span class="value">0</span></div><div class="stat-row"><span class="label">Authentication</span><span class="value">0</span></div><div class="stat-row"><span class="label">Authorization</span><span class="value">0</span></div><div class="stat-row"><span class="label">Content</span><span class="value">1</span></div><div class="stat-row"><span class="label">EarlyRequest</span><span class="value">0</span></div><div class="stat-row"><span class="label">ErrorHandling</span><span class="value">0</span></div><div class="stat-row"><span class="label">LateRequest</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostAccounting</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostAuthentication</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostAuthorization</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostContent</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostEarlyRequest</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostErrorHandling</span><span class="value">0</span></div><div class="stat-row"><span class="label">PostLateRequest</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreAccounting</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreAuthentication</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreAuthorization</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreContent</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreEarlyRequest</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreErrorHandling</span><span class="value">0</span></div><div class="stat-row"><span class="label">PreLateRequest</span><span class="value">0</span></div>
+                                       </div>
+                                       
+                                       <div class="card">
+                                            <h3>modules</h3>
+                                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_errorhandler_jinja2</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_forwarded_for</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">1</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">13</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_ping</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_restore_ip</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_status</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">5</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_stream</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">ox_webservice_template_jinja2</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">execution_count</span><span class="value">0</span></div><div class="stat-row"><span class="label">memory_allocated</span><span class="value">0</span></div><div class="stat-row"><span class="label">total_duration_micros</span><span class="value">0</span></div>
+                                </div>
+                            </div>
+                            
+                                       </div>
+                                       
+        </div>
+
+        <h2 style="margin-bottom: 1rem;">Configurations</h2>
+        <div>
+            
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">default_error_handler Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    <div class="stat-row"><span class="label">content_root</span><span class="value">/var/repos/oxIDIZER/content/layouts/default/error_debug</span></div>
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">default_stream Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    <div class="stat-row"><span class="label">content_root</span><span class="value">/var/repos/oxIDIZER/content/layouts/default/www</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">default_documents (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">document</span><span class="value">index.html</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">document</span><span class="value">default.html</span></div></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">loaded_mimetypes (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]html$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]htm$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[2]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/css</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]css$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[3]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">application/javascript</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]js$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[4]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/png</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]png$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[5]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/jpeg</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jpg$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[6]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/jpeg</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jpeg$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[7]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/gif</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]gif$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[8]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jinja$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[9]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jinja2$</span></div></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">mimetypes_file</span><span class="value">/var/repos/oxIDIZER/conf/mimetypes.yaml</span></div><div class="stat-row"><span class="label">on_content_conflict</span><span class="value">skip</span></div>
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">default_template_jinja2 Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    <div class="stat-row"><span class="label">content_root</span><span class="value">/var/repos/oxIDIZER/content/layouts/default/www</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">default_documents (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">document</span><span class="value">index.jinja2</span></div></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">loaded_mimetypes (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]html$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]htm$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[2]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/css</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]css$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[3]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">application/javascript</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]js$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[4]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/png</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]png$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[5]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/jpeg</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jpg$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[6]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/jpeg</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jpeg$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[7]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">image/gif</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]gif$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[8]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jinja$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[9]</strong><div class="stat-row"><span class="label">mimetype</span><span class="value">text/html</span></div><div class="stat-row"><span class="label">url</span><span class="value">.*[.]jinja2$</span></div></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">mimetypes_file</span><span class="value">/var/repos/oxIDIZER/conf/mimetypes.yaml</span></div><div class="stat-row"><span class="label">on_content_conflict</span><span class="value">skip</span></div>
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">forwarded_for Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    null
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">ox_webservice Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    <div class="stat-row"><span class="label">log4rs_config</span><span class="value">/var/repos/oxIDIZER/conf/log4rs.yaml</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">modules (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">id</span><span class="value">default_template_jinja2</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_template_jinja2</span></div>
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">params</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">config_file</span><span class="value">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_template_jinja2_default.yaml</span></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">phase</span><span class="value">Content</span></div><div class="stat-row"><span class="label">priority</span><span class="value">998</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">url</span><span class="value">[.]*</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">id</span><span class="value">default_stream</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_stream</span></div>
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">params</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">config_file</span><span class="value">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_stream_default.yaml</span></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">phase</span><span class="value">Content</span></div><div class="stat-row"><span class="label">priority</span><span class="value">999</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">url</span><span class="value">[.]jinja$</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">url</span><span class="value">[.]jinja2$</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[2]</strong><div class="stat-row"><span class="label">id</span><span class="value">default_error_handler</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_errorhandler_jinja2</span></div>
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">params</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">config_file</span><span class="value">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_errorhandler_jinja2.yaml</span></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">phase</span><span class="value">ErrorHandling</span></div><div class="stat-row"><span class="label">priority</span><span class="value">999</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">path</span><span class="value">.*</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[3]</strong><div class="stat-row"><span class="label">id</span><span class="value">ping_module</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_ping</span></div><div class="stat-row"><span class="label">phase</span><span class="value">Content</span></div><div class="stat-row"><span class="label">priority</span><span class="value">500</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">path</span><span class="value">/ping/*$</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[4]</strong><div class="stat-row"><span class="label">id</span><span class="value">status_module</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_status</span></div>
+                            <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--accent); font-size: 0.95rem;">params</h4>
+                                <div style="margin-left: 0.75rem; border-left: 2px solid #334155; padding-left: 0.75rem;">
+                                    <div class="stat-row"><span class="label">config_file</span><span class="value">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_status.yaml</span></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">phase</span><span class="value">Content</span></div><div class="stat-row"><span class="label">priority</span><span class="value">500</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">path</span><span class="value">/status/*$</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[5]</strong><div class="stat-row"><span class="label">id</span><span class="value">forwarded_for</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_forwarded_for</span></div><div class="stat-row"><span class="label">path</span><span class="value">target/debug/libox_webservice_forwarded_for.so</span></div><div class="stat-row"><span class="label">phase</span><span class="value">PreEarlyRequest</span></div><div class="stat-row"><span class="label">priority</span><span class="value">100</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">path</span><span class="value">.*</span></div></div>
+                                </div>
+                            </div>
+                            </div><div style="margin-bottom: 0.5rem;"><strong>[6]</strong><div class="stat-row"><span class="label">id</span><span class="value">restore_ip</span></div><div class="stat-row"><span class="label">name</span><span class="value">ox_webservice_restore_ip</span></div><div class="stat-row"><span class="label">path</span><span class="value">target/debug/libox_webservice_restore_ip.so</span></div><div class="stat-row"><span class="label">phase</span><span class="value">PostLateRequest</span></div><div class="stat-row"><span class="label">priority</span><span class="value">100</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">uris (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">path</span><span class="value">.*</span></div></div>
+                                </div>
+                            </div>
+                            </div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">servers (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">bind_address</span><span class="value">127.0.0.1</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">hosts (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">name</span><span class="value">localhost</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">name</span><span class="value">example-1.com</span></div></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">id</span><span class="value">default_http</span></div><div class="stat-row"><span class="label">port</span><span class="value">8090</span></div><div class="stat-row"><span class="label">protocol</span><span class="value">http</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">bind_address</span><span class="value">0.0.0.0</span></div>
+                            <div style="margin-top: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">hosts (Array)</h4>
+                                <div style="margin-left: 0.75rem;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>[0]</strong><div class="stat-row"><span class="label">name</span><span class="value">localhost_ssl</span></div><div class="stat-row"><span class="label">tls_cert_path</span><span class="value">conf/certs/cert.pem</span></div><div class="stat-row"><span class="label">tls_key_path</span><span class="value">conf/certs/key.pem</span></div></div><div style="margin-bottom: 0.5rem;"><strong>[1]</strong><div class="stat-row"><span class="label">name</span><span class="value">example-ssl-1.com</span></div><div class="stat-row"><span class="label">tls_cert_path</span><span class="value">conf/certs/cert1.pem</span></div><div class="stat-row"><span class="label">tls_key_path</span><span class="value">conf/certs/key1.pem</span></div></div>
+                                </div>
+                            </div>
+                            <div class="stat-row"><span class="label">id</span><span class="value">default_https</span></div><div class="stat-row"><span class="label">port</span><span class="value">3002</span></div><div class="stat-row"><span class="label">protocol</span><span class="value">https</span></div></div>
+                                </div>
+                            </div>
+                            
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">ping_module Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    null
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">restore_ip Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    null
+                                 </div>
+                             </details>
+                             
+                             <details class="card" style="margin-bottom: 1rem;">
+                                 <summary style="cursor: pointer; font-weight: bold; color: var(--accent);">status_module Configuration</summary>
+                                 <div style="margin-top: 1rem;">
+                                    <div class="stat-row"><span class="label">config_file</span><span class="value">/var/repos/oxIDIZER/conf/defaults/modules/ox_webservice_status.yaml</span></div>
+                                 </div>
+                             </details>
+                             
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+modules:
+  - id: "ping_module"
+    name: "ox_webservice_ping"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/ping\/*$"

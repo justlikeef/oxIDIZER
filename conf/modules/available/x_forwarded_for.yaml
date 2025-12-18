@@ -1,0 +1,13 @@
+modules:
+  - id: "forwarded_for"
+    name: "ox_webservice_forwarded_for"
+    priority: 100
+    phase: PreEarlyRequest
+    uris:
+        - path: ".*"
+  - id: "restore_ip"
+    name: "ox_webservice_restore_ip"
+    priority: 100
+    phase: PostLateRequest
+    uris:
+        - path: ".*"

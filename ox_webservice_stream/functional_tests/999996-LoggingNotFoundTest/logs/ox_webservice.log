@@ -1,29 +1,84 @@
-2025-12-14 12:22:36 - INFO - log4rs initialized successfully.
-2025-12-14 12:22:36 - INFO - Starting ox_webservice...
-2025-12-14 12:22:36 - INFO - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
-2025-12-14 12:22:36 - DEBUG - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest"
-2025-12-14 12:22:36 - INFO - [ox_webservice_stream] ox_webservice_stream initialized
-2025-12-14 12:22:36 - INFO - Listening on 0.0.0.0:3000
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreEarlyRequest, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: EarlyRequest, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostEarlyRequest, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreAuthentication, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: Authentication, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostAuthentication, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreAuthorization, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: Authorization, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostAuthorization, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreContent, Body len: 0
-2025-12-14 12:22:38 - DEBUG - Executing phase: Content, Body len: 0
-2025-12-14 12:22:38 - INFO - Executing phase: Content with 1 modules
-2025-12-14 12:22:38 - DEBUG - [ox_webservice_stream] ox_webservice_stream: File not found for path: /non_existent_file.html
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostContent, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreAccounting, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: Accounting, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostAccounting, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreErrorHandling, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: ErrorHandling, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostErrorHandling, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PreLateRequest, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: LateRequest, Body len: 13
-2025-12-14 12:22:38 - DEBUG - Executing phase: PostLateRequest, Body len: 13
+2025-12-15 22:06:12 - INFO - log4rs initialized successfully.
+2025-12-15 22:06:12 - DEBUG - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/ox_webservice.yaml":
+{
+  "log4rs_config": "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/log4rs.yaml",
+  "modules": [
+    {
+      "id": "test_module_0",
+      "name": "ox_webservice_stream",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/ox_content.yaml"
+      },
+      "phase": "Content",
+      "priority": 999,
+      "uris": null
+    }
+  ],
+  "servers": [
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": ".*"
+        }
+      ],
+      "port": 3000,
+      "protocol": "http"
+    }
+  ],
+  "urls": [
+    {
+      "module_id": "test_module_0",
+      "url": ".*"
+    }
+  ]
+}
+2025-12-15 22:06:12 - INFO - Starting ox_webservice...
+2025-12-15 22:06:12 - INFO - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-15 22:06:12 - DEBUG - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest"
+2025-12-15 22:06:12 - DEBUG - [ox_webservice_stream] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2025-12-15 22:06:12 - INFO - [ox_webservice_stream] ox_webservice_stream initialized
+2025-12-15 22:06:12 - INFO - Listening on 0.0.0.0:3000
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: EarlyRequest, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreAuthentication, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: Authentication, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostAuthentication, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreAuthorization, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: Authorization, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostAuthorization, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreContent, Body len: 0
+2025-12-15 22:06:14 - DEBUG - Executing phase: Content, Body len: 0
+2025-12-15 22:06:14 - INFO - Executing phase: Content with 1 modules
+2025-12-15 22:06:14 - DEBUG - [ox_webservice_stream] ox_webservice_stream: File not found for path: /non_existent_file.html
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostContent, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreAccounting, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: Accounting, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostAccounting, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreErrorHandling, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: ErrorHandling, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostErrorHandling, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PreLateRequest, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: LateRequest, Body len: 13
+2025-12-15 22:06:14 - DEBUG - Executing phase: PostLateRequest, Body len: 13

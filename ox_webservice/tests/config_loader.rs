@@ -22,7 +22,7 @@ servers:
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 8080);
 }
@@ -52,7 +52,7 @@ fn test_load_config_from_json() {
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 8081);
     assert_eq!(config.servers[0].bind_address, "0.0.0.0");
@@ -79,7 +79,7 @@ name = "localhost"
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 443);
     assert_eq!(config.servers[0].protocol, "https");

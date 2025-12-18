@@ -1,5 +1,5 @@
 
-use ox_webservice_api::{HandlerResult, LogLevel};
+use ox_webservice_api::{HandlerResult, LogLevel, ModuleStatus, FlowControl};
 use ox_webservice_test_utils::{create_mock_api, ModuleLoader, mock_log, mock_alloc_raw};
 use std::io::Write;
 use tempfile::Builder;
@@ -29,14 +29,19 @@ fn test_errorhandler_basic_flow() {
     let api = create_mock_api();
     let params_json = format!(r#"{{"config_file": "{}"}}"#, config_file.path().to_str().unwrap());
     
-    let loader = ModuleLoader::load(initialize_module, &params_json, &api).expect("Failed to load module");
+    // Add module_id "test_module"
+    let loader = ModuleLoader::load(initialize_module, &params_json, "test_module", &api).expect("Failed to load module");
 
     // --- Test 1: Status < 400 (Should be ignored) ---
     {
         let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
         ps.status_code = 200;
         let result = loader.process_request(&mut ps, mock_log, mock_alloc_raw);
-        assert_eq!(result, HandlerResult::UnmodifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ox_webservice_api::ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert!(ps.response_body.is_empty());
     }
 
@@ -45,7 +50,11 @@ fn test_errorhandler_basic_flow() {
         let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
         ps.status_code = 404;
         let result = loader.process_request(&mut ps, mock_log, mock_alloc_raw);
-        assert_eq!(result, HandlerResult::ModifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ox_webservice_api::ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert_eq!(ps.response_body, b"Custom 404 Error: Not Found");
         assert_eq!(ps.response_headers.get("Content-Type").unwrap(), "text/html");
     }
@@ -59,7 +68,11 @@ fn test_errorhandler_basic_flow() {
         let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
         ps.status_code = 500;
         let result = loader.process_request(&mut ps, mock_log, mock_alloc_raw);
-        assert_eq!(result, HandlerResult::ModifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ox_webservice_api::ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert_eq!(ps.response_body, b"Generic Error: 500");
     }
 }
@@ -69,6 +82,6 @@ fn test_errorhandler_malformed_config() {
      let api = create_mock_api();
      // Bad JSON
      let params_json = "{ bad json }";
-     let result = ModuleLoader::load(initialize_module, params_json, &api);
+     let result = ModuleLoader::load(initialize_module, params_json, "test_module", &api);
      assert!(result.is_err());
 }

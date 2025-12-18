@@ -1,4 +1,8 @@
-use ox_webservice_api::{WebServiceApiV1, ModuleInterface, PipelineState, HandlerResult, LogCallback, AllocFn, LogLevel};
+use ox_webservice_api::{
+    WebServiceApiV1, ModuleInterface, PipelineState, HandlerResult,
+    LogCallback, AllocFn, AllocStrFn, LogLevel,
+    ModuleStatus, FlowControl, ReturnParameters, Phase,
+};
 use ox_persistence::{OxBuffer, DriverMetadata};
 use libc::{c_char, c_void, c_int, size_t};
 use std::ffi::{CStr, CString};
@@ -109,7 +113,13 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
         let json = serde_json::to_string(&meta_list).unwrap_or_default();
         pipeline_state.response_body = json.into_bytes();
         pipeline_state.status_code = 200;
-        return HandlerResult::ModifiedContinue;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     if request_path == "/drivers/reload" && method == "POST" {
@@ -134,7 +144,13 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
                 pipeline_state.response_body = msg.into_bytes();
             }
         }
-        return HandlerResult::ModifiedContinue;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     // Generic Operation Request: /data/{driver_name}/{operation}
@@ -143,7 +159,13 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
         let parts: Vec<&str> = request_path.split('/').collect();
         if parts.len() < 4 {
             pipeline_state.status_code = 400;
-            return HandlerResult::ModifiedContinue;
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
         }
         let driver_name = parts[2];
         let operation = parts[3];
@@ -197,21 +219,43 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
             pipeline_state.status_code = 404;
             pipeline_state.response_body = format!("Driver {} not found", driver_name).into_bytes();
         }
-        return HandlerResult::ModifiedContinue;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     // Default 404
     pipeline_state.status_code = 404;
-    HandlerResult::ModifiedContinue
+    HandlerResult {
+        status: ModuleStatus::Modified,
+        flow_control: FlowControl::Continue,
+        return_parameters: ReturnParameters {
+            return_data: std::ptr::null_mut(),
+        },
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn initialize_module(_module_params_json_ptr: *const c_char, api: *const WebServiceApiV1) -> *mut ModuleInterface {
+pub unsafe extern "C" fn initialize_module(_module_params_json_ptr: *const c_char, _module_id: *const c_char, api: *const WebServiceApiV1) -> *mut ModuleInterface {
     let module_interface = Box::new(ModuleInterface {
         instance_ptr: std::ptr::null_mut(),
         handler_fn: broker_handler,
         log_callback: (*api).log_callback,
+        get_config: get_config_c,
     });
     // On init, we could try to auto-load drivers, but explicit reload endpoint is safer for now.
     Box::into_raw(module_interface)
+}
+
+unsafe extern "C" fn get_config_c(
+    _instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    let json = "null";
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }

@@ -1,0 +1,18 @@
+# ------------------------------------------------------------------------------
+# ox_webservice_template_jinja2 Configuration
+# ------------------------------------------------------------------------------
+# This module renders Jinja2 templates.
+
+# content_root: Absolute path to the directory containing templates.
+content_root: "/var/repos/oxIDIZER/content/layouts/default/www"
+
+# mimetypes_file: Path to the mapping file for file extensions to MIME types.
+mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+
+# default_documents: List of templates to look for if a directory is requested.
+default_documents:
+  - document: "index.jinja2"
+
+# on_content_conflict: Action to take if response body already exists.
+# Options: "overwrite", "append", "skip", "error".
+on_content_conflict: "skip"

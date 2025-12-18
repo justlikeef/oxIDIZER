@@ -1,0 +1,29 @@
+pipeline:
+  # ----------------------------------------------------------------------------
+  # Pipeline Phases
+  # ----------------------------------------------------------------------------
+  # The execution order of request processing phases.
+  # Modules are assigned to specific phases to perform their tasks.
+  # FlowControl signals from modules determine transition between these phases.
+  phases:
+    - PreEarlyRequest     # Initial request setup, security checks
+    - EarlyRequest        # Early handling, rewriting
+    - PostEarlyRequest
+    - PreAuthentication
+    - Authentication      # Verify user identity
+    - PostAuthentication
+    - PreAuthorization
+    - Authorization       # Access control checks
+    - PostAuthorization
+    - PreContent
+    - Content             # Main content generation (e.g., Stream, Template)
+    - PostContent
+    - PreAccounting
+    - Accounting          # Logging, billing, statistics
+    - PostAccounting
+    - PreErrorHandling
+    - ErrorHandling       # Error page generation (404, 500)
+    - PostErrorHandling
+    - PreLateRequest
+    - LateRequest         # Final cleanup or response modification
+    - PostLateRequest

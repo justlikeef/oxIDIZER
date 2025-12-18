@@ -1,22 +1,66 @@
-2025-12-14T12:22:02.600608941-05:00 INFO ox_webservice - log4rs initialized successfully.
-2025-12-14T12:22:02.600754313-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-14T12:22:02.600964842-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
-2025-12-14T12:22:02.604490519-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
-2025-12-14T12:22:04.685231764-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
-2025-12-14T12:22:04.685483124-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
-2025-12-14T12:22:04.685500859-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
-2025-12-14T12:22:04.685514813-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
-2025-12-14T12:22:04.685529020-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
-2025-12-14T12:22:04.685543571-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
-2025-12-14T12:22:04.685556883-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
-2025-12-14T12:22:04.685572584-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
-2025-12-14T12:22:04.685606325-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
-2025-12-14T12:22:04.685626901-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
-2025-12-14T12:22:04.685641472-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
-2025-12-14T12:22:04.685654608-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
-2025-12-14T12:22:04.685677996-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
-2025-12-14T12:22:04.685710579-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
-2025-12-14T12:22:04.685730779-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
-2025-12-14T12:22:04.685761956-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
-2025-12-14T12:22:04.685784383-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
-2025-12-14T12:22:04.685816068-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0
+2025-12-15T22:05:35.433018854-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-15T22:05:35.433218277-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/ox_webservice.yaml":
+{
+  "log4rs_config": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/log4rs.yaml",
+  "servers": [
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": ".*",
+          "tls_cert_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/cert.pem",
+          "tls_key_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001002-ConfigHTTPS/key.pem"
+        }
+      ],
+      "port": 3443,
+      "protocol": "https"
+    }
+  ],
+  "urls": [
+    {
+      "module_id": "content_handler_1",
+      "url": "/extra_content_path/"
+    },
+    {
+      "module_id": "content_handler_1",
+      "url": "/another_path/"
+    },
+    {
+      "module_id": "content_error_handler",
+      "url": "/another_error/"
+    },
+    {
+      "hostname": "example-1.com",
+      "module_id": "content_handler_1",
+      "protocol": "http",
+      "url": "/specific_http_path/"
+    },
+    {
+      "hostname": "example-ssl-1.com",
+      "module_id": "content_handler_1",
+      "protocol": "https",
+      "url": "/specific_https_path/"
+    }
+  ]
+}
+2025-12-15T22:05:35.433245578-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-15T22:05:35.433485796-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-15T22:05:35.437556813-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-15T22:05:37.507519927-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
+2025-12-15T22:05:37.507706801-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
+2025-12-15T22:05:37.507717505-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
+2025-12-15T22:05:37.507725899-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
+2025-12-15T22:05:37.507733930-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
+2025-12-15T22:05:37.507741925-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
+2025-12-15T22:05:37.507749876-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
+2025-12-15T22:05:37.507757779-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
+2025-12-15T22:05:37.507776904-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
+2025-12-15T22:05:37.507785162-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
+2025-12-15T22:05:37.507792961-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
+2025-12-15T22:05:37.507800878-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
+2025-12-15T22:05:37.507813928-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
+2025-12-15T22:05:37.507822286-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
+2025-12-15T22:05:37.507830345-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 0
+2025-12-15T22:05:37.507838280-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 0
+2025-12-15T22:05:37.507845967-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 0
+2025-12-15T22:05:37.507853735-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 0

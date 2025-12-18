@@ -1,4 +1,53 @@
-2025-12-14T12:22:04.878369659-05:00 INFO ox_webservice - log4rs initialized successfully.
-2025-12-14T12:22:04.878535437-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-14T12:22:04.878810846-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
-2025-12-14T12:22:04.882489982-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
+2025-12-15T22:05:37.696333767-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-15T22:05:37.696480455-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/ox_webservice.yaml":
+{
+  "log4rs_config": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/log4rs.yaml",
+  "servers": [
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": "localhost",
+          "tls_cert_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-cert.pem",
+          "tls_key_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/localhost-key.pem"
+        },
+        {
+          "name": ".*",
+          "tls_cert_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-cert.pem",
+          "tls_key_path": "/var/repos/oxIDIZER/ox_webservice/functional_tests/001003-ConfigHTTPS-SNI/default-key.pem"
+        }
+      ],
+      "port": 3443,
+      "protocol": "https"
+    }
+  ],
+  "urls": [
+    {
+      "module_id": "content_handler_1",
+      "url": "/extra_content_path/"
+    },
+    {
+      "module_id": "content_handler_1",
+      "url": "/another_path/"
+    },
+    {
+      "module_id": "content_error_handler",
+      "url": "/another_error/"
+    },
+    {
+      "hostname": "example-1.com",
+      "module_id": "content_handler_1",
+      "protocol": "http",
+      "url": "/specific_http_path/"
+    },
+    {
+      "hostname": "example-ssl-1.com",
+      "module_id": "content_handler_1",
+      "protocol": "https",
+      "url": "/specific_https_path/"
+    }
+  ]
+}
+2025-12-15T22:05:37.696504259-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-15T22:05:37.696702233-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
+2025-12-15T22:05:37.698461191-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")

@@ -1,7 +1,8 @@
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, PipelineState,
+    WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use std::ffi::{CStr, CString};
 use std::panic;
@@ -31,7 +32,13 @@ impl<'a> OxModule<'a> {
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         if pipeline_state_ptr.is_null() {
             self.log(LogLevel::Error, "Pipeline state is null".to_string());
-            return HandlerResult::ModifiedJumpToError;
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+            };
         }
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
@@ -50,7 +57,13 @@ impl<'a> OxModule<'a> {
 
         if json_value_ptr.is_null() {
             self.log(LogLevel::Debug, "No 'original_source_ip' found in module context. Skipping restore.".to_string());
-            return HandlerResult::UnmodifiedContinue;
+            return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
         }
 
         let json_str = unsafe { CStr::from_ptr(json_value_ptr).to_string_lossy() };
@@ -60,14 +73,26 @@ impl<'a> OxModule<'a> {
             Ok(ip) => ip,
             Err(e) => {
                 self.log(LogLevel::Warn, format!("Failed to parse 'original_source_ip' JSON: {}. Value was: {}", e, json_str));
-                return HandlerResult::UnmodifiedContinue;
+                return HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters {
+                        return_data: std::ptr::null_mut(),
+                    },
+                };
             }
         };
 
         // 3. Restore Source IP
         let ip_c = match CString::new(original_ip.clone()) {
             Ok(s) => s,
-            Err(_) => return HandlerResult::UnmodifiedContinue,
+            Err(_) => return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            },
         };
 
         unsafe {
@@ -76,13 +101,20 @@ impl<'a> OxModule<'a> {
 
         self.log(LogLevel::Info, format!("Restored Source IP to {}", original_ip));
 
-        HandlerResult::ModifiedContinue
+        HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        }
     }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     _module_params_json_ptr: *const c_char,
+    _module_id: *const c_char,
     api_ptr: *const WebServiceApiV1,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
@@ -110,7 +142,17 @@ pub unsafe extern "C" fn initialize_module(
         instance_ptr,
         handler_fn: process_request_c,
         log_callback: api_instance.log_callback,
+        get_config: get_config_c,
     }))
+}
+
+unsafe extern "C" fn get_config_c(
+    _instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    let json = "null";
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
 
 unsafe extern "C" fn process_request_c(
@@ -121,7 +163,13 @@ unsafe extern "C" fn process_request_c(
     _arena: *const c_void, 
 ) -> HandlerResult {
     if instance_ptr.is_null() {
-        return HandlerResult::ModifiedJumpToError;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::JumpTo,
+            return_parameters: ReturnParameters {
+                return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+            },
+        };
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
@@ -135,7 +183,13 @@ unsafe extern "C" fn process_request_c(
              let log_msg = CString::new(format!("Panic in ox_webservice_restore_ip: {:?}", e)).unwrap();
              let module_name = CString::new(MODULE_NAME).unwrap();
              unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-             HandlerResult::ModifiedJumpToError
+             HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::JumpTo,
+                return_parameters: ReturnParameters {
+                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                },
+             }
         }
     }
 }
@@ -240,7 +294,13 @@ mod tests {
 
         let result = module.process_request(&mut ps as *mut _);
 
-        assert_eq!(result, HandlerResult::ModifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "127.0.0.1"));
     }
 
@@ -269,7 +329,13 @@ mod tests {
 
         let result = module.process_request(&mut ps as *mut _);
 
-        assert_eq!(result, HandlerResult::UnmodifiedContinue);
+        assert_eq!(result, HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "10.0.0.1"));
     }
 }
