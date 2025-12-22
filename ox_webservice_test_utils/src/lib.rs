@@ -21,18 +21,32 @@ pub unsafe extern "C" fn mock_log(level: LogLevel, module: *const c_char, messag
     println!("[{:?}] {}: {}", level, module_str, message_str);
 }
 
-pub unsafe extern "C" fn mock_alloc_str(_arena: *const c_void, s: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn mock_alloc_str(arena: *const c_void, s: *const c_char) -> *mut c_char {
     if s.is_null() { return ptr::null_mut(); }
-    let c_str = unsafe { CStr::from_ptr(s) };
-    let new_c_str = CString::new(c_str.to_bytes()).unwrap();
-    new_c_str.into_raw()
+    let c_str = CStr::from_ptr(s);
+    let bytes = c_str.to_bytes_with_nul();
+
+    if !arena.is_null() {
+        let bump = &*(arena as *const Bump);
+        let slice = bump.alloc_slice_copy(bytes);
+        slice.as_mut_ptr() as *mut c_char
+    } else {
+        // Fallback for tests that might not provide arena (though they should)
+        let new_c_str = CString::new(c_str.to_bytes()).unwrap();
+        new_c_str.into_raw()
+    }
 }
 
-pub unsafe extern "C" fn mock_alloc_raw(_arena: *mut c_void, size: usize, _align: usize) -> *mut c_void {
-    // In a real scenario, we might use the arena. For tests, malloc is fine, 
-    // but we intentionally leak to simulate the arena 'owning' it until request end.
-    let layout = std::alloc::Layout::from_size_align(size, 1).unwrap();
-    unsafe { std::alloc::alloc(layout) as *mut c_void }
+pub unsafe extern "C" fn mock_alloc_raw(arena: *mut c_void, size: usize, align: usize) -> *mut c_void {
+    if !arena.is_null() {
+         let bump = &mut *(arena as *mut Bump);
+         let layout = std::alloc::Layout::from_size_align(size, align).unwrap();
+         let ptr = bump.alloc_layout(layout);
+         ptr.as_ptr() as *mut c_void
+    } else {
+        let layout = std::alloc::Layout::from_size_align(size, align.max(1)).unwrap();
+        std::alloc::alloc(layout) as *mut c_void
+    }
 }
 
 pub unsafe extern "C" fn mock_get_context(_ps: *mut PipelineState, _k: *const c_char, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() }
@@ -42,12 +56,12 @@ pub unsafe extern "C" fn mock_get_str_path(ps: *mut PipelineState, _a: *const c_
     if ps.is_null() { return ptr::null_mut(); }
     let path = unsafe { &(*ps).request_path };
     let c_path = CString::new(path.as_str()).unwrap();
-    c_path.into_raw()
+    _f(_a, c_path.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_get_str_empty(_ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { 
     let empty = CString::new("").unwrap();
-    empty.into_raw()
+    _f(_a, empty.as_ptr())
 }
 
 // Request Headers Mocking
@@ -58,7 +72,7 @@ pub unsafe extern "C" fn mock_get_request_header(ps: *mut PipelineState, k: *con
     
     if let Some(val) = headers.get(key_str.as_ref()) {
          let c_val = CString::new(val.as_bytes()).unwrap();
-         c_val.into_raw()
+         _f(_a, c_val.as_ptr())
     } else {
         ptr::null_mut()
     }
@@ -68,21 +82,21 @@ pub unsafe extern "C" fn mock_get_request_headers(ps: *mut PipelineState, _a: *c
     if ps.is_null() { return ptr::null_mut(); }
     // Return empty JSON object for simplicity unless needed
     let json = CString::new("{}").unwrap();
-    json.into_raw()
+    _f(_a, json.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_get_request_query(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
     if ps.is_null() { return ptr::null_mut(); }
      let query = unsafe { &(*ps).request_query };
     let c_query = CString::new(query.as_str()).unwrap();
-    c_query.into_raw()
+    _f(_a, c_query.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_get_request_method(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
     if ps.is_null() { return ptr::null_mut(); }
      let method = unsafe { &(*ps).request_method };
     let c_method = CString::new(method.as_str()).unwrap();
-    c_method.into_raw()
+    _f(_a, c_method.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_get_request_body(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
@@ -92,14 +106,14 @@ pub unsafe extern "C" fn mock_get_request_body(ps: *mut PipelineState, _a: *cons
     // Assuming UTF-8 for tests.
     let s = String::from_utf8_lossy(body);
     let c_s = CString::new(s.as_ref()).unwrap();
-    c_s.into_raw()
+    _f(_a, c_s.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_get_source_ip(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
     if ps.is_null() { return ptr::null_mut(); }
-     let ip = unsafe { (*ps).source_ip.to_string() };
+    let ip = unsafe { (*ps).source_ip.to_string() };
     let c_ip = CString::new(ip).unwrap();
-    c_ip.into_raw()
+    _f(_a, c_ip.as_ptr())
 }
 
 
@@ -146,7 +160,7 @@ pub unsafe extern "C" fn mock_get_response_header(ps: *mut PipelineState, k: *co
     
     if let Some(val) = headers.get(key_str.as_ref()) {
          let c_val = CString::new(val.as_bytes()).unwrap();
-         c_val.into_raw()
+         _f(_a, c_val.as_ptr())
     } else {
         ptr::null_mut()
     }
@@ -157,7 +171,7 @@ pub unsafe extern "C" fn mock_get_response_body(ps: *mut PipelineState, _a: *con
     let body = unsafe { &(*ps).response_body };
     let s = String::from_utf8_lossy(body);
     let c_s = CString::new(s.as_ref()).unwrap();
-    c_s.into_raw()
+    _f(_a, c_s.as_ptr())
 }
 
 pub unsafe extern "C" fn mock_noop_cchar(_ps: *mut PipelineState, _v: *const c_char) {} 

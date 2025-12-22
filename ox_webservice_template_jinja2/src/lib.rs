@@ -36,17 +36,17 @@ struct MimeTypeConfig {
 
 #[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct DocumentConfig {
-    document: String,
+    pub document: String,
 }
 
 #[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct ContentConfig {
-    content_root: String,
-    mimetypes_file: String,
+    pub content_root: String,
+    pub mimetypes_file: String,
     #[serde(default)]
-    default_documents: Vec<DocumentConfig>,
+    pub default_documents: Vec<DocumentConfig>,
     #[serde(default)]
-    on_content_conflict: Option<ContentConflictAction>,
+    pub on_content_conflict: Option<ContentConflictAction>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -577,3 +577,6 @@ unsafe extern "C" fn get_config_c(
     let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
     alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
+
+#[cfg(test)]
+mod functional_tests_security;

@@ -207,3 +207,6 @@ unsafe extern "C" fn get_config_c(
     let json = "null";
     alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
+
+#[cfg(test)]
+mod tests;

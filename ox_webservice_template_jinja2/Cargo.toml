@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -32,3 +32,4 @@ libloading = "0.9.0"
 once_cell = "1.21.3"
 tempfile = "3.23.0"
 ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }
+lazy_static = "1.5.0"

@@ -5,7 +5,7 @@ edition = "2024"
 
 [lib]
 name = "ox_webservice_errorhandler_jinja2"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

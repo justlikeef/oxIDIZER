@@ -334,5 +334,7 @@ pub unsafe extern "C" fn get_config(
 
 #[cfg(test)]
 mod functional_tests;
+#[cfg(test)]
+mod functional_tests_security;
 
 
