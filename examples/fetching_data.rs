@@ -1,26 +1,23 @@
 use std::sync::Arc;
 use ox_data_object::GenericDataObject;
 use ox_locking::LockableGenericDataObject;
-use ox_persistence::{PERSISTENCE_DRIVER_REGISTRY, Persistent};
-use ox_persistence_mysql::MySqlDriver;
+use ox_persistence::{Persistent};
+use ox_persistence_driver_db_mysql;
 
 fn main() {
     // Register the MySQL driver
-    {
-        let mut registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
-        registry.register_driver("mysql", Arc::new(MySqlDriver));
-    }
+    ox_persistence_driver_db_mysql::MysqlPersistenceDriver::register();
 
     // Create a filter object
     let mut filter_gdo = GenericDataObject::new("id", None);
     filter_gdo.set("city", "New York".to_string()).unwrap();
-    let filter_object = LockableGenericDataObject::new(filter_gdo);
-
+    
+    // We can use the GDO directly for fetching since it implements Persistent
     println!("Fetching objects with city: New York...");
 
     // Fetch the data
     let mysql_connection_string = "mysql://user:password@localhost/my_database";
-    match filter_object.fetch("mysql", mysql_connection_string) {
+    match filter_gdo.fetch("mysql", mysql_connection_string) {
         Ok(fetched_objects) => {
             println!("Successfully fetched {} objects:", fetched_objects.len());
             for (i, mut obj) in fetched_objects.into_iter().enumerate() {

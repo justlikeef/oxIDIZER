@@ -210,7 +210,33 @@ impl<'a> OxModule<'a> {
                 },
              };
         }
-        let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+        let raw_request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+
+        // Check for regex matches in module context
+        let regex_matches_key = CString::new("regex_matches").unwrap();
+        let regex_matches_ptr = unsafe {
+            (self.api.get_module_context_value)(pipeline_state, regex_matches_key.as_ptr(), arena_ptr, self.api.alloc_str)
+        };
+        
+        let mut request_path = raw_request_path;
+        // Need to keep the CString alive if we allocate one, but here we just have a pointer to arena-allocated memory.
+        
+        let mut regex_path_buf_storage: Option<String> = None;
+
+        if !regex_matches_ptr.is_null() {
+            let regex_matches_json = unsafe { CStr::from_ptr(regex_matches_ptr).to_str().unwrap_or("[]") };
+            self.log(LogLevel::Debug, format!("ox_webservice_stream: Found regex_matches: {}", regex_matches_json));
+             if let Ok(Value::Array(matches)) = serde_json::from_str::<Value>(regex_matches_json) {
+                 if let Some(Value::String(first_match)) = matches.get(0) {
+                     // Use the first capture group as the path
+                     regex_path_buf_storage = Some(first_match.clone());
+                 }
+             }
+        }
+
+        if let Some(ref p) = regex_path_buf_storage {
+            request_path = p.as_str();
+        }
 
         if let Some(file_path) = self.resolve_and_find_file(request_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
@@ -224,109 +250,104 @@ impl<'a> OxModule<'a> {
                 }
             });
 
-            if let Some(mapping) = mimetype_mapping {
-                    
-                    // Late Conflict Check (Optimization: Skip/Error handled early)
-                    if has_existing_content {
-                         // Only Overwrite and Append reach here
-                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
-                             ContentConflictAction::skip | ContentConflictAction::error => {
-                                 // Should have been caught early
-                                 return HandlerResult {
-                                    status: ModuleStatus::Unmodified,
-                                    flow_control: FlowControl::Continue,
-                                    return_parameters: ReturnParameters {
-                                        return_data: std::ptr::null_mut(),
-                                    },
-                                 }; 
-                             },
-                             _ => {} // Proceed for Overwrite/Append
-                         }
+            // Determine mimetype (explicit or default)
+            let mimetype = if let Some(mapping) = mimetype_mapping {
+                mapping.mimetype.clone()
+            } else {
+                "application/octet-stream".to_string()
+            };
+
+            // Late Conflict Check (Optimization: Skip/Error handled early)
+            if has_existing_content {
+                    // Only Overwrite and Append reach here
+                    match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
+                        ContentConflictAction::skip | ContentConflictAction::error => {
+                            // Should have been caught early
+                            return HandlerResult {
+                            status: ModuleStatus::Unmodified,
+                            flow_control: FlowControl::Continue,
+                            return_parameters: ReturnParameters {
+                                return_data: std::ptr::null_mut(),
+                            },
+                            }; 
+                        },
+                        _ => {} // Proceed for Overwrite/Append
                     }
+            }
 
-                    // Verify file existence and readability without loading into memory
-                    match fs::metadata(&file_path) {
-                        Ok(metadata) => {
-                             if !metadata.is_file() {
-                                  // Not a file (e.g. directory)
-                                  unsafe { (self.api.set_response_status)(pipeline_state, 404); }
-                                  return HandlerResult {
-                                     status: ModuleStatus::Modified,
-                                     flow_control: FlowControl::Continue, // Or halt?
-                                     return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-                                  };
-                             }
-                             
-                             // Check readability? fs::read check is expensive if file is large.
-                             // fs::File::open is better.
-                             if let Err(e) = fs::File::open(&file_path) {
-                                  self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", request_path, e));
-                                  unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                                  return HandlerResult {
-                                      status: ModuleStatus::Modified,
-                                      flow_control: FlowControl::JumpTo,
-                                      return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void },
-                                  };
-                             }
-
-                             self.log(
-                                LogLevel::Debug,
-                                format!(
-                                    "ox_webservice_stream: Streaming file for path: {}",
-                                    request_path
-                                ),
-                            );
-
-                            // Set Content-Type
-                            unsafe {
-                                let c_content_type_key = CString::new("Content-Type").unwrap();
-                                let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
-                                (self.api.set_response_header)(
-                                    pipeline_state,
-                                    c_content_type_key.as_ptr(),
-                                    c_content_type_value.as_ptr(),
-                                );
-                            }
-
-                            // Pass file path to host
-                            // Host takes ownership of the CString pointer
-                            let c_path = CString::new(file_path.to_string_lossy().into_owned()).unwrap();
-                            let return_data = c_path.into_raw() as *mut c_void;
-
+            // Verify file existence and readability without loading into memory
+            match fs::metadata(&file_path) {
+                Ok(metadata) => {
+                        if !metadata.is_file() {
+                            // Not a file (e.g. directory)
+                            unsafe { (self.api.set_response_status)(pipeline_state, 404); }
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
-                                flow_control: FlowControl::StreamFile,
-                                return_parameters: ReturnParameters {
-                                    return_data,
-                                },
+                                flow_control: FlowControl::Continue, // Or halt?
+                                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
                             };
                         }
-                        Err(e) => {
-                             self.log(
-                                LogLevel::Error,
-                                format!(
-                                    "ox_webservice_stream: Error accessing file metadata for path {}: {}",
-                                    request_path, e
-                                ),
-                            );
-
+                        
+                        // Check readability? fs::File::open is better.
+                        if let Err(e) = fs::File::open(&file_path) {
+                            self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", request_path, e));
                             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
-                                flow_control: FlowControl::JumpTo, // Go to error handling
-                                return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void }, 
+                                flow_control: FlowControl::JumpTo,
+                                return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void },
                             };
                         }
+
+                        self.log(
+                        LogLevel::Debug,
+                        format!(
+                            "ox_webservice_stream: Streaming file for path: {}",
+                            request_path
+                        ),
+                    );
+
+                    // Set Content-Type
+                    unsafe {
+                        let c_content_type_key = CString::new("Content-Type").unwrap();
+                        let c_content_type_value = CString::new(mimetype.as_str()).unwrap();
+                        (self.api.set_response_header)(
+                            pipeline_state,
+                            c_content_type_key.as_ptr(),
+                            c_content_type_value.as_ptr(),
+                        );
+                        // Explicitly set 200 OK
+                        (self.api.set_response_status)(pipeline_state, 200);
                     }
 
-            } else {
-                // Mimetype not found, just continue but don't log error as it might be handled by another module (or not)
-                 HandlerResult {
-                    status: ModuleStatus::Unmodified,
-                    flow_control: FlowControl::Continue,
-                    return_parameters: ReturnParameters {
-                        return_data: std::ptr::null_mut(),
-                    },
+                    // Pass file path to host
+                    // Host takes ownership of the CString pointer
+                    let c_path = CString::new(file_path.to_string_lossy().into_owned()).unwrap();
+                    let return_data = c_path.into_raw() as *mut c_void;
+
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::StreamFile,
+                        return_parameters: ReturnParameters {
+                            return_data,
+                        },
+                    };
+                }
+                Err(e) => {
+                        self.log(
+                        LogLevel::Error,
+                        format!(
+                            "ox_webservice_stream: Error accessing file metadata for path {}: {}",
+                            request_path, e
+                        ),
+                    );
+
+                    unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::JumpTo, // Go to error handling
+                        return_parameters: ReturnParameters { return_data: (Phase::ErrorHandling as usize) as *mut c_void }, 
+                    };
                 }
             }
         } else {

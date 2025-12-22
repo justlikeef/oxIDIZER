@@ -36,6 +36,30 @@ fn load_recursive(path: &Path, parent_vars: &HashMap<String, String>, visited: &
     res
 }
 
+pub fn read_raw_file(path: &Path) -> Result<String> {
+    let content = fs::read_to_string(path)
+        .with_context(|| format!("Failed to read file: {:?}", path))?;
+    Ok(content)
+}
+
+pub fn parse_content(content: &str, extension: &str) -> Result<Value> {
+    match extension {
+        "json" => serde_json::from_str(content).map_err(Into::into),
+        "yaml" | "yml" => serde_yaml::from_str(content).map_err(Into::into),
+        "toml" => {
+            let toml_val: toml::Value = toml::from_str(content)?;
+            Ok(serde_json::to_value(toml_val)?)
+        },
+        "xml" => quick_xml::de::from_str(content).map_err(Into::into),
+        "json5" => json5::from_str(content).map_err(Into::into),
+        "kdl" => {
+            let doc: kdl::KdlDocument = content.parse()?;
+            kdl_to_json_value(&doc)
+        },
+        _ => Err(anyhow!("Unsupported file extension: {}", extension)),
+    }
+}
+
 fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<Value> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("Failed to read file: {:?}", path))?;
@@ -45,21 +69,8 @@ fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visi
         .unwrap_or("")
         .to_lowercase();
 
-    let mut value: Value = match extension.as_str() {
-        "json" => serde_json::from_str(&content)?,
-        "yaml" | "yml" => serde_yaml::from_str(&content)?,
-        "toml" => {
-            let toml_val: toml::Value = toml::from_str(&content)?;
-            serde_json::to_value(toml_val)?
-        },
-        "xml" => quick_xml::de::from_str(&content)?,
-        "json5" => json5::from_str(&content)?,
-        "kdl" => {
-            let doc: kdl::KdlDocument = content.parse()?;
-            kdl_to_json_value(&doc)?
-        },
-        _ => return Err(anyhow!("Unsupported file extension: {}", extension)),
-    };
+    let mut value = parse_content(&content, &extension)
+        .with_context(|| format!("Error parsing file: {:?}", path))?;
 
     // 1. Extract and Process Substitutions
     let mut current_vars = parent_vars.clone();
@@ -97,7 +108,8 @@ fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visi
 
     // 3. Process Includes
     // 3. Process Includes
-    process_includes(&mut value, path, &current_vars, visited, current_depth, max_depth)?;
+    process_includes(&mut value, path, &current_vars, visited, current_depth, max_depth)
+        .with_context(|| format!("Error processing includes in file {:?}", path))?;
 
     Ok(value)
 }
@@ -841,4 +853,23 @@ mod tests {
         let val = process_file(main_file.path(), 5).unwrap();
         assert_eq!(val["a"], 1);
     }
+    #[test]
+    fn test_read_raw_file() {
+        let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        let content = r#"{
+            "include": "other.json",
+            "val": "raw_value",
+            "sub": "${VAR}"
+        }"#;
+        write!(file, "{}", content).unwrap();
+        
+        // read_raw_file should return the raw string content
+        let val = read_raw_file(file.path()).unwrap();
+        
+        assert!(val.contains(r#""val": "raw_value""#));
+        assert!(val.contains(r#""include": "other.json""#));
+        assert!(val.contains(r#""sub": "${VAR}""#));
+    }
 }
+
+

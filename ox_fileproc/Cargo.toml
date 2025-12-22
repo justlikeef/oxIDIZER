@@ -14,6 +14,7 @@ thiserror = "1.0"
 quick-xml = { version = "0.38.4", features = ["serde", "serialize"] }
 json5 = "1.2.0"
 kdl = "6.5.0"
+toml_edit = "0.22"
 
 [dev-dependencies]
 tempfile = "3.23.0"

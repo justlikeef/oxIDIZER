@@ -1,0 +1,29 @@
+log4rs_config: /var/repos/oxIDIZER/conf/log4rs.yaml
+servers:
+- port: 3000
+  bind_address: 0.0.0.0
+  protocol: http
+  hosts:
+  - name: .*
+modules:
+  - id: "status_module"
+    name: "ox_webservice_status"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/status(|\\/.*)(\\?.*)?$"
+    headers:
+      Accept: "application/json"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_status.yaml"
+  - id: "stream_status"
+    name: "ox_webservice_stream"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/status(|\\/.*)(\\?.*)?$"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_stream_status.yaml"
+urls:
+- url: .*
+  module_id: status_module # Not strictly strictly enforced here, pipeline iterates phases

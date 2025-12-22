@@ -119,9 +119,17 @@ declare -a result_statuses
 highest_exit_code=1
 
 for module in "${MODULES[@]}"; do
-    log_message "$LOGGING_LEVEL" "info" "Processing module: $module"
+    # Parse the line into module name and optional test number
+    read -r -a LINE_PARTS <<< "$module"
+    MODULE_NAME="${LINE_PARTS[0]}"
+    TEST_NUMBER="${LINE_PARTS[1]}"
 
-    MODULE_DIR="./$module"
+    log_message "$LOGGING_LEVEL" "info" "Processing module: $MODULE_NAME"
+    if [ -n "$TEST_NUMBER" ]; then
+        log_message "$LOGGING_LEVEL" "info" "Targeting specific test number: $TEST_NUMBER"
+    fi
+
+    MODULE_DIR="./$MODULE_NAME"
     FUNCTIONAL_TESTS_DIR="$MODULE_DIR/functional_tests"
 
     if [ ! -d "$MODULE_DIR" ]; then
@@ -131,13 +139,30 @@ for module in "${MODULES[@]}"; do
     fi
 
     if [ ! -d "$FUNCTIONAL_TESTS_DIR" ]; then
-        log_message "$LOGGING_LEVEL" "warn" "'functional_tests' directory not found in '$module'. Skipping."
+        log_message "$LOGGING_LEVEL" "warn" "'functional_tests' directory not found in '$MODULE_NAME'. Skipping."
         log_message "$LOGGING_LEVEL" "info" "--------------------------------------------------"
         continue
     fi
 
-    # Find all test.sh files and sort them numerically by their parent directory
-    TEST_FILES=$(find "$FUNCTIONAL_TESTS_DIR" -type f -name "test.sh" -not -path "*/functional_tests/common/*" | sort -t/ -k4,4n)
+    # Find all test.sh files
+    ALL_TEST_FILES=$(find "$FUNCTIONAL_TESTS_DIR" -type f -name "test.sh" -not -path "*/functional_tests/common/*")
+    
+    TEST_FILES=""
+    if [ -n "$TEST_NUMBER" ]; then
+        # Filter for tests matching the test number in their parent directory name
+        # We expect the directory to start with the number, e.g., 100001-Name
+        for f in $ALL_TEST_FILES; do
+             parent_dir=$(basename "$(dirname "$f")")
+             if [[ "$parent_dir" == "$TEST_NUMBER"* ]]; then
+                 TEST_FILES="$TEST_FILES $f"
+             fi
+        done
+    else
+        TEST_FILES="$ALL_TEST_FILES"
+    fi
+    
+    # Sort them numerically by their parent directory
+    TEST_FILES=$(echo "$TEST_FILES" | tr ' ' '\n' | sort -t/ -k4,4n | grep -v '^$')
 
     if [ -z "$TEST_FILES" ]; then
         log_message "$LOGGING_LEVEL" "info" "No tests found in '$FUNCTIONAL_TESTS_DIR'."
@@ -167,7 +192,8 @@ for module in "${MODULES[@]}"; do
                 ;;
             255)
                 status="FAILED"
-                log_message "$LOGGING_LEVEL" "debug" "$OUTPUT"
+                # Always print output on failure
+                log_message "$LOGGING_LEVEL" "error" "$OUTPUT"
                 log_message "$LOGGING_LEVEL" "error" "Result: FAILED"
                 if [ "$highest_exit_code" -ne 255 ]; then
                     highest_exit_code=255

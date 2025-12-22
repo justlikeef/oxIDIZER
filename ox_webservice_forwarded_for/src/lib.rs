@@ -317,12 +317,15 @@ mod tests {
             set_response_status: mock_set_resp_status,
             set_response_header: mock_set_resp_header,
             set_response_body: mock_set_resp_body,
+            get_server_metrics: unsafe { std::mem::transmute(mock_get_req_body as *const ()) }, // Reuse dummy
+            get_response_body: unsafe { std::mem::transmute(mock_get_req_body as *const ()) }, // Reuse dummy
+            get_all_configs: unsafe { std::mem::transmute(mock_get_req_body as *const ()) }, // Reuse dummy
         }
     }
 
     #[test]
     fn test_process_request_with_header() {
-        MOCK_HEADERS.with(|h| h.borrow_mut().insert("X-Forwarded-For".to_string(), "10.0.0.1, 192.168.1.1".to_string()));
+        MOCK_HEADERS.with(|h| h.borrow_mut().insert("x-forwarded-for".to_string(), "10.0.0.1, 192.168.1.1".to_string()));
         MOCK_SOURCE_IP.with(|ip| *ip.borrow_mut() = "127.0.0.1".to_string());
         MOCK_CONTEXT.with(|ctx| ctx.borrow_mut().clear());
 
@@ -342,6 +345,7 @@ mod tests {
             response_headers: axum::http::HeaderMap::new(),
             response_body: vec![],
             module_context: std::sync::Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
 
         let result = module.process_request(&mut ps as *mut _);
@@ -350,8 +354,7 @@ mod tests {
             status: ModuleStatus::Modified,
             flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
-                target_phase: Phase::Content,
-                extra_data: std::ptr::null_mut(),
+                return_data: std::ptr::null_mut(),
             },
         });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "10.0.0.1"));
@@ -381,6 +384,7 @@ mod tests {
             response_headers: axum::http::HeaderMap::new(),
             response_body: vec![],
             module_context: std::sync::Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
 
         let result = module.process_request(&mut ps as *mut _);
@@ -389,8 +393,7 @@ mod tests {
             status: ModuleStatus::Unmodified,
             flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
-                target_phase: Phase::Content,
-                extra_data: std::ptr::null_mut(),
+                return_data: std::ptr::null_mut(),
             },
         });
         MOCK_SOURCE_IP.with(|ip| assert_eq!(*ip.borrow(), "127.0.0.1"));

@@ -189,6 +189,10 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub uris: Option<Vec<UriMatcher>>,
     #[serde(default)]
+    pub headers: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub query: Option<HashMap<String, String>>,
+    #[serde(default)]
     pub path: Option<String>,
     #[serde(default)]
     pub error_path: Option<String>,
@@ -205,6 +209,8 @@ impl Default for ModuleConfig {
             name: String::new(),
             params: None,
             uris: None,
+            headers: None,
+            query: None,
             path: None,
             error_path: None,
             phase: default_phase(),

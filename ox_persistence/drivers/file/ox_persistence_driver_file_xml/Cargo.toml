@@ -1,0 +1,18 @@
+[package]
+name = "ox_persistence_driver_file_xml"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ox_persistence = { path = "../../../" }
+ox_locking = { path = "../../../../ox_locking" }
+ox_data_object = { path = "../../../../ox_data_object" }
+ox_type_converter = { path = "../../../../ox_type_converter" }
+quick-xml = { version = "0.31", features = ["serialize"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+libc = "0.2"
+bumpalo = "3.19.0"

@@ -4,6 +4,27 @@ modules:
     priority: 500
     phase: Content
     uris:
-        - path: "\/status\/*$"
+        - path: "\/status(|\\/.*)(\\?.*)?$"
+    headers:
+        Accept: "application/json"
     params:
       config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_status.yaml"
+  - id: "status_module_query"
+    name: "ox_webservice_status"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/status(|\\/.*)(\\?.*)?$"
+    query:
+    query:
+        format: "json"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_status.yaml"
+  - id: "stream_status"
+    name: "ox_webservice_stream"
+    priority: 500
+    phase: Content
+    uris:
+        - path: "\/status(|\\/.*)(\\?.*)?$"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_stream_status.yaml"

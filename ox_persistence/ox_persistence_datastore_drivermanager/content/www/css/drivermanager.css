@@ -1,0 +1,157 @@
+@import url("/css/common.css");
+
+/* Extra styles for drivers */
+.driver-meta {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.driver-meta p {
+    margin: 4px 0;
+}
+
+/* Redesign overwrites */
+.kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    overflow: hidden;
+}
+
+.kv-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+    text-align: right;
+}
+
+.card.status-ok {
+    background-color: rgba(39, 174, 96, 0.1);
+    border-color: #27ae60;
+}
+
+.card.status-error {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-color: #e74c3c;
+}
+
+.card-header {
+    display: flex;
+    justify-content: flex-start;
+    /* Align to left */
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+/* Override common.card-header if it exists or just style here */
+.card-header .status-badge {
+    order: -1;
+    /* Move to first */
+    margin: 0;
+    /* Reset margins */
+    background: transparent;
+    /* Remove background */
+    border: none;
+    /* Remove border */
+    padding: 0;
+    /* Align tightly */
+    font-weight: 800;
+    /* Bold text */
+    font-size: 1rem;
+}
+
+.card.status-ok .status-badge {
+    color: #27ae60;
+}
+
+.card.status-error .status-badge {
+    color: #e74c3c;
+}
+
+.card-header .card-title {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.25rem;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    text-decoration: none;
+
+    /* 3D Texture Effect */
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+    position: relative;
+    top: 0;
+}
+
+.btn:hover,
+.btn:active {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    top: 3px;
+    transform: none;
+    /* Override hover transform if any */
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+    top: 3px;
+}
+
+.btn-enable {
+    background-color: var(--card-bg);
+    /* Dark background */
+    border-color: var(--success);
+    color: var(--success);
+    box-shadow: 0 4px 0 #1e8449;
+    /* Darker green shadow */
+}
+
+/* On hover/active, depress the button (reduce shadow, move down) */
+.btn-enable:hover:not(:disabled),
+.btn-enable:active:not(:disabled) {
+    background-color: var(--success);
+    color: #fff;
+    box-shadow: 0 1px 0 #196f3d;
+}
+
+/* "Disable" button styled like disabled cards (Red/Error) */
+.btn-disable {
+    background-color: var(--card-bg);
+    border-color: #e74c3c;
+    /* Red */
+    color: #e74c3c;
+    box-shadow: 0 4px 0 #c0392b;
+    /* Darker red shadow */
+}
+
+.btn-disable:hover:not(:disabled),
+.btn-disable:active:not(:disabled) {
+    background-color: #e74c3c;
+    color: white;
+    box-shadow: 0 1px 0 #a93226;
+}

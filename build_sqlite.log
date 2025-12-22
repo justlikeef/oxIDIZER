@@ -1,0 +1,154 @@
+warning: unused imports: `CString` and `c_void`
+ --> ox_persistence/src/lib.rs:6:16
+  |
+6 | use std::ffi::{c_void, CString};
+  |                ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `libc::c_char`
+ --> ox_persistence/src/lib.rs:7:5
+  |
+7 | use libc::c_char;
+  |     ^^^^^^^^^^^^
+
+warning: `ox_persistence` (lib) generated 2 warnings (run `cargo fix --lib -p ox_persistence` to apply 2 suggestions)
+warning: unused import: `std::collections::HashMap`
+ --> ox_persistence/drivers/ox_persistence_driver_sql/src/sql_builder.rs:2:5
+  |
+2 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `serializable_map`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:14:9
+   |
+14 |         serializable_map: &Hash...
+   |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_serializable_map`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `location`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:15:9
+   |
+15 |         location: &str,
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_location`
+
+warning: unused variable: `location`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:22:9
+   |
+22 |         location: &str,
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_location`
+
+warning: unused variable: `id`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:23:9
+   |
+23 |         id: &str,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `filter`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:28:21
+   |
+28 | ...h(&self, filter: &HashMap<St...
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_filter`
+
+warning: unused variable: `location`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:28:93
+   |
+28 | ...ng>)>, location: &str) -> Re...
+   |           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_location`
+
+warning: unused variable: `lock_status`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:32:41
+   |
+32 | ...&self, lock_status: &str, gd...
+   |           ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_lock_status`
+
+warning: unused variable: `gdo_id`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:32:60
+   |
+32 | ...s: &str, gdo_id: &str) {
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_gdo_id`
+
+warning: unused variable: `connection_info`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:36:33
+   |
+36 | ...elf, connection_info: &HashM...
+   |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_info`
+
+warning: unused variable: `connection_info`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:40:29
+   |
+40 | ...elf, connection_info: &HashM...
+   |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_info`
+
+warning: unused variable: `connection_info`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:43:32
+   |
+43 | ...elf, connection_info: &HashM...
+   |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_info`
+
+warning: unused variable: `dataset_name`
+  --> ox_persistence/drivers/ox_persistence_driver_sql/src/lib.rs:43:75
+   |
+43 | ...ring>, dataset_name: &str) -...
+   |           ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_dataset_name`
+
+warning: `ox_persistence_driver_sql` (lib) generated 13 warnings (run `cargo fix --lib -p ox_persistence_driver_sql` to apply 1 suggestion)
+   Compiling ox_persistence_driver_sqlite v0.1.0 (/var/repos/oxIDIZER/ox_persistence/drivers/ox_persistence_driver_sqlite)
+warning: unused import: `Arc`
+ --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:6:17
+  |
+6 | use std::sync::{Arc, Mutex};
+  |                 ^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no variant or associated item named `Sqlite` found for enum `SqlDialect` in the current scope
+  --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:25:51
+   |
+25 |         let builder = SqlBuilder::new(SqlDialect::Sqlite);
+   |                                                   ^^^^^^ variant or associated item not found in `SqlDialect`
+
+error[E0599]: no variant or associated item named `Sqlite` found for enum `SqlDialect` in the current scope
+  --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:80:51
+   |
+80 |         let builder = SqlBuilder::new(SqlDialect::Sqlite);
+   |                                                   ^^^^^^ variant or associated item not found in `SqlDialect`
+
+error[E0599]: no variant or associated item named `Sqlite` found for enum `SqlDialect` in the current scope
+   --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:122:51
+    |
+122 |         let builder = SqlBuilder::new(SqlDialect::Sqlite);
+    |                                                   ^^^^^^ variant or associated item not found in `SqlDialect`
+
+warning: unused variable: `lock_status`
+   --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:178:41
+    |
+178 |     fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+    |                                         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_lock_status`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `gdo_id`
+   --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:178:60
+    |
+178 |     fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+    |                                                            ^^^^^^ help: if this is intentional, prefix it with an underscore: `_gdo_id`
+
+warning: unused variable: `connection_info`
+   --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:182:33
+    |
+182 |     fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    |                                 ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_info`
+
+warning: unused variable: `connection_info`
+   --> ox_persistence/drivers/ox_persistence_driver_sqlite/src/lib.rs:187:29
+    |
+187 |     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    |                             ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_connection_info`
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `ox_persistence_driver_sqlite` (lib) generated 5 warnings
+error: could not compile `ox_persistence_driver_sqlite` (lib) due to 3 previous errors; 5 warnings emitted

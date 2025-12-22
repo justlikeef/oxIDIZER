@@ -1,0 +1,17 @@
+modules:
+  - id: "driver_manager"
+    name: "ox_persistence_datastore_drivermanager"
+    priority: 100
+    phase: Content
+    uris:
+      - path: "^\/drivers(\/.*)?$"
+    params:
+      drivers_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_persistence/drivers.yaml"
+  - id: "stream_drivermanager"
+    name: "ox_webservice_stream"
+    priority: 100
+    phase: Content
+    uris:
+      - path: "^\/drivermanager(\/.*)?$"
+    params:
+      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_persistence_datastore_drivermanager/ox_webservice_stream.yaml"

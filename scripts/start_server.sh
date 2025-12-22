@@ -63,6 +63,9 @@ if [ ! -f "$SERVER_BIN" ]; then
     exit 1
 fi
 
+cd "$WORKSPACE_DIR" || exit 1
+log_message "$LOG_LEVEL" "debug" "Changed directory to $WORKSPACE_DIR"
+
 log_message "$LOG_LEVEL" "debug" "Executing: $SERVER_BIN -c \"$CONFIG_FILE\" run > \"$LOG_FILE\" 2>&1 &"
 "$SERVER_BIN" -c "$CONFIG_FILE" run > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!

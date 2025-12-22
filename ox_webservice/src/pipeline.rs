@@ -109,8 +109,8 @@ thread_local! {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn alloc_str_c(arena: *const c_void, s: *const libc::c_char) -> *mut libc::c_char { unsafe {
     let arena = &*(arena as *const Bump);
-    let s = CStr::from_ptr(s).to_str().unwrap();
-    let c_string = CString::new(s).unwrap();
+    let s = CStr::from_ptr(s).to_string_lossy();
+    let c_string = CString::new(s.into_owned()).unwrap_or_default();
     let ptr = c_string.as_ptr() as *mut libc::c_char;
     let len = c_string.as_bytes_with_nul().len();
     
@@ -266,7 +266,10 @@ pub unsafe extern "C" fn get_module_context_value_c(
     arena: *const c_void,
     alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
 ) -> *mut libc::c_char { unsafe {
-    let key = CStr::from_ptr(key).to_str().unwrap();
+    let key = match CStr::from_ptr(key).to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
     let pipeline_state = &mut *pipeline_state_ptr;
     let value = pipeline_state.module_context.read().unwrap().get(key).cloned();
     if let Some(value) = value {
@@ -286,9 +289,9 @@ pub unsafe extern "C" fn set_module_context_value_c(
     key: *const libc::c_char,
     value_json: *const libc::c_char,
 ) { unsafe {
-    let key = CStr::from_ptr(key).to_str().unwrap().to_string();
-    let value_json = CStr::from_ptr(value_json).to_str().unwrap();
-    let value: Value = serde_json::from_str(value_json).unwrap();
+    let key = CStr::from_ptr(key).to_string_lossy().to_string();
+    let value_json = CStr::from_ptr(value_json).to_string_lossy();
+    let value: Value = serde_json::from_str(&value_json).unwrap_or(Value::Null);
     let pipeline_state = &mut *pipeline_state_ptr;
     pipeline_state.module_context.write().unwrap().insert(key, value);
 }}
@@ -345,13 +348,24 @@ pub unsafe extern "C" fn get_request_header_c(
     arena: *const c_void,
     alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
 ) -> *mut libc::c_char { unsafe {
-    let key = CStr::from_ptr(key).to_str().unwrap();
+    let c_str = CStr::from_ptr(key);
+    let key_str = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(), // Return null if key is invalid UTF-8
+    };
+
     let pipeline_state = &*pipeline_state_ptr;
-    if let Some(value) = pipeline_state.request_headers.get(key) {
-        alloc_fn(
-            arena,
-            CString::new(value.to_str().unwrap()).unwrap().as_ptr(),
-        )
+    if let Some(value) = pipeline_state.request_headers.get(key_str) {
+        // Value might also contain non-utf8 bytes? Header values are usually ASCII but can be opaque bytes.
+        // axum::http::HeaderValue::to_str returns Result.
+        if let Ok(val_str) = value.to_str() {
+             alloc_fn(
+                arena,
+                CString::new(val_str).unwrap_or_default().as_ptr(),
+            )
+        } else {
+             std::ptr::null_mut()
+        }
     } else {
         std::ptr::null_mut()
     }
@@ -405,7 +419,7 @@ pub unsafe extern "C" fn set_request_path_c(
     path: *const libc::c_char,
 ) { unsafe {
     let pipeline_state = &mut *pipeline_state_ptr;
-    pipeline_state.request_path = CStr::from_ptr(path).to_str().unwrap().to_string();
+    pipeline_state.request_path = CStr::from_ptr(path).to_string_lossy().to_string();
 }}
 
 #[unsafe(no_mangle)]
@@ -415,11 +429,13 @@ pub unsafe extern "C" fn set_request_header_c(
     value: *const libc::c_char,
 ) { unsafe {
     let pipeline_state = &mut *pipeline_state_ptr;
-    let key = CStr::from_ptr(key).to_str().unwrap();
-    let value = CStr::from_ptr(value).to_str().unwrap();
-    pipeline_state
-        .request_headers
-        .insert(key, value.parse().unwrap());
+    let key = CStr::from_ptr(key).to_string_lossy();
+    let value = CStr::from_ptr(value).to_string_lossy();
+    if let Ok(k) = axum::http::header::HeaderName::from_bytes(key.as_bytes()) {
+        if let Ok(v) = value.parse() {
+            pipeline_state.request_headers.insert(k, v);
+        }
+    }
 }}
 
 #[unsafe(no_mangle)]
@@ -428,7 +444,11 @@ pub unsafe extern "C" fn set_source_ip_c(
     ip: *const libc::c_char,
 ) { unsafe {
     let pipeline_state = &mut *pipeline_state_ptr;
-    pipeline_state.source_ip = CStr::from_ptr(ip).to_str().unwrap().parse().unwrap();
+    if let Ok(ip_str) = CStr::from_ptr(ip).to_str() {
+        if let Ok(addr) = ip_str.parse() {
+            pipeline_state.source_ip = addr;
+        }
+    }
 }}
 
 #[unsafe(no_mangle)]
@@ -453,11 +473,13 @@ pub unsafe extern "C" fn set_response_header_c(
     value: *const libc::c_char,
 ) { unsafe {
     let pipeline_state = &mut *pipeline_state_ptr;
-    let key = CStr::from_ptr(key).to_str().unwrap();
-    let value = CStr::from_ptr(value).to_str().unwrap();
-    pipeline_state
-        .response_headers
-        .insert(key, value.parse().unwrap());
+    let key = CStr::from_ptr(key).to_string_lossy();
+    let value = CStr::from_ptr(value).to_string_lossy();
+    if let Ok(k) = axum::http::header::HeaderName::from_bytes(key.as_bytes()) {
+        if let Ok(v) = value.parse() {
+            pipeline_state.response_headers.insert(k, v);
+        }
+    }
 }}
 
 #[unsafe(no_mangle)]
@@ -477,7 +499,10 @@ pub unsafe extern "C" fn get_response_header_c(
     arena: *const c_void,
     alloc_fn: unsafe extern "C" fn(*const c_void, *const libc::c_char) -> *mut libc::c_char,
 ) -> *mut libc::c_char { unsafe {
-    let key = CStr::from_ptr(key).to_str().unwrap();
+    let key = match CStr::from_ptr(key).to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
     let pipeline_state = &*pipeline_state_ptr;
     if let Some(value) = pipeline_state.response_headers.get(key) {
         alloc_fn(
@@ -703,6 +728,11 @@ impl Pipeline {
                 let mut jumped_to_next_phase = false;
 
                 for module in modules {
+                   if *current_phase == Phase::Content && content_was_handled {
+                       debug!("Skipping remaining content modules because content was already handled.");
+                       break;
+                   }
+
                    if let Some(uris) = &module.module_config.uris {
                         let full_uri = if state.request_query.is_empty() {
                             state.request_path.clone()
@@ -740,8 +770,18 @@ impl Pipeline {
                             }
                             match Regex::new(&uri_matcher.path) {
                                 Ok(regex) => {
-                                    if regex.is_match(&full_uri) {
+                                    if let Some(captures) = regex.captures(&full_uri) {
                                         matched = true;
+                                        // Collect capture groups (skipping catch-all 0)
+                                        let mut matches: Vec<String> = Vec::new();
+                                        for i in 1..captures.len() {
+                                            if let Some(match_str) = captures.get(i) {
+                                                matches.push(match_str.as_str().to_string());
+                                            }
+                                        }
+                                        // Store in module context
+                                        let mut ctx = state.module_context.write().unwrap();
+                                        ctx.insert("regex_matches".to_string(), Value::Array(matches.into_iter().map(Value::String).collect()));
                                         break;
                                     }
                                 }
@@ -753,6 +793,72 @@ impl Pipeline {
 
                         if !matched {
                             info!("Request URI '{}' did not match any URI patterns for module '{}'. Skipping module.", full_uri, module.module_name);
+                            continue;
+                        }
+                    }
+
+                    // --- Header Matching ---
+                    if let Some(headers_config) = &module.module_config.headers {
+                        let mut all_headers_matched = true;
+                        for (header_name, header_regex_str) in headers_config {
+                             let header_value = state.request_headers.get(header_name)
+                                 .and_then(|h| h.to_str().ok())
+                                 .unwrap_or("");
+                             
+                             let regex = match Regex::new(header_regex_str) {
+                                 Ok(re) => re,
+                                 Err(e) => {
+                                     error!("Invalid regex for header '{}' in module '{}': {}", header_name, module.module_name, e);
+                                     all_headers_matched = false;
+                                     break;
+                                 }
+                             };
+                             
+                             if !regex.is_match(header_value) {
+                                 all_headers_matched = false;
+                                 debug!("Module '{}' skipped: Header '{}' val '{}' did not match regex '{}'", module.module_name, header_name, header_value, header_regex_str);
+                                 break;
+                             }
+                        }
+                        if !all_headers_matched {
+                             continue;
+                        }
+                    }
+
+                    // --- Query Matching ---
+                    if let Some(query_config) = &module.module_config.query {
+                        // Simple query parsing (split by & and =)
+                        let query_map: HashMap<String, String> = state.request_query
+                            .split('&')
+                            .filter_map(|s| {
+                                if s.is_empty() { return None; }
+                                let mut parts = s.splitn(2, '=');
+                                let key = parts.next()?;
+                                let value = parts.next().unwrap_or("");
+                                Some((key.to_string(), value.to_string()))
+                            })
+                            .collect();
+
+                        let mut all_queries_matched = true;
+                        for (query_key, query_regex_str) in query_config {
+                             let query_value = query_map.get(query_key).map(|s| s.as_str()).unwrap_or("");
+                             
+                             let regex = match Regex::new(query_regex_str) {
+                                 Ok(re) => re,
+                                 Err(e) => {
+                                     error!("Invalid regex for query param '{}' in module '{}': {}", query_key, module.module_name, e);
+                                     all_queries_matched = false;
+                                     break;
+                                 }
+                             };
+                             
+                             if !regex.is_match(query_value) {
+                                  all_queries_matched = false;
+                                  debug!("Module '{}' skipped: Query '{}' val '{}' did not match regex '{}'", module.module_name, query_key, query_value, query_regex_str);
+                                  break;
+                             }
+                        }
+                        if !all_queries_matched {
                             continue;
                         }
                     }
@@ -1131,3 +1237,194 @@ impl Pipeline {
          ox_webservice_api::LogLevel::Trace => log::trace!("[{}] {}", module, message),
      }
  }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc};
+    use ox_webservice_api::{ModuleConfig, Phase, ModuleInterface, LogLevel, ReturnParameters, LogCallback, AllocFn};
+    use axum::http::HeaderMap;
+
+    unsafe extern "C" fn mock_handler(
+        _instance: *mut c_void,
+        _state: *mut PipelineState,
+        _log: LogCallback,
+        _alloc: AllocFn,
+        _arena: *const c_void
+    ) -> HandlerResult {
+        // Just return modified
+        HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        }
+    }
+    
+    unsafe extern "C" fn mock_log(_level: LogLevel, _module: *const libc::c_char, _msg: *const libc::c_char) {}
+
+    unsafe extern "C" fn mock_get_config(_inst: *mut c_void, _arena: *const c_void, _alloc: ox_webservice_api::AllocStrFn) -> *mut libc::c_char {
+        std::ptr::null_mut()
+    }
+
+    #[tokio::test]
+    async fn test_pipeline_routing_headers_and_query() {
+        // 1. Setup Mock Pipeline
+        let mut pipeline = Pipeline {
+             phases: HashMap::new(),
+             execution_order: vec![Phase::Content],
+             main_config_json: "{}".to_string(),
+        };
+        
+        // We need a dummy library. Try using current exe or libm
+        let lib_path = "libm.so.6";
+        let lib_res = unsafe { Library::new(lib_path) };
+        let lib = lib_res.unwrap_or_else(|_| {
+             // Fallback
+             unsafe { Library::new("libc.so.6") }.expect("Failed to load dummy lib")
+        });
+        
+        let lib_arc = Arc::new(lib);
+        
+        let mut modules = Vec::new();
+
+        // Module A: Header Matcher
+        let mut config_a = ModuleConfig::default();
+        config_a.name = "ModuleA".to_string();
+        config_a.phase = Phase::Content;
+        let mut headers = HashMap::new();
+        headers.insert("x-test".to_string(), "^true$".to_string());
+        config_a.headers = Some(headers);
+        
+        unsafe extern "C" fn handler_a(
+            _instance: *mut c_void,
+            state: *mut PipelineState,
+            _log: LogCallback,
+            _alloc: AllocFn,
+            _arena: *const c_void
+        ) -> HandlerResult {
+            let state = unsafe { &mut *state };
+            state.response_headers.insert("X-Executed-A", "1".parse().unwrap());
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+            }
+        }
+        
+        unsafe extern "C" fn handler_b(
+            _instance: *mut c_void,
+            state: *mut PipelineState,
+            _log: LogCallback,
+            _alloc: AllocFn,
+            _arena: *const c_void
+        ) -> HandlerResult {
+            let state = unsafe { &mut *state };
+            state.response_headers.insert("X-Executed-B", "1".parse().unwrap());
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+            }
+        }
+
+        let module_a = Arc::new(LoadedModule {
+            _library: lib_arc.clone(),
+            module_name: "ModuleA".to_string(),
+            module_interface: Box::new(ModuleInterface {
+                instance_ptr: std::ptr::null_mut(),
+                handler_fn: handler_a,
+                log_callback: mock_log,
+                get_config: mock_get_config,
+            }),
+            module_config: config_a,
+            metrics: Arc::new(ModuleMetrics::new()),
+        });
+        modules.push(module_a.clone());
+
+        // Module B: Query Matcher
+        let mut config_b = ModuleConfig::default();
+        config_b.name = "ModuleB".to_string();
+        config_b.phase = Phase::Content;
+        let mut query = HashMap::new();
+        query.insert("mode".to_string(), "^special$".to_string());
+        config_b.query = Some(query);
+        
+        let module_b = Arc::new(LoadedModule {
+            _library: lib_arc.clone(),
+            module_name: "ModuleB".to_string(),
+            module_interface: Box::new(ModuleInterface {
+                instance_ptr: std::ptr::null_mut(),
+                handler_fn: handler_b,
+                log_callback: mock_log,
+                get_config: mock_get_config,
+            }),
+            module_config: config_b,
+            metrics: Arc::new(ModuleMetrics::new()),
+        });
+        modules.push(module_b.clone());
+
+        pipeline.phases.insert(Phase::Content, modules);
+        let pipeline_arc = Arc::new(pipeline);
+
+        // Case 1: Header Match
+        let mut headers = HeaderMap::new();
+        headers.insert("x-test", "true".parse().unwrap());
+        let (_, resp_headers, _) = pipeline_arc.clone().execute_pipeline(
+            "127.0.0.1:8080".parse().unwrap(),
+            "GET".to_string(),
+            "/".to_string(),
+            "".to_string(),
+            headers,
+            vec![],
+            "HTTP/1.1".to_string()
+        ).await;
+        
+        assert!(resp_headers.contains_key("X-Executed-A"));
+        assert!(!resp_headers.contains_key("X-Executed-B"));
+
+        // Case 2: Query Match
+        let (_, resp_headers_2, _) = pipeline_arc.clone().execute_pipeline(
+            "127.0.0.1:8080".parse().unwrap(),
+            "GET".to_string(),
+            "/".to_string(),
+            "mode=special".to_string(),
+            HeaderMap::new(),
+            vec![],
+            "HTTP/1.1".to_string()
+        ).await;
+        
+        assert!(!resp_headers_2.contains_key("X-Executed-A"));
+        assert!(resp_headers_2.contains_key("X-Executed-B"));
+
+        // Case 3: Both Match
+        let mut headers_3 = HeaderMap::new();
+        headers_3.insert("x-test", "true".parse().unwrap());
+        let (_, resp_headers_3, _) = pipeline_arc.clone().execute_pipeline(
+            "127.0.0.1:8080".parse().unwrap(),
+            "GET".to_string(),
+            "/".to_string(),
+            "mode=special".to_string(),
+            headers_3,
+            vec![],
+            "HTTP/1.1".to_string()
+        ).await;
+        
+        // Priority: A should execute. B should be skipped because A claimed content.
+        assert!(resp_headers_3.contains_key("X-Executed-A"));
+        assert!(!resp_headers_3.contains_key("X-Executed-B"));
+        
+        // Case 4: No Match
+        let (_, resp_headers_4, _) = pipeline_arc.clone().execute_pipeline(
+            "127.0.0.1:8080".parse().unwrap(),
+            "GET".to_string(),
+            "/".to_string(),
+            "mode=normal".to_string(),
+            HeaderMap::new(),
+            vec![],
+            "HTTP/1.1".to_string()
+        ).await;
+        
+        assert!(!resp_headers_4.contains_key("X-Executed-A"));
+        assert!(!resp_headers_4.contains_key("X-Executed-B"));
+    }
+}

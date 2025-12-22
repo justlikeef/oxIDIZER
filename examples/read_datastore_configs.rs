@@ -1,17 +1,17 @@
 use std::fs;
 use std::collections::HashMap;
-use std::sync::Arc;
+// use std::sync::Arc;
 use serde::Deserialize;
 
-use ox_persistence::{register_persistence_driver, get_registered_drivers, DriverMetadata, Persistent, PersistenceDriver};
-use ox_persistence_driver_mysql;
-use ox_persistence_driver_json;
-use ox_persistence_driver_sql;
-use ox_persistence_driver_flatfile;
-use ox_persistence_driver_mssql;
-use ox_persistence_driver_postgresql;
-use ox_persistence_driver_xml;
-use ox_persistence_driver_yaml;
+use ox_persistence::{get_registered_drivers, Persistent, PersistenceDriver};
+use ox_persistence_driver_db_mysql;
+use ox_persistence_driver_file_json;
+// use ox_persistence_driver_db_sql;
+// use ox_persistence_driver_file_delimited;
+// use ox_persistence_driver_db_mssql;
+// use ox_persistence_driver_db_postgresql;
+// use ox_persistence_driver_file_xml;
+// use ox_persistence_driver_file_yaml;
 
 // Struct to represent the datastore configuration from YAML
 #[derive(Debug, Deserialize)]
@@ -24,15 +24,16 @@ struct DatastoreConfig {
 }
 
 fn main() {
-    // Initialize all the drivers, which will register themselves
-    ox_persistence_driver_mysql::init();
-    ox_persistence_driver_json::init();
-    ox_persistence_driver_sql::init();
-    ox_persistence_driver_flatfile::init();
-    ox_persistence_driver_mssql::init();
-    ox_persistence_driver_postgresql::init();
-    ox_persistence_driver_xml::init();
-    ox_persistence_driver_yaml::init();
+    // Initialize available drivers
+    ox_persistence_driver_db_mysql::MysqlPersistenceDriver::register();
+    ox_persistence_driver_file_json::JsonPersistenceDriver::register();
+    
+    // ox_persistence_driver_db_sql::init();
+    // ox_persistence_driver_file_delimited::init();
+    // ox_persistence_driver_db_mssql::init();
+    // ox_persistence_driver_db_postgresql::init();
+    // ox_persistence_driver_file_xml::init();
+    // ox_persistence_driver_file_yaml::init();
 
     println!("Registered persistence drivers:");
     let drivers = get_registered_drivers();

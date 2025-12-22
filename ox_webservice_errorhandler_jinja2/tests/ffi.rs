@@ -1,5 +1,5 @@
 use ox_webservice_api::{
-    HandlerResult, LogLevel, WebServiceApiV1, InitializeModuleFn, PipelineState, AllocStrFn,
+    HandlerResult, LogLevel, WebServiceApiV1, InitializeModuleFn, PipelineState, AllocStrFn, ModuleStatus, FlowControl, ReturnParameters,
 };
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
@@ -127,6 +127,9 @@ unsafe extern "C" fn dummy_get_response_header(_ctx: *mut PipelineState, _key: *
 unsafe extern "C" fn dummy_alloc_str(_arena: *const c_void, _s: *const c_char) -> *mut c_char { std::ptr::null_mut() }
 unsafe extern "C" fn dummy_alloc_raw(_arena: *mut c_void, _size: usize, _align: usize) -> *mut c_void { std::ptr::null_mut() }
 
+unsafe extern "C" fn dummy_get_response_body(_ctx: *mut PipelineState, _arena: *const c_void, _alloc_fn: AllocStrFn) -> *mut c_char { std::ptr::null_mut() }
+unsafe extern "C" fn dummy_get_server_metrics(_arena: *const c_void, _alloc_fn: AllocStrFn) -> *mut c_char { std::ptr::null_mut() }
+unsafe extern "C" fn dummy_get_all_configs(_ctx: *mut PipelineState, _arena: *const c_void, _alloc_fn: AllocStrFn) -> *mut c_char { std::ptr::null_mut() }
 
 fn create_mock_api() -> WebServiceApiV1 {
     WebServiceApiV1 {
@@ -150,6 +153,9 @@ fn create_mock_api() -> WebServiceApiV1 {
         get_response_header: dummy_get_response_header,
         alloc_str: dummy_alloc_str,
         alloc_raw: dummy_alloc_raw,
+        get_response_body: dummy_get_response_body,
+        get_server_metrics: dummy_get_server_metrics,
+        get_all_configs: dummy_get_all_configs,
     }
 }
 
@@ -189,7 +195,8 @@ content_root: "{}"
     unsafe {
         let lib = Library::new(get_dynamic_library_path()).unwrap();
         let init_func: Symbol<InitializeModuleFn> = lib.get(b"initialize_module").unwrap();
-        let module_interface_ptr = init_func(params_cstring.as_ptr(), &api);
+        let module_id = CString::new("test_module").unwrap();
+        let module_interface_ptr = init_func(params_cstring.as_ptr(), module_id.as_ptr(), &api);
         assert!(!module_interface_ptr.is_null());
         let module_interface = Box::from_raw(module_interface_ptr);
         
@@ -209,9 +216,14 @@ content_root: "{}"
             response_body: Vec::new(),
             response_headers: HeaderMap::new(),
             module_context: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
         let result_err_500 = (module_interface.handler_fn)(module_interface.instance_ptr, &mut state_err_500, mock_log_callback, dummy_alloc_raw, &state_err_500.arena as *const Bump as *const c_void);
-        assert_eq!(result_err_500, HandlerResult::ModifiedContinue);
+        assert_eq!(result_err_500, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert!(String::from_utf8_lossy(&MOCK_RESPONSE_BODY.lock().unwrap()).contains("Error page: 500"));
 
         // Test with a generic index.jinja2 template for a non-specific error (e.g., 404)
@@ -228,9 +240,14 @@ content_root: "{}"
             response_body: Vec::new(),
             response_headers: HeaderMap::new(),
             module_context: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
         let result_err_404 = (module_interface.handler_fn)(module_interface.instance_ptr, &mut state_err_404, mock_log_callback, dummy_alloc_raw, &state_err_404.arena as *const Bump as *const c_void);
-        assert_eq!(result_err_404, HandlerResult::ModifiedContinue);
+        assert_eq!(result_err_404, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert!(String::from_utf8_lossy(&MOCK_RESPONSE_BODY.lock().unwrap()).contains("Generic error page: 404"));
 
         // Test with a status < 400 (should be UnmodifiedContinue)
@@ -247,9 +264,14 @@ content_root: "{}"
             response_body: Vec::new(),
             response_headers: HeaderMap::new(),
             module_context: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
         let result_ok = (module_interface.handler_fn)(module_interface.instance_ptr, &mut state_ok, mock_log_callback, dummy_alloc_raw, &state_ok.arena as *const Bump as *const c_void);
-        assert_eq!(result_ok, HandlerResult::UnmodifiedContinue);
+        assert_eq!(result_ok, HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        });
 
         // Test for a non-existent specific error template and no index.jinja2 fallback
         fs::remove_file(&index_template_path).unwrap(); // Remove index fallback
@@ -266,9 +288,14 @@ content_root: "{}"
             response_body: Vec::new(),
             response_headers: HeaderMap::new(),
             module_context: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
         let result_err_401_no_template = (module_interface.handler_fn)(module_interface.instance_ptr, &mut state_err_401_no_template, mock_log_callback, dummy_alloc_raw, &state_err_401_no_template.arena as *const Bump as *const c_void);
-        assert_eq!(result_err_401_no_template, HandlerResult::ModifiedContinue);
+        assert_eq!(result_err_401_no_template, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert!(String::from_utf8_lossy(&MOCK_RESPONSE_BODY.lock().unwrap()).contains("401 Unauthorized"));
 
         // Test with invalid template syntax in 500.jinja2
@@ -286,9 +313,14 @@ content_root: "{}"
             response_body: Vec::new(),
             response_headers: HeaderMap::new(),
             module_context: std::sync::Arc::new(std::sync::RwLock::new(HashMap::new())),
+            pipeline_ptr: std::ptr::null(),
         };
         let result_invalid_template = (module_interface.handler_fn)(module_interface.instance_ptr, &mut state_invalid_template, mock_log_callback, dummy_alloc_raw, &state_invalid_template.arena as *const Bump as *const c_void);
-        assert_eq!(result_invalid_template, HandlerResult::ModifiedContinue);
+        assert_eq!(result_invalid_template, HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+        });
         assert!(String::from_utf8_lossy(&MOCK_RESPONSE_BODY.lock().unwrap()).contains("500 Internal Server Error"));
     }
 }

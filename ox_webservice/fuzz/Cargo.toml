@@ -1,0 +1,84 @@
+[package]
+name = "ox_callback_manager-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ox_webservice]
+path = ".."
+
+[dependencies.libc]
+version = "0.2"
+
+[dependencies.bumpalo]
+version = "3.12"
+
+[dependencies.axum]
+version = "0.7"
+
+[dependencies.serde_json]
+version = "1.0"
+
+[[bin]]
+name = "ffi_get_request_header"
+path = "fuzz_targets/ffi_get_request_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_alloc_str"
+path = "fuzz_targets/ffi_alloc_str.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_get_module_context"
+path = "fuzz_targets/ffi_get_module_context.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_set_request_path"
+path = "fuzz_targets/ffi_set_request_path.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_set_request_header"
+path = "fuzz_targets/ffi_set_request_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_set_source_ip"
+path = "fuzz_targets/ffi_set_source_ip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_set_response_header"
+path = "fuzz_targets/ffi_set_response_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ffi_get_response_header"
+path = "fuzz_targets/ffi_get_response_header.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

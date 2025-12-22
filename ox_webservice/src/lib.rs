@@ -98,10 +98,12 @@ pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<(Server
     
     // Use ox_fileproc to process the file (supports include, variables, multi-format)
     let value = ox_fileproc::process_file(path, 5)
-        .map_err(|e| ConfigError::ReadError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        .map_err(|e| ConfigError::ReadError(std::io::Error::new(std::io::ErrorKind::Other, format!("{:#}", e))))?;
 
     let contents = serde_json::to_string_pretty(&value)
-        .map_err(|e| ConfigError::Deserialization(e.to_string()))?;
+        .map_err(|e| ConfigError::Deserialization(format!("In file {:?}: Error serializing config for debug: {}", path, e)))?;
+
+    println!("DEBUG: Config loaded from {:?}. Value is array? {}, object? {}\nContent Preview: {:.1000}", path, value.is_array(), value.is_object(), contents);
 
     if cli_log_level == "trace" {
         trace!("Processed config content:\n{}", contents);
@@ -110,7 +112,7 @@ pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<(Server
     }
 
     // Deserialize the processed JSON value into ServerConfig
-    let config = serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(e.to_string()))?;
+    let config = serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(format!("In file {:?}: {}", path, e)))?;
     
     Ok((config, contents))
 }
