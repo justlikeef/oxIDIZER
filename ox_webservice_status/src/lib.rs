@@ -1,7 +1,7 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
-    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1,
-    ModuleStatus, FlowControl, ReturnParameters, Phase,
+    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
+    ModuleStatus, FlowControl, ReturnParameters, Phase, CoreHostApi, WebServiceApiV1
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -13,13 +13,10 @@ use bumpalo::Bump;
 
 const MODULE_NAME: &str = "ox_webservice_status";
 
-// Helper function removed in favor of Client Side Rendering
-
-
 pub struct OxModule {
     system: Mutex<System>,
     disks: Mutex<Disks>,
-    api: &'static WebServiceApiV1,
+    api: &'static CoreHostApi,
     config_path: Option<String>,
 }
 
@@ -58,7 +55,7 @@ struct DiskInfo {
 }
 
 impl OxModule {
-    pub fn new(api: &'static WebServiceApiV1, config_path: Option<String>) -> Self {
+    pub fn new(api: &'static CoreHostApi, config_path: Option<String>) -> Self {
         Self {
             system: Mutex::new(System::new_all()),
             disks: Mutex::new(Disks::new_with_refreshed_list()),
@@ -91,25 +88,62 @@ impl OxModule {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        // Gather System Info & Metrics for JSON response
+        // Initialize PluginContext
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
         
-        // Fetch Server Metrics
-        let metrics_ptr = unsafe { (self.api.get_server_metrics)(arena_ptr, self.api.alloc_str) };
-        let metrics_json: Option<Value> = if !metrics_ptr.is_null() {
-             let json_str = unsafe { CStr::from_ptr(metrics_ptr).to_str().unwrap_or("{}") };
-             serde_json::from_str(json_str).ok()
-        } else {
-            None
-        };
+        let path_json = ctx.get("http.request.path");
+        let query_json = ctx.get("http.request.query");
+        let accept_json = ctx.get("http.request.header.Accept");
 
-        // Fetch Configurations
-        let configs_ptr = unsafe { (self.api.get_all_configs)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        let configs_json: Option<Value> = if !configs_ptr.is_null() {
-             let json_str = unsafe { CStr::from_ptr(configs_ptr).to_str().unwrap_or("{}") };
-             serde_json::from_str(json_str).ok()
-        } else {
-            None
-        };
+        let path = path_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        let query = query_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        let accept = accept_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+
+        // Determine mode
+        let return_json = query.contains("format=json") || accept.contains("application/json");
+
+        if !return_json {
+            // Serve Static Assets
+            let asset_path = if path == "/status" || path == "/status/" {
+                "index.html".to_string()
+            } else if path.starts_with("/status/") {
+                 path.trim_start_matches("/status/").to_string()
+            } else {
+                "index.html".to_string() 
+            };
+            
+            // Map file extension to content type
+            let content_type = if asset_path.ends_with(".css") {
+                "text/css"
+            } else if asset_path.ends_with(".js") {
+                "application/javascript"
+            } else {
+                "text/html"
+            };
+
+            let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(content_type.to_string()));
+            
+            // Allocate path for StreamFile return
+            let c_path = ctx.alloc_string(&asset_path);
+
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::StreamFile,
+                return_parameters: ReturnParameters { return_data: c_path as *mut c_void },
+            };
+        }
+
+        // --- JSON Mode ---
+
+        // Fetch Server Metrics via ox_plugin generic helpers
+        let metrics_json = ctx.get("server.metrics");
+
+        // Fetch Configurations via ox_plugin generic helpers
+        let configs_json = ctx.get("server.configs");
 
         let status_output = {
             let mut sys = self.system.lock().unwrap();
@@ -155,7 +189,7 @@ impl OxModule {
             Ok(s) => s,
             Err(e) => {
                 self.log(LogLevel::Error, format!("Failed to serialize status: {}", e));
-                unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                 let _ = ctx.set("http.response.status", serde_json::json!(500));
                 return HandlerResult {
                     status: ModuleStatus::Modified,
                     flow_control: FlowControl::JumpTo,
@@ -166,17 +200,10 @@ impl OxModule {
             }
         };
 
-        unsafe {
-            let ct_k = CString::new("Content-Type").unwrap();
-            let ct_v = CString::new("application/json").unwrap();
-            (self.api.set_response_header)(pipeline_state, ct_k.as_ptr(), ct_v.as_ptr());
-
-            (self.api.set_response_body)(
-                pipeline_state,
-                json_body.as_ptr(),
-                json_body.len(),
-            );
-        }
+        // Use ox_plugin set for response
+        let _ = ctx.set("http.response.body", serde_json::Value::String(json_body));
+        let _ = ctx.set("http.response.status", serde_json::json!(200));
+        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
         
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -190,7 +217,7 @@ impl OxModule {
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         return std::ptr::null_mut();

@@ -1,1 +1,3 @@
-Failed to load configuration: Error deserializing configuration: invalid type: string "Invalid", expected struct ServerConfig
+DEBUG: Config loaded from "/var/repos/oxIDIZER/ox_webservice/functional_tests/000003-ConfigInvalid/ox_webservice.yaml". Value is array? false, object? false
+Content Preview: "Invalid"
+Failed to load configuration: Error deserializing configuration: In file "/var/repos/oxIDIZER/ox_webservice/functional_tests/000003-ConfigInvalid/ox_webservice.yaml": invalid type: string "Invalid", expected struct ServerConfig

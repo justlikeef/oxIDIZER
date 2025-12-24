@@ -6,11 +6,11 @@
   * [ ] simple ip based authortization
   * [ ] user authentication via file, DB, LDAP/sLDAP
   * [ ] user authorization via config, groups, group mapping via above
-* [ ] Allow full path to module .so
+* [x] Allow full path to module .so
 * [x] Refactor ox_content into seperate modules
   * [x] populat ox_stream mimetypes
 * [x] create config processing library that all modules can use
   * [x] should be able to include other config files
   * [x] should be able to do replacements, for instance, the ability to set the root directory for the server config, etc.
 * [x] add websockets support
-* [x] The content modules should be able to respect that there is existing content that has already been rendered.
+* [x] The content modules should be able to respect that there is existing content that has already been rendered.* [ ] Implement Data Streaming (OxStream) - see [streaming_data.md](docs/design_proposals/streaming_data.md)

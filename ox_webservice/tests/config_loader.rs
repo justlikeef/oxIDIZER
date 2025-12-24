@@ -101,7 +101,7 @@ fn test_load_config_invalid_extension() {
     writeln!(file, "this is not a valid config file").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::UnsupportedFileExtension)));
+    assert!(matches!(result, Err(ConfigError::ReadError(_))));
 }
 
 #[test]
@@ -112,5 +112,5 @@ fn test_load_config_invalid_content() {
     writeln!(file, "this is not a valid yaml file: [").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::Deserialization(_))));
+    assert!(matches!(result, Err(ConfigError::ReadError(_))));
 }

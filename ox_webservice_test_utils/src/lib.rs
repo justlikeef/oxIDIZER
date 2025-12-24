@@ -1,6 +1,6 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
-    AllocFn, AllocStrFn, HandlerResult, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1,
+    AllocFn, AllocStrFn, HandlerResult, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1, CoreHostApi,
 };
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
@@ -8,6 +8,7 @@ use std::ptr;
 use std::sync::{Arc, RwLock};
 use bumpalo::Bump;
 use axum::http::HeaderMap;
+use serde_json::Value;
 
 // --- Mocks ---
 
@@ -31,7 +32,7 @@ pub unsafe extern "C" fn mock_alloc_str(arena: *const c_void, s: *const c_char) 
         let slice = bump.alloc_slice_copy(bytes);
         slice.as_mut_ptr() as *mut c_char
     } else {
-        // Fallback for tests that might not provide arena (though they should)
+        // Fallback for tests
         let new_c_str = CString::new(c_str.to_bytes()).unwrap();
         new_c_str.into_raw()
     }
@@ -49,161 +50,102 @@ pub unsafe extern "C" fn mock_alloc_raw(arena: *mut c_void, size: usize, align: 
     }
 }
 
-pub unsafe extern "C" fn mock_get_context(_ps: *mut PipelineState, _k: *const c_char, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() }
-pub unsafe extern "C" fn mock_set_context(_ps: *mut PipelineState, _k: *const c_char, _v: *const c_char) {}
-
-pub unsafe extern "C" fn mock_get_str_path(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { 
-    if ps.is_null() { return ptr::null_mut(); }
-    let path = unsafe { &(*ps).request_path };
-    let c_path = CString::new(path.as_str()).unwrap();
-    _f(_a, c_path.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_get_str_empty(_ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { 
-    let empty = CString::new("").unwrap();
-    _f(_a, empty.as_ptr())
-}
-
-// Request Headers Mocking
-pub unsafe extern "C" fn mock_get_request_header(ps: *mut PipelineState, k: *const c_char, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { 
-    if ps.is_null() || k.is_null() { return ptr::null_mut(); }
-    let key_str = unsafe { CStr::from_ptr(k).to_string_lossy() };
-    let headers = unsafe { &(*ps).request_headers };
+// --- Generic State Mock ---
+pub unsafe extern "C" fn mock_get_state(state_ptr: *mut c_void, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char {
+    if state_ptr.is_null() || key.is_null() { return ptr::null_mut(); }
+    let key_str = unsafe { CStr::from_ptr(key).to_string_lossy() };
+    let pipeline_state = unsafe { &*(state_ptr as *mut PipelineState) };
     
-    if let Some(val) = headers.get(key_str.as_ref()) {
-         let c_val = CString::new(val.as_bytes()).unwrap();
-         _f(_a, c_val.as_ptr())
+    // Virtual Keys
+    let val_json: Option<String> = if key_str == "http.request.method" {
+        Some(Value::String(pipeline_state.request_method.clone()).to_string())
+    } else if key_str == "http.request.path" {
+        Some(Value::String(pipeline_state.request_path.clone()).to_string())
+    } else if key_str == "http.request.query" {
+        Some(Value::String(pipeline_state.request_query.clone()).to_string())
+    } else if key_str == "http.source_ip" {
+        Some(Value::String(pipeline_state.source_ip.to_string()).to_string())
+    } else if key_str == "http.response.status" {
+        Some(pipeline_state.status_code.to_string())
+    } else if key_str.starts_with("http.request.header.") {
+        let header_name = &key_str["http.request.header.".len()..];
+        pipeline_state.request_headers.get(header_name).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())
+    } else if key_str.starts_with("http.response.header.") {
+        let header_name = &key_str["http.response.header.".len()..];
+        pipeline_state.response_headers.get(header_name).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())
+    } else if key_str == "pipeline.modified" {
+        Some(pipeline_state.is_modified.to_string())
+    } else {
+        // Generic module context
+         pipeline_state.module_context.read().unwrap().get(key_str.as_ref()).map(|v| v.to_string())
+    };
+
+    if let Some(s) = val_json {
+        let c_s = CString::new(s).unwrap();
+        alloc_fn(arena, c_s.as_ptr())
     } else {
         ptr::null_mut()
     }
 }
 
-pub unsafe extern "C" fn mock_get_request_headers(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-    // Return empty JSON object for simplicity unless needed
+pub unsafe extern "C" fn mock_set_state(state_ptr: *mut c_void, key: *const c_char, value_json: *const c_char) {
+    if state_ptr.is_null() || key.is_null() || value_json.is_null() { return; }
+    let key_str = unsafe { CStr::from_ptr(key).to_string_lossy().to_string() };
+    let val_str = unsafe { CStr::from_ptr(value_json).to_string_lossy() };
+    let value: Value = serde_json::from_str(&val_str).unwrap_or(Value::Null);
+
+    let pipeline_state = unsafe { &mut *(state_ptr as *mut PipelineState) };
+
+    if key_str == "http.request.path" {
+        if let Some(s) = value.as_str() {
+             pipeline_state.request_path = s.to_string();
+        }
+    } else if key_str == "http.source_ip" {
+         if let Some(s) = value.as_str() {
+             if let Ok(ip) = s.parse() {
+                 pipeline_state.source_ip = ip;
+             }
+         }
+    } else if key_str == "http.response.status" {
+         if let Some(i) = value.as_u64() {
+             pipeline_state.status_code = i as u16;
+         }
+    } else if key_str == "http.response.body" {
+         if let Some(s) = value.as_str() {
+             pipeline_state.response_body = s.as_bytes().to_vec();
+         } else if let Some(arr) = value.as_array() {
+             // Handle array of bytes if passed as array
+             let bytes: Vec<u8> = arr.iter().filter_map(|v| v.as_u64().map(|b| b as u8)).collect();
+             pipeline_state.response_body = bytes;
+         }
+    } else if key_str.starts_with("http.response.header.") {
+        let header_name = &key_str["http.response.header.".len()..];
+        if let Some(s) = value.as_str() {
+             if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
+                 if let Ok(v) = s.parse() {
+                     pipeline_state.response_headers.insert(k, v);
+                 }
+             }
+        }
+    } else {
+        pipeline_state.module_context.write().unwrap().insert(key_str, value);
+    }
+}
+
+pub unsafe extern "C" fn mock_get_config(_state_ptr: *mut c_void, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char {
     let json = CString::new("{}").unwrap();
-    _f(_a, json.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_get_request_query(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-     let query = unsafe { &(*ps).request_query };
-    let c_query = CString::new(query.as_str()).unwrap();
-    _f(_a, c_query.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_get_request_method(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-     let method = unsafe { &(*ps).request_method };
-    let c_method = CString::new(method.as_str()).unwrap();
-    _f(_a, c_method.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_get_request_body(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-    let body = unsafe { &(*ps).request_body };
-    // Warning: Body might be binary, but this API returns char*. 
-    // Assuming UTF-8 for tests.
-    let s = String::from_utf8_lossy(body);
-    let c_s = CString::new(s.as_ref()).unwrap();
-    _f(_a, c_s.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_get_source_ip(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-    let ip = unsafe { (*ps).source_ip.to_string() };
-    let c_ip = CString::new(ip).unwrap();
-    _f(_a, c_ip.as_ptr())
+    alloc_fn(arena, json.as_ptr())
 }
 
 
-// Response Setters
-pub unsafe extern "C" fn mock_set_resp_status(ps: *mut PipelineState, status: u16) {
-    if !ps.is_null() {
-        unsafe { (*ps).status_code = status; }
-    }
-}
-
-pub unsafe extern "C" fn mock_set_resp_header(ps: *mut PipelineState, k: *const c_char, v: *const c_char) {
-     if ps.is_null() || k.is_null() || v.is_null() { return; }
-     let key = unsafe { CStr::from_ptr(k).to_string_lossy().to_string() };
-     let val = unsafe { CStr::from_ptr(v).to_string_lossy().to_string() };
-     unsafe {
-         (*ps).response_headers.insert(
-             axum::http::HeaderName::from_bytes(key.as_bytes()).unwrap(),
-             axum::http::HeaderValue::from_str(&val).unwrap(),
-         );
-     }
-}
-
-pub unsafe extern "C" fn mock_set_resp_body(ps: *mut PipelineState, body: *const u8, len: usize) {
-    if ps.is_null() { return; }
-    if body.is_null() && len > 0 { 
-        eprintln!("mock_set_resp_body: Body is null but len is {}", len);
-        return; 
-    }
-    if body.is_null() { return; } // Empty body
-
-    let slice = unsafe { std::slice::from_raw_parts(body, len) };
-    unsafe { (*ps).response_body = slice.to_vec(); }
-}
-
-pub unsafe extern "C" fn mock_get_response_status(ps: *mut PipelineState) -> u16 {
-    if ps.is_null() { return 0; }
-    unsafe { (*ps).status_code }
-}
-
-pub unsafe extern "C" fn mock_get_response_header(ps: *mut PipelineState, k: *const c_char, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-     if ps.is_null() || k.is_null() { return ptr::null_mut(); }
-    let key_str = unsafe { CStr::from_ptr(k).to_string_lossy() };
-    let headers = unsafe { &(*ps).response_headers };
-    
-    if let Some(val) = headers.get(key_str.as_ref()) {
-         let c_val = CString::new(val.as_bytes()).unwrap();
-         _f(_a, c_val.as_ptr())
-    } else {
-        ptr::null_mut()
-    }
-}
-
-pub unsafe extern "C" fn mock_get_response_body(ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char {
-    if ps.is_null() { return ptr::null_mut(); }
-    let body = unsafe { &(*ps).response_body };
-    let s = String::from_utf8_lossy(body);
-    let c_s = CString::new(s.as_ref()).unwrap();
-    _f(_a, c_s.as_ptr())
-}
-
-pub unsafe extern "C" fn mock_noop_cchar(_ps: *mut PipelineState, _v: *const c_char) {} 
-pub unsafe extern "C" fn mock_noop_cchar_2(_ps: *mut PipelineState, _k: *const c_char, _v: *const c_char) {}
-pub unsafe extern "C" fn mock_get_server_metrics(_a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() } 
-pub unsafe extern "C" fn mock_get_all_configs(_ps: *mut PipelineState, _a: *const c_void, _f: AllocStrFn) -> *mut c_char { ptr::null_mut() } 
-
-pub fn create_mock_api() -> WebServiceApiV1 {
-    WebServiceApiV1 {
+pub fn create_mock_api() -> CoreHostApi {
+    CoreHostApi {
         log_callback: mock_log,
         alloc_str: mock_alloc_str,
         alloc_raw: mock_alloc_raw,
-        get_module_context_value: mock_get_context,
-        set_module_context_value: mock_set_context,
-        get_request_method: mock_get_request_method,
-        get_request_path: mock_get_str_path,
-        get_request_query: mock_get_request_query,
-        get_request_header: mock_get_request_header,
-        get_request_headers: mock_get_request_headers,
-        get_request_body: mock_get_request_body,
-        get_source_ip: mock_get_source_ip,
-        set_request_path: mock_noop_cchar,
-        set_request_header: mock_noop_cchar_2,
-        set_source_ip: mock_noop_cchar,
-        get_response_status: mock_get_response_status,
-        get_response_header: mock_get_response_header,
-        get_response_body: mock_get_response_body,
-        set_response_status: mock_set_resp_status,
-        set_response_header: mock_set_resp_header,
-        set_response_body: mock_set_resp_body, 
-        get_server_metrics: mock_get_server_metrics,
-        get_all_configs: mock_get_all_configs,
+        get_state: mock_get_state,
+        set_state: mock_set_state,
+        get_config: mock_get_config,
     }
 }
 
@@ -211,19 +153,18 @@ pub fn create_mock_api() -> WebServiceApiV1 {
 
 pub struct ModuleLoader {
     pub interface_ptr: *mut ModuleInterface,
-    // Keep alive if needed, or allow leak for tests
 }
 
 impl ModuleLoader {
     pub fn load(
-        init_fn: unsafe extern "C" fn(*const c_char, *const c_char, *const WebServiceApiV1) -> *mut ModuleInterface,
+        init_fn: unsafe extern "C" fn(*const c_char, *const c_char, *const CoreHostApi) -> *mut ModuleInterface,
         config_json: &str,
         module_id: &str,
-        api: &WebServiceApiV1,
+        api: &CoreHostApi,
     ) -> Result<Self, String> {
         let c_config = CString::new(config_json).unwrap();
         let c_id = CString::new(module_id).unwrap();
-        let interface_ptr = unsafe { init_fn(c_config.as_ptr(), c_id.as_ptr(), api as *const WebServiceApiV1) };
+        let interface_ptr = unsafe { init_fn(c_config.as_ptr(), c_id.as_ptr(), api as *const CoreHostApi) };
 
         if interface_ptr.is_null() {
             return Err("initialize_module returned null".to_string());
@@ -242,10 +183,10 @@ impl ModuleLoader {
             let interface = &*self.interface_ptr;
             (interface.handler_fn)(
                 interface.instance_ptr,
-                pipeline_state as *mut _,
+                pipeline_state as *mut PipelineState,
                 log_callback,
                 alloc_fn,
-                ptr::null(), // arena
+                &pipeline_state.arena as *const Bump as *const c_void,
             )
         }
     }
@@ -260,11 +201,13 @@ pub fn create_stub_pipeline_state() -> PipelineState {
         request_query: "".to_string(),
         request_headers: HeaderMap::new(),
         request_body: Vec::new(),
-        source_ip: "127.0.0.1:1234".parse().unwrap(),
-        status_code: 0,
+        source_ip: std::net::SocketAddr::from(([127, 0, 0, 1], 8080)),
+        status_code: 200,
         response_headers: HeaderMap::new(),
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
-        pipeline_ptr: ptr::null(),
+        pipeline_ptr: std::ptr::null_mut(),
+        is_modified: false,
+        execution_history: Vec::new(),
     }
 }

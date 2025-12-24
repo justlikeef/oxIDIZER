@@ -7,6 +7,12 @@ use axum::http::HeaderMap;
 use std::net::SocketAddr;
 use bumpalo::Bump;
 
+// Re-export generic types from ox_plugin
+pub use ox_plugin::{
+    LogLevel, FlowControl, ModuleStatus, ReturnParameters, HandlerResult,
+    LogCallback, AllocStrFn, AllocFn, GetStateFn, SetStateFn, GetConfigFn, CoreHostApi
+};
+
 // --- Pipeline State ---
 // This struct is owned by the host (ox_webservice) and contains all request-specific data.
 #[repr(C)]
@@ -24,22 +30,34 @@ pub struct PipelineState {
     pub response_body: Vec<u8>,
     pub module_context: ModuleContext,
     pub pipeline_ptr: *const c_void,
+    // New Fields
+    pub is_modified: bool,
+    pub execution_history: Vec<ModuleExecutionRecord>,
 }
+
+pub struct ModuleExecutionRecord {
+    pub module_name: String,
+    pub status: ModuleStatus,
+    pub flow_control: FlowControl,
+    pub return_data: *mut c_void, 
+}
+
+unsafe impl Send for ModuleExecutionRecord {}
+unsafe impl Sync for ModuleExecutionRecord {}
+
+unsafe impl Send for PipelineState {}
+unsafe impl Sync for PipelineState {}
 
 // Define the C-compatible function signature for handlers
 pub type WebServiceHandler = unsafe extern "C" fn(
     instance_ptr: *mut c_void, 
     pipeline_state_ptr: *mut PipelineState, 
+    // We pass CoreHostApi instead of full V1 in the new system?
+    // Maintaining signature for now but types are from ox_plugin
     log_callback: LogCallback,
     alloc_fn: AllocFn,
     arena: *const c_void,
 ) -> HandlerResult;
-
-pub type GetConfigFn = unsafe extern "C" fn(
-    instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char;
 
 #[repr(C)]
 pub struct ModuleInterface {
@@ -49,30 +67,7 @@ pub struct ModuleInterface {
     pub get_config: GetConfigFn,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LogLevel {
-    Error = 1,
-    Warn = 2,
-    Info = 3,
-    Debug = 4,
-    Trace = 5,
-}
-
-impl From<LogLevel> for log::Level {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Trace => log::Level::Trace,
-        }
-    }
-}
-
-pub type LogCallback = unsafe extern "C" fn(level: LogLevel, module: *const c_char, message: *const c_char);
-
+// Log implementation...
 struct ModuleLogger {
     callback: LogCallback,
     module_name: CString,
@@ -114,60 +109,25 @@ pub fn init_logging(callback: LogCallback, module_name: &str) -> std::result::Re
 }
 
 
-
-
 // Define the shared Module Context type
 pub type ModuleContext = Arc<RwLock<HashMap<String, Value>>>;
 
-pub type AllocStrFn = unsafe extern "C" fn(arena: *const c_void, s: *const c_char) -> *mut c_char;
-pub type AllocFn = unsafe extern "C" fn(arena: *mut c_void, size: usize, align: usize) -> *mut c_void;
 
-#[repr(C)]
-pub struct WebServiceApiV1 {
-    pub log_callback: LogCallback,
-    pub alloc_str: AllocStrFn,
-    pub alloc_raw: AllocFn,
-    
-    // Module Context
-    pub get_module_context_value: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub set_module_context_value: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value_json: *const c_char),
+// We will keep WebServiceApiV1 but usage should migrate to CoreHostApi
+// For partial compatibility, we ensure CoreHostApi is a prefix or we just don't use WebServiceApiV1 in new modules.
 
-    // Request Getters
-    pub get_request_method: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_path: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_query: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_headers: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_source_ip: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
+// WebServiceApiV1 is now fully generic.
+pub type WebServiceApiV1 = CoreHostApi;
 
-    // Request Setters
-    pub set_request_path: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, path: *const c_char),
-    pub set_request_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value: *const c_char),
-    pub set_source_ip: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, ip: *const c_char),
-
-    // Response Getters
-    pub get_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState) -> u16,
-    pub get_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-
-    // Response Setters
-    pub set_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, status_code: u16),
-    pub set_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value: *const c_char),
-    pub set_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, body: *const u8, body_len: usize),
-
-    // Server Metrics
-    pub get_server_metrics: unsafe extern "C" fn(arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-
-    // Config
-    pub get_all_configs: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-}
-
+// Module Initialization now takes CoreHostApi
 pub type InitializeModuleFn = unsafe extern "C" fn(
     module_params_json_ptr: *const c_char,
     module_id: *const c_char,
-    api: *const WebServiceApiV1
+    api: *const CoreHostApi
 ) -> *mut ModuleInterface;
+
+// Config structs (UriMatcher, ModuleConfig, Phase etc.)
+// Phase is specific to this host logic, so it stays here.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UriMatcher {
@@ -247,36 +207,4 @@ pub enum Phase {
     PreLateRequest,
     LateRequest,
     PostLateRequest,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ModuleStatus {
-    Unmodified = 0,
-    Modified = 1,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FlowControl {
-    Continue = 0, // Continue to next module in same phase
-    NextPhase = 1, // Skip remaining modules in current phase, go to next phase
-    JumpTo = 2, // Jump to specific phase
-    Halt = 3, // Stop processing immediately
-    StreamFile = 4, // Stream file from return_data path
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
-pub struct ReturnParameters {
-    pub return_data: *mut std::ffi::c_void,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct HandlerResult {
-    pub status: ModuleStatus,
-    pub flow_control: FlowControl,
-    pub return_parameters: ReturnParameters,
 }

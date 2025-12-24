@@ -1,0 +1,11 @@
+error: no bin target named `ffi_get_module_context_value` in default-run packages
+help: available bin targets:
+    ffi_alloc_str
+    ffi_get_module_context
+    ffi_get_request_header
+    ffi_get_response_header
+    ffi_set_request_header
+    ffi_set_request_path
+    ffi_set_response_header
+    ffi_set_source_ip
+Error: failed to build fuzz script: ASAN_OPTIONS="detect_odr_violation=0" RUSTFLAGS=" -Cpasses=sancov-module -Cllvm-args=-sanitizer-coverage-level=4 -Cllvm-args=-sanitizer-coverage-inline-8bit-counters -Cllvm-args=-sanitizer-coverage-pc-table -Cllvm-args=-sanitizer-coverage-trace-compares --cfg fuzzing -Cllvm-args=-simplifycfg-branch-fold-threshold=0 -Zsanitizer=address -Cllvm-args=-sanitizer-coverage-stack-depth -Cdebug-assertions -Ccodegen-units=1" "cargo" "build" "--manifest-path" "/var/repos/oxIDIZER/ox_webservice/fuzz/Cargo.toml" "--target" "x86_64-unknown-linux-gnu" "--release" "--config" "profile.release.debug=\"line-tables-only\"" "--bin" "ffi_get_module_context_value"

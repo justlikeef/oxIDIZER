@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
@@ -56,8 +56,8 @@ if [ "$MODE" == "isolated" ]; then
   sleep 1
 
   # Check for correct message in the log file
-  if grep -q "ox_webservice_stream: Successfully handled request for path" "$TEST_DIR/logs/ox_webservice.log"; then
-      log_message "$LOGGING_LEVEL" "notice" "Found 'Successfully handled request' message in log"
+  if grep -q "ox_webservice_stream: Streaming file for path" "$TEST_DIR/logs/ox_webservice.log"; then
+      log_message "$LOGGING_LEVEL" "notice" "Found 'Streaming file for path' message in log"
   else
       log_message "$LOGGING_LEVEL" "error" "Did not find 'Successfully handled request' message in log"
       log_message "$LOGGING_LEVEL" "error" "Test FAILED"

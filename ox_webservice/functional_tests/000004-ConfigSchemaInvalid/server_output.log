@@ -1,0 +1,6 @@
+DEBUG: Config loaded from "/var/repos/oxIDIZER/ox_webservice/functional_tests/000004-ConfigSchemaInvalid/ox_webservice.yaml". Value is array? false, object? true
+Content Preview: {
+  "log4rs_config": "conf/log4rs.yaml",
+  "modules": []
+}
+Failed to load configuration: Error deserializing configuration: In file "/var/repos/oxIDIZER/ox_webservice/functional_tests/000004-ConfigSchemaInvalid/ox_webservice.yaml": missing field `servers`

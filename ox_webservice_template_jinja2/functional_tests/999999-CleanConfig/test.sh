@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
@@ -46,9 +46,9 @@ if [ "$MODE" == "isolated" ]; then
   # Allow the server to start
   sleep 2
 
-  # Curl the index.html page
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/index.html)
-  CURL_OUTPUT=$(curl -s http://localhost:3000/index.html)
+  # Curl the index.jinja2 page
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/index.jinja2)
+  CURL_OUTPUT=$(curl -s http://127.0.0.1:3000/index.jinja2)
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
@@ -63,8 +63,8 @@ if [ "$MODE" == "isolated" ]; then
   fi
 
   # Check the output
-  if [ "$HTTP_STATUS" -eq 200 ] && echo "$CURL_OUTPUT" | grep -q "Hello from ox_content!"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found 200 status code in header and correct content in body."
+  if [ "$HTTP_STATUS" -eq 200 ] && echo "$CURL_OUTPUT" | grep -q "Hello from Jinja2! The answer is 42."; then
+    log_message "$LOGGING_LEVEL" "notice" "Found 200 status code and correct rendered content."
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
@@ -79,9 +79,9 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
   else
-    log_message "$LOGGING_LEVEL" "error" "Did not find 200 status and/or correct body."
+    log_message "$LOGGING_LEVEL" "error" "Did not find 200 status and/or correct rendered body."
     log_message "$LOGGING_LEVEL" "error" "Expected Status: 200, Actual: $HTTP_STATUS"
-    log_message "$LOGGING_LEVEL" "error" "Expected Body: 'Hello from ox_content!', Actual: '$CURL_OUTPUT'"
+    log_message "$LOGGING_LEVEL" "error" "Expected Body: 'Hello from Jinja2! The answer is 42.', Actual: '$CURL_OUTPUT'"
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then

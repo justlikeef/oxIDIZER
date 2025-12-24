@@ -1,1 +1,1 @@
-Failed to load configuration: Error reading configuration file: did not find expected node content at line 2 column 1, while parsing a flow node
+Failed to load configuration: Error reading configuration file: Error parsing file: "/var/repos/oxIDIZER/ox_webservice_status/functional_tests/000003-ConfigInvalid/invalid.yaml": did not find expected node content at line 2 column 1, while parsing a flow node

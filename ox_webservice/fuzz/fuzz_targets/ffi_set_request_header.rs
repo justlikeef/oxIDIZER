@@ -5,9 +5,8 @@ use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::ptr;
 use ox_webservice::{
-    pipeline::set_request_header_c,
+    pipeline::set_state_c,
     PipelineState,
-    ModuleContext,
 };
 use bumpalo::Bump;
 use axum::http::HeaderMap;
@@ -35,10 +34,12 @@ fuzz_target!(|data: &[u8]| {
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
         pipeline_ptr: ptr::null(),
+        is_modified: false,
+        execution_history: Vec::new(),
     };
 
     unsafe {
         let state_ptr = &mut state as *mut PipelineState;
-        set_request_header_c(state_ptr, key_c.as_ptr(), val_c.as_ptr());
+        set_state_c(state_ptr as *mut c_void, key_c.as_ptr(), val_c.as_ptr());
     }
 });

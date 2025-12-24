@@ -1,0 +1,188 @@
+warning: unused imports: `Deserialize` and `Serialize`
+ --> ox_plugin/src/lib.rs:2:13
+  |
+2 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> ox_plugin/src/lib.rs:135:9
+    |
+135 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused imports: `AllocFn` and `WebServiceApiV1`
+ --> ox_webservice_test_utils/src/lib.rs:3:5
+  |
+3 |     AllocFn, AllocStrFn, HandlerResult, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1, C...
+  |     ^^^^^^^                                                                       ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning[E0133]: call to unsafe function `std::ffi::CStr::from_ptr` is unsafe and requires unsafe block
+  --> ox_webservice_test_utils/src/lib.rs:27:17
+   |
+27 |     let c_str = CStr::from_ptr(s);
+   |                 ^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+  --> ox_webservice_test_utils/src/lib.rs:25:1
+   |
+25 | pub un...) -> *mut c_char {
+   | ^^^^^^...^^^^^^^^^^^^^^^^
+   = note: `#[warn(unsafe_op_in_unsafe_fn)]` (part of `#[warn(rust_2024_compatibility)]`) on by default
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+  --> ox_webservice_test_utils/src/lib.rs:31:21
+   |
+31 | ...= &*(arena as *const Bump);
+   |       ^^^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+   = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+
+warning[E0133]: dereference of raw pointer is unsafe and requires unsafe block
+  --> ox_webservice_test_utils/src/lib.rs:43:26
+   |
+43 | ...ut *(arena as *mut Bump);
+   |       ^^^^^^^^^^^^^^^^^^^^^ dereference of raw pointer
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+   = note: raw pointers may be null, dangling or unaligned; they can violate aliasing rules and cause data races: all of these are undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+  --> ox_webservice_test_utils/src/lib.rs:41:1
+   |
+41 | pub un...) -> *mut c_void {
+   | ^^^^^^...^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function `std::alloc::alloc` is unsafe and requires unsafe block
+  --> ox_webservice_test_utils/src/lib.rs:49:9
+   |
+49 | ...   std::alloc::alloc(layout) as...
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+
+warning[E0133]: call to unsafe function is unsafe and requires unsafe block
+  --> ox_webservice_test_utils/src/lib.rs:85:9
+   |
+85 | ...   alloc_fn(arena, c_s.as_ptr())
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+  --> ox_webservice_test_utils/src/lib.rs:54:1
+   |
+54 | pub un...) -> *mut c_char {
+   | ^^^^^^...^^^^^^^^^^^^^^^^
+
+warning[E0133]: call to unsafe function is unsafe and requires unsafe block
+   --> ox_webservice_test_utils/src/lib.rs:137:5
+    |
+137 |     alloc_fn(arena, json.as_ptr())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+    |
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html>
+    = note: consult the function's documentation for information on how to avoid undefined behavior
+note: an unsafe function restricts its caller, but its body is safe by default
+   --> ox_webservice_test_utils/src/lib.rs:135:1
+    |
+135 | pub u...n) -> *mut c_char {
+    | ^^^^^...^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0133`.
+warning: unused import: `anyhow`
+ --> ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::ops::Range`
+ --> ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 |                          let mut block_end = block.len();
+   |                              ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...                   block_end = relative_offset;
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> ox_fileproc/src/cursor.rs:62:17
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |                 ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |                 |                                           |
+   |                 the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: unused import: `super::*`
+ --> ox_persistence_driver_manager/src/functional_tests.rs:4:9
+  |
+4 |     use super::*;
+  |         ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::path::Path`
+ --> ox_persistence_driver_manager/src/functional_tests.rs:8:9
+  |
+8 |     use std::path::Path;
+  |         ^^^^^^^^^^^^^^^
+
+warning: unused imports: `CoreHostApi`, `ModuleInterface`, `Phase`, and `PipelineState`
+   --> ox_persistence_driver_manager/src/functional_tests.rs:116:34
+    |
+116 | ...::{CoreHostApi, ModuleInterface, PipelineState, Phase};
+    |       ^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^
+
+warning: unused import: `Mutex`
+   --> ox_persistence_driver_manager/src/functional_tests.rs:118:31
+    |
+118 | ...ync::{Arc, Mutex};
+    |               ^^^^^
+
+warning: unused import: `std::path::Path`
+ --> ox_persistence_driver_manager/src/functional_tests_security.rs:3:5
+  |
+3 | use std::path::Path;
+  |     ^^^^^^^^^^^^^^^
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

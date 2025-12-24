@@ -14,7 +14,7 @@ fn test_errorhandler_basic_flow() {
 
     // Create 404.jinja2
     let mut template_404 = std::fs::File::create(root_path.join("404.jinja2")).unwrap();
-    writeln!(template_404, "Custom 404 Error: {{{{ status_text }}}}").unwrap();
+    write!(template_404, "Custom 404 Error: {{{{ status_text }}}}").unwrap();
 
     // Config file
     let mut config_file = Builder::new().suffix(".yaml").tempfile().unwrap();
@@ -63,7 +63,7 @@ fn test_errorhandler_basic_flow() {
     // Let's create index.jinja2 first to test fallback
     {
         let mut template_index = std::fs::File::create(root_path.join("index.jinja2")).unwrap();
-        writeln!(template_index, "Generic Error: {{{{ status_code }}}}").unwrap();
+        write!(template_index, "Generic Error: {{{{ status_code }}}}").unwrap();
 
         let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
         ps.status_code = 500;

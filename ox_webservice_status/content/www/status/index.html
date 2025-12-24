@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status | oxIDIZER</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="stylesheet" href="css/status.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>System Status</h1>
+                </div>
+                <span class="status-badge" id="status-badge">ONLINE</span>
+            </div>
+            <p class="subtitle" id="uptime-display">Loading uptime...</p>
+        </header>
+
+        <div class="grid" id="main-grid">
+            <!-- System Info Card -->
+            <div class="card">
+                <h2>System Info</h2>
+                <div class="stat-container" id="system-info">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Resources Card -->
+            <div class="card">
+                <h2>Resources</h2>
+                <div class="stat-container" id="resources-info">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h2>Storage</h2>
+            <div id="storage-info">
+                <div class="loader"></div>
+            </div>
+        </div>
+
+        <h2>Server Metrics</h2>
+        <div class="grid" id="server-metrics">
+            <div class="loader"></div>
+        </div>
+
+        <h2>Configurations</h2>
+        <div id="configurations">
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <script src="js/status.js"></script>
+</body>
+
+</html>

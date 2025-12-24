@@ -5,9 +5,8 @@ use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::ptr;
 use ox_webservice::{
-    pipeline::set_source_ip_c,
+    pipeline::set_state_c,
     PipelineState,
-    ModuleContext,
 };
 use bumpalo::Bump;
 use axum::http::HeaderMap;
@@ -27,12 +26,15 @@ fuzz_target!(|data: &[u8]| {
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
         pipeline_ptr: ptr::null(),
+        is_modified: false,
+        execution_history: Vec::new(),
     };
 
     if let Ok(c_ip) = CString::new(data) {
         unsafe {
             let state_ptr = &mut state as *mut PipelineState;
-            set_source_ip_c(state_ptr, c_ip.as_ptr());
+            let key = CString::new("http.source_ip").unwrap();
+            set_state_c(state_ptr as *mut c_void, key.as_ptr(), c_ip.as_ptr());
         }
     }
 });

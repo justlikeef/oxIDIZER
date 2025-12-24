@@ -1,5 +1,39 @@
-2025-12-15 22:06:15 - INFO - log4rs initialized successfully.
-2025-12-15 22:06:15 - DEBUG - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_webservice.yaml":
+DEBUG: Config loaded from "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_webservice.yaml". Value is array? false, object? true
+Content Preview: {
+  "log4rs_config": "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/log4rs.yaml",
+  "modules": [
+    {
+      "id": "test_module_0",
+      "name": "ox_webservice_stream",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_content.yaml"
+      },
+      "phase": "Content",
+      "priority": 999,
+      "uris": null
+    }
+  ],
+  "servers": [
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": ".*"
+        }
+      ],
+      "port": 3000,
+      "protocol": "http"
+    }
+  ],
+  "urls": [
+    {
+      "module_id": "test_module_0",
+      "url": ".*"
+    }
+  ]
+}
+2025-12-24 11:44:19 - INFO - log4rs initialized successfully.
+2025-12-24 11:44:19 - DEBUG - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/ox_webservice.yaml":
 {
   "log4rs_config": "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/log4rs.yaml",
   "modules": [
@@ -33,10 +67,10 @@
     }
   ]
 }
-2025-12-15 22:06:15 - INFO - Starting ox_webservice...
-2025-12-15 22:06:15 - INFO - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
-2025-12-15 22:06:15 - DEBUG - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest"
-2025-12-15 22:06:15 - DEBUG - [ox_webservice_stream] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/mimetypes.yaml":
+2025-12-24 11:44:19 - INFO - Starting ox_webservice...
+2025-12-24 11:44:19 - INFO - Loading module 'ox_webservice_stream' from "target/debug/libox_webservice_stream.so"
+2025-12-24 11:44:19 - DEBUG - [ox_webservice_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest"
+2025-12-24 11:44:19 - DEBUG - [ox_webservice_stream] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/mimetypes.yaml":
 {
   "mimetypes": [
     {
@@ -57,5 +91,5 @@
     }
   ]
 }
-2025-12-15 22:06:15 - INFO - [ox_webservice_stream] ox_webservice_stream initialized
-2025-12-15 22:06:15 - INFO - Listening on 0.0.0.0:3000
+2025-12-24 11:44:19 - INFO - [ox_webservice_stream] ox_webservice_stream initialized
+2025-12-24 11:44:19 - INFO - Listening on 0.0.0.0:3000

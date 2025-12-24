@@ -1,6 +1,6 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, PipelineState, AllocFn, AllocStrFn,
+    CoreHostApi, PipelineState, AllocFn, AllocStrFn,
     ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
@@ -9,6 +9,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic;
 use std::path::PathBuf;
 use regex::Regex;
+use bumpalo::Bump;
 
 const MODULE_NAME: &str = "ox_webservice_rewrite";
 
@@ -26,11 +27,11 @@ pub struct RewriteConfig {
 pub struct RewriteModule<'a> {
     config: RewriteConfig,
     regexes: Vec<Regex>,
-    api: &'a WebServiceApiV1,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> RewriteModule<'a> {
-    pub fn new(config: RewriteConfig, api: &'a WebServiceApiV1) -> anyhow::Result<Self> {
+    pub fn new(config: RewriteConfig, api: &'a CoreHostApi) -> anyhow::Result<Self> {
         let module_name = CString::new(MODULE_NAME).unwrap();
         let message = CString::new("ox_webservice_rewrite: Initializing...").unwrap();
         unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
@@ -49,25 +50,29 @@ impl<'a> RewriteModule<'a> {
 
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
+        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        unsafe {
-            let arena_ptr = &pipeline_state.arena as *const bumpalo::Bump as *const c_void;
-            let c_str_path = (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str);
-            let path = CStr::from_ptr(c_str_path).to_string_lossy();
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
+        if let Some(path_val) = ctx.get("http.request.path") {
+            let path = path_val.as_str().unwrap_or("/");
 
             for (i, regex) in self.regexes.iter().enumerate() {
-                if regex.is_match(&path) {
+                if regex.is_match(path) {
                     let rule = &self.config.rules[i];
-                    let replacement = regex.replace(&path, rule.replace_string.as_str());
+                    let replacement = regex.replace(path, rule.replace_string.as_str());
                     let new_path = replacement.to_string();
 
                     if path != new_path {
                         let module_name = CString::new(MODULE_NAME).unwrap();
                         let message = CString::new(format!("Rewrite match found. Rewriting path from '{}' to '{}'", path, new_path)).unwrap();
-                        (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr());
+                        unsafe { (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr()); }
 
-                        let c_new_path = CString::new(new_path).unwrap();
-                        (self.api.set_request_path)(pipeline_state, c_new_path.as_ptr());
+                        let _ = ctx.set("http.request.path", serde_json::Value::String(new_path));
                         
                         return HandlerResult {
                             status: ModuleStatus::Modified,
@@ -95,7 +100,7 @@ impl<'a> RewriteModule<'a> {
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api: *const WebServiceApiV1,
+    api: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
         let api_instance = unsafe { &*api };

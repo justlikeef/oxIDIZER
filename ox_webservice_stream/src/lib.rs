@@ -2,7 +2,7 @@ use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    CoreHostApi, WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
     ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
@@ -61,7 +61,7 @@ pub struct OxModule<'a> {
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub content_config: ContentConfig,
-    api: &'a WebServiceApiV1,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> OxModule<'a> {
@@ -74,7 +74,10 @@ impl<'a> OxModule<'a> {
         }
     }
 
-    pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+    // Constructor still takes WebServiceApiV1 to support legacy casting in init, 
+    // BUT we will cast it to CoreHostApi immediately or change signature.
+    // Changing signature in `new` is cleaner.
+    pub fn new(config: ContentConfig, api: &'a CoreHostApi) -> Result<Self> {
         let _ = ox_webservice_api::init_logging(api.log_callback, MODULE_NAME);
 
         if let Ok(c_message) = CString::new(format!(
@@ -133,7 +136,6 @@ impl<'a> OxModule<'a> {
                         let module_name = CString::new(MODULE_NAME).unwrap();
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
-                    // Continue, just won't match. Or could fail hard. Let's log error and leave None.
                 }
             }
         }
@@ -161,17 +163,21 @@ impl<'a> OxModule<'a> {
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+        
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
 
         // --- Early Conflict Check for Skip ---
-        let existing_body_ptr = unsafe { (self.api.get_response_body)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        let mut existing_body = String::new();
-        if !existing_body_ptr.is_null() {
-            existing_body = unsafe { CStr::from_ptr(existing_body_ptr).to_string_lossy().into_owned() };
-        }
-        
-        let has_existing_content = !existing_body.is_empty();
+        // Check generic state latch "pipeline.modified"
+        let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
+             val.as_str().unwrap_or("false") == "true"
+        } else { false };
 
-        if has_existing_content {
+        if is_modified {
              match self.content_config.on_content_conflict {
                  Some(ContentConflictAction::skip) => {
                      self.log(LogLevel::Debug, "ox_webservice_stream: Skipping due to existing content (early check).".to_string());
@@ -185,7 +191,7 @@ impl<'a> OxModule<'a> {
                  },
                  Some(ContentConflictAction::error) => {
                      self.log(LogLevel::Error, "ox_webservice_stream: Conflict error (early check).".to_string());
-                     unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                     let _ = ctx.set("http.response.status", serde_json::json!(500));
                      return HandlerResult {
                         status: ModuleStatus::Modified,
                         flow_control: FlowControl::JumpTo,
@@ -198,47 +204,34 @@ impl<'a> OxModule<'a> {
              }
         }
 
-        let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        if request_path_ptr.is_null() {
-             self.log(LogLevel::Error, "ox_webservice_stream: get_request_path returned null.".to_string());
-             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-             return HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
-                return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
-                },
-             };
-        }
-        let raw_request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+        // Get Path
+        let request_path = match ctx.get("http.request.path") {
+            Some(v) => v.as_str().unwrap_or("/").to_string(),
+            None => {
+                 self.log(LogLevel::Error, "ox_webservice_stream: get(http.request.path) returned None.".to_string());
+                 let _ = ctx.set("http.response.status", serde_json::json!(500));
+                 return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::JumpTo,
+                    return_parameters: ReturnParameters {
+                        return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    },
+                 };
+            }
+        };
 
         // Check for regex matches in module context
-        let regex_matches_key = CString::new("regex_matches").unwrap();
-        let regex_matches_ptr = unsafe {
-            (self.api.get_module_context_value)(pipeline_state, regex_matches_key.as_ptr(), arena_ptr, self.api.alloc_str)
-        };
-        
-        let mut request_path = raw_request_path;
-        // Need to keep the CString alive if we allocate one, but here we just have a pointer to arena-allocated memory.
-        
-        let mut regex_path_buf_storage: Option<String> = None;
-
-        if !regex_matches_ptr.is_null() {
-            let regex_matches_json = unsafe { CStr::from_ptr(regex_matches_ptr).to_str().unwrap_or("[]") };
-            self.log(LogLevel::Debug, format!("ox_webservice_stream: Found regex_matches: {}", regex_matches_json));
-             if let Ok(Value::Array(matches)) = serde_json::from_str::<Value>(regex_matches_json) {
-                 if let Some(Value::String(first_match)) = matches.get(0) {
-                     // Use the first capture group as the path
-                     regex_path_buf_storage = Some(first_match.clone());
-                 }
-             }
+        // "regex_matches" key relies on Generic State
+        let mut resolved_path = request_path;
+        if let Some(val) = ctx.get("regex_matches") {
+              if let Some(matches) = val.as_array() {
+                  if let Some(first) = matches.get(0).and_then(|v| v.as_str()) {
+                      resolved_path = first.to_string();
+                  }
+              }
         }
 
-        if let Some(ref p) = regex_path_buf_storage {
-            request_path = p.as_str();
-        }
-
-        if let Some(file_path) = self.resolve_and_find_file(request_path) {
+        if let Some(file_path) = self.resolve_and_find_file(&resolved_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
             
             // Find first matching regex
@@ -258,8 +251,7 @@ impl<'a> OxModule<'a> {
             };
 
             // Late Conflict Check (Optimization: Skip/Error handled early)
-            if has_existing_content {
-                    // Only Overwrite and Append reach here
+            if is_modified {
                     match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
                         ContentConflictAction::skip | ContentConflictAction::error => {
                             // Should have been caught early
@@ -275,12 +267,12 @@ impl<'a> OxModule<'a> {
                     }
             }
 
-            // Verify file existence and readability without loading into memory
+            // Verify file existence (again? resolve_and_find check existence)
+            // But we must open it? Host streams it by path. We just need to ensure metadata ok?
             match fs::metadata(&file_path) {
                 Ok(metadata) => {
                         if !metadata.is_file() {
-                            // Not a file (e.g. directory)
-                            unsafe { (self.api.set_response_status)(pipeline_state, 404); }
+                            let _ = ctx.set("http.response.status", serde_json::json!(404));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::Continue, // Or halt?
@@ -288,10 +280,9 @@ impl<'a> OxModule<'a> {
                             };
                         }
                         
-                        // Check readability? fs::File::open is better.
                         if let Err(e) = fs::File::open(&file_path) {
-                            self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", request_path, e));
-                            unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                            self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", resolved_path, e));
+                            let _ = ctx.set("http.response.status", serde_json::json!(500));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::JumpTo,
@@ -303,22 +294,13 @@ impl<'a> OxModule<'a> {
                         LogLevel::Debug,
                         format!(
                             "ox_webservice_stream: Streaming file for path: {}",
-                            request_path
+                            resolved_path
                         ),
                     );
 
                     // Set Content-Type
-                    unsafe {
-                        let c_content_type_key = CString::new("Content-Type").unwrap();
-                        let c_content_type_value = CString::new(mimetype.as_str()).unwrap();
-                        (self.api.set_response_header)(
-                            pipeline_state,
-                            c_content_type_key.as_ptr(),
-                            c_content_type_value.as_ptr(),
-                        );
-                        // Explicitly set 200 OK
-                        (self.api.set_response_status)(pipeline_state, 200);
-                    }
+                    let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(mimetype));
+                    let _ = ctx.set("http.response.status", serde_json::json!(200));
 
                     // Pass file path to host
                     // Host takes ownership of the CString pointer
@@ -338,11 +320,11 @@ impl<'a> OxModule<'a> {
                         LogLevel::Error,
                         format!(
                             "ox_webservice_stream: Error accessing file metadata for path {}: {}",
-                            request_path, e
+                            resolved_path, e
                         ),
                     );
 
-                    unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                    let _ = ctx.set("http.response.status", serde_json::json!(500));
                     return HandlerResult {
                         status: ModuleStatus::Modified,
                         flow_control: FlowControl::JumpTo, // Go to error handling
@@ -355,14 +337,13 @@ impl<'a> OxModule<'a> {
                 LogLevel::Debug,
                 format!(
                     "ox_webservice_stream: File not found for path: {}",
-                    request_path
+                    resolved_path
                 ),
             );
-            unsafe { 
-                (self.api.set_response_status)(pipeline_state, 404);
-                let body = CString::new("404 Not Found").unwrap();
-                (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
-            }
+            
+            let _ = ctx.set("http.response.status", serde_json::json!(404));
+            let _ = ctx.set("http.response.body", serde_json::Value::String("404 Not Found".to_string()));
+
              HandlerResult {
                 status: ModuleStatus::Modified,
                 flow_control: FlowControl::Continue,
@@ -409,7 +390,7 @@ impl<'a> OxModule<'a> {
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         eprintln!("ox_webservice_stream: api_ptr is null in initialize_module");
@@ -443,7 +424,6 @@ pub unsafe extern "C" fn initialize_module(
 
         let config_path = PathBuf::from(config_file_name);
         
-        // Use ox_fileproc for module config
         let config: ContentConfig = match ox_fileproc::process_file(&config_path, 5) {
             Ok(value) => match serde_json::from_value(value) {
                 Ok(c) => c,
@@ -502,27 +482,14 @@ pub unsafe extern "C" fn initialize_module(
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn process_request_c(
-    _instance_ptr: *mut c_void, 
+    instance_ptr: *mut c_void, 
     pipeline_state_ptr: *mut PipelineState, 
     _log_callback: LogCallback,
-    alloc_fn: AllocFn,
-    arena: *const c_void,
+    _alloc_fn: AllocFn,
+    _arena: *const c_void,
 ) -> HandlerResult {
-    ox_webservice_api::init_logging(_log_callback, "ox_webservice_stream").ok();
-    
-    // ... logic ...
-    // Note: Can't replace logic here without viewing file first, but I'll replace the function signature and known return points.
-    // Wait, I can't blindly replace return points without knowing context.
-    // I should view the files or perform comprehensive replacements.
-    // For now, I'll update signature and import statements in this tool call, then handle body.
-    // Actually, blindly replacing is risky. I used multi_replace incorrectly in thought process.
-    // I will modify imports first.
-
     // Safety check for handler instance
-    if _instance_ptr.is_null() {
-        let log_msg = CString::new("ox_webservice_stream: process_request_c called with null instance_ptr").unwrap();
-        let module_name = CString::new(MODULE_NAME).unwrap();
-        unsafe { (_log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+    if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
             flow_control: FlowControl::JumpTo,
@@ -533,7 +500,7 @@ pub unsafe extern "C" fn process_request_c(
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let handler = unsafe { &*(_instance_ptr as *mut OxModule) };
+        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
         handler.process_request(pipeline_state_ptr)
     }));
 
@@ -542,8 +509,12 @@ pub unsafe extern "C" fn process_request_c(
         Err(e) => {
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
+            
+             // We don't have log callback handy if we don't store it or pass it.
+             // But we have _log_callback arg.
             let module_name = CString::new(MODULE_NAME).unwrap();
             unsafe { (_log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+            
             HandlerResult {
                 status: ModuleStatus::Modified,
                 flow_control: FlowControl::JumpTo,
@@ -555,7 +526,8 @@ pub unsafe extern "C" fn process_request_c(
     }
 }
 
-unsafe extern "C" fn get_config_c(
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_config_c(
     instance_ptr: *mut c_void,
     arena: *const c_void,
     alloc_fn: AllocStrFn,
@@ -570,5 +542,9 @@ unsafe extern "C" fn get_config_c(
     }
     
     let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
-    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+    
+    // Use generic PluginContext for allocation safety
+    // We pass null for state_ptr since we are only allocating
+    let ctx = unsafe { ox_plugin::PluginContext::new(handler.api, std::ptr::null_mut(), arena) };
+    ctx.alloc_string(&json)
 }

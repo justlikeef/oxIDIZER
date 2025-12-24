@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
 
 # Parameters

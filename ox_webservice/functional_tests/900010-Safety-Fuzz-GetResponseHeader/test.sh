@@ -1,5 +1,12 @@
 #!/bin/bash
 set -e
-echo "Running Fuzzer: ffi_get_response_header"
+# Fuzz Target: ffi_get_response_header
+TEST_DIR=$(dirname "$(readlink -f "$0")")
+TEST_LIBS_DIR=$(readlink -f "${2:-functional_tests/common}")
+LOGS_DIR="$TEST_DIR/logs"
+
+source "$TEST_LIBS_DIR/log_function.sh"
+source "$TEST_LIBS_DIR/fuzz_utils.sh"
+
 cd ox_webservice
-cargo +nightly fuzz run ffi_get_response_header -- -max_total_time=15
+run_fuzz_test "ffi_get_response_header" "$4" "$LOGS_DIR"

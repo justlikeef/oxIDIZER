@@ -1,11 +1,26 @@
 #!/bin/bash
 set -e
-echo "Running Fuzzer: module_config_parse"
 
-if [ -d "ox_webservice_api/fuzz" ]; then
-    cd ox_webservice_api
-    cargo +nightly fuzz run module_config_parse -- -max_total_time=15
-else
-    echo "Fuzz directory not found in ox_webservice_api."
-    exit 1
+# Parameters
+SCRIPT_DIR=$1
+TEST_LIBS_DIR=${2:-"functional_tests/common"}
+MODE=$3
+LOGGING_LEVEL=${4:-"info"}
+
+TEST_DIR=$(dirname "$(readlink -f "$0")")
+LOGS_DIR="$TEST_DIR/logs"
+
+# Ensure absolute path for libs
+if [[ "$TEST_LIBS_DIR" != /* ]]; then
+    TEST_LIBS_DIR="$(pwd)/$TEST_LIBS_DIR"
 fi
+
+source "$TEST_LIBS_DIR/log_function.sh"
+source "$TEST_LIBS_DIR/fuzz_utils.sh"
+
+# Enter crate directory where `fuzz` folder resides
+pushd ox_webservice_api > /dev/null
+
+run_fuzz_test "module_config_parse" "$LOGGING_LEVEL" "$LOGS_DIR"
+
+popd > /dev/null

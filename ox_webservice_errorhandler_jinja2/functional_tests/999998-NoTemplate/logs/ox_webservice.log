@@ -1,5 +1,39 @@
-2025-12-15T22:05:46.041382406-05:00 INFO ox_webservice - log4rs initialized successfully.
-2025-12-15T22:05:46.041508880-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice.yaml":
+DEBUG: Config loaded from "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice.yaml". Value is array? false, object? true
+Content Preview: {
+  "log4rs_config": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/log4rs.yaml",
+  "modules": [
+    {
+      "id": "test_module_0",
+      "name": "ox_webservice_errorhandler_jinja2",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice_errorhandler_jinja2.yaml"
+      },
+      "phase": "ErrorHandling",
+      "priority": 999,
+      "uris": null
+    }
+  ],
+  "servers": [
+    {
+      "bind_address": "0.0.0.0",
+      "hosts": [
+        {
+          "name": ".*"
+        }
+      ],
+      "port": 3000,
+      "protocol": "http"
+    }
+  ],
+  "urls": [
+    {
+      "module_id": "test_module_0",
+      "url": ".*"
+    }
+  ]
+}
+2025-12-24T11:46:22.974878080-05:00 INFO ox_webservice - log4rs initialized successfully.
+2025-12-24T11:46:22.975034066-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/ox_webservice.yaml":
 {
   "log4rs_config": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/log4rs.yaml",
   "modules": [
@@ -33,51 +67,13 @@
     }
   ]
 }
-2025-12-15T22:05:46.041522896-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-15T22:05:46.041536372-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
-2025-12-15T22:05:46.043762623-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/test_template"
-2025-12-15T22:05:46.044108547-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
-2025-12-15T22:05:48.047786151-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
-2025-12-15T22:05:48.047999321-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
-2025-12-15T22:05:48.048010861-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
-2025-12-15T22:05:48.048019790-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
-2025-12-15T22:05:48.048028385-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
-2025-12-15T22:05:48.048036964-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
-2025-12-15T22:05:48.048045497-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
-2025-12-15T22:05:48.048054036-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
-2025-12-15T22:05:48.048062499-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
-2025-12-15T22:05:48.048070966-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
-2025-12-15T22:05:48.048079582-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
-2025-12-15T22:05:48.048088074-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
-2025-12-15T22:05:48.048101071-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
-2025-12-15T22:05:48.048109848-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
-2025-12-15T22:05:48.048118268-05:00 INFO ox_webservice::pipeline - Executing phase: ErrorHandling with 1 modules
-2025-12-15T22:05:48.048141841-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: Handling error request with status code: 500
-2025-12-15T22:05:48.048302857-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] Render Context: {"message":"An error occurred.","module_context":"No context module matched","module_name":"NONE","request_body":"","request_headers":{"accept":"*/*","host":"localhost:3000","user-agent":"curl/8.5.0"},"request_method":"GET","request_path":"/doesnotexist.html","request_query":"","source_ip":"127.0.0.1:55924","status_code":500,"status_text":"Internal Server Error"}
-2025-12-15T22:05:48.048341779-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] No specific error template found for status 500. No index.jinja2 fallback found. Falling back to default text response.
-2025-12-15T22:05:48.048381213-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 25
-2025-12-15T22:05:48.048391191-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 25
-2025-12-15T22:05:48.048399678-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 25
-2025-12-15T22:05:48.048408056-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 25
-2025-12-15T22:05:48.055522036-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreEarlyRequest, Body len: 0
-2025-12-15T22:05:48.055611354-05:00 DEBUG ox_webservice::pipeline - Executing phase: EarlyRequest, Body len: 0
-2025-12-15T22:05:48.055621026-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostEarlyRequest, Body len: 0
-2025-12-15T22:05:48.055629216-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthentication, Body len: 0
-2025-12-15T22:05:48.055637247-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authentication, Body len: 0
-2025-12-15T22:05:48.055645045-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthentication, Body len: 0
-2025-12-15T22:05:48.055652914-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreAuthorization, Body len: 0
-2025-12-15T22:05:48.055671881-05:00 DEBUG ox_webservice::pipeline - Executing phase: Authorization, Body len: 0
-2025-12-15T22:05:48.055680400-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostAuthorization, Body len: 0
-2025-12-15T22:05:48.055687984-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreContent, Body len: 0
-2025-12-15T22:05:48.055695549-05:00 DEBUG ox_webservice::pipeline - Executing phase: Content, Body len: 0
-2025-12-15T22:05:48.055703123-05:00 INFO ox_webservice::pipeline - No content module handled the request. Setting status to 500.
-2025-12-15T22:05:48.055715630-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreErrorHandling, Body len: 0
-2025-12-15T22:05:48.055723647-05:00 DEBUG ox_webservice::pipeline - Executing phase: ErrorHandling, Body len: 0
-2025-12-15T22:05:48.055731456-05:00 INFO ox_webservice::pipeline - Executing phase: ErrorHandling with 1 modules
-2025-12-15T22:05:48.055752200-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: Handling error request with status code: 500
-2025-12-15T22:05:48.055861991-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] Render Context: {"message":"An error occurred.","module_context":"No context module matched","module_name":"NONE","request_body":"","request_headers":{"accept":"*/*","host":"localhost:3000","user-agent":"curl/8.5.0"},"request_method":"GET","request_path":"/doesnotexist.html","request_query":"","source_ip":"127.0.0.1:55928","status_code":500,"status_text":"Internal Server Error"}
-2025-12-15T22:05:48.055888112-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] No specific error template found for status 500. No index.jinja2 fallback found. Falling back to default text response.
-2025-12-15T22:05:48.055913266-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostErrorHandling, Body len: 25
-2025-12-15T22:05:48.055922347-05:00 DEBUG ox_webservice::pipeline - Executing phase: PreLateRequest, Body len: 25
-2025-12-15T22:05:48.055929895-05:00 DEBUG ox_webservice::pipeline - Executing phase: LateRequest, Body len: 25
-2025-12-15T22:05:48.055937419-05:00 DEBUG ox_webservice::pipeline - Executing phase: PostLateRequest, Body len: 25
+2025-12-24T11:46:22.975062594-05:00 INFO ox_webservice - Starting ox_webservice...
+2025-12-24T11:46:22.975078145-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
+2025-12-24T11:46:22.977315078-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/home/justlikeef/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/test_template"
+2025-12-24T11:46:22.977597539-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+2025-12-24T11:46:24.979142305-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: Handling error request with status code: 500
+2025-12-24T11:46:24.979422899-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] Render Context: {"message":"An error occurred.","module_context":null,"module_name":"Unknown","request_body":"","request_headers":{"accept":"*/*","host":"localhost:3000","user-agent":"curl/8.5.0"},"request_method":"GET","request_path":"/doesnotexist.html","request_query":"","source_ip":"127.0.0.1:59565","status_code":500,"status_text":"Internal Server Error"}
+2025-12-24T11:46:24.979463702-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] No specific error template found for status 500. No index.jinja2 fallback found. Falling back to default text response.
+2025-12-24T11:46:24.986270330-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: Handling error request with status code: 500
+2025-12-24T11:46:24.986462018-05:00 DEBUG ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] Render Context: {"message":"An error occurred.","module_context":null,"module_name":"Unknown","request_body":"","request_headers":{"accept":"*/*","host":"localhost:3000","user-agent":"curl/8.5.0"},"request_method":"GET","request_path":"/doesnotexist.html","request_query":"","source_ip":"127.0.0.1:59575","status_code":500,"status_text":"Internal Server Error"}
+2025-12-24T11:46:24.986517746-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] No specific error template found for status 500. No index.jinja2 fallback found. Falling back to default text response.

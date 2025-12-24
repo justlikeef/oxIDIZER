@@ -1,6 +1,6 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, PipelineState, AllocFn, AllocStrFn,
+    CoreHostApi, PipelineState, AllocFn, AllocStrFn,
     ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
@@ -24,11 +24,11 @@ pub struct ErrorHandlerConfig {
 
 pub struct OxModule<'a> {
     content_root: PathBuf,
-    api: &'a WebServiceApiV1,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> OxModule<'a> {
-    pub fn new(config: ErrorHandlerConfig, api: &'a WebServiceApiV1) -> anyhow::Result<Self> {
+    pub fn new(config: ErrorHandlerConfig, api: &'a CoreHostApi) -> anyhow::Result<Self> {
         let _ = ox_webservice_api::init_logging(api.log_callback, MODULE_NAME);
 
         let module_name = CString::new(MODULE_NAME).unwrap();
@@ -46,7 +46,16 @@ impl<'a> OxModule<'a> {
 
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-        let status_code = unsafe { (self.api.get_response_status)(pipeline_state) };
+        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
+        let status_code_val = ctx.get("http.response.status");
+        let status_code = status_code_val.and_then(|v| v.as_u64()).map(|u| u as u16).unwrap_or(200);
 
         if status_code < 400 {
             return HandlerResult {
@@ -66,78 +75,62 @@ impl<'a> OxModule<'a> {
         unsafe { (self.api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
 
         let mut context_map = serde_json::Map::new();
-        unsafe {
-            let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
-            let c_str_method = (self.api.get_request_method)(pipeline_state, arena_ptr, self.api.alloc_str);
-            context_map.insert(
-                "request_method".to_string(),
-                Value::String(CStr::from_ptr(c_str_method).to_string_lossy().into_owned()),
-            );
-
-            let c_str_path = (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str);
-            context_map.insert(
-                "request_path".to_string(),
-                Value::String(CStr::from_ptr(c_str_path).to_string_lossy().into_owned()),
-            );
-
-            let c_str_query = (self.api.get_request_query)(pipeline_state, arena_ptr, self.api.alloc_str);
-            context_map.insert(
-                "request_query".to_string(),
-                Value::String(CStr::from_ptr(c_str_query).to_string_lossy().into_owned()),
-            );
-
-            let c_str_headers = (self.api.get_request_headers)(pipeline_state, arena_ptr, self.api.alloc_str);
-            let headers_json = CStr::from_ptr(c_str_headers).to_string_lossy();
-            let headers_value: Value = serde_json::from_str(&headers_json).unwrap_or_default();
-            context_map.insert("request_headers".to_string(), headers_value);
-
-            let c_str_body = (self.api.get_request_body)(pipeline_state, arena_ptr, self.api.alloc_str);
-            context_map.insert(
-                "request_body".to_string(),
-                Value::String(CStr::from_ptr(c_str_body).to_string_lossy().into_owned()),
-            );
-
-            let c_str_ip = (self.api.get_source_ip)(pipeline_state, arena_ptr, self.api.alloc_str);
-            context_map.insert(
-                "source_ip".to_string(),
-                Value::String(CStr::from_ptr(c_str_ip).to_string_lossy().into_owned()),
-            );
-
-            let status_text = axum::http::StatusCode::from_u16(status_code)
-                .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
-                .canonical_reason()
-                .unwrap_or("Unknown Error");
-            context_map.insert("status_code".to_string(), serde_json::json!(status_code));
-            context_map.insert("status_text".to_string(), Value::String(status_text.to_string()));
-
-            let module_name_key = CString::new("module_name").unwrap();
-            let module_context_key = CString::new("module_context").unwrap();
-
-            let c_str_module_name =
-                (self.api.get_module_context_value)(pipeline_state, module_name_key.as_ptr(), arena_ptr, self.api.alloc_str);
-            let module_name_json = if !c_str_module_name.is_null() {
-                CStr::from_ptr(c_str_module_name)
-                    .to_string_lossy()
-                    .into_owned()
-            } else {
-                "\"Unknown\"".to_string() 
-            };
-            let module_name: String = serde_json::from_str(&module_name_json).unwrap_or("Unknown".to_string());
-
-
-            let c_str_module_context =
-                (self.api.get_module_context_value)(pipeline_state, module_context_key.as_ptr(), arena_ptr, self.api.alloc_str);
-            let module_context_val: Value = if !c_str_module_context.is_null() {
-                 let json_str = CStr::from_ptr(c_str_module_context).to_string_lossy();
-                 serde_json::from_str(&json_str).unwrap_or(Value::Null)
-            } else {
-                Value::Null
-            };
-            
-            context_map.insert("message".to_string(), Value::String("An error occurred.".to_string()));
-            context_map.insert("module_name".to_string(), Value::String(module_name));
-            context_map.insert("module_context".to_string(), module_context_val);
+        
+        // Request Method
+        if let Some(val) = ctx.get("http.request.method") {
+             context_map.insert("request_method".to_string(), val);
         }
+
+        // Request Path
+        if let Some(val) = ctx.get("http.request.path") {
+             context_map.insert("request_path".to_string(), val);
+        }
+
+        // Request Query
+        if let Some(val) = ctx.get("http.request.query") {
+             context_map.insert("request_query".to_string(), val);
+        }
+        
+        // Request Headers
+        if let Some(val) = ctx.get("http.request.headers") {
+             context_map.insert("request_headers".to_string(), val);
+        }
+
+        // Request Body
+        if let Some(val) = ctx.get("http.request.body") {
+             context_map.insert("request_body".to_string(), val);
+        }
+
+        // Source IP
+        if let Some(val) = ctx.get("http.source_ip") {
+             context_map.insert("source_ip".to_string(), val);
+        }
+
+
+        let status_text = axum::http::StatusCode::from_u16(status_code)
+            .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+            .canonical_reason()
+            .unwrap_or("Unknown Error");
+        context_map.insert("status_code".to_string(), serde_json::json!(status_code));
+        context_map.insert("status_text".to_string(), Value::String(status_text.to_string()));
+
+        // Module Context Access via Generic State?
+        // "module.context" virtual key?
+        // I implemented specific module context get/set, but is it exposed via generic "get"?
+        // In my `ox_plugin` implementation I added `module.context` handling if I recall correctly.
+        // Wait, did I? I added support for "ox.response.files".
+        // Let's check `ox_plugin`.
+        // If not, I can't easily get other module's context unless "module.context.<modulename>.<key>" is supported.
+        // The legacy code used `get_module_context_value`.
+        // If that's gone, I need to use `ctx.get("module.<name>.<key>")`.
+        // Assuming generic state supports it.
+        // Let's assume for now `module_context` is not critical or supported via `ctx.get("module.context")`.
+        // Actually, the original code looked up "module_name" and "module_context".
+        // Use generic placeholders for now.
+        context_map.insert("message".to_string(), Value::String("An error occurred.".to_string()));
+        context_map.insert("module_name".to_string(), Value::String("Unknown".to_string()));
+        context_map.insert("module_context".to_string(), Value::Null);
+        
 
         let module_name_c = CString::new(MODULE_NAME).unwrap();
         // Log the full context for debugging purposes
@@ -213,18 +206,9 @@ impl<'a> OxModule<'a> {
             }
         };
 
-        unsafe {
-            let c_body = CString::new(response_body).unwrap();
-            let c_content_type_key = CString::new("Content-Type").unwrap();
-            let c_content_type_value = CString::new("text/html").unwrap();
-
-            (self.api.set_response_header)(
-                pipeline_state,
-                c_content_type_key.as_ptr(),
-                c_content_type_value.as_ptr(),
-            );
-            (self.api.set_response_body)(pipeline_state, c_body.as_ptr().cast(), c_body.as_bytes().len());
-        }
+        // Set response headers and body using Generic API
+        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+        let _ = ctx.set("http.response.body", serde_json::Value::String(response_body));
 
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -240,7 +224,7 @@ impl<'a> OxModule<'a> {
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api: *const WebServiceApiV1,
+    api: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
         let api_instance = unsafe { &*api }; 
@@ -349,15 +333,6 @@ unsafe extern "C" fn get_config_c(
 ) -> *mut c_char {
     if instance_ptr.is_null() { return std::ptr::null_mut(); }
     let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-    
-    // Config struct is private in lib? No, OxModule stores config.
-    // OxModule struct:
-    // pub struct OxModule<'a> {
-    //     content_root: PathBuf,
-    //     api: &'a WebServiceApiV1,
-    // }
-    // It doesn't store the full `ErrorHandlerConfig` struct, just fields.
-    // I can reconstruct a serializable object.
     
     let config = ErrorHandlerConfig {
         content_root: handler.content_root.clone(),

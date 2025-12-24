@@ -28,6 +28,8 @@ fuzz_target!(|data: &[u8]| {
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
         pipeline_ptr: ptr::null(),
+        is_modified: false,
+        execution_history: Vec::new(),
     };
     // Pre-populate context to allow successful lookups
     state.module_context.write().unwrap().insert("test_key".to_string(), Value::String("found".to_string()));

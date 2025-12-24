@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
-echo "Running Fuzzer: ox_fileproc - process_file_content"
+# Fuzz Target: ox_fileproc - process_file_content
+TEST_DIR=$(dirname "$(readlink -f "$0")")
+TEST_LIBS_DIR=$(readlink -f "${2:-functional_tests/common}")
+LOGS_DIR="$TEST_DIR/logs"
 
-if [ -d "ox_fileproc/fuzz" ]; then
-    cd ox_fileproc
-    # Run for 15 seconds max
-    cargo +nightly fuzz run process_file_content -- -max_total_time=15
-else
-    echo "Fuzz directory not found in ox_fileproc."
-    exit 1
-fi
+source "$TEST_LIBS_DIR/log_function.sh"
+source "$TEST_LIBS_DIR/fuzz_utils.sh"
+
+cd ox_fileproc
+run_fuzz_test "process_file_content" "$4" "$LOGS_DIR"

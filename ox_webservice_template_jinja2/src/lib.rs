@@ -2,7 +2,7 @@ use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    CoreHostApi, WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
     ModuleStatus, FlowControl, Phase, ReturnParameters,
 };
 use serde::Deserialize;
@@ -64,7 +64,7 @@ pub struct OxModule<'a> {
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub content_config: ContentConfig,
-    api: &'a WebServiceApiV1,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> OxModule<'a> {
@@ -77,7 +77,7 @@ impl<'a> OxModule<'a> {
         }
     }
 
-    pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+    pub fn new(config: ContentConfig, api: &'a CoreHostApi) -> Result<Self> {
         let _ = ox_webservice_api::init_logging(api.log_callback, MODULE_NAME);
 
         if let Ok(c_message) = CString::new(format!(
@@ -174,20 +174,26 @@ impl<'a> OxModule<'a> {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        // --- Early Conflict Check for Skip ---
-        let existing_body_ptr = unsafe { (self.api.get_response_body)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        let mut existing_body = String::new();
-        if !existing_body_ptr.is_null() {
-            existing_body = unsafe { CStr::from_ptr(existing_body_ptr).to_string_lossy().into_owned() };
-        }
-        
+        // Initialize PluginContext
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
+        // --- Generic Conflict Check for Skip ---
+        let existing_body = match ctx.get("http.response.body") {
+             Some(val) => val.as_str().unwrap_or("").to_string(),
+             None => String::new(),
+        };
+
         let has_existing_content = !existing_body.is_empty();
 
         if has_existing_content {
              match self.content_config.on_content_conflict {
                  Some(ContentConflictAction::error) => {
                       self.log(LogLevel::Error, "ox_webservice_template_jinja2: Conflict error (early check).".to_string());
-                      unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                      let _ = ctx.set("http.response.status", serde_json::json!(500));
                       return HandlerResult {
                          status: ModuleStatus::Modified,
                          flow_control: FlowControl::JumpTo,
@@ -210,21 +216,22 @@ impl<'a> OxModule<'a> {
              }
         }
 
-        let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        if request_path_ptr.is_null() {
-             self.log(LogLevel::Error, "ox_webservice_template_jinja2: get_request_path returned null.".to_string());
-             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-             return HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
-                return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
-                },
-             };
-        }
-        let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+        let request_path = match ctx.get("http.request.path") {
+            Some(v) => v.as_str().unwrap_or("/").to_string(),
+            None => {
+                 self.log(LogLevel::Error, "ox_webservice_template_jinja2: request_path not found.".to_string());
+                 let _ = ctx.set("http.response.status", serde_json::json!(500));
+                 return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::JumpTo,
+                    return_parameters: ReturnParameters {
+                        return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    },
+                 };
+            }
+        };
 
-        if let Some(file_path) = self.resolve_and_find_file(request_path) {
+        if let Some(file_path) = self.resolve_and_find_file(&request_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
             
             // Find first matching regex
@@ -239,9 +246,8 @@ impl<'a> OxModule<'a> {
             });
 
             if let Some(mapping) = mimetype_mapping {
-                    // Late Conflict Check (Optimization: Skip/Error handled early)
+                    // Late Conflict Check
                     if has_existing_content {
-                         // Only Overwrite and Append reach here
                          match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
                              ContentConflictAction::skip | ContentConflictAction::error => {
                                  // Should have been caught early
@@ -270,30 +276,21 @@ impl<'a> OxModule<'a> {
                                         ),
                                     );
                                     let content_bytes = rendered.into_bytes();
-                                    let mut final_content_bytes = content_bytes;
+                                    
                                      // Handle Append
+                                    let mut final_content_string = String::from_utf8_lossy(&content_bytes).into_owned();
                                     if has_existing_content {
                                         if let Some(ContentConflictAction::append) = self.content_config.on_content_conflict {
-                                            let mut combined = existing_body.into_bytes();
-                                            combined.extend(final_content_bytes);
-                                            final_content_bytes = combined;
+                                             let mut combined = existing_body.clone();
+                                             combined.push_str(&final_content_string);
+                                             final_content_string = combined;
                                         }
                                     }
 
-                                    unsafe {
-                                        let c_content_type_key = CString::new("Content-Type").unwrap();
-                                        let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
-                                        (self.api.set_response_header)(
-                                            pipeline_state,
-                                            c_content_type_key.as_ptr(),
-                                            c_content_type_value.as_ptr(),
-                                        );
-                                        (self.api.set_response_body)(
-                                            pipeline_state,
-                                            final_content_bytes.as_ptr(),
-                                            final_content_bytes.len(),
-                                        );
-                                    }
+                                    let _ = ctx.set(&format!("http.response.header.Content-Type"), serde_json::Value::String(mapping.mimetype.clone()));
+                                    let _ = ctx.set("http.response.body", serde_json::Value::String(final_content_string));
+                                    let _ = ctx.set("http.response.status", serde_json::json!(200));
+
                                     return HandlerResult {
                                         status: ModuleStatus::Modified,
                                         flow_control: FlowControl::Continue,
@@ -304,7 +301,6 @@ impl<'a> OxModule<'a> {
                                 }
                                 Err(e) => {
                                     let mut logged_as_missing_var = false;
-                                    // Use 'alternate' display or source to find the cause
                                     let source_desc = e.source().map(|s| s.to_string()).unwrap_or_default();
 
                                     if source_desc.contains("not found in context") {
@@ -328,7 +324,7 @@ impl<'a> OxModule<'a> {
                                         );
                                     }
 
-                                    unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                                    let _ = ctx.set("http.response.status", serde_json::json!(500));
                                     return HandlerResult {
                                         status: ModuleStatus::Modified,
                                         flow_control: FlowControl::JumpTo,
@@ -347,7 +343,7 @@ impl<'a> OxModule<'a> {
                                     request_path, e
                                 ),
                             );
-                            unsafe { (self.api.set_response_status)(pipeline_state, 500); }
+                            let _ = ctx.set("http.response.status", serde_json::json!(500));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::JumpTo,
@@ -375,11 +371,9 @@ impl<'a> OxModule<'a> {
                     request_path
                 ),
             );
-            unsafe { 
-                (self.api.set_response_status)(pipeline_state, 404);
-                let body = CString::new("404 Not Found").unwrap();
-                (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
-            }
+            let _ = ctx.set("http.response.status", serde_json::json!(404));
+            let _ = ctx.set("http.response.body", serde_json::Value::String("404 Not Found".to_string()));
+            
              HandlerResult {
                 status: ModuleStatus::Modified,
                 flow_control: FlowControl::Continue,
@@ -427,7 +421,7 @@ impl<'a> OxModule<'a> {
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         eprintln!("ox_webservice_template_jinja2: api_ptr is null");

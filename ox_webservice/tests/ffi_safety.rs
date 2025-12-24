@@ -5,21 +5,13 @@ use std::ptr;
 use ox_webservice::{
     pipeline::{
         alloc_str_c, 
-        get_request_header_c, 
-        set_request_header_c,
-        set_request_path_c,
-        set_source_ip_c,
-        get_module_context_value_c,
-        set_module_context_value_c,
-        get_response_header_c,
-        set_response_header_c
+        get_state_c,
+        set_state_c,
     },
     PipelineState,
-    ModuleContext,
 };
 use bumpalo::Bump;
 use axum::http::HeaderMap;
-use serde_json::Value;
 
 // Helper to create a dummy PipelineState
 fn create_dummy_state() -> (Box<PipelineState>, Box<Bump>) {
@@ -38,6 +30,8 @@ fn create_dummy_state() -> (Box<PipelineState>, Box<Bump>) {
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
         pipeline_ptr: ptr::null(),
+        is_modified: false,
+        execution_history: Vec::new(),
     });
     (state, arena)
 }
@@ -59,116 +53,100 @@ fn test_ffi_alloc_str() {
 }
 
 #[test]
-fn test_ffi_get_request_header_valid() {
+fn test_ffi_get_state_header_valid() {
     let (mut state, mut arena) = create_dummy_state();
     state.request_headers.insert("Host", "localhost".parse().unwrap());
     
-    let state_ptr = &mut *state as *mut PipelineState;
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     let arena_ptr = &mut *arena as *mut Bump as *mut c_void;
     
-    let key = CString::new("Host").unwrap();
+    let key = CString::new("http.request.header.Host").unwrap();
     
     unsafe {
-        let res_ptr = get_request_header_c(state_ptr, key.as_ptr(), arena_ptr, alloc_str_c);
+        let res_ptr = get_state_c(state_ptr, key.as_ptr(), arena_ptr, alloc_str_c);
         assert!(!res_ptr.is_null());
         let val = CStr::from_ptr(res_ptr).to_str().unwrap();
-        assert_eq!(val, "localhost");
+        // get_state returns JSON string of the value
+        assert_eq!(val, "\"localhost\"");
     }
 }
 
 #[test]
-fn test_ffi_get_request_header_invalid_utf8() {
+fn test_ffi_get_state_invalid_utf8_key() {
     let (mut state, mut arena) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     let arena_ptr = &mut *arena as *mut Bump as *mut c_void;
     
     // Invalid UTF-8 key
-    let bytes = b"Host\xFF";
-    // We cannot easily create a CString with interior nulls, but we can pass a pointer to bytes directly
-    // ensuring null termination if we construct it carefully or just cast.
-    // CString::new checks for nulls.
-    // We want to test logic handling INVALID UTF-8 bytes *inside* the CString (but CString enforces valid C-string, not UTF-8).
-    // Rust's CString doesn't enforce UTF-8.
+    let bytes = b"http.request.header.Host\xFF";
     let c_key = CString::new(bytes.as_slice()).unwrap(); 
     
     unsafe {
-        // This used to panic before my fix
-        let res_ptr = get_request_header_c(state_ptr, c_key.as_ptr(), arena_ptr, alloc_str_c);
+        let res_ptr = get_state_c(state_ptr, c_key.as_ptr(), arena_ptr, alloc_str_c);
         assert!(res_ptr.is_null());
     }
 }
 
 #[test]
-fn test_ffi_set_request_path() {
+fn test_ffi_set_state_path() {
     let (mut state, _) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let path = CString::new("/new/path").unwrap();
+    let key = CString::new("http.request.path").unwrap();
+    let val = CString::new("\"/new/path\"").unwrap(); // JSON String
     unsafe {
-        set_request_path_c(state_ptr, path.as_ptr());
+        set_state_c(state_ptr, key.as_ptr(), val.as_ptr());
     }
     assert_eq!(state.request_path, "/new/path");
 }
 
 #[test]
-fn test_ffi_set_request_header() {
+fn test_ffi_set_state_header() {
     let (mut state, _) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let key = CString::new("X-Test").unwrap();
-    let val = CString::new("Value").unwrap();
-    
+    let key = CString::new("http.response.header.X-Test").unwrap();
+    let val = CString::new("\"Value\"").unwrap(); // JSON String
     unsafe {
-        set_request_header_c(state_ptr, key.as_ptr(), val.as_ptr());
+        set_state_c(state_ptr, key.as_ptr(), val.as_ptr());
     }
-    assert_eq!(state.request_headers.get("X-Test").unwrap().to_str().unwrap(), "Value");
+    assert_eq!(state.response_headers.get("X-Test").unwrap().to_str().unwrap(), "Value");
 }
 
 #[test]
 fn test_ffi_module_context() {
     let (mut state, mut arena) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     let arena_ptr = &mut *arena as *mut Bump as *mut c_void;
     
     // Set
     let key = CString::new("my_key").unwrap();
     let val_json = CString::new("\"my_val\"").unwrap();
     unsafe {
-        set_module_context_value_c(state_ptr, key.as_ptr(), val_json.as_ptr());
+        set_state_c(state_ptr, key.as_ptr(), val_json.as_ptr());
     }
     
     // Get
     unsafe {
-        let res_ptr = get_module_context_value_c(state_ptr, key.as_ptr(), arena_ptr, alloc_str_c);
+        let res_ptr = get_state_c(state_ptr, key.as_ptr(), arena_ptr, alloc_str_c);
         assert!(!res_ptr.is_null());
         let res_str = CStr::from_ptr(res_ptr).to_str().unwrap();
-        // Returned is string rep of Value::String
-        assert!(res_str.contains("my_val")); 
+        assert_eq!(res_str, "\"my_val\""); 
     }
 }
 
 #[test]
-fn test_ffi_set_source_ip() {
+fn test_ffi_set_state_source_ip() {
     let (mut state, _) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
+    state.source_ip = "127.0.0.1:8080".parse().unwrap();
+    let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let ip = CString::new("10.0.0.1:1234").unwrap();
+    let key = CString::new("http.source_ip").unwrap();
+    // Setting IP string. The logic in set_state_c handles string -> IpAddr and preserves port.
+    let val = CString::new("\"10.0.0.1\"").unwrap(); 
     unsafe {
-        set_source_ip_c(state_ptr, ip.as_ptr());
+        set_state_c(state_ptr, key.as_ptr(), val.as_ptr());
     }
-    assert_eq!(state.source_ip.to_string(), "10.0.0.1:1234");
-}
-
-#[test]
-fn test_ffi_response_header() {
-    let (mut state, _) = create_dummy_state();
-    let state_ptr = &mut *state as *mut PipelineState;
-    
-    let key = CString::new("Content-Type").unwrap();
-    // Invalid UTF-8 value test?
-    let val = CString::new("application/json").unwrap();
-    unsafe {
-        set_response_header_c(state_ptr, key.as_ptr(), val.as_ptr());
-    }
-    assert_eq!(state.response_headers.get("Content-Type").unwrap().to_str().unwrap(), "application/json");
+    // Logic should preserve the original port 8080
+    assert_eq!(state.source_ip.to_string(), "10.0.0.1:8080");
 }

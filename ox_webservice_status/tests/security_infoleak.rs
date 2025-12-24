@@ -9,6 +9,7 @@ lazy_static! {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_info_leak() {
     let module = OxModule::new(&API, None);
     let mut ps = create_stub_pipeline_state();

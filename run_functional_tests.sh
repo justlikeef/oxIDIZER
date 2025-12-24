@@ -177,7 +177,7 @@ for module in "${MODULES[@]}"; do
         log_message "$LOGGING_LEVEL" "info" "Running test: $TEST_NAME"
 
         # Execute the test script
-        OUTPUT=$("$test_script" "$SUPPORT_SCRIPTS_DIR" "$TEST_LIBS_DIR" "$RUNNING_MODE" "$LOGGING_LEVEL" "$TARGET")
+        OUTPUT=$("$test_script" "$SUPPORT_SCRIPTS_DIR" "$TEST_LIBS_DIR" "$RUNNING_MODE" "$LOGGING_LEVEL" "$TARGET" 2>&1)
         exit_code=$?
 
         result_modules+=("$module")
@@ -185,10 +185,21 @@ for module in "${MODULES[@]}"; do
 
         status=""
         case $exit_code in
-            1)
+            0)
                 status="PASSED"
                 log_message "$LOGGING_LEVEL" "debug" "$OUTPUT"
                 log_message "$LOGGING_LEVEL" "info" "Result: PASSED"
+                if [ "$highest_exit_code" -eq 1 ]; then
+                     highest_exit_code=0
+                fi
+                ;;
+            77)
+                status="SKIPPED"
+                log_message "$LOGGING_LEVEL" "debug" "$OUTPUT"
+                log_message "$LOGGING_LEVEL" "warn" "Result: SKIPPED"
+                if [ "$highest_exit_code" -ne 255 ]; then
+                     highest_exit_code=77
+                fi
                 ;;
             255)
                 status="FAILED"
@@ -199,18 +210,13 @@ for module in "${MODULES[@]}"; do
                     highest_exit_code=255
                 fi
                 ;;
-            0)
-                status="SKIPPED"
-                log_message "$LOGGING_LEVEL" "debug" "$OUTPUT"
-                log_message "$LOGGING_LEVEL" "warn" "Result: SKIPPED"
-                if [ "$highest_exit_code" -eq 1 ]; then
-                    highest_exit_code=0
-                fi
-                ;;
             *)
-                status="UNKNOWN($exit_code)"
+                status="FAILED($exit_code)"
                 log_message "$LOGGING_LEVEL" "debug" "$OUTPUT"
-                log_message "$LOGGING_LEVEL" "error" "Result: UNKNOWN (Exit Code: $exit_code)"
+                log_message "$LOGGING_LEVEL" "error" "Result: FAILED (Exit Code: $exit_code)"
+                if [ "$highest_exit_code" -ne 255 ]; then
+                    highest_exit_code=255
+                fi
                 ;;
         esac
         result_statuses+=("$status")
@@ -307,7 +313,7 @@ for i in "${!result_modules[@]}"; do
     COLOR=$NC
     case "$STATUS" in
         "PASSED") COLOR=$GREEN ;;
-        "FAILED") COLOR=$RED ;;
+        "FAILED"*) COLOR=$RED ;;
         "SKIPPED") COLOR=$YELLOW ;;
     esac
 

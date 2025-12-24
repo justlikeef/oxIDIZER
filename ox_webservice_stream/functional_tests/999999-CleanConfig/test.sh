@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"

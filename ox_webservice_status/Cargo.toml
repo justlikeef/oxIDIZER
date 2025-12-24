@@ -14,6 +14,7 @@ serde_json = "1.0"
 sysinfo = "0.30"
 anyhow = "1.0"
 bumpalo = "3.12"
+ox_plugin = { path = "../ox_plugin" }
 ox_fileproc = { path = "../ox_fileproc" }
 
 [dev-dependencies]

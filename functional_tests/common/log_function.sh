@@ -8,15 +8,15 @@ log_message() {
 
     # Define the order of logging levels (higher index means higher severity)
     declare -A LOG_LEVELS
-    LOG_LEVELS[info]=0
-    LOG_LEVELS[notice]=1
-    LOG_LEVELS[warn]=2
+    LOG_LEVELS[emerg]=0
+    LOG_LEVELS[fatal]=0
+    LOG_LEVELS[alert]=1
+    LOG_LEVELS[crit]=2
     LOG_LEVELS[error]=3
-    LOG_LEVELS[crit]=4
-    LOG_LEVELS[alert]=5
-    LOG_LEVELS[debug]=6
-    LOG_LEVELS[emerg]=7
-    LOG_LEVELS[fatal]=7 # Alias for emerg
+    LOG_LEVELS[warn]=4
+    LOG_LEVELS[notice]=5
+    LOG_LEVELS[info]=6
+    LOG_LEVELS[debug]=7
 
 
     # Convert levels to numeric values for comparison

@@ -1,8 +1,10 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
-    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1,
+    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
     ModuleStatus, FlowControl, ReturnParameters, Phase,
+    CoreHostApi, WebServiceApiV1
 };
+// Use ox_plugin directly? ox_webservice_api re-exports it.
 use serde::Serialize;
 use std::ffi::{CStr, CString};
 use std::panic;
@@ -17,11 +19,11 @@ struct PingResponse {
 }
 
 pub struct OxModule {
-    api: &'static WebServiceApiV1,
+    api: &'static CoreHostApi,
 }
 
 impl OxModule {
-    pub fn new(api: &'static WebServiceApiV1) -> Self {
+    pub fn new(api: &'static CoreHostApi) -> Self {
         Self { api }
     }
 
@@ -49,37 +51,34 @@ impl OxModule {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
+        // Initialize PluginContext (Generic)
+        // state_ptr is treated as *mut c_void by PluginContext/CoreHostApi
+        let ctx = unsafe { ox_plugin::PluginContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
         // Determine format
         let mut return_json = false;
 
         // Check Accept header
-        let accept_header_key = CString::new("Accept").unwrap();
-        let accept_header_ptr = unsafe {
-            (self.api.get_request_header)(
-                pipeline_state,
-                accept_header_key.as_ptr(),
-                arena_ptr,
-                self.api.alloc_str,
-            )
-        };
-
-        if !accept_header_ptr.is_null() {
-            let accept_header = unsafe { CStr::from_ptr(accept_header_ptr).to_str().unwrap_or("") };
-            if accept_header.contains("application/json") {
-                return_json = true;
+        if let Some(accept) = ctx.get("http.request.header.Accept") {
+            if let Some(s) = accept.as_str() {
+                if s.contains("application/json") {
+                    return_json = true;
+                }
             }
         }
 
         // Check query string
         if !return_json {
-            let query_ptr = unsafe {
-                (self.api.get_request_query)(pipeline_state, arena_ptr, self.api.alloc_str)
-            };
-            if !query_ptr.is_null() {
-                let query = unsafe { CStr::from_ptr(query_ptr).to_str().unwrap_or("") };
-                if query.contains("format=json") {
-                    return_json = true;
-                }
+            if let Some(query_val) = ctx.get("http.request.query") {
+                 if let Some(query) = query_val.as_str() {
+                    if query.contains("format=json") {
+                        return_json = true;
+                    }
+                 }
             }
         }
 
@@ -99,19 +98,22 @@ impl OxModule {
         
         self.log(LogLevel::Info, format!("Handling ping request. Returning JSON: {}", return_json));
 
-        unsafe {
-            let ct_k = CString::new("Content-Type").unwrap();
-            let ct_v = CString::new(content_type).unwrap();
-            (self.api.set_response_header)(pipeline_state, ct_k.as_ptr(), ct_v.as_ptr());
-
-            (self.api.set_response_status)(pipeline_state, 200);
-
-            (self.api.set_response_body)(
-                pipeline_state,
-                body_content.as_ptr(),
-                body_content.len(),
-            );
-        }
+        // Use ox_plugin set for response and header
+        // Using "response" sugar setter if supported, or "http.response.body"
+        // ox_webservice_pipeline handles "response" setter in generic state??
+        // Wait, "set_state_c" in ox_webservice only handles "http.*" and context. 
+        // OX_PLUGIN handles "response" helper via generic set? 
+        // YES: ox_plugin::PluginContext::set("response", val) -> translates to FFI calls?
+        // Let's check ox_plugin source I wrote.
+        // I REMOVED the "response" logic from ox_plugin when I made it generic!
+        // It now only calls `self.api.set_state`.
+        // So I must use "http.*" keys directly OR re-implement the helper in `ox_plugin`.
+        // User wants GENERIC. HTTP is Specific.
+        // So "http.response.body" is the way.
+        
+        let _ = ctx.set("http.response.body", serde_json::Value::String(body_content));
+        let _ = ctx.set("http.response.status", serde_json::json!(200));
+        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(content_type.to_string()));
 
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -125,9 +127,9 @@ impl OxModule {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
-    _module_params_json_ptr: *const c_char, // Unused
+    _module_params_json_ptr: *const c_char,
     _module_id: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    api_ptr: *const CoreHostApi, // Generic API
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         return ptr::null_mut();
@@ -141,7 +143,8 @@ pub unsafe extern "C" fn initialize_module(
     }
 
     let result = panic::catch_unwind(|| {
-        let module = OxModule::new(api_instance);
+        // Safe as CoreHostApi has static lifetime for lifetime of module
+        let module = OxModule::new(std::mem::transmute(api_instance));
         let instance_ptr = Box::into_raw(Box::new(module)) as *mut c_void;
 
         let module_interface = Box::new(ModuleInterface {

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
@@ -46,8 +46,10 @@ if [ "$MODE" == "isolated" ]; then
   # Allow the server to start
   sleep 2
 
-  # Curl the root page of the server using the default certificate
-  CURL_OUTPUT=$(curl -i -s --insecure https://localhost:3443/)
+  # Curl the root page of the server using the default certificate WITH validation enabled.
+  # We expect this to FAIL because of DNS/Certificate mismatch.
+  curl -i -s https://localhost:3443/ > "$TEST_DIR/curl_output.txt" 2>&1
+  CURL_EXIT_CODE=$?
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
@@ -67,17 +69,15 @@ if [ "$MODE" == "isolated" ]; then
       exit $FAILED
   fi
 
-  # Check the curl output for a 500 status code
-  if echo "$CURL_OUTPUT" | head -n 1 | grep -E -q "HTTP/(1\.1|2) 500"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found 500 Internal Server Error status code in curl output."
-    log_message "$LOGGING_LEVEL" "debug" "Curl output:"
-    log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
+  # Check validation results
+  if [ "$CURL_EXIT_CODE" -ne 0 ]; then
+    log_message "$LOGGING_LEVEL" "notice" "Curl failed as expected (Exit Code: $CURL_EXIT_CODE)."
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
   else
-    log_message "$LOGGING_LEVEL" "error" "Did not find 500 Internal Server Error status code in curl output."
+    log_message "$LOGGING_LEVEL" "error" "Curl SUCCEEDED unexpectedly (Exit Code: 0)."
     log_message "$LOGGING_LEVEL" "debug" "Curl output:"
-    log_message "$LOGGING_LEVEL" "debug" "$CURL_OUTPUT"
+    cat "$TEST_DIR/curl_output.txt" | while read -r line; do log_message "$LOGGING_LEVEL" "debug" "  $line"; done
     log_message "$LOGGING_LEVEL" "error" "Test FAILED"
     exit $FAILED
   fi
