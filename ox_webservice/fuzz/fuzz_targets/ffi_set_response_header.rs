@@ -4,10 +4,8 @@ use std::ffi::{CStr, CString, c_void};
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::ptr;
-use ox_webservice::{
-    pipeline::set_state_c,
-    PipelineState,
-};
+use ox_webservice::pipeline::set_state_c;
+use ox_webservice_api::PipelineState;
 use bumpalo::Bump;
 use axum::http::HeaderMap;
 
@@ -36,6 +34,7 @@ fuzz_target!(|data: &[u8]| {
         pipeline_ptr: ptr::null(),
         is_modified: false,
         execution_history: Vec::new(),
+        route_capture: None,
     };
 
     unsafe {

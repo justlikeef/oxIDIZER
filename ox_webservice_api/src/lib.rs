@@ -7,8 +7,8 @@ use axum::http::HeaderMap;
 use std::net::SocketAddr;
 use bumpalo::Bump;
 
-// Re-export generic types from ox_plugin
-pub use ox_plugin::{
+// Re-export generic types from ox_pipeline_plugin
+pub use ox_pipeline_plugin::{
     LogLevel, FlowControl, ModuleStatus, ReturnParameters, HandlerResult,
     LogCallback, AllocStrFn, AllocFn, GetStateFn, SetStateFn, GetConfigFn, CoreHostApi
 };
@@ -33,12 +33,17 @@ pub struct PipelineState {
     // New Fields
     pub is_modified: bool,
     pub execution_history: Vec<ModuleExecutionRecord>,
+    // Route Capture (for path rewriting)
+    pub route_capture: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ModuleExecutionRecord {
     pub module_name: String,
     pub status: ModuleStatus,
     pub flow_control: FlowControl,
+    #[serde(skip)]
+    #[serde(default = "std::ptr::null_mut")]
     pub return_data: *mut c_void, 
 }
 
@@ -137,6 +142,16 @@ pub struct UriMatcher {
     pub hostname: Option<String>,
     #[serde(alias = "url")]
     pub path: String,
+    #[serde(default)]
+    pub headers: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub query: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub priority: u16,
+    #[serde(default)]
+    pub phase: Option<String>,
+    #[serde(default)]
+    pub status_code: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -144,10 +159,8 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub id: Option<String>,
     pub name: String,
-    #[serde(default)]
-    pub params: Option<Value>,
-    #[serde(default)]
-    pub uris: Option<Vec<UriMatcher>>,
+    #[serde(default, alias = "uris")]
+    pub routes: Option<Vec<UriMatcher>>,
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
     #[serde(default)]
@@ -155,11 +168,9 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub path: Option<String>,
     #[serde(default)]
-    pub error_path: Option<String>,
-    #[serde(default = "default_phase")]
-    pub phase: Phase,
-    #[serde(default)]
-    pub priority: u16,
+    pub params: Option<Value>,
+    #[serde(flatten)]
+    pub extra_params: HashMap<String, Value>,
 }
 
 impl Default for ModuleConfig {
@@ -167,44 +178,16 @@ impl Default for ModuleConfig {
         ModuleConfig {
             id: None,
             name: String::new(),
-            params: None,
-            uris: None,
+            routes: None,
             headers: None,
             query: None,
             path: None,
-            error_path: None,
-            phase: default_phase(),
-            priority: 0,
+            params: None,
+            extra_params: HashMap::new(),
         }
     }
 }
 
-fn default_phase() -> Phase {
-    Phase::Content
-}
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Phase {
-    PreEarlyRequest,
-    EarlyRequest,
-    PostEarlyRequest,
-    PreAuthentication,
-    Authentication,
-    PostAuthentication,
-    PreAuthorization,
-    Authorization,
-    PostAuthorization,
-    PreContent,
-    Content,
-    PostContent,
-    PreAccounting,
-    Accounting,
-    PostAccounting,
-    PreErrorHandling,
-    ErrorHandling,
-    PostErrorHandling,
-    PreLateRequest,
-    LateRequest,
-    PostLateRequest,
-}
+
+

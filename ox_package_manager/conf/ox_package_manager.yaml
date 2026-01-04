@@ -1,0 +1,20 @@
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    params:
+      config_file: /var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml
+routes:
+  - url: "^/packages/(upload)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+    headers:
+      Method: POST
+  - url: "^/packages/(install)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+  - url: "^/packages/(list)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450

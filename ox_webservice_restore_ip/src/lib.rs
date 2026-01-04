@@ -2,7 +2,7 @@ use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
     CoreHostApi, AllocFn, AllocStrFn, PipelineState,
-    ModuleStatus, FlowControl, Phase, ReturnParameters,
+    ModuleStatus, FlowControl, ReturnParameters,
 };
 use std::ffi::{CStr, CString};
 use std::panic;
@@ -13,20 +13,22 @@ const MODULE_NAME: &str = "ox_webservice_restore_ip";
 
 pub struct OxModule<'a> {
     api: &'a CoreHostApi,
+    module_id: String,
 }
 
 impl<'a> OxModule<'a> {
     fn log(&self, level: LogLevel, message: String) {
         if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
+            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
             unsafe {
                 (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
             }
         }
     }
 
-    pub fn new(api: &'a CoreHostApi) -> Result<Self> {
-        Ok(Self { api })
+    pub fn new(api: &'a CoreHostApi, module_id: String) -> Result<Self> {
+        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
+        Ok(Self { api, module_id })
     }
 
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
@@ -34,9 +36,9 @@ impl<'a> OxModule<'a> {
             self.log(LogLevel::Error, "Pipeline state is null".to_string());
             return HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
             };
         }
@@ -44,7 +46,7 @@ impl<'a> OxModule<'a> {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        let ctx = unsafe { ox_plugin::PluginContext::new(
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
             self.api, 
             pipeline_state_ptr as *mut c_void, 
             arena_ptr
@@ -83,7 +85,7 @@ impl<'a> OxModule<'a> {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     _module_params_json_ptr: *const c_char,
-    _module_id: *const c_char,
+    module_id_ptr: *const c_char,
     api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
@@ -91,19 +93,24 @@ pub unsafe extern "C" fn initialize_module(
     }
     let api_instance = unsafe { &*api_ptr };
 
-    let glue = match OxModule::new(api_instance) {
+    let module_id = if !module_id_ptr.is_null() {
+        unsafe { CStr::from_ptr(module_id_ptr).to_string_lossy().to_string() }
+    } else {
+        MODULE_NAME.to_string()
+    };
+    let c_module_id = CString::new(module_id.clone()).unwrap();
+
+    let glue = match OxModule::new(api_instance, module_id) {
         Ok(g) => g,
         Err(e) => {
              let log_msg = CString::new(format!("Failed to initialize: {}", e)).unwrap();
-             let module_name = CString::new(MODULE_NAME).unwrap();
-             unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+             unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
              return std::ptr::null_mut();
         }
     };
     
     let log_msg = CString::new("ox_webservice_restore_ip initialized").unwrap();
-    let module_name = CString::new(MODULE_NAME).unwrap();
-    unsafe { (api_instance.log_callback)(LogLevel::Info, module_name.as_ptr(), log_msg.as_ptr()); }
+    unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), log_msg.as_ptr()); }
 
     let instance_ptr = Box::into_raw(Box::new(glue)) as *mut c_void;
 
@@ -121,7 +128,7 @@ unsafe extern "C" fn get_config_c(
     alloc_fn: AllocStrFn,
 ) -> *mut c_char {
     let json = "null";
-    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
 }
 
 unsafe extern "C" fn process_request_c(
@@ -134,9 +141,9 @@ unsafe extern "C" fn process_request_c(
     if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::JumpTo,
+            flow_control: FlowControl::Halt,
             return_parameters: ReturnParameters {
-                return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                return_data: std::ptr::null_mut(),
             },
         };
     }
@@ -150,13 +157,16 @@ unsafe extern "C" fn process_request_c(
         Ok(r) => r,
         Err(e) => {
              let log_msg = CString::new(format!("Panic in ox_webservice_restore_ip: {:?}", e)).unwrap();
-             let module_name = CString::new(MODULE_NAME).unwrap();
+             
+             let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
+             let module_name = CString::new(handler_unsafe.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
+             
              unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
              HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
              }
         }

@@ -1,9 +1,0 @@
-modules:
-  - id: "default_stream"
-    name: "ox_webservice_stream"
-    priority: 999
-    phase: Content
-    uris:
-    - url: ".*"
-    params:
-      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_stream_default.yaml"

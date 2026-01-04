@@ -1,0 +1,2 @@
+content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/test_content"
+mimetypes_file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/conf/mimetypes.yaml"

@@ -1,1 +1,1 @@
-../available/base.yaml
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"

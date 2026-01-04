@@ -1,7 +1,8 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
     CoreHostApi, PipelineState, AllocFn, AllocStrFn,
-    ModuleStatus, FlowControl, Phase, ReturnParameters,
+    ModuleStatus,    FlowControl, ReturnParameters,
+    ModuleExecutionRecord,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -20,10 +21,12 @@ mod tests;
 #[derive(Debug, Deserialize, serde::Serialize)]
 pub struct ErrorHandlerConfig {
     pub content_root: PathBuf,
+    pub debug_force_status: Option<u16>,
 }
 
 pub struct OxModule<'a> {
     content_root: PathBuf,
+    debug_force_status: Option<u16>,
     api: &'a CoreHostApi,
 }
 
@@ -36,10 +39,11 @@ impl<'a> OxModule<'a> {
             "ox_webservice_errorhandler_jinja2: new: Initializing with content_root: {:?}",
             config.content_root
         )).unwrap();
-        unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
+        unsafe { (api.log_callback)(LogLevel::Warn, module_name.as_ptr(), message.as_ptr()); }
 
         Ok(Self {
             content_root: config.content_root,
+            debug_force_status: config.debug_force_status,
             api,
         })
     }
@@ -48,14 +52,20 @@ impl<'a> OxModule<'a> {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        let ctx = unsafe { ox_plugin::PluginContext::new(
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
             self.api, 
             pipeline_state_ptr as *mut c_void, 
             arena_ptr
         ) };
 
         let status_code_val = ctx.get("http.response.status");
-        let status_code = status_code_val.and_then(|v| v.as_u64()).map(|u| u as u16).unwrap_or(200);
+        let status_code_val = ctx.get("http.response.status");
+        let mut status_code = status_code_val.and_then(|v| v.as_u64()).map(|u| u as u16).unwrap_or(200);
+
+        if let Some(forced) = self.debug_force_status {
+            status_code = forced;
+            let _ = ctx.set("http.response.status", serde_json::Value::Number(serde_json::Number::from(forced)));
+        }
 
         if status_code < 400 {
             return HandlerResult {
@@ -127,9 +137,71 @@ impl<'a> OxModule<'a> {
         // Let's assume for now `module_context` is not critical or supported via `ctx.get("module.context")`.
         // Actually, the original code looked up "module_name" and "module_context".
         // Use generic placeholders for now.
+        // Initialize module_name as Unknown
+        let mut culprit_module_name = "Unknown".to_string();
+
+        // --- Enhanced State Injection ---
+        
+        // Pipeline Execution History
+        if let Some(val) = ctx.get("pipeline.execution_history") {
+             // val is Value, likely a String containing JSON if it came from get().
+             // Wait, ctx.get() helper parses JSON! See ox_pipeline_plugin/lib.rs:100
+             // So 'val' is already the deserialized object (Vec<Record>).
+             context_map.insert("execution_history".to_string(), val.clone());
+             
+             // Try to deduce module_name from history
+             if let Ok(records) = serde_json::from_value::<Vec<ModuleExecutionRecord>>(val) {
+                 let self_name = MODULE_NAME;
+                 let mut last_modified_module = None;
+
+                 // We want the LAST module that modified the state.
+                 // This is likely the one that set the Error Status Code.
+                 for record in records.iter().rev() {
+                     if record.module_name == self_name { continue; }
+                     
+                     if record.status == ModuleStatus::Modified {
+                         last_modified_module = Some(record.module_name.clone());
+                         break;
+                     }
+                 }
+
+                 if let Some(name) = last_modified_module {
+                     culprit_module_name = name;
+                 } else {
+                     // No module modified the state, but we are in an error state.
+                     // Must be Core default (e.g. 404 for no route match).
+                     if status_code == 404 {
+                         culprit_module_name = "Core/Router (No Match)".to_string();
+                     } else {
+                         culprit_module_name = "Core System".to_string();
+                     }
+                 }
+             }
+        }
+
         context_map.insert("message".to_string(), Value::String("An error occurred.".to_string()));
-        context_map.insert("module_name".to_string(), Value::String("Unknown".to_string()));
-        context_map.insert("module_context".to_string(), Value::Null);
+        context_map.insert("module_name".to_string(), Value::String(culprit_module_name));
+        // Inject empty module_context to prevent template errors if accessed
+        context_map.insert("module_context".to_string(), serde_json::Value::Object(serde_json::Map::new()));
+
+        // Server Configs
+        if let Some(val) = ctx.get("server.configs") {
+             context_map.insert("server_configs".to_string(), val);
+        }
+
+        // Pipeline Routing
+        if let Some(val) = ctx.get("server.pipeline_routing") {
+             context_map.insert("pipeline_routing".to_string(), val);
+        }
+        
+        // Pipeline Modified Status
+        if let Some(val) = ctx.get("pipeline.modified") {
+             context_map.insert("is_modified".to_string(), val);
+        }
+
+       // Generic State check for debugging
+       // In earlier analysis ctx.get uses "get_state" C-API which returns string.
+       // The wrapper parses it. So we are good.
         
 
         let module_name_c = CString::new(MODULE_NAME).unwrap();
@@ -315,9 +387,9 @@ unsafe extern "C" fn process_request_c(
             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), c_log_msg.as_ptr()); } 
             HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
             }
         }
@@ -336,8 +408,9 @@ unsafe extern "C" fn get_config_c(
     
     let config = ErrorHandlerConfig {
         content_root: handler.content_root.clone(),
+        debug_force_status: handler.debug_force_status,
     };
     
     let json = serde_json::to_string_pretty(&config).unwrap_or("{}".to_string());
-    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
 }

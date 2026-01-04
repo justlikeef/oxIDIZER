@@ -1,0 +1,4 @@
+content_root: "/var/repos/oxIDIZER/content/themes/blue/www/"
+mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+default_documents: []
+on_content_conflict: skip

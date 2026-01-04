@@ -1,0 +1,25 @@
+log4rs_config: "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/conf/log4rs.yaml"
+modules:
+  - id: eh_module
+    name: ox_webservice_errorhandler_jinja2
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_errorhandler_jinja2.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999999-CleanConfig/conf/eh_config.json"
+  - id: ox_pipeline_router
+    name: ox_pipeline_router
+    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3000
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+    - ErrorHandling: default
+routes:
+  - url: ".*"
+    module_id: "eh_module"
+    phase: Content

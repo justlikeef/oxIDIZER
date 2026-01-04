@@ -1,0 +1,21 @@
+[package]
+name = "ox_package_manager"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_webservice_api = { path = "../ox_webservice_api" }
+ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+multipart = "0.18"
+log = "0.4"
+bumpalo = "3.16"
+flate2 = "1.0"
+tar = "0.4"
+zip = "0.6"
+bzip2 = "0.4"

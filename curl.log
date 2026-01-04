@@ -1,17 +1,0 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:8090...
-* Connected to 127.0.0.1 (127.0.0.1) port 8090
-> GET /status/ HTTP/1.1
-> Host: 127.0.0.1:8090
-> User-Agent: curl/8.5.0
-> Accept: */*
-> 
-< HTTP/1.1 200 OK
-< content-type: text/html
-< content-length: 44187
-< date: Tue, 16 Dec 2025 21:58:20 GMT
-< 
-{ [14376 bytes data]
-100 44187  100 44187    0     0  1539k      0 --:--:-- --:--:-- --:--:-- 1541k
-* Connection #0 to host 127.0.0.1 left intact

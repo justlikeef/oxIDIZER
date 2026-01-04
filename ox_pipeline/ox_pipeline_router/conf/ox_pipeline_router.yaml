@@ -1,0 +1,22 @@
+modules:
+  - id: "ox_pipeline_router"
+    name: "ox_pipeline_router"
+    # Actually, if we use it as a Router, the Host loads it.
+    # But for it to appear in "configcheck" or generally be "known", maybe we should define it?
+    # The Host loads routers based on pipeline.yaml.
+    # But let's define it so it's consistent.
+    # Wait, if I define it here, it might get added to the pipeline as a normal module?
+    # No, "phase: Content" would add it to Content phase.
+    # BUT, ox_pipeline_router is a ROUTER module, not a handler module in the chain (usually).
+    # Although, in my implementation `ox_pipeline_router` IS a handler module that just happens to execute other modules?
+    # No, I implemented it as a `RouterModule` which is invoked by `Pipeline::execute_pipeline` logic?
+    # Let's check `ox_pipeline_router/src/lib.rs`.
+    # It implements `run()`? No, it implements `execute_module`.
+    # Actually, `ox_pipeline_router` implements `process_request`.
+    # AND `Pipeline::new` loads "routers".
+    # If I add it here, it will be added to the standard execution list for "Content" phase.
+    # That might be redundant or wrong if the Host ALREADY uses it as the "Router" for that phase.
+    # If the Host uses it as a Router, it calls it specifically to DECIDE which modules to run.
+    # If I also add it as a module in the phase, it will run... twice?
+    # Let's re-read `ox_webservice/src/pipeline.rs`.
+    params: {}

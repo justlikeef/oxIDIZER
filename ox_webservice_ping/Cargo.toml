@@ -13,7 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bumpalo = "3.12"
 anyhow = "1.0"
-ox_plugin = { path = "../ox_plugin" }
+ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
 
 [dev-dependencies]
 lazy_static = "1.5.0"

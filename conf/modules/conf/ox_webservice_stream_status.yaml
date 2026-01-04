@@ -1,5 +1,0 @@
-content_root: "/var/repos/oxIDIZER/ox_webservice_status/content/www"
-mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
-default_documents:
-  - document: "index.html"
-on_content_conflict: "skip"

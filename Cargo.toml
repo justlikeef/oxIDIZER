@@ -32,5 +32,7 @@ members = [
     "ox_webservice_rewrite",
     "ox_webservice_status",
     "ox_webservice_test_utils",
-    "ox_webservice_ping", "ox_pipeline", "ox_plugin",
+    "ox_webservice_ping", "ox_pipeline", "ox_pipeline/ox_pipeline_plugin", "ox_pipeline/ox_pipeline_router",
+    "ox_package_manager", "ox_forms", "ox_forms/ox_forms_std_renderers", "ox_forms/ox_forms_server", "ox_forms/ox_forms_client",
+    "ox_event_bus", "ox_messaging_client/ox_messaging_mqtt", "ox_event_bus/ox_event_bus_mqtt", "ox_messaging_client",
 ]

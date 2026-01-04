@@ -1,0 +1,295 @@
+2026-01-04T16:04:57.610905543-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-04T16:04:57.611048645-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default_http","protocol":"http","port":3000,"bind_address":"0.0.0.0","hosts":[{"name":"localhost","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"default_template_jinja2","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"}},{"id":"default_theme_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"}},{"id":"default_layout_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"}},{"id":"messaging_mqtt","name":"ox_messaging_mqtt","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_package_manager.so","params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"}},{"id":"package_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"},"on_content_conflict":"skip"},{"id":"driver_manager","name":"ox_persistence_driver_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"drivers_file":"/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"},"phase":"Content"},{"id":"driver_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"},"phase":"Content"},{"id":"driver_manager_stream_wasm","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"},"phase":"Content"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"errorhandler_jinja2","name":"ox_webservice_errorhandler_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"}},{"id":"status_module","name":"ox_webservice_status","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"}},{"id":"stream_status","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"}},{"id":"ping_module","name":"ox_webservice_ping","routes":null,"headers":null,"query":null,"path":null,"params":null,"phase":"Content"},{"id":"forwarded_for","name":"ox_webservice_forwarded_for","routes":null,"headers":null,"query":null,"path":null,"params":null},{"id":"restore_ip","name":"ox_webservice_restore_ip","routes":null,"headers":null,"query":null,"path":null,"params":null}],"pipeline":{"phases":[{"PreEarlyRequest":"ox_pipeline_router"},{"EarlyRequest":"ox_pipeline_router"},{"PostEarlyRequest":"ox_pipeline_router"},{"PreAuthentication":"ox_pipeline_router"},{"Authentication":"ox_pipeline_router"},{"PostAuthentication":"ox_pipeline_router"},{"PreAuthorization":"ox_pipeline_router"},{"Authorization":"ox_pipeline_router"},{"PostAuthorization":"ox_pipeline_router"},{"PreContent":"ox_pipeline_router"},{"Content":"ox_pipeline_router"},{"PostContent":"ox_pipeline_router"},{"PreAccounting":"ox_pipeline_router"},{"Accounting":"ox_pipeline_router"},{"PostAccounting":"ox_pipeline_router"},{"PreErrorHandling":"ox_pipeline_router"},{"ErrorHandling":"ox_pipeline_router"},{"PostErrorHandling":"ox_pipeline_router"},{"PreLateRequest":"ox_pipeline_router"},{"LateRequest":"ox_pipeline_router"},{"PostLateRequest":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*[.]jinja[2]?$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_template_jinja2","status_code":null},{"protocol":null,"hostname":null,"url":"^(/css/.*)?$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_theme_stream","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":999,"phase":"Content","module_id":"default_layout_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(upload)/","headers":{"Method":"POST"},"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(install)/","headers":null,"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(list)/","headers":null,"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"package_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":{"format":"json"},"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/wasm/(.*)?$","headers":null,"query":null,"priority":499,"phase":null,"module_id":"driver_manager_stream_wasm","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"driver_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":499,"phase":"ErrorHandling","module_id":"errorhandler_jinja2","status_code":"4??|5??"},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":{"format":"json"},"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"stream_status","status_code":null},{"protocol":null,"hostname":null,"url":"^/ping/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"ping_module","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PreEarlyRequest","module_id":"forwarded_for","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PostLateRequest","module_id":"restore_ip","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-04T16:04:57.611076458-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-04T16:04:57.611117040-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_template_jinja2'
+2026-01-04T16:04:57.611128591-05:00 INFO ox_webservice::pipeline - Loading module 'default_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-04T16:04:57.613659792-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content"
+2026-01-04T16:04:57.613890372-05:00 DEBUG ox_webservice::pipeline - [default_template_jinja2] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:57.625137178-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 6 mimetypes.
+2026-01-04T16:04:57.625213179-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2 initialized
+2026-01-04T16:04:57.625299626-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_theme_stream'
+2026-01-04T16:04:57.625312251-05:00 INFO ox_webservice::pipeline - Loading module 'default_theme_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:57.626719836-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/themes/blue/www/"
+2026-01-04T16:04:57.626889830-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:57.637259699-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream initialized
+2026-01-04T16:04:57.637346830-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_layout_stream'
+2026-01-04T16:04:57.637359882-05:00 INFO ox_webservice::pipeline - Loading module 'default_layout_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:57.637491510-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/www/"
+2026-01-04T16:04:57.637637746-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:57.647922945-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream initialized
+2026-01-04T16:04:57.648027678-05:00 INFO ox_webservice::pipeline - Loading module 'messaging_mqtt' from "target/debug/libox_messaging_mqtt.so"
+2026-01-04T16:04:57.649082044-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Starting Broker...
+OxMessagingMqtt: Initializing...
+Config file ox_messaging_mqtt/conf/broker.yaml not found. Using default.
+2026-01-04T16:04:57.649656966-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] spawn;
+2026-01-04T16:04:57.649910678-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start;
+2026-01-04T16:04:57.649944050-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] run;
+2026-01-04T16:04:57.650150258-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] [>] incoming; connection_id=0
+2026-01-04T16:04:57.650279640-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] incoming_connect; client_id="console"
+2026-01-04T16:04:57.650361873-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Client connection registered connection_id=0
+2026-01-04T16:04:57.650420339-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] [<] outgoing; connection_id=0
+2026-01-04T16:04:57.650436215-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] outgoing_ack; client_id="console"
+2026-01-04T16:04:57.650463062-05:00 DEBUG ox_webservice::pipeline - [messaging_mqtt] Acks sent to device acks_count=1
+2026-01-04T16:04:57.650605668-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start; console=ConsoleLink { config: ConsoleSettings { listen: "0.0.0.0:3030", filter_handle: None }, connection_id: 0, router_tx: Sender, _link_rx: LinkRx { connection_id: 0, router_tx: Sender, router_rx: Receiver, send_buffer: Mutex { data: [] }, cache: [] } }
+2026-01-04T16:04:57.653375251-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Listening for remote connections config="v4-1" listen_addr="0.0.0.0:1883"
+2026-01-04T16:04:58.677871594-05:00 INFO ox_webservice::pipeline - Injected 3 extra URI routes into module 'package_manager'
+2026-01-04T16:04:58.678103274-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+2026-01-04T16:04:58.678230079-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] accept name="v4-1" addr=127.0.0.1:59581 count=0 tenant=None
+2026-01-04T16:04:58.678458603-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] remote_link; tenant_id=None
+2026-01-04T16:04:58.678822544-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] Remote link error error=Network(Io(Custom { kind: ConnectionAborted, error: "connection closed by peer" }))
+2026-01-04T16:04:58.679199043-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'package_manager_stream'
+2026-01-04T16:04:58.679259813-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:58.679571895-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www"
+2026-01-04T16:04:58.679773810-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:58.690634856-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream initialized
+2026-01-04T16:04:58.690783545-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'driver_manager'
+2026-01-04T16:04:58.690796935-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager' from "target/debug/libox_persistence_driver_manager.so"
+2026-01-04T16:04:58.691504374-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream'
+2026-01-04T16:04:58.691554614-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:58.691759509-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/content/www"
+2026-01-04T16:04:58.691909701-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:58.702978759-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream initialized
+2026-01-04T16:04:58.703197165-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream_wasm'
+2026-01-04T16:04:58.703214939-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream_wasm' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:58.703471695-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
+2026-01-04T16:04:58.703649019-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:58.714398313-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream initialized
+2026-01-04T16:04:58.714552079-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "target/debug/libox_pipeline_router.so"
+2026-01-04T16:04:58.715087276-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'errorhandler_jinja2'
+2026-01-04T16:04:58.715142787-05:00 INFO ox_webservice::pipeline - Loading module 'errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
+2026-01-04T16:04:58.717380719-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/error_debug"
+2026-01-04T16:04:58.717462944-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'status_module'
+2026-01-04T16:04:58.717474774-05:00 INFO ox_webservice::pipeline - Loading module 'status_module' from "target/debug/libox_webservice_status.so"
+2026-01-04T16:04:58.744022916-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'stream_status'
+2026-01-04T16:04:58.744141126-05:00 INFO ox_webservice::pipeline - Loading module 'stream_status' from "target/debug/libox_webservice_stream.so"
+2026-01-04T16:04:58.744411671-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_status/content/www/"
+2026-01-04T16:04:58.744641747-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\.htm$"
+    },
+    {
+      "mimetype": "application/json",
+      "url": ".*\\.json$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*\\.css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*\\.js$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*\\\\.jinja.?$\""
+    }
+  ]
+}
+2026-01-04T16:04:58.755255597-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream initialized
+2026-01-04T16:04:58.755425941-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'ping_module'
+2026-01-04T16:04:58.755488654-05:00 INFO ox_webservice::pipeline - Loading module 'ping_module' from "target/debug/libox_webservice_ping.so"
+2026-01-04T16:04:58.755768336-05:00 INFO ox_webservice::pipeline - [ping_module] ox_webservice_ping initialized
+2026-01-04T16:04:58.755850273-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'forwarded_for'
+2026-01-04T16:04:58.755863859-05:00 INFO ox_webservice::pipeline - Loading module 'forwarded_for' from "target/debug/libox_webservice_forwarded_for.so"
+2026-01-04T16:04:58.756022834-05:00 INFO ox_webservice::pipeline - [forwarded_for] ox_webservice_forwarded_for initialized
+2026-01-04T16:04:58.756105543-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'restore_ip'
+2026-01-04T16:04:58.756118065-05:00 INFO ox_webservice::pipeline - Loading module 'restore_ip' from "target/debug/libox_webservice_restore_ip.so"
+2026-01-04T16:04:58.756287435-05:00 INFO ox_webservice::pipeline - [restore_ip] ox_webservice_restore_ip initialized
+2026-01-04T16:04:58.756465378-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreEarlyRequest" with 1 routes
+2026-01-04T16:04:58.757774686-05:00 INFO ox_webservice::pipeline - Initializing router for phase "EarlyRequest" with 0 routes
+2026-01-04T16:04:58.757851166-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostEarlyRequest" with 0 routes
+2026-01-04T16:04:58.757873081-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthentication" with 0 routes
+2026-01-04T16:04:58.757892634-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authentication" with 0 routes
+2026-01-04T16:04:58.757912105-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthentication" with 0 routes
+2026-01-04T16:04:58.757931122-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthorization" with 0 routes
+2026-01-04T16:04:58.757952294-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authorization" with 0 routes
+2026-01-04T16:04:58.757983781-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthorization" with 0 routes
+2026-01-04T16:04:58.758004982-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreContent" with 0 routes
+2026-01-04T16:04:58.758107806-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 17 routes
+2026-01-04T16:04:58.784743440-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostContent" with 0 routes
+2026-01-04T16:04:58.784886762-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAccounting" with 0 routes
+2026-01-04T16:04:58.784931881-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Accounting" with 0 routes
+2026-01-04T16:04:58.784954423-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAccounting" with 0 routes
+2026-01-04T16:04:58.784975499-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreErrorHandling" with 0 routes
+2026-01-04T16:04:58.785008717-05:00 INFO ox_webservice::pipeline - Initializing router for phase "ErrorHandling" with 1 routes
+2026-01-04T16:04:58.786258158-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostErrorHandling" with 0 routes
+2026-01-04T16:04:58.786343233-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreLateRequest" with 0 routes
+2026-01-04T16:04:58.786367130-05:00 INFO ox_webservice::pipeline - Initializing router for phase "LateRequest" with 0 routes
+2026-01-04T16:04:58.786398137-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostLateRequest" with 1 routes
+2026-01-04T16:04:58.787769649-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000

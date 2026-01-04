@@ -1,7 +1,7 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
     CoreHostApi, PipelineState, AllocFn, AllocStrFn,
-    ModuleStatus, FlowControl, Phase, ReturnParameters,
+    ModuleStatus, FlowControl, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -52,7 +52,7 @@ impl<'a> RedirectModule<'a> {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        let ctx = unsafe { ox_plugin::PluginContext::new(
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
             self.api, 
             pipeline_state_ptr as *mut c_void, 
             arena_ptr
@@ -86,9 +86,9 @@ impl<'a> RedirectModule<'a> {
                     
                     return HandlerResult {
                         status: ModuleStatus::Modified,
-                        flow_control: FlowControl::JumpTo,
+                        flow_control: FlowControl::Halt,
                         return_parameters: ReturnParameters {
-                            return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                            return_data: std::ptr::null_mut(),
                         },
                     };
                 }
@@ -200,9 +200,9 @@ unsafe extern "C" fn process_request_c(
             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), c_log_msg.as_ptr()); } 
             HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
             }
         }
@@ -218,7 +218,7 @@ unsafe extern "C" fn get_config_c(
     let handler = unsafe { &*(instance_ptr as *mut RedirectModule) };
     
     let json = serde_json::to_string_pretty(&handler.config).unwrap_or("{}".to_string());
-    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
 }
 
 #[cfg(test)]

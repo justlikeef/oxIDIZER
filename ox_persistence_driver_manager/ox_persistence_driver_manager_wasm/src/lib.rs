@@ -30,7 +30,7 @@ pub fn app() -> Html {
         use_effect_with((), move |_| {
             let drivers = drivers.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let fetched_drivers: Result<DriversList, _> = Request::get("/drivers")
+                let fetched_drivers: Result<DriversList, _> = Request::get("/drivers/")
                     .header("Accept", "application/json")
                     .send()
                     .await
@@ -58,6 +58,7 @@ pub fn app() -> Html {
             wasm_bindgen_futures::spawn_local(async move {
                 let url = format!("/drivers/{}", id);
                 let response = Request::post(&url)
+                    .header("Accept", "application/json")
                     .send()
                     .await;
                     
@@ -65,7 +66,7 @@ pub fn app() -> Html {
                     Ok(resp) => {
                         if resp.status() == 200 {
                             // Refresh list
-                             let fetched: Result<DriversList, _> = Request::get("/drivers")
+                             let fetched: Result<DriversList, _> = Request::get("/drivers/")
                                 .header("Accept", "application/json")
                                 .send()
                                 .await
@@ -92,7 +93,7 @@ pub fn app() -> Html {
                  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; flex-direction: column; align-items: flex-start;">
                         <img src="/images/logo.png" alt="oxIDIZER" style="height: 6rem; margin-bottom: 0.5rem; filter: drop_shadow(0 0 5px rgba(0,0,0,0.5));" />
-                        <h1 style="font-size: 3rem; line-height: 1.1;">{ "Driver Manager" }</h1>
+                        <h1 style="font-size: 3rem; line-height: 1.1;">{ "Persistence Driver Manager" }</h1>
                     </div>
                     <div class="version-badge" style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; color: var(--text-secondary);">
                         { "WASM" }
@@ -114,21 +115,25 @@ pub fn app() -> Html {
                     let id_clone = driver.id.clone();
                     let toggle = toggle_status.clone();
                     
-                    html! {
-                        <div class={classes!("card", status_class)}>
-                            <div class="card-header">
-                                <div class={classes!("status-badge", status_class)}>{ &driver.state.to_uppercase() }</div>
-                                <div class="card-title">{ &driver.name }</div>
-                            </div>
-                            <div class="card-content">
-                                <div class="kv-row">
-                                    <span class="kv-key">{ "ID" }</span>
-                                    <span class="kv-value">{ &driver.id }</span>
-                                </div>
-                                 <div class="kv-row">
-                                    <span class="kv-key">{ "Package" }</span>
-                                    <span class="kv-value">{ &driver.id }</span> // Using ID as package name placeholder as per original
-                                </div>
+                                    let lib_name = format!("lib{}.so", &driver.name);
+                                    let dir_path = if driver.library_path.is_empty() {
+                                        "target/debug"
+                                    } else {
+                                        &driver.library_path
+                                    };
+                                    let tooltip = format!("{}/{}", dir_path, lib_name);
+                                    
+                                    html! {
+                                        <div class={classes!("card", status_class)}>
+                                            <div class="card-header">
+                                                <div class={classes!("status-badge", status_class)}>{ &driver.state.to_uppercase() }</div>
+                                                <div class="card-title">{ &driver.id }</div>
+                                            </div>
+                                            <div class="card-content">
+                                                 <div class="kv-row">
+                                                    <span class="kv-key">{ "Library" }</span>
+                                                    <span class="kv-value" title={tooltip}>{ lib_name }</span>
+                                                </div>
                                 <div class="actions" style="margin-top: 1rem; text-align: right;">
                                     <button onclick={move |_| toggle.emit(id_clone.clone())} class={classes!("btn", "toggle-btn", if driver.state == "enabled" { "btn-disable" } else { "btn-enable" })}>
                                         { if driver.state == "enabled" { "Disable" } else { "Enable" } }

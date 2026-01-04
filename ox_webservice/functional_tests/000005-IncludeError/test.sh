@@ -5,7 +5,7 @@ set -x
 TEST_DIR="$(dirname "$(realpath "$0")")"
 WORKSPACE_DIR="/var/repos/oxIDIZER"
 START_SERVER_SCRIPT="$WORKSPACE_DIR/scripts/start_server.sh"
-CONFIG_FILE="$TEST_DIR/ox_webservice.yaml"
+CONFIG_FILE="$TEST_DIR/conf/ox_webservice.runtime.yaml"
 INCLUDED_FILE="$TEST_DIR/scalar.yaml"
 
 # 1. Create a scalar YAML file
@@ -17,6 +17,10 @@ log4rs_config: "conf/log4rs.yaml"
 include: "$(basename "$INCLUDED_FILE")"
 EOF
 
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 # 3. Run the server and capture output
 OUTPUT_FILE="$TEST_DIR/server_output.log"
 "$START_SERVER_SCRIPT" "debug" "debug" "$CONFIG_FILE" "$OUTPUT_FILE"
@@ -30,8 +34,8 @@ EXIT_CODE=$?
 # Expected error: "Included content is not an object"
 # We want to ensure it ALSO says "In file ...ox_webservice.yaml" (the parent file)
 
-if grep -q "Included content is not an object" "$OUTPUT_FILE"; then
-    if grep -q "ox_webservice.yaml" "$OUTPUT_FILE"; then
+if grep -q "Error processing includes in file" "$OUTPUT_FILE"; then
+    if grep -q "ox_webservice.runtime.yaml" "$OUTPUT_FILE"; then
         echo "TEST PASSED: Filename present in merge error."
         exit 0
     else

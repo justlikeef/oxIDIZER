@@ -5,6 +5,10 @@ SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
 DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../../functional_tests/common
 
@@ -12,6 +16,10 @@ SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 source "$TEST_LIBS_DIR/log_function.sh"
 source "$TEST_LIBS_DIR/fuzz_utils.sh"

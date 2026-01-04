@@ -1,0 +1,24 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+servers:
+  - id: "default_https"
+    protocol: "https"
+    port: 3000
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+        tls_key_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/100002-ConfigHTTPS/conf/certs/key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/ox_webservice/functional_tests/100002-ConfigHTTPS/conf/certs/cert.pem"
+modules:
+  - id: ox_pipeline_router
+    name: ox_pipeline_router
+    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+routes:
+  # No matches, should 500 or 404 depending on impl. Test expects 500?
+  # Actually if no route matches, Router returns Unmodified, Host returns 404 (default) or 500 if error.
+  # The test expects 500 INT SERVER ERROR, implying a crash or mismanagement? 
+  # Or maybe the legacy test expected something else.
+  # However, let's keep it minimal for HTTPS verification.
+  []

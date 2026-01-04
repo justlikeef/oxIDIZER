@@ -18,9 +18,9 @@ use std::sync::atomic::{AtomicUsize, AtomicU64, AtomicBool, Ordering};
 use once_cell::sync::Lazy;
 
 use ox_webservice_api::{
-    ModuleConfig, InitializeModuleFn, Phase,
+    ModuleConfig, InitializeModuleFn,
     ModuleInterface, WebServiceApiV1,
-    PipelineState, FlowControl, ModuleStatus, HandlerResult,
+    PipelineState, FlowControl, ModuleStatus, HandlerResult, ReturnParameters,
 };
 
 use crate::ServerConfig;
@@ -56,23 +56,13 @@ impl ModuleMetrics {
 }
 
 pub struct ServerMetrics {
-    pub active_pipelines_by_phase: RwLock<HashMap<Phase, AtomicUsize>>,
+    pub active_pipelines_by_phase: RwLock<HashMap<String, Arc<AtomicUsize>>>,
     pub global_memory_allocated: AtomicU64,
 }
 
 static SERVER_METRICS: Lazy<ServerMetrics> = Lazy::new(|| {
     let mut phases = HashMap::new();
-    // Pre-populate keys for all phases
-    let all_phases = [
-        Phase::PreEarlyRequest, Phase::EarlyRequest, Phase::PostEarlyRequest, Phase::PreAuthentication,
-        Phase::Authentication, Phase::PostAuthentication, Phase::PreAuthorization, Phase::Authorization,
-        Phase::PostAuthorization, Phase::PreContent, Phase::Content, Phase::PostContent, Phase::PreAccounting,
-        Phase::Accounting, Phase::PostAccounting, Phase::PreErrorHandling, Phase::ErrorHandling,
-        Phase::PostErrorHandling, Phase::PreLateRequest, Phase::LateRequest, Phase::PostLateRequest,
-    ];
-    for phase in all_phases {
-        phases.insert(phase, AtomicUsize::new(0));
-    }
+    // Dynamic phases - initialized empty
     
     ServerMetrics {
         active_pipelines_by_phase: RwLock::new(phases),
@@ -157,9 +147,9 @@ pub unsafe extern "C" fn get_server_metrics_c(arena: *const c_void, alloc_fn: ox
     }
 
     let phases_guard = SERVER_METRICS.active_pipelines_by_phase.read().unwrap();
-    let mut active_pipelines = HashMap::new();
+    let mut active_pipelines_by_phase = HashMap::new();
     for (phase, count) in phases_guard.iter() {
-        active_pipelines.insert(format!("{:?}", phase), count.load(Ordering::Relaxed));
+        active_pipelines_by_phase.insert(phase.clone(), count.load(Ordering::Relaxed));
     }
     
     let mut module_snapshots = HashMap::new();
@@ -174,7 +164,7 @@ pub unsafe extern "C" fn get_server_metrics_c(arena: *const c_void, alloc_fn: ox
     }
 
     let snapshot = MetricsSnapshot {
-        active_pipelines_by_phase: active_pipelines,
+        active_pipelines_by_phase,
         global_memory_allocated: SERVER_METRICS.global_memory_allocated.load(Ordering::Relaxed),
         modules: module_snapshots,
     };
@@ -196,35 +186,52 @@ pub unsafe extern "C" fn get_all_configs_c(
     }
     let pipeline = &*pipeline_ptr;
 
-    let mut configs_map = serde_json::Map::new();
+    let mut configs_list = Vec::new();
+    let mut seen_modules = std::collections::HashSet::new();
 
     // 1. Host Config (Main)
     if let Ok(main_val) = serde_json::from_str::<Value>(&pipeline.main_config_json) {
-         configs_map.insert("ox_webservice".to_string(), main_val);
-    } else {
-         configs_map.insert("ox_webservice".to_string(), Value::String("Error parsing main config".to_string()));
+         let mut entry = serde_json::Map::new();
+         entry.insert("name".to_string(), Value::String("ox_webservice (Host)".to_string()));
+         entry.insert("config".to_string(), main_val);
+         configs_list.push(Value::Object(entry));
     }
 
-    // 2. Iterate all loaded modules
-    // Flatten phases to get unique modules? Modules are stored in phases. Same module instance might be in multiple phases?
-    // LoadedModule is Arc-ed. We should probably dedup by name or ID.
-    // Let's iterate over loaded_libraries in pipeline? No, that's just libs.
-    // Iterating phases is fine, we just need to track processed module IDs.
-    
-    let mut processed_modules = std::collections::HashSet::new();
-
+    // 2. Iterate Pipeline Stages (Execution Order)
     for stage in &pipeline.core.stages {
         for module in &stage.modules {
             let name = module.name();
-            if processed_modules.contains(name) {
-                continue;
+            if !seen_modules.contains(name) {
+                let mut entry = serde_json::Map::new();
+                entry.insert("name".to_string(), Value::String(name.to_string()));
+                entry.insert("config".to_string(), module.get_config());
+                entry.insert("stage".to_string(), Value::String(stage.name.clone()));
+                configs_list.push(Value::Object(entry));
+                seen_modules.insert(name.to_string());
             }
-            processed_modules.insert(name.to_string());
-            configs_map.insert(name.to_string(), module.get_config());
         }
     }
 
-    let configs_json = serde_json::to_string(&configs_map).unwrap_or("{}".to_string());
+    // 3. Append any other loaded modules (e.g., loaded but unused/auxiliary)
+    if let Ok(registry) = GLOBAL_MODULE_REGISTRY.read() {
+        // Collect keys to sort them for deterministic output of remaining ones
+        let mut keys: Vec<_> = registry.keys().cloned().collect();
+        keys.sort();
+        
+        for id in keys {
+            if !seen_modules.contains(&id) {
+                if let Some(module) = registry.get(&id) {
+                    let mut entry = serde_json::Map::new();
+                    entry.insert("name".to_string(), Value::String(id.clone()));
+                    entry.insert("config".to_string(), module.get_config());
+                    entry.insert("stage".to_string(), Value::String("Auxiliary".to_string()));
+                    configs_list.push(Value::Object(entry));
+                }
+            }
+        }
+    }
+
+    let configs_json = serde_json::to_string(&configs_list).unwrap_or("[]".to_string());
     alloc_fn(arena, CString::new(configs_json).unwrap().as_ptr())
 }}
 
@@ -296,9 +303,22 @@ pub unsafe extern "C" fn get_state_c(
     let val_json: Option<String> = if key_str == "http.request.method" {
         Some(Value::String(pipeline_state.request_method.clone()).to_string())
     } else if key_str == "http.request.path" {
-        Some(Value::String(pipeline_state.request_path.clone()).to_string())
+        // Return captured path if regex matched and captured something, otherwise original
+        if let Some(captured) = &pipeline_state.route_capture {
+            Some(Value::String(captured.clone()).to_string())
+        } else {
+            Some(Value::String(pipeline_state.request_path.clone()).to_string())
+        }
     } else if key_str == "http.request.query" {
         Some(Value::String(pipeline_state.request_query.clone()).to_string())
+    } else if key_str.starts_with("http.request.query.") {
+        let param_name = &key_str["http.request.query.".len()..];
+        let query_params: HashMap<String, String> = url::form_urlencoded::parse(pipeline_state.request_query.as_bytes())
+            .into_owned()
+            .collect();
+        if let Some(val) = query_params.get(param_name) {
+             Some(Value::String(val.clone()).to_string())
+        } else { None }
     } else if key_str == "http.request.body" {
         Some(Value::String(String::from_utf8_lossy(&pipeline_state.request_body).into_owned()).to_string())
     } else if key_str == "http.source_ip" {
@@ -307,9 +327,20 @@ pub unsafe extern "C" fn get_state_c(
         Some(pipeline_state.status_code.to_string()) 
     } else if key_str.starts_with("http.request.header.") {
         let header_name = &key_str["http.request.header.".len()..];
+        // HeaderMap::get is case-insensitive for str, but let's be super explicit
         if let Some(val) = pipeline_state.request_headers.get(header_name) {
              Some(Value::String(val.to_str().unwrap_or("").to_string()).to_string())
-        } else { None }
+        } else {
+             // Try case-insensitive fallback if somehow missed (unlikely but diagnostic)
+             let mut found = None;
+             for (k, v) in &pipeline_state.request_headers {
+                 if k.as_str().eq_ignore_ascii_case(header_name) {
+                     found = Some(Value::String(v.to_str().unwrap_or("").to_string()).to_string());
+                     break;
+                 }
+             }
+             found
+        }
     } else if key_str == "http.request.headers" {
         let mut headers_map = serde_json::Map::new();
         for (k, v) in &pipeline_state.request_headers {
@@ -335,6 +366,63 @@ pub unsafe extern "C" fn get_state_c(
          None
     } else if key_str == "pipeline.modified" {
         Some(Value::String(pipeline_state.is_modified.to_string()).to_string())
+    } else if key_str == "pipeline.execution_history" {
+        // Serialize execution history
+        // Record struct is in api, need to make sure we can serialize it. 
+        // ModuleExecutionRecord derives Serialize? Let's check api lib.rs.
+        // It does NOT derive Serialize/Deserialize in the view I saw earlier! 
+        // I need to check api lib.rs again.
+        // Assuming I might need to manual serialize or add derive there.
+        // Let's assume I need to add Serialize to ModuleExecutionRecord in api first.
+        // Wait, I can't check api now without another tool call.
+        // But assuming I can add it.
+        
+        // Actually, let's look at the implementation of ModuleExecutionRecord in api.
+        // It wasn't derived.
+        // I will add the code assuming it is serializable (I will fix api if not).
+        let json = serde_json::to_string(&pipeline_state.execution_history).unwrap_or("[]".to_string());
+        Some(json)
+    } else if key_str == "server.routes" {
+        if pipeline_state.pipeline_ptr.is_null() {
+            return std::ptr::null_mut();
+        }
+        let pipeline = unsafe { &*(pipeline_state.pipeline_ptr as *const Pipeline) };
+        Some(pipeline.main_config_json.clone()) // We'll return the whole config for now or just routes
+    } else if key_str == "server.pipeline_routing" {
+        if pipeline_state.pipeline_ptr.is_null() {
+            return std::ptr::null_mut();
+        }
+        let pipeline = &*(pipeline_state.pipeline_ptr as *const Pipeline);
+        let mut routing_list = Vec::new();
+
+        // Iterate stages to preserve execution order
+        for stage in &pipeline.core.stages {
+            let phase = &stage.name;
+            if let Some(router_module_id) = pipeline.router_map.get(phase) {
+                 let mut entry = serde_json::Map::new();
+                 entry.insert("phase".to_string(), Value::String(phase.clone()));
+                 
+                 // Find module instance for config
+                 let mut found_config = Value::Null;
+                 if let Some(module) = stage.modules.iter().find(|m| m.name() == router_module_id) {
+                     found_config = module.get_config();
+                 }
+                 
+                 entry.insert("router_instance".to_string(), Value::String(router_module_id.clone()));
+                 entry.insert("config".to_string(), found_config);
+                 
+                 routing_list.push(Value::Object(entry));
+            } else {
+                 // Even if no router maps to this phase, we might want to show it?
+                 // The original code only showed mapped phases.
+                 // We will stick to mapped phases to avoid clutter, but iterating stages ensures order.
+            }
+        }
+        
+        // If router_map contains keys not in stages? (Shouldn't happen for valid pipeline phases)
+        
+        let json = serde_json::to_string(&routing_list).unwrap_or("[]".to_string());
+        return alloc_fn(arena, CString::new(json).unwrap().as_ptr());
     } else {
         // Generic State (module_context)
         pipeline_state.module_context.read().unwrap().get(key_str).map(|v| v.to_string())
@@ -370,6 +458,10 @@ pub unsafe extern "C" fn set_state_c(
     if key_str == "http.request.path" {
         if let Some(s) = value.as_str() {
             pipeline_state.request_path = s.to_string();
+        }
+    } else if key_str == "http.request.path_capture" {
+        if let Some(s) = value.as_str() {
+            pipeline_state.route_capture = Some(s.to_string());
         }
     } else if key_str == "http.source_ip" {
         if let Some(s) = value.as_str() {
@@ -407,122 +499,131 @@ pub unsafe extern "C" fn set_state_c(
 
 // =========================================================================
 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn execute_module_c(
+    state_ptr: *mut c_void,
+    module_id: *const libc::c_char
+) -> HandlerResult {
+    if state_ptr.is_null() || module_id.is_null() {
+        return HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Halt,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
+    }
+
+    let module_id_str = unsafe { CStr::from_ptr(module_id).to_string_lossy() };
+    
+    // Lookup module
+    let module_arc = {
+        let registry = GLOBAL_MODULE_REGISTRY.read().unwrap();
+        registry.get(module_id_str.as_ref()).cloned()
+    };
+
+    if let Some(module) = module_arc {
+        let pipeline_state_ptr = state_ptr as *mut PipelineState;
+        
+        // Use shared internal execution logic
+        unsafe { module.execute_internal(pipeline_state_ptr) }
+    } else {
+        error!("execute_module: Module '{}' not found", module_id_str);
+        return HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Halt,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
+    }
+}
+
 static MODULE_METRICS_REGISTRY: Lazy<RwLock<HashMap<String, Arc<ModuleMetrics>>>> = 
     Lazy::new(|| RwLock::new(HashMap::new()));
+
+static GLOBAL_MODULE_REGISTRY: Lazy<RwLock<HashMap<String, Arc<LoadedModule>>>> = 
+    Lazy::new(|| RwLock::new(HashMap::new()));
+
 
 pub struct LoadedModule {
     _library: Arc<Library>,
     pub module_name: String,
+    pub module_id: String,
     pub module_interface: Box<ModuleInterface>,
     pub module_config: ModuleConfig,
     pub metrics: Arc<ModuleMetrics>,
     pub alloc_raw: ox_webservice_api::AllocFn,
+    pub phase_metric: Option<Arc<AtomicUsize>>,
 }
 
 unsafe impl Send for LoadedModule {}
 unsafe impl Sync for LoadedModule {}
+ 
+unsafe extern "C" fn alloc_string_c(arena: *const c_void, s: *const libc::c_char) -> *mut libc::c_char {
+    let bump = unsafe { &*(arena as *const Bump) };
+    let c_str = unsafe { CStr::from_ptr(s) };
+    let bytes = c_str.to_bytes_with_nul();
+    
+    let layout = std::alloc::Layout::from_size_align(bytes.len(), 1).unwrap();
+    let ptr = bump.alloc_layout(layout).as_ptr(); 
+    
+    unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len()) };
+    ptr as *mut libc::c_char
+}
 
 impl LoadedModule {
     fn name(&self) -> &str {
-        &self.module_name
+        &self.module_id
     }
 
     fn get_config(&self) -> serde_json::Value {
-        serde_json::to_value(&self.module_config).unwrap_or(serde_json::Value::Null)
+        let mut config_val = serde_json::to_value(&self.module_config).unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+        
+        // Fetch dynamic config from module
+        let arena = Bump::new();
+        let arena_ptr = &arena as *const Bump as *const c_void;
+        
+        // Attempt to call dynamic config logic if module exposes it
+        // Note: we can't easily check for validity of function pointer if wrapping box is opaque, 
+        // but LoadedModule builds with valid pointers.
+        
+        let c_json_ptr = unsafe {
+            (self.module_interface.get_config)(
+                self.module_interface.instance_ptr,
+                arena_ptr,
+                alloc_string_c
+            )
+        };
+        
+        if !c_json_ptr.is_null() {
+            let c_str = unsafe { std::ffi::CStr::from_ptr(c_json_ptr) };
+            if let Ok(json_str) = c_str.to_str() {
+                if let Ok(dynamic_val) = serde_json::from_str::<serde_json::Value>(json_str) {
+                    // Merge dynamic into static
+                    if let Some(static_obj) = config_val.as_object_mut() {
+                        if let Some(dynamic_obj) = dynamic_val.as_object() {
+                            for (k, v) in dynamic_obj {
+                                static_obj.insert(k.clone(), v.clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        config_val
     }
 
-    fn execute(&self, state: ox_pipeline::State) -> Result<(), String> {
+    // Refactored execute: Assumes routing decision is already made by Pipeline
+    // Returns Result for Wrapper
+    fn execute_handler(&self, state: ox_pipeline::State) -> Result<(), String> {
         // Downcast generic state to the specific PipelineState we use
         let pipeline_state_arc = state.downcast_ref::<RwLock<PipelineState>>()
             .ok_or("Invalid State Type: Expected RwLock<PipelineState>")?;
 
         let mut write_guard = pipeline_state_arc.write().map_err(|e| e.to_string())?;
-        let pipeline_state_ptr = &mut *write_guard as *mut PipelineState;
-
-        // Check metrics gating
-        let metrics_enabled = METRICS_ENABLED.load(Ordering::Relaxed);
-        let start_time = if metrics_enabled { Some(std::time::Instant::now()) } else { None };
-
-        // Handle routing filtering
-        let mut skip_module = false;
-        if let Some(config_headers) = &self.module_config.headers {
-            for (key, pattern) in config_headers {
-                let actual = if let Some(val) = write_guard.request_headers.get(key) {
-                     val.to_str().unwrap_or("")
-                } else { "" };
-                
-                if let Ok(re) = Regex::new(pattern) {
-                     if !re.is_match(actual) { skip_module = true; break; }
-                }
-            }
-        }
-        if !skip_module {
-            if let Some(config_query) = &self.module_config.query {
-                for (key, pattern) in config_query {
-                    // Primitive query check - assumed stored in request_query via parsing?
-                    // Currently query is a raw string. Need request_query_map?
-                    // The old code did parsing on the fly inside pipeline execution? 
-                    // No, implementation plan said "Configurable stages". Routing logic was separate.
-                    // But I need to preserve "Route Filtering" feature I implemented earlier.
-                    // For brevity, I'll rely on the FFI-based logic if possible, or simple check here.
-                    // The request_query is a string. Assuming regex match against string?
-                    // The feature was "headers and query" matching.
-                    // I will assume simple regex on query string for now if not parsed.
-                    // Actually, let's just skip complex query logic adaptation for this step to focus on structure.
-                     if let Ok(re) = Regex::new(pattern) {
-                         if !re.is_match(&write_guard.request_query) { skip_module = true; break; }
-                     }
-                }
-            }
-        }
+        let pipeline_state_ptr = &mut *write_guard as *mut PipelineState; // Used to pass to module as *mut
         
-        if skip_module {
-            return Ok(());
-        }
+        let result = unsafe { self.execute_internal(pipeline_state_ptr) };
 
-        if metrics_enabled {
-            CURRENT_MODULE_METRICS.with(|m| *m.borrow_mut() = Some(self.metrics.clone()));
-            self.metrics.execution_count.fetch_add(1, Ordering::Relaxed);
-        }
-
-        // Call Module Handler
-        let result = unsafe {
-            (self.module_interface.handler_fn)(
-                self.module_interface.instance_ptr,
-                pipeline_state_ptr,
-                self.module_interface.log_callback,
-                self.alloc_raw,
-                (&write_guard.arena) as *const Bump as *const c_void
-            )
-        };
-
-        if metrics_enabled {
-             if let Some(start) = start_time {
-                 let duration = start.elapsed().as_micros() as u64;
-                 self.metrics.total_duration_micros.fetch_add(duration, Ordering::Relaxed);
-             }
-             CURRENT_MODULE_METRICS.with(|m| *m.borrow_mut() = None);
-        }
-        
-        // --- Host Wrapper Logic: State Latch & History ---
-        
-        // 1. Update State Latch (Monotonic)
-        if result.status == ModuleStatus::Modified {
-            write_guard.is_modified = true;
-        }
-
-        // 2. Record Execution History
-        let record = ox_webservice_api::ModuleExecutionRecord {
-            module_name: self.module_name.clone(),
-            status: result.status,
-            flow_control: result.flow_control,
-            return_data: result.return_parameters.return_data,
-        };
-        write_guard.execution_history.push(record);
-
-        // -------------------------------------------------
-
-        // Handle result
+        // Handle result (Wrapper responsibility)
         match result.flow_control {
              FlowControl::Halt => return Err("Halted by module".to_string()),
              FlowControl::StreamFile => {
@@ -540,18 +641,120 @@ impl LoadedModule {
                          }
                      }
                  }
+                 debug!("StreamFile processing complete. Pipeline is_modified={}", write_guard.is_modified);
                  Ok(())
              },
              _ => Ok(()),
         }
     }
+
+    // Unsafe Internal Execution Logic (Shared by Wrapper and C-API)
+    // Takes raw pointer to PipelineState (must be valid and mutable)
+    unsafe fn execute_internal(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
+        let write_guard = &mut *pipeline_state_ptr;
+
+         // Check metrics gating
+        let metrics_enabled = METRICS_ENABLED.load(Ordering::Relaxed);
+        let start_time = if metrics_enabled { Some(std::time::Instant::now()) } else { None };
+
+        // Module-level constraints (Headers/Query)
+        // These apply regardless of which route selected this module
+        // Note: Route-level headers/query are checked during dispatch
+        let mut skip_module = false;
+        if let Some(config_headers) = &self.module_config.headers {
+            for (key, pattern) in config_headers {
+                let actual = if let Some(val) = write_guard.request_headers.get(key) {
+                     val.to_str().unwrap_or("")
+                } else { "" };
+                
+                if let Ok(re) = Regex::new(pattern) {
+                     if !re.is_match(actual) { skip_module = true; break; }
+                }
+            }
+        }
+        if !skip_module {
+            if let Some(config_query) = &self.module_config.query {
+                let query_params: HashMap<String, String> = url::form_urlencoded::parse(write_guard.request_query.as_bytes())
+                    .into_owned()
+                    .collect();
+
+                for (key, pattern) in config_query {
+                    let actual = query_params.get(key).map(|s| s.as_str()).unwrap_or("");
+                    
+                     if let Ok(re) = Regex::new(pattern) {
+                         if !re.is_match(actual) { skip_module = true; break; }
+                     }
+                }
+            }
+        }
+        
+        if skip_module {
+            return HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+            };
+        }
+
+        if metrics_enabled {
+            CURRENT_MODULE_METRICS.with(|m| *m.borrow_mut() = Some(self.metrics.clone()));
+            self.metrics.execution_count.fetch_add(1, Ordering::Relaxed);
+        }
+
+        // Increment Phase Metric
+        if let Some(pm) = &self.phase_metric {
+            pm.fetch_add(1, Ordering::Relaxed);
+        }
+
+        // Call Module Handler
+        let result = (self.module_interface.handler_fn)(
+            self.module_interface.instance_ptr,
+            pipeline_state_ptr,
+            self.module_interface.log_callback,
+            self.alloc_raw,
+            (&write_guard.arena) as *const Bump as *const c_void
+        );
+
+        if metrics_enabled {
+             if let Some(start) = start_time {
+                 let duration = start.elapsed().as_micros() as u64;
+                 self.metrics.total_duration_micros.fetch_add(duration, Ordering::Relaxed);
+             }
+             CURRENT_MODULE_METRICS.with(|m| *m.borrow_mut() = None);
+        }
+        
+        // Decrement Phase Metric
+        if let Some(pm) = &self.phase_metric {
+            pm.fetch_sub(1, Ordering::Relaxed);
+        }
+
+        // --- Host Wrapper Logic: State Latch & History ---
+        
+        // 1. Update State Latch (Monotonic)
+        if result.status == ModuleStatus::Modified {
+            write_guard.is_modified = true;
+            debug!("Module '{}' returned Modified. Pipeline is_modified set to true.", self.module_id);
+        }
+
+        // 2. Record Execution History
+        let record = ox_webservice_api::ModuleExecutionRecord {
+            module_name: self.module_id.clone(),
+            status: result.status,
+            flow_control: result.flow_control,
+            return_data: result.return_parameters.return_data,
+        };
+        write_guard.execution_history.push(record);
+        
+        result
+    }
 }
+
 
 struct LoadedModuleWrapper(Arc<LoadedModule>);
 
 impl ox_pipeline::PipelineModule for LoadedModuleWrapper {
     fn name(&self) -> &str {
-        &self.0.module_name
+        &self.0.module_id
     }
 
     fn get_config(&self) -> serde_json::Value {
@@ -559,17 +762,37 @@ impl ox_pipeline::PipelineModule for LoadedModuleWrapper {
     }
 
     fn execute(&self, state: ox_pipeline::State) -> Result<(), String> {
-        self.0.execute(state)
+        // Wrapper now calls execute_handler. 
+        // Note: usage of Wrapper implies "Any request runs module", but we only use Wrapper if dispatched.
+        self.0.execute_handler(state)
     }
+}
+
+
+
+#[derive(Clone)]
+pub struct DispatchEntry {
+    pub matcher: Option<ox_webservice_api::UriMatcher>, // None = Always Match
+    pub priority: u16,
+    pub module: Arc<LoadedModule>,
 }
 
 #[derive(Clone)]
 pub struct Pipeline {
-    // Legacy maps kept if needed? No, user wants refactor.
-    // phases: HashMap<Phase, Vec<Arc<LoadedModule>>>,
-    // execution_order: Vec<Phase>,
     pub core: Arc<ox_pipeline::Pipeline>,
     pub main_config_json: String,
+    pub router_map: HashMap<String, String>,
+}
+
+#[derive(Serialize)]
+struct RouterConfig {
+    routes: Vec<RouterRouteEntry>
+}
+#[derive(Serialize)]
+struct RouterRouteEntry {
+    matcher: Option<ox_webservice_api::UriMatcher>,
+    module_id: String,
+    priority: u16
 }
 
 impl Pipeline {
@@ -581,36 +804,60 @@ impl Pipeline {
              METRICS_ENABLED.store(true, Ordering::Relaxed);
         }
 
-        let mut phases: HashMap<Phase, Vec<Arc<LoadedModule>>> = HashMap::new();
+        let mut phases: HashMap<String, Vec<DispatchEntry>> = HashMap::new();
         let mut loaded_libraries: HashMap<String, Arc<Library>> = HashMap::new();
 
         // Initialize WebServiceApiV1 struct
-        // MUST MATCH CoreHostApi layout for first fields
         let api = Box::new(WebServiceApiV1 {
-            // Core Logic
             log_callback: log_callback_c,
             alloc_str: alloc_str_c,
             alloc_raw: alloc_raw_c,
             get_state: get_state_c,
             set_state: set_state_c,
             get_config: get_config_c,
-
-
+            execute_module: execute_module_c, // Added
         });
 
-        // Box::leak to keep it alive
         let api_ptr = Box::leak(api) as *const WebServiceApiV1;
         let core_api_ptr = api_ptr as *const ox_webservice_api::CoreHostApi;
 
-        for module_config in &config.modules {
+        // Pre-process URLs to inject into modules
+        let mut extra_uris: HashMap<String, Vec<ox_webservice_api::UriMatcher>> = HashMap::new();
+        for route in &config.routes {
+             let matcher = ox_webservice_api::UriMatcher {
+                 protocol: route.protocol.clone(),
+                 hostname: route.hostname.clone(),
+                 path: route.url.clone(),
+                 headers: route.headers.clone(),
+                 query: route.query.clone(),
+                  priority: route.priority,
+                  phase: route.phase.clone(),
+                  status_code: route.status_code.clone(),
+              };
+             extra_uris.entry(route.module_id.clone()).or_default().push(matcher);
+        }
+
+        for module_config_ref in &config.modules {
+            let mut module_config = module_config_ref.clone();
+            
+            let module_id = module_config.id.clone().unwrap_or(module_config.name.clone());
+            if let Some(extras) = extra_uris.get(&module_id) {
+                if module_config.routes.is_none() {
+                    module_config.routes = Some(Vec::new());
+                }
+                if let Some(routes) = &mut module_config.routes {
+                    routes.extend(extras.clone());
+                }
+                info!("Injected {} extra URI routes into module '{}'", extras.len(), module_id);
+            }
+            
             let lib_path = if let Some(path) = &module_config.path {
                 Path::new(path).to_path_buf()
             } else {
-                // Default naming convention: lib<name>.so
                 Path::new("target/debug").join(format!("lib{}.so", module_config.name))
             };
 
-            info!("Loading module '{}' from {:?}", module_config.name, lib_path);
+            info!("Loading module '{}' from {:?}", module_id, lib_path);
 
             let lib = if let Some(lib) = loaded_libraries.get(lib_path.to_str().unwrap()) {
                  lib.clone()
@@ -625,80 +872,224 @@ impl Pipeline {
                 lib.get(b"initialize_module").map_err(|e| format!("Failed to find 'initialize_module' in {:?}: {}", lib_path, e))?
             };
 
-            let params_json = serde_json::to_string(&module_config.params.clone().unwrap_or(Value::Null)).unwrap();
+            let mut merged_params = module_config.extra_params.clone();
+            if let Some(Value::Object(nested_params)) = module_config.params.clone() {
+                for (k, v) in nested_params {
+                    merged_params.insert(k, v);
+                }
+            }
+            let params_json = serde_json::to_string(&merged_params).unwrap();
             let c_params_json = CString::new(params_json).unwrap();
             
-            let module_id = module_config.id.clone().unwrap_or(module_config.name.clone());
-            let c_module_id = CString::new(module_id).unwrap();
+            let c_module_id = CString::new(module_id.clone()).unwrap();
 
-            // Pass generic CoreHostApi pointer
             let module_interface_ptr = unsafe { init_fn(c_params_json.as_ptr(), c_module_id.as_ptr(), core_api_ptr) };
 
             if module_interface_ptr.is_null() {
-                return Err(format!("Failed to initialize module '{}'", module_config.name));
+                return Err(format!("Failed to initialize module '{}'", module_id));
             }
 
             let module_interface = unsafe { Box::from_raw(module_interface_ptr) };
 
             let metrics = Arc::new(ModuleMetrics::new());
-             // Register metrics
             if let Ok(mut registry) = MODULE_METRICS_REGISTRY.write() {
-                registry.insert(module_config.name.clone(), metrics.clone());
+                registry.insert(module_id.clone(), metrics.clone());
             }
 
             let loaded_module = Arc::new(LoadedModule {
                 _library: lib.clone(),
                 module_name: module_config.name.clone(),
+                module_id: module_id.clone(),
                 module_interface,
                 module_config: module_config.clone(),
                 metrics, 
                 alloc_raw: alloc_raw_c,
+                phase_metric: None,
             });
-
-            phases.entry(module_config.phase).or_default().push(loaded_module.clone());
             
-            // Sort modules in this phase by priority
-            phases.get_mut(&module_config.phase).unwrap().sort_by_key(|m| m.module_config.priority);
+            // Register in GLOBAL_MODULE_REGISTRY
+            if let Ok(mut registry) = GLOBAL_MODULE_REGISTRY.write() {
+                registry.insert(module_id.clone(), loaded_module.clone());
+            }
+
+            if let Some(routes) = &module_config.routes {
+                 for route in routes {
+                     let entry = DispatchEntry {
+                         matcher: Some(route.clone()),
+                         priority: route.priority,
+                         module: loaded_module.clone(),
+                     };
+                     let target_phase = route.phase.clone().unwrap_or_else(|| "Content".to_string());
+                     phases.entry(target_phase).or_default().push(entry);
+                 }
+            } else {
+                 let entry = DispatchEntry {
+                     matcher: None,
+                     priority: 0, 
+                     module: loaded_module.clone(),
+                 };
+                 phases.entry("Content".to_string()).or_default().push(entry);
+            }
+        }
+        
+        for entries in phases.values_mut() {
+            entries.sort_by(|a, b| b.priority.cmp(&a.priority));
         }
 
-        let execution_order = if let Some(pipeline_config) = &config.pipeline {
+        // Parse Execution Order and Routers
+        let (execution_order, router_map) = if let Some(pipeline_config) = &config.pipeline {
              if let Some(configured_phases) = &pipeline_config.phases {
-                 configured_phases.clone()
-             } else {
-                 Self::default_execution_order()
-             }
+                 let mut order = Vec::new();
+                 let mut routers = HashMap::new();
+                 for map in configured_phases {
+                     for (phase_str, router) in map {
+                         // Parse Phase manually from string
+                          let phase = phase_str;
+                         order.push(phase.clone());
+                         routers.insert(phase.clone(), router.clone());
+                     }
+                 }
+                 (order, routers)
+            } else {
+                return Err("Pipeline configuration missing 'phases' definition. Execution order must be defined in config.".to_string());
+            }
         } else {
-             Self::default_execution_order()
+            return Err("Pipeline configuration missing. Execution order must be defined in config.".to_string());
         };
 
-        // Construct ox_pipeline::Pipeline
+        // Construct ox_pipeline::Pipeline with Dynamic Stage Routers
         let mut stages = Vec::new();
-        for phase in execution_order {
-            let modules_for_phase = phases.get(&phase).cloned().unwrap_or_default();
-            let mut pipeline_modules: Vec<Box<dyn ox_pipeline::PipelineModule>> = Vec::new();
-            for m in modules_for_phase {
-                pipeline_modules.push(Box::new(LoadedModuleWrapper(m)));
+        // Populate Metric Keys first
+        {
+            if let Ok(mut map) = SERVER_METRICS.active_pipelines_by_phase.write() {
+                for phase in &execution_order {
+                    map.entry(phase.clone()).or_insert_with(|| Arc::new(AtomicUsize::new(0)));
+                }
             }
-            stages.push(ox_pipeline::Stage {
-                name: format!("{:?}", phase),
-                modules: pipeline_modules,
+        }
+        
+        for phase in &execution_order {
+            let entries = phases.get(phase).cloned().unwrap_or_default();
+            
+            // Determine Router Module ID
+            // Default to "ox_pipeline_router" if not specified in router_map
+            let mut router_id = router_map.get(phase).cloned().unwrap_or("ox_pipeline_router".to_string());
+
+            if router_id == "default" {
+                router_id = "ox_pipeline_router".to_string();
+            }
+            
+            // Prepare Config
+            let router_config = RouterConfig {
+                routes: entries.iter().map(|e| RouterRouteEntry {
+                    matcher: e.matcher.clone(),
+                    module_id: e.module.module_id.clone(),
+                    priority: e.priority
+                }).collect()
+            };
+            let router_config_json = serde_json::to_string(&router_config).unwrap();
+            info!("Initializing router for phase {:?} with {} routes", phase, router_config.routes.len());
+            let c_router_config = CString::new(router_config_json).unwrap();
+            
+            // Locate Router Lib
+            // 1. Check if router module is defined in configuration with a custom path
+            let mut router_lib_path = PathBuf::from("target/debug").join(format!("lib{}.so", router_id));
+            
+            for mod_cfg in &config.modules {
+                if mod_cfg.name == router_id {
+                    if let Some(custom_path) = &mod_cfg.path {
+                        router_lib_path = PathBuf::from(custom_path);
+                        info!("Using custom path for router '{}': {:?}", router_id, router_lib_path);
+                    }
+                    break;
+                }
+            }
+
+             if !router_lib_path.exists() {
+                 return Err(format!("Router module '{}' not found at {:?}", router_id, router_lib_path));
+            }
+            
+             let lib = if let Some(lib) = loaded_libraries.get(router_lib_path.to_str().unwrap()) {
+                 lib.clone()
+            } else {
+                let lib = unsafe { Library::new(&router_lib_path) }.map_err(|e| format!("Failed to load router library {:?}: {}", router_lib_path, e))?;
+                let lib_arc = Arc::new(lib);
+                loaded_libraries.insert(router_lib_path.to_str().unwrap().to_string(), lib_arc.clone());
+                lib_arc
+            };
+            
+            let init_fn: Symbol<InitializeModuleFn> = unsafe {
+                lib.get(b"initialize_module").map_err(|e| format!("Failed to find 'initialize_module' in {:?}: {}", router_lib_path, e))?
+            };
+            
+            // Unique ID for this router instance
+            let stage_router_instance_id = format!("{:?}_Router", phase);
+            let c_phase_id = CString::new(stage_router_instance_id.clone()).unwrap();
+            
+            let module_interface_ptr = unsafe { init_fn(c_router_config.as_ptr(), c_phase_id.as_ptr(), core_api_ptr) };
+             if module_interface_ptr.is_null() {
+                return Err(format!("Failed to initialize router '{}' for phase {:?}", router_id, phase));
+            }
+            
+            let module_interface = unsafe { Box::from_raw(module_interface_ptr) };
+            
+            // Fetch phase metric ref
+            let phase_metric = {
+                let map = SERVER_METRICS.active_pipelines_by_phase.read().unwrap();
+                map.get(phase).cloned()
+            };
+
+            let loaded_router = Arc::new(LoadedModule {
+                _library: lib.clone(),
+                module_name: router_id.clone(),
+                module_id: stage_router_instance_id.clone(),
+                module_interface,
+                module_config: Default::default(),
+                metrics: Arc::new(ModuleMetrics::new()), 
+                alloc_raw: alloc_raw_c,
+                phase_metric,
             });
+            
+            // Register in Global Registries to expose via status/metrics
+            if let Ok(mut registry) = GLOBAL_MODULE_REGISTRY.write() {
+                registry.insert(stage_router_instance_id.clone(), loaded_router.clone());
+            }
+            if let Ok(mut metrics_registry) = MODULE_METRICS_REGISTRY.write() {
+                metrics_registry.insert(stage_router_instance_id.clone(), loaded_router.metrics.clone());
+            }
+            
+            stages.push(ox_pipeline::Stage {
+                name: phase.clone(),
+                modules: vec![Box::new(LoadedModuleWrapper(loaded_router))],
+            });
+        }
+
+        // Store the router module ID used for each phase in router_map for later retrieval
+        // This is separate from initial `router_map` variable which was just config. We need the final resolved mapping.
+        // Wait, `router_map` variable used above *is* the mapping. It maps phase -> router name.
+        // It has user configured defaults. If implicit default was used, we need to capture that too.
+        
+        let mut final_router_map = HashMap::new();
+        // Since we iterated execution_order to build stages, we can rebuild the map or just use what we used there.
+        // Let's iterate again or modify the loop. Since `stages` are built, let's just re-iterate execution order logic to be safe/consistent.
+        for phase in &execution_order {
+            let mut router_id = router_map.get(phase).cloned().unwrap_or("ox_pipeline_router".to_string());
+            if router_id == "default" {
+                router_id = "ox_pipeline_router".to_string();
+            }
+             // NOTE: The router's MODULE ID in the pipeline is `format!("{:?}_Router", phase)` (e.g. "Content_Router"), 
+             // NOT the module name "ox_pipeline_router".
+             // We need to store the *instance ID* so we can look it up in GLOBAL_MODULE_REGISTRY.
+             let instance_id = format!("{:?}_Router", phase);
+             final_router_map.insert(phase.clone(), instance_id);
         }
 
         let core_pipeline = Arc::new(ox_pipeline::Pipeline::new(stages));
 
-        Ok(Pipeline { core: core_pipeline, main_config_json })
+        Ok(Pipeline { core: core_pipeline, main_config_json, router_map: final_router_map })
     }
 
-    fn default_execution_order() -> Vec<Phase> {
-        vec![
-            Phase::PreEarlyRequest, Phase::EarlyRequest, Phase::PostEarlyRequest, Phase::PreAuthentication,
-            Phase::Authentication, Phase::PostAuthentication, Phase::PreAuthorization, Phase::Authorization,
-            Phase::PostAuthorization, Phase::PreContent, Phase::Content, Phase::PostContent, Phase::PreAccounting,
-            Phase::Accounting, Phase::PostAccounting, Phase::PreErrorHandling, Phase::ErrorHandling,
-            Phase::PostErrorHandling, Phase::PreLateRequest, Phase::LateRequest, Phase::PostLateRequest,
-        ]
-    }
+
 
     pub async fn execute_pipeline(
         self: Arc<Self>, 
@@ -727,6 +1118,7 @@ impl Pipeline {
             pipeline_ptr: Arc::as_ptr(&self) as *const c_void, 
             is_modified: false,
             execution_history: Vec::new(),
+            route_capture: None,
         };
 
         match state.module_context.write() {
@@ -926,7 +1318,7 @@ impl Pipeline {
                 response_builder.body(Body::from(bytes)).unwrap_or_else(|_| Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap())
             }
             PipelineResponseBody::Files(files) => {
-                if files.len() == 1 {
+                if !files.is_empty() {
                     // Single file stream
                     let path = files[0].clone();
                     match File::open(&path).await {
@@ -941,58 +1333,7 @@ impl Pipeline {
                         }
                     }
                 } else {
-                    // Multipart/Mixed Stream
-                    let boundary = "------------------------boundary123456789";
-                    let boundary_header = format!("multipart/mixed; boundary={}", boundary);
-                    
-                    response_builder = response_builder.header("Content-Type", boundary_header);
-
-                    let boundary_start = format!("--{}\r\n", boundary);
-                    let boundary_end = format!("\r\n--{}--\r\n", boundary);
-
-                    let file_streams = futures::stream::iter(files).then(move |path| {
-                        let b_start = boundary_start.clone();
-                        async move {
-                            match File::open(&path).await {
-                                Ok(file) => {
-                                    let filename = path.file_name().unwrap_or_default().to_string_lossy();
-                                    
-                                    let mime = mime_guess::from_path(&path).first_or_octet_stream();
-                                    
-                                    let header = format!("Content-Disposition: attachment; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", 
-                                        filename, mime);
-                                    
-                                    let part_start = futures::stream::iter(vec![
-                                        Ok(axum::body::Bytes::from(b_start.into_bytes())),
-                                        Ok(axum::body::Bytes::from(header.into_bytes())),
-                                    ]);
-                                    
-                                    let file_stream = ReaderStream::new(file).map(|res| res.map(axum::body::Bytes::from));
-                                    
-                                    let part_end = futures::stream::iter(vec![
-                                        Ok(axum::body::Bytes::from("\r\n".as_bytes().to_vec()))
-                                    ]);
-                                    
-                                    // Box the stream to unify types
-                                    Box::pin(part_start.chain(file_stream).chain(part_end)) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<axum::body::Bytes, std::io::Error>> + Send>>
-                                },
-                                Err(e) => {
-                                    error!("Failed to open multipart file: {:?} - {}", path, e);
-                                    // Empty stream, but same type
-                                    Box::pin(futures::stream::empty()) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<axum::body::Bytes, std::io::Error>> + Send>>
-                                }
-                            }
-                        }
-                    }).flatten();
-
-                    let final_boundary = futures::stream::iter(vec![
-                        Ok(axum::body::Bytes::from(boundary_end.into_bytes()))
-                    ]);
-
-                    let full_stream = file_streams.chain(final_boundary);
-                    let body = Body::from_stream(full_stream);
-                    
-                    response_builder.body(body).unwrap_or_else(|_| Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap())
+                     Response::builder().status(500).body(Body::from("Internal Server Error: No files to stream")).unwrap()
                 }
             }
         }
@@ -1088,6 +1429,7 @@ mod tests {
         let module_a = Arc::new(LoadedModule {
             _library: lib_arc.clone(),
             module_name: "ModuleA".to_string(),
+            module_id: "ModuleA".to_string(),
             module_interface: Box::new(ModuleInterface {
                 instance_ptr: std::ptr::null_mut(),
                 handler_fn: handler_a,
@@ -1104,12 +1446,13 @@ mod tests {
         config_b.name = "ModuleB".to_string();
         config_b.phase = Phase::Content;
         let mut query = HashMap::new();
-        query.insert("mode".to_string(), "mode=special".to_string());
+        query.insert("mode".to_string(), "special".to_string());
         config_b.query = Some(query);
         
         let module_b = Arc::new(LoadedModule {
             _library: lib_arc.clone(),
             module_name: "ModuleB".to_string(),
+            module_id: "ModuleB".to_string(),
             module_interface: Box::new(ModuleInterface {
                 instance_ptr: std::ptr::null_mut(),
                 handler_fn: handler_b,

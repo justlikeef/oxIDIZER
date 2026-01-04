@@ -8,18 +8,10 @@ modules:
   - name: "sample_module_instance" # [Required] logical name of this module instance
     id: "mod_sample_01"            # [Optional] unique identifier
     
-    # --- Execution Phase & Priority ---
-    phase: Content                 # [Optional] Phase to run in (Default: Content)
-                                 # Options: PreAuthentication, Authentication, Content, ErrorHandling, etc.
-    priority: 100                  # [Optional] Order within the phase (Lower = earlier) (Default: 0)
 
-    # --- URI Matching (Generic) ---
-    # Restricts execution to requests matching these rules.
-    # If omitted/null, runs for ALL requests in the phase.
-    uris:
-    - path: "^/sample/.*"         # [Required] Regex for Request Path (alias: url)
-      hostname: "example.com"     # [Optional] Regex for Host header
-      protocol: "https"           # [Optional] Regex for protocol (http/https)
+
+    # routes: (Moved to top level)
+
 
     # --- Module Parameters (Specific) ---
     # Arbitrary JSON/YAML passed to the module's initialization function.
@@ -35,5 +27,19 @@ modules:
     # If omitted, defaults to "target/debug/lib<name>.so" (Linux) or similar.
     path: "/usr/lib/ox_webservice/mod_sample.so"
 
-    # --- Legacy/Optional Fields ---
-    # error_path: "/500" # [Optional] Redirect path on error (module dependent)
+
+
+routes:
+  - url: "^/sample/.*"            # [Required] Regex for Request Path
+    module_id: "mod_sample_01"    # [Required] ID of the module to route to
+    priority: 100                 # [Optional] Routing priority (Lower = earlier)
+    
+    # --- Filtering Examples ---
+    hostname: "example.com"       # [Optional] Regex for Host header
+    protocol: "https"             # [Optional] Exact match for protocol (http/https)
+    headers:
+      User-Agent: ".*Mozilla.*"   # Only match if User-Agent contains Mozilla
+      X-Debug: "true"             # Exact match
+    query:
+      mode: "advanced"            # Match if ?mode=advanced is present
+

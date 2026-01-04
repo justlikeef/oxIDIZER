@@ -1,0 +1,30 @@
+```yaml
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+# Minimal modules and pipeline for server start
+modules:
+  - name: ox_webservice_ping
+    path: "target/debug/libox_webservice_ping.so"
+    phase: Content
+    priority: 100
+    uris: []
+pipeline:
+  phases:
+    - Content: default
+servers:
+- port: 3000
+  bind_address: 0.0.0.0
+  protocol: http
+  hosts:
+  - name: .*
+modules:
+- id: test_module_0
+  name: ox_webservice_ping
+  priority: 500
+  phase: Content
+  routes:
+    - path: "/ping"
+  params:
+     null_param: null
+urls:
+- url: .*
+  module_id: test_module_0

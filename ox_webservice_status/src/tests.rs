@@ -5,6 +5,7 @@ use ox_webservice_api::{
 };
 use ox_webservice_test_utils::{create_mock_api, ModuleLoader};
 
+#[test]
 fn test_status_json_accept() {
     let api = create_mock_api();
     let params_json = "{}";

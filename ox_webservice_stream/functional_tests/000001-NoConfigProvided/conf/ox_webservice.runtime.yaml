@@ -1,0 +1,9 @@
+log4rs_config: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000001-NoConfigProvided/conf/log4rs.yaml"
+mimetypes_config: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000001-NoConfigProvided/conf/mimetypes.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: 3000
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"

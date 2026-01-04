@@ -13,6 +13,9 @@ libfuzzer-sys = "0.4"
 [dependencies.ox_webservice]
 path = ".."
 
+[dependencies.ox_webservice_api]
+path = "../../ox_webservice_api"
+
 [dependencies.libc]
 version = "0.2"
 

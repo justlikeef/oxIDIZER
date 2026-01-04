@@ -1,0 +1,32 @@
+log4rs_config: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/conf/log4rs.yaml"
+mimetypes_config: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/conf/mimetypes.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: 3000
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"
+modules:
+  - id: stream_module
+    name: ox_webservice_stream
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/ox_webservice_stream.runtime.yaml"
+    phase: Content
+    priority: 1000
+  - id: errorhandler
+    name: ox_webservice_errorhandler_jinja2
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_errorhandler_jinja2.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000005-NoHTML/ox_webservice_errorhandler_jinja2.runtime.yaml"
+    phase: Error
+    priority: 999
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+    - Error: default
+routes:
+  - url: ".*"
+    module_id: stream_module
+    phase: Content

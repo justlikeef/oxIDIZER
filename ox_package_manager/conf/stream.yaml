@@ -1,0 +1,12 @@
+content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www"
+default_documents:
+  - document: index.html
+loaded_mimetypes:
+  - url: .*\.html$
+    mimetype: text/html
+  - url: .*\.js$
+    mimetype: application/javascript
+  - url: .*\.css$
+    mimetype: text/css
+mimetypes_file: /var/repos/oxIDIZER/conf/mimetypes.yaml
+on_content_conflict: "skip"

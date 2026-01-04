@@ -10,7 +10,9 @@ lazy_static! {
 
 #[test]
 fn test_ping_basic() {
-    let module = OxModule::new(&API);
+    let api_ptr: *const _ = &*API;
+    let core_api = unsafe { &*(api_ptr as *const ox_webservice_api::CoreHostApi) };
+    let module = OxModule::new(core_api, "test_ping".to_string());
     
     let mut ps = create_stub_pipeline_state();
 

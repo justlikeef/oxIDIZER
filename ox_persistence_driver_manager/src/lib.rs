@@ -25,21 +25,9 @@ pub struct DriverManagerConfig {
     pub driver_root: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ConfiguredDriver {
-    pub id: String,
-    pub name: String,
-    #[serde(default)]
-    pub library_path: String,
-    #[serde(default)]
-    pub state: String,
-}
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DriversList {
-    #[serde(default)]
-    pub drivers: Vec<ConfiguredDriver>,
-}
+use ox_persistence::{ConfiguredDriver, DriversList}; // Import from shared crate
+
 
 pub struct DriverManager {
     config: DriverManagerConfig,
@@ -145,6 +133,7 @@ impl DriverManager {
 pub struct ModuleContext {
     manager: Arc<DriverManager>,
     api: &'static CoreHostApi,
+    module_id: String,
 }
 
 lazy_static! {
@@ -165,7 +154,7 @@ pub unsafe extern "C" fn initialize_module(
     let module_id_str = if !module_id.is_null() {
         unsafe { CStr::from_ptr(module_id).to_string_lossy().to_string() }
     } else {
-        "unknown_module".to_string()
+        "ox_persistence_driver_manager".to_string()
     };
 
     let _ = ox_webservice_api::init_logging(api.log_callback, &module_id_str);
@@ -193,6 +182,7 @@ pub unsafe extern "C" fn initialize_module(
     let ctx = Box::new(ModuleContext {
         manager,
         api,
+        module_id: module_id_str,
     });
 
     let interface = Box::new(ModuleInterface {
@@ -224,11 +214,13 @@ pub unsafe extern "C" fn process_request(
     let pipeline_state = unsafe { &mut *pipeline_state_ptr };
     let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-    let ctx = unsafe { ox_plugin::PluginContext::new(
+    let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
         context.api, 
         pipeline_state_ptr as *mut c_void, 
         arena_ptr
     ) };
+
+
 
     let path = match ctx.get("http.request.path") {
         Some(v) => v.as_str().unwrap_or("/").to_string(),
@@ -239,51 +231,73 @@ pub unsafe extern "C" fn process_request(
         None => "GET".to_string()
     };
 
+    // Helper closure for JSON error responses
+    let send_json_error = |error_msg: String, status_code: i32| {
+        let json_error = serde_json::json!({
+            "error": error_msg
+        });
+        let _ = ctx.set("http.response.body", serde_json::Value::String(json_error.to_string()));
+        let _ = ctx.set("http.response.status", serde_json::json!(status_code));
+        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+    };
 
-    // Handle Toggle Status Request
-    if method == "POST" && path.starts_with("/drivers/") {
-         if let Some(id) = path.strip_prefix("/drivers/") {
-             if !id.is_empty() && id != "available" {
-                 let manager = &context.manager;
-                 match manager.toggle_driver_status(id) {
-                     Ok(new_status) => {
-                         let _ = ctx.set("http.response.body", serde_json::Value::String(format!("{{\"status\": \"{}\"}}", new_status)));
-                         let _ = ctx.set("http.response.status", serde_json::json!(200));
-                         let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-                     },
-                     Err(e) => {
-                         let err = format!("Failed to toggle driver (file: {}): {}", manager.config.drivers_file, e);
-                         let log_msg = CString::new(err.clone()).unwrap();
-                         let module_name = CString::new("ox_persistence_driver_manager").unwrap();
-                         unsafe { (context.api.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+    // Helper closure for JSON success responses
+    let send_json_success = |body: String| {
+        let _ = ctx.set("http.response.body", serde_json::Value::String(body));
+        let _ = ctx.set("http.response.status", serde_json::json!(200));
+        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+    };
 
-                         let _ = ctx.set("http.response.body", serde_json::Value::String(err));
-                         let _ = ctx.set("http.response.status", serde_json::json!(500));
+    // --- Route Dispatching ---
+
+    // 1. POST (Toggle) - matches any path ending in a driver ID, e.g., /drivers/driver_id
+    // We treat the *last segment* of the path as the ID.
+    if method == "POST" {
+        // Extract ID from the last path segment (ignoring trailing slash)
+        let trimmed_path = path.trim_end_matches('/');
+        let id = trimmed_path.split('/').last().unwrap_or("");
+        
+        if id.is_empty() || id == "available" { // "available" is reserved for GET
+             send_json_error("Invalid driver ID provided.".to_string(), 400);
+        } else {
+             let manager = &context.manager;
+             match manager.toggle_driver_status(id) {
+                 Ok(new_status) => {
+                     let response = serde_json::json!({
+                         "status": new_status,
+                         "id": id
+                     });
+                     send_json_success(response.to_string());
+                 },
+                 Err(e) => {
+                     let err_msg = format!("Failed to toggle driver '{}': {}", id, e);
+                     // Log error internally
+                     if let Ok(c_msg) = CString::new(err_msg.clone()) {
+                          let module_name = CString::new(context.module_id.clone()).unwrap_or(CString::new("ox_persistence_driver_manager").unwrap());
+                          unsafe { (context.api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_msg.as_ptr()); }
                      }
+                     // Return JSON error to user
+                     send_json_error(err_msg, 500);
                  }
-                 return HandlerResult {
-                    status: ModuleStatus::Modified,
-                    flow_control: FlowControl::Continue,
-                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-                };
              }
-         }
+        }
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue, // Continue as requested by user
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
     }
 
-    if path == "/drivers/available" && method == "GET" {
+    // 2. GET /available - List available driver files from disk
+    if method == "GET" && path.ends_with("/available") { // strict suffix match
         let manager = &context.manager;
         match manager.list_available_driver_files() {
             Ok(files) => {
                 let json = serde_json::to_string(&files).unwrap_or_default();
-                let _ = ctx.set("http.response.body", serde_json::Value::String(json));
-                let _ = ctx.set("http.response.status", serde_json::json!(200));
-                
-                let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+                send_json_success(json);
             },
             Err(e) => {
-                let err = format!("Failed to list available drivers: {}", e);
-                let _ = ctx.set("http.response.body", serde_json::Value::String(err));
-                let _ = ctx.set("http.response.status", serde_json::json!(500));
+                send_json_error(format!("Failed to list available drivers: {}", e), 500);
             }
         }
         return HandlerResult {
@@ -292,34 +306,31 @@ pub unsafe extern "C" fn process_request(
             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
         };
     }
-    
-    // Default: List drivers (JSON)
-    if path == "/drivers" && method == "GET" {
-         let manager = &context.manager; 
-         
+
+    // 3. GET (Default) - List configured drivers
+    if method == "GET" {
+         let manager = &context.manager;
          match manager.load_configured_drivers() {
              Ok(list) => {
                 let json = serde_json::to_string(&list).unwrap_or_default();
-                let _ = ctx.set("http.response.body", serde_json::Value::String(json));
-                let _ = ctx.set("http.response.status", serde_json::json!(200));
-                let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+                send_json_success(json);
              },
              Err(e) => {
-                let err = format!("Failed to load drivers: {}", e);
-                let _ = ctx.set("http.response.body", serde_json::Value::String(err));
-                let _ = ctx.set("http.response.status", serde_json::json!(500));
+                send_json_error(format!("Failed to load drivers config: {}", e), 500);
              }
          }
          return HandlerResult {
             status: ModuleStatus::Modified,
             flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-        };
+         };
     }
 
-    // Default Fallback
+    // Capture Unhandled Methods (e.g., PUT, DELETE) if routed here
+    send_json_error(format!("Method {} not allowed.", method), 405);
+    
     HandlerResult {
-        status: ModuleStatus::Unmodified,
+        status: ModuleStatus::Modified,
         flow_control: FlowControl::Continue,
         return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
     }

@@ -1,7 +1,7 @@
 use ox_webservice_api::{
     WebServiceApiV1, ModuleInterface, PipelineState, HandlerResult,
     LogCallback, AllocFn, AllocStrFn, LogLevel,
-    ModuleStatus, FlowControl, ReturnParameters, Phase,
+    ModuleStatus, FlowControl, ReturnParameters,
 };
 use ox_persistence::{OxBuffer, DriverMetadata};
 use libc::{c_char, c_void, c_int, size_t};
@@ -123,27 +123,75 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
     }
 
     if request_path == "/drivers/reload" && method == "POST" {
-        // Reload / Load drivers logic
-        // For now, hardcode loading of the flatfile driver from target/debug
+        use ox_fileproc::process_file;
+        use ox_persistence::DriversList;
+
         let mut manager = DRIVER_MANAGER.lock().unwrap();
-        // Assuming running from root
-        let lib_path = "target/debug/libox_persistence_datastore_flatfile.so"; 
-        match LoadedDriver::load(lib_path) {
-            Ok(driver) => {
-                let name = driver.metadata.name.clone();
-                manager.drivers.insert(name.clone(), driver);
-                let msg = format!("Loaded driver: {}", name);
-                log(log_callback, LogLevel::Info, &msg);
-                pipeline_state.status_code = 200;
-                pipeline_state.response_body = msg.into_bytes();
-            },
-            Err(e) => {
-                let msg = format!("Failed to load driver: {}", e);
-                log(log_callback, LogLevel::Error, &msg);
-                pipeline_state.status_code = 500;
-                pipeline_state.response_body = msg.into_bytes();
-            }
+        let drivers_path = Path::new("conf/drivers.yaml"); // Assuming running from root
+        
+        let mut loaded_count = 0;
+        let mut errors = Vec::new();
+
+        if drivers_path.exists() {
+             match process_file(drivers_path, 5) {
+                 Ok(val) => {
+                     // Deserialize
+                     if let Ok(list) = serde_json::from_value::<DriversList>(val) {
+                         for driver_conf in list.drivers {
+                             if driver_conf.state == "enabled" {
+                                 // Determine path: Explicit library_path OR inferred from name
+                                 let dir_path = if !driver_conf.library_path.is_empty() {
+                                     Path::new(&driver_conf.library_path).to_path_buf()
+                                 } else {
+                                     Path::new("target/debug").to_path_buf()
+                                 };
+
+                                 #[cfg(target_os = "windows")]
+                                 let filename = format!("{}.dll", driver_conf.name);
+                                 #[cfg(target_os = "macos")]
+                                 let filename = format!("lib{}.dylib", driver_conf.name);
+                                 #[cfg(target_os = "linux")]
+                                 let filename = format!("lib{}.so", driver_conf.name);
+                                 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+                                 let filename = format!("lib{}.so", driver_conf.name); // Default fallback
+
+                                 let lib_path = dir_path.join(filename);
+                                 let lib_path_str = lib_path.to_string_lossy().to_string();
+
+                                 match LoadedDriver::load(&lib_path_str) {
+                                     Ok(loaded) => {
+                                         let name = loaded.metadata.name.clone();
+                                         manager.drivers.insert(name.clone(), loaded);
+                                         log(log_callback, LogLevel::Info, &format!("Loaded driver: {}", name));
+                                         loaded_count += 1;
+                                     },
+                                     Err(e) => {
+                                         let msg = format!("Failed to load driver '{}' from '{}': {}", driver_conf.name, lib_path_str, e);
+                                         log(log_callback, LogLevel::Error, &msg);
+                                         errors.push(msg);
+                                     }
+                                 }
+                             }
+                         }
+                     } else {
+                         errors.push("Failed to deserialize drivers list".to_string());
+                     }
+                 },
+                 Err(e) => errors.push(format!("Failed to process drivers config file: {}", e))
+             }
+        } else {
+            errors.push("drivers.yaml not found".to_string());
         }
+
+        let msg = if errors.is_empty() {
+            format!("Reloaded {} drivers successfully.", loaded_count)
+        } else {
+             format!("Reloaded {} drivers. Errors: {:?}", loaded_count, errors)
+        };
+        
+        pipeline_state.status_code = if errors.is_empty() { 200 } else { 500 };
+        pipeline_state.response_body = msg.into_bytes();
+
         return HandlerResult {
             status: ModuleStatus::Modified,
             flow_control: FlowControl::Continue,

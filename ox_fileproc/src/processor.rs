@@ -4,11 +4,13 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use log::{warn, error};
 
 
 
 const INCLUDE_KEY: &str = "include";
 const MERGE_KEY: &str = "merge";
+const MERGE_RECURSIVE_KEY: &str = "merge_recursive";
 const SUBSTITUTIONS_KEY: &str = "substitutions";
 
 pub fn process_file(path: &Path, max_depth: usize) -> Result<Value> {
@@ -81,9 +83,7 @@ fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visi
             match sub_val {
                 Value::String(ref s) => {
                     // Load substitutions from file
-                    // Load substitutions from file
                     let sub_path = path.parent().unwrap_or(Path::new(".")).join(s);
-                    // Pass current_depth + 1 (or same? subs are "part of" current file logic? Let's say +1)
                     let sub_vars = load_substitutions_from_file(&sub_path, visited, current_depth + 1, max_depth)?;
                     current_vars.extend(sub_vars);
                 }
@@ -101,12 +101,8 @@ fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visi
     }
 
     // 2. Perform Variable Substitution on the entire structure
-    // We do this BEFORE processing includes, or AFTER?
-    // If we do it before, then the included path can be dynamic! ${ENV}.yaml
-    // That sounds powerful. Let's do it before.
     substitute_value(&mut value, &current_vars);
 
-    // 3. Process Includes
     // 3. Process Includes
     process_includes(&mut value, path, &current_vars, visited, current_depth, max_depth)
         .with_context(|| format!("Error processing includes in file {:?}", path))?;
@@ -117,8 +113,6 @@ fn load_recursive_inner(path: &Path, parent_vars: &HashMap<String, String>, visi
 fn load_substitutions_from_file(path: &Path, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<HashMap<String, String>> {
     // We pass visited to prevent cycles in substitution files too
     let val = load_recursive(path, &HashMap::new(), visited, current_depth, max_depth)?; 
-    // Let's assume vars file shouldn't depend on parent vars to avoid cycles or complexity for now, or just allow it.
-    // Recursive load returns Value. Expect Object.
     
     let mut vars = HashMap::new();
     if let Value::Object(map) = val {
@@ -157,12 +151,24 @@ fn substitute_value(value: &mut Value, vars: &HashMap<String, String>) {
 fn process_includes(value: &mut Value, base_path: &Path, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<()> {
     match value {
         Value::Object(map) => {
-            // Check for include OR merge key
-            let include_val = map.remove(INCLUDE_KEY).or_else(|| map.remove(MERGE_KEY));
+            // Check for include OR merge OR mergerecursive key
+            // Start with mergerecursive (longest specific), then merge/include
             
-            if let Some(path_val) = include_val {
+            let mut include_target = None;
+            let mut is_recursive = false;
+            
+            if let Some(val) = map.remove(MERGE_RECURSIVE_KEY) {
+                include_target = Some(val);
+                is_recursive = true;
+            } else if let Some(val) = map.remove(INCLUDE_KEY) {
+                include_target = Some(val);
+            } else if let Some(val) = map.remove(MERGE_KEY) {
+                include_target = Some(val);
+            }
+            
+            if let Some(path_val) = include_target {
                 if let Value::String(path_str) = path_val {
-                    let mut included_val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth)?;
+                    let mut included_val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth, is_recursive)?;
                     
                     // Handle scalar replacement if needed
                     if !included_val.is_object() && included_val != Value::Null {
@@ -181,7 +187,8 @@ fn process_includes(value: &mut Value, base_path: &Path, vars: &HashMap<String, 
                     let mut combined_base = Value::Null;
                     for p in paths {
                         if let Value::String(path_str) = p {
-                            let val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth)?;
+                            // Recursion inheritance? If mergerecursive is array, apply recursive to all
+                            let val = resolve_include(base_path, &path_str, vars, visited, current_depth, max_depth, is_recursive)?;
                             if combined_base == Value::Null {
                                 combined_base = val;
                             } else {
@@ -220,35 +227,64 @@ fn process_includes(value: &mut Value, base_path: &Path, vars: &HashMap<String, 
     Ok(())
 }
 
-fn resolve_include(base_path: &Path, path_str: &str, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<Value> {
+fn resolve_include(base_path: &Path, path_str: &str, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize, recursive: bool) -> Result<Value> {
     let include_path = base_path.parent().unwrap_or(Path::new(".")).join(path_str);
     
     if include_path.is_dir() {
         // Directory merging logic
-        let mut entries = fs::read_dir(&include_path)
-            .with_context(|| format!("Failed to read directory: {:?}", include_path))?
-            .map(|res| res.map(|e| e.path()))
-            .collect::<Result<Vec<_>, std::io::Error>>()?;
+        // Use recursive walker if recursive is true
         
-        entries.sort(); // Deterministic order
+        let mut files_to_process = Vec::new();
+        
+        if recursive {
+            let mut stack = vec![include_path.clone()];
+            while let Some(path) = stack.pop() {
+                 if path.is_file() {
+                     files_to_process.push(path);
+                 } else if path.is_dir() {
+                     let entries = fs::read_dir(&path)
+                        .with_context(|| format!("Failed to read directory: {:?}", path))?;
+                     for entry in entries.flatten() {
+                         stack.push(entry.path());
+                     }
+                 }
+            }
+        } else {
+            // Flat (only immediate keys)
+             let entries = fs::read_dir(&include_path)
+                .with_context(|| format!("Failed to read directory: {:?}", include_path))?;
+             for entry in entries.flatten() {
+                 let p = entry.path();
+                 if p.is_file() {
+                     files_to_process.push(p);
+                 }
+             }
+        }
+
+        files_to_process.sort(); // Deterministic order
 
         let mut combined_base = Value::Null;
 
-        for entry in entries {
-                if entry.is_file() {
-                    // Check extension
-                    let ext = entry.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-                    match ext.as_str() {
-                        "json" | "yaml" | "yml" | "toml" | "xml" | "json5" | "kdl" => {
-                            let val = load_recursive(&entry, vars, visited, current_depth + 1, max_depth)?;
-                            if combined_base == Value::Null {
-                                combined_base = val;
-                            } else {
-                                smart_merge_values(&mut combined_base, val);
+        for entry in files_to_process {
+                // Check extension
+                let ext = entry.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                match ext.as_str() {
+                    "json" | "yaml" | "yml" | "toml" | "xml" | "json5" | "kdl" => {
+                        match load_recursive(&entry, vars, visited, current_depth + 1, max_depth) {
+                            Ok(val) => {
+                                if combined_base == Value::Null {
+                                    combined_base = val;
+                                } else {
+                                    smart_merge_values(&mut combined_base, val);
+                                }
                             }
-                        },
-                        _ => {} // Skip unknown
-                    }
+                            Err(e) => {
+                                error!("Failed to process included file {:?}: {}. Skipping.", entry, e);
+                                // Continue to next file
+                            }
+                        }
+                    },
+                    _ => {} // Skip unknown
                 }
         }
         
@@ -262,12 +298,6 @@ fn resolve_include(base_path: &Path, path_str: &str, vars: &HashMap<String, Stri
 
 fn merge_overlay_into_base(overlay_map: &mut Map<String, Value>, base_val: &mut Value, base_path: &Path, vars: &HashMap<String, String>, visited: &mut Vec<PathBuf>, current_depth: usize, max_depth: usize) -> Result<()> {
     if let Value::Object(base_map) = base_val {
-        // included_val is BASE.
-        // Process Overlay (overlay_map is already the map from the Mutable Value passed to process_includes)
-        // We need to detach it to process its children? 
-        // Logic from before:
-        // let mut overlay_val = Value::Object(std::mem::take(map));
-        // process_includes(&mut overlay_val, ...);
         
         let mut overlay_val = Value::Object(std::mem::take(overlay_map));
         process_includes(&mut overlay_val, base_path, vars, visited, current_depth, max_depth)?;
@@ -285,17 +315,7 @@ fn merge_overlay_into_base(overlay_map: &mut Map<String, Value>, base_val: &mut 
                 *overlay_map = overlay_map_processed;
             }
     } else {
-        // Base is Scalar/Array. Overlay is Object (since we are in match Value::Object).
-        // If Overlay is empty (just the include line), we replace it with Base.
         if overlay_map.is_empty() {
-             // We can't assign *value = base_val here easily because we have &mut Map, not &mut Value.
-             // We need access to the parent Value to replace it entirely if it changes type?
-             // Actually process_includes takes &mut Value.
-             // Wait, merge_overlay_into_base takes &mut Map.
-             // This refactor is slightly tricky because the original code had access to `value` (Value enum).
-             // But here we are inside `Value::Object(map)`.
-             // We can't change `Value::Object` to `Value::String` from inside `map`.
-             // So this helper needs to operate on `value` or return a Value?
              return Err(anyhow!("Included content is not an object, cannot merge into object with existing keys. (Scalar replacement not supported in this helper flow)"));
         } else {
              return Err(anyhow!("Included content is not an object, cannot merge into object with existing keys"));

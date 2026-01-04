@@ -26,7 +26,9 @@ fn test_ssti_resilience() {
         on_content_conflict: Some(crate::ContentConflictAction::overwrite),
     };
 
-    let module = OxModule::new(config, &API).unwrap();
+    let api_ptr: *const _ = &*API;
+    let core_api = unsafe { &*(api_ptr as *const ox_webservice_api::CoreHostApi) };
+    let module = OxModule::new(config, core_api, "test_template".to_string()).unwrap();
     let mut ps = create_stub_pipeline_state();
 
     // Placeholder assert

@@ -1,0 +1,4 @@
+content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999996-LoggingNotFoundTest"
+mimetypes_file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999996-LoggingNotFoundTest/conf/mimetypes.yaml"
+default_documents:
+  - document: "index.html"

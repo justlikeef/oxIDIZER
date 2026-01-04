@@ -28,16 +28,10 @@ notify = "6.0"
 
 ox_persistence = { path = "../ox_persistence" }
 ox_persistence_api = { path = "../ox_persistence/ox_persistence_api" }
-ox_persistence_driver_file_delimited = { path = "../ox_persistence/drivers/file/ox_persistence_driver_file_delimited" }
-ox_persistence_driver_file_json = { path = "../ox_persistence/drivers/file/ox_persistence_driver_file_json" }
-ox_persistence_driver_db_mssql = { path = "../ox_persistence/drivers/db/ox_persistence_driver_db_mssql" }
-ox_persistence_driver_db_mysql = { path = "../ox_persistence/drivers/db/ox_persistence_driver_db_mysql" }
-ox_persistence_driver_db_postgres = { path = "../ox_persistence/drivers/db/ox_persistence_driver_db_postgres" }
-ox_persistence_driver_file_xml = { path = "../ox_persistence/drivers/file/ox_persistence_driver_file_xml" }
-ox_persistence_driver_file_yaml = { path = "../ox_persistence/drivers/file/ox_persistence_driver_file_yaml" }
 ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 
 ox_webservice_api = { path = "../ox_webservice_api" }
+ox_fileproc = { path = "../ox_fileproc" }
 bumpalo = "3.19.0"
 

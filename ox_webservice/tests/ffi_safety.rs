@@ -8,8 +8,8 @@ use ox_webservice::{
         get_state_c,
         set_state_c,
     },
-    PipelineState,
 };
+use ox_webservice_api::PipelineState;
 use bumpalo::Bump;
 use axum::http::HeaderMap;
 
@@ -32,6 +32,7 @@ fn create_dummy_state() -> (Box<PipelineState>, Box<Bump>) {
         pipeline_ptr: ptr::null(),
         is_modified: false,
         execution_history: Vec::new(),
+        route_capture: None,
     });
     (state, arena)
 }

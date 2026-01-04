@@ -275,3 +275,19 @@ impl Persistent for GenericDataObject {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConfiguredDriver {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub library_path: String,
+    #[serde(default)]
+    pub state: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DriversList {
+    #[serde(default)]
+    pub drivers: Vec<ConfiguredDriver>,
+}

@@ -1,0 +1,25 @@
+log4rs_config: /var/repos/oxIDIZER/conf/log4rs.yaml
+modules:
+- headers:
+    Accept: application/json
+  id: status_module
+  name: ox_webservice_status
+  params:
+    config_file: 12345
+  phase: Content
+  priority: 50
+  routes:
+  - path: /status.*$
+pipeline:
+  phases:
+  - Content: ox_pipeline_router
+routes:
+- module_id: status_module
+  phase: Content
+  url: .*
+servers:
+- bind_address: 0.0.0.0
+  hosts:
+  - name: .*
+  port: 3000
+  protocol: http

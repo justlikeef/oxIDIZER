@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Status | oxIDIZER</title>
     <link rel="icon" type="image/png" href="/images/favicon.png">
-    <link rel="stylesheet" href="css/status.css">
+    <link rel="stylesheet" href="/status/css/status.css">
 </head>
 
 <body>
@@ -17,9 +17,20 @@
                     <img src="/images/logo.png" alt="oxIDIZER" class="logo">
                     <h1>System Status</h1>
                 </div>
-                <span class="status-badge" id="status-badge">ONLINE</span>
+                <div class="header-status-area">
+                    <span class="status-badge" id="status-badge">ONLINE</span>
+                    <div class="controls-area">
+                        <label class="control-item">
+                            <input type="checkbox" id="auto-refresh-toggle" checked>
+                            Auto Refresh
+                        </label>
+                        <label class="control-item">
+                            Refresh (s):
+                            <input type="number" id="refresh-interval" min="5" max="300" value="30">
+                        </label>
+                    </div>
+                </div>
             </div>
-            <p class="subtitle" id="uptime-display">Loading uptime...</p>
         </header>
 
         <div class="grid" id="main-grid">
@@ -58,7 +69,7 @@
         </div>
     </div>
 
-    <script src="js/status.js"></script>
+    <script src="/status/js/status.js"></script>
 </body>
 
 </html>

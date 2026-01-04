@@ -1,1 +1,29 @@
-../available/default-servers.yaml
+servers:
+  # ----------------------------------------------------------------------------
+  # HTTP Server Example
+  # ----------------------------------------------------------------------------
+  - id: "default_http"        # Unique identifier for this server instance
+    protocol: "http"          # Protocol: "http" or "https"
+    port: 3000                # TCP Port to listen on
+    bind_address: "0.0.0.0"   # Network interface to bind to (0.0.0.0 = all interfaces)
+    hosts:
+      - name: "localhost"     # Hostname matching (e.g., Host header)
+
+  # ----------------------------------------------------------------------------
+  # HTTPS Server Example
+  # ----------------------------------------------------------------------------
+  # Note on Host/SNI Matching:
+  # If a client connects with a Hostname/SNI that does not match any configured host,
+  # the server will serve the certificate of the FIRST configured host in the list as a fallback.
+  # - id: "default_https"
+  #   protocol: "https"
+  #   port: 3002
+  #   bind_address: "0.0.0.0"
+  #   hosts:
+  #     - name:  "localhost_ssl"
+  #       # TLS Headers for HTTPS
+  #       tls_cert_path: "conf/certs/cert.pem" # Path to certificate file
+  #       tls_key_path: "conf/certs/key.pem"   # Path to private key file
+  #     - name:  "example-ssl-1.com"
+  #       tls_cert_path: "conf/certs/cert1.pem"
+  #       tls_key_path: "conf/certs/key1.pem"

@@ -1,6 +1,5 @@
-DEBUG: Config loaded from "/var/repos/oxIDIZER/ox_webservice/functional_tests/000004-ConfigSchemaInvalid/ox_webservice.yaml". Value is array? false, object? true
-Content Preview: {
-  "log4rs_config": "conf/log4rs.yaml",
-  "modules": []
-}
-Failed to load configuration: Error deserializing configuration: In file "/var/repos/oxIDIZER/ox_webservice/functional_tests/000004-ConfigSchemaInvalid/ox_webservice.yaml": missing field `servers`
+2026-01-04T16:05:10.156356770-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-04T16:05:10.156511910-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/000004-ConfigSchemaInvalid/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"conf/log4rs.yaml","servers":[],"modules":[],"pipeline":null,"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-04T16:05:10.156550957-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-04T16:05:10.156583922-05:00 ERROR ox_webservice - Failed to initialize pipeline: Pipeline configuration missing. Execution order must be defined in config.

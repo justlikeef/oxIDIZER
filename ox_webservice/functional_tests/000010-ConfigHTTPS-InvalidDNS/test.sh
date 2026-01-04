@@ -17,6 +17,10 @@ TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 # Use provided LOGGING_LEVEL or the default
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -32,23 +36,41 @@ fi
 if [ "$MODE" == "isolated" ]; then
   # Define paths for the new parameters
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
-  TEST_WORKSPACE_DIR=$(readlink -f "$TEST_DIR/../../../")
+  TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
 
+  # Create certs directory
+  mkdir -p "$TEST_DIR/conf/certs"
+  
+  # Generate self-signed certificate
+  openssl req -x509 -newkey rsa:4096 -keyout "$TEST_DIR/conf/certs/key.pem" -out "$TEST_DIR/conf/certs/cert.pem" -days 365 -nodes -subj "/CN=localhost" 2>/dev/null
+
+  # Update config with absolute paths to certs
+  # We use a temp config to avoid modifying the source constantly if we wanted to keep it clean, 
+  # but for functional tests modifying the runtime config is fine or we create a runtime copy.
+  # Let's create a runtime copy.
+  cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  sed -i "s|/var/repos/oxIDIZER/conf/certs/cert.pem|$TEST_DIR/conf/certs/cert.pem|g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  sed -i "s|/var/repos/oxIDIZER/conf/certs/key.pem|$TEST_DIR/conf/certs/key.pem|g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+
+  # Create runtime config with dynamic port
+  cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  sed -i "s/port: 3000/port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  sed -i "s/dependency_port: 3000/dependency_port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml" # Just in case
   # Start the server
   "$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
     "debug" \
-    "$TEST_DIR/ox_webservice.yaml" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR"
 
   # Allow the server to start
-  sleep 2
+  sleep 3
 
   # Curl the root page of the server using the default certificate WITH validation enabled.
   # We expect this to FAIL because of DNS/Certificate mismatch.
-  curl -i -s https://localhost:3443/ > "$TEST_DIR/curl_output.txt" 2>&1
+  curl --connect-timeout 30 --max-time 60 -i -s https://localhost:$BASE_PORT/ > "$TEST_DIR/curl_output.txt" 2>&1
   CURL_EXIT_CODE=$?
 
   # Stop the server

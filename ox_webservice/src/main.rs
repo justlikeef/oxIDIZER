@@ -11,7 +11,10 @@ use rustls::server::{ClientHello, ResolvesServerCert, ResolvesServerCertUsingSni
 use rustls::sign::CertifiedKey;
 use rustls::server::ServerConfig as RustlsServerConfig;
 use axum_server::tls_rustls::RustlsConfig;
-use log::{info, error};
+use log::{info, error, LevelFilter};
+use log4rs::config::{Appender, Config as LogConfig, Root};
+use log4rs::append::console::ConsoleAppender;
+use log4rs::encode::pattern::PatternEncoder;
 
 use axum::{
     body::Body,
@@ -70,6 +73,17 @@ async fn main() {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let cli = Cli::parse();
 
+    // 1. Initialize Default Logger (Stderr) to catch early errors
+    let stderr = ConsoleAppender::builder()
+        .target(log4rs::append::console::Target::Stderr)
+        .encoder(Box::new(PatternEncoder::new("{d} {l} - {m}{n}")))
+        .build();
+    let config = LogConfig::builder()
+        .appender(Appender::builder().build("stderr", Box::new(stderr)))
+        .build(Root::builder().appender("stderr").build(LevelFilter::Info))
+        .unwrap();
+    let log_handle = log4rs::init_config(config).unwrap();
+
     let server_config_path = Path::new(&cli.config);
     
     // Initial config load
@@ -81,17 +95,20 @@ async fn main() {
         }
     };
 
-    // Initialize logging
-    match log4rs::init_file(&server_config.log4rs_config, Default::default()) {
-        Ok(_) => {
-            info!("log4rs initialized successfully.");
+    // Initialize logging from file (Reconfigure)
+    match log4rs::config::load_config_file(&server_config.log4rs_config, Default::default()) {
+        Ok(config) => {
+            log_handle.set_config(config);
+            info!("log4rs initialized successfully from file.");
             // NOW we can log the processed config content to the file
             use log::debug;
             debug!("Fully processed config for {:?}:\n{}", server_config_path, config_json);
         },
         Err(e) => {
-            eprintln!("Failed to initialize log4rs from {}: {}. Exiting.", server_config.log4rs_config, e);
-            std::process::exit(1);
+            eprintln!("Failed to load log4rs config from {}: {}. Continuing with default logger.", server_config.log4rs_config, e);
+            // Optionally exit? The original code exited.
+            // If log config fails, maybe we should crash?
+             std::process::exit(1);
         }
     }
 
@@ -118,7 +135,7 @@ async fn main() {
 }
 
 async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config_json: String) {
-    let pipeline = match Pipeline::new(&initial_config, config_json) {
+    let pipeline: Arc<Pipeline> = match Pipeline::new(&initial_config, config_json) {
         Ok(p) => Arc::new(p),
         Err(e) => {
             error!("Failed to initialize pipeline: {}", e);
@@ -190,7 +207,8 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
             async move {
                  pipeline_arc.execute_request(connect_info, req, protocol_clone).await
             }
-        }));
+        }))
+            .layer(tower_http::catch_panic::CatchPanicLayer::new());
 
 
         let addr: SocketAddr = format!("{}:{}", bind_address, port).parse().expect("Invalid bind address");

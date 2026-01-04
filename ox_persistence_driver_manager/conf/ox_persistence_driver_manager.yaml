@@ -1,0 +1,33 @@
+modules:
+  - id: "driver_manager"
+    name: "ox_persistence_driver_manager"
+    phase: Content
+    params:
+      drivers_file: "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+  - id: "driver_manager_stream"
+    name: "ox_webservice_stream"
+    phase: Content
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"
+  - id: "driver_manager_stream_wasm"
+    name: "ox_webservice_stream"
+    phase: Content
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"
+routes:
+  - url: "^/drivers/(.*)?$"
+    headers:
+      Accept: "application/json"
+    module_id: "driver_manager"
+    priority: 499
+  - url: "^/drivers/(.*)?$"
+    query:
+      format: "json"
+    module_id: "driver_manager"
+    priority: 499
+  - url: "^/drivers/wasm/(.*)?$"
+    module_id: "driver_manager_stream_wasm"
+    priority: 499
+  - url: "^/drivers/(.*)?$"
+    module_id: "driver_manager_stream"
+    priority: 500

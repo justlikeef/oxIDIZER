@@ -1,7 +1,7 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
     AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
-    ModuleStatus, FlowControl, ReturnParameters, Phase,
+    ModuleStatus, FlowControl, ReturnParameters,
     CoreHostApi, WebServiceApiV1
 };
 // Use ox_plugin directly? ox_webservice_api re-exports it.
@@ -20,16 +20,18 @@ struct PingResponse {
 
 pub struct OxModule {
     api: &'static CoreHostApi,
+    module_id: String,
 }
 
 impl OxModule {
-    pub fn new(api: &'static CoreHostApi) -> Self {
-        Self { api }
+    pub fn new(api: &'static CoreHostApi, module_id: String) -> Self {
+        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
+        Self { api, module_id }
     }
 
     fn log(&self, level: LogLevel, message: String) {
         if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
+            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
             unsafe {
                 (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
             }
@@ -41,9 +43,9 @@ impl OxModule {
             self.log(LogLevel::Error, "Pipeline state is null".to_string());
              return HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
              };
         }
@@ -53,7 +55,7 @@ impl OxModule {
 
         // Initialize PluginContext (Generic)
         // state_ptr is treated as *mut c_void by PluginContext/CoreHostApi
-        let ctx = unsafe { ox_plugin::PluginContext::new(
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
             self.api, 
             pipeline_state_ptr as *mut c_void, 
             arena_ptr
@@ -62,8 +64,8 @@ impl OxModule {
         // Determine format
         let mut return_json = false;
 
-        // Check Accept header
-        if let Some(accept) = ctx.get("http.request.header.Accept") {
+        // Check accept header
+        if let Some(accept) = ctx.get("http.request.header.accept") {
             if let Some(s) = accept.as_str() {
                 if s.contains("application/json") {
                     return_json = true;
@@ -128,7 +130,7 @@ impl OxModule {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     _module_params_json_ptr: *const c_char,
-    _module_id: *const c_char,
+    module_id_ptr: *const c_char,
     api_ptr: *const CoreHostApi, // Generic API
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
@@ -136,15 +138,21 @@ pub unsafe extern "C" fn initialize_module(
     }
     let api_instance = unsafe { &*api_ptr };
     
+    let module_id = if !module_id_ptr.is_null() {
+        CStr::from_ptr(module_id_ptr).to_string_lossy().to_string()
+    } else {
+        MODULE_NAME.to_string()
+    };
+    let c_module_id = CString::new(module_id.clone()).unwrap();
+
     // Log initialization
     if let Ok(c_message) = CString::new("ox_webservice_ping initialized") {
-        let module_name = CString::new(MODULE_NAME).unwrap();
-        unsafe { (api_instance.log_callback)(LogLevel::Info, module_name.as_ptr(), c_message.as_ptr()); }
+        unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), c_message.as_ptr()); }
     }
 
     let result = panic::catch_unwind(|| {
         // Safe as CoreHostApi has static lifetime for lifetime of module
-        let module = OxModule::new(std::mem::transmute(api_instance));
+        let module = OxModule::new(std::mem::transmute(api_instance), module_id);
         let instance_ptr = Box::into_raw(Box::new(module)) as *mut c_void;
 
         let module_interface = Box::new(ModuleInterface {
@@ -173,9 +181,9 @@ unsafe extern "C" fn process_request_c(
     if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::JumpTo,
+            flow_control: FlowControl::Halt,
             return_parameters: ReturnParameters {
-                return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                return_data: std::ptr::null_mut(),
             },
         };
     }
@@ -189,13 +197,16 @@ unsafe extern "C" fn process_request_c(
         Ok(handler_result) => handler_result,
         Err(e) => {
              let log_msg = CString::new(format!("Panic in ox_webservice_ping: {:?}", e)).unwrap();
-             let module_name = CString::new(MODULE_NAME).unwrap();
+             
+             let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
+             let module_name = CString::new(handler_unsafe.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
+             
              unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
             HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::JumpTo,
+                flow_control: FlowControl::Halt,
                 return_parameters: ReturnParameters {
-                    return_data: (Phase::ErrorHandling as usize) as *mut c_void,
+                    return_data: std::ptr::null_mut(),
                 },
             }
         }
@@ -208,7 +219,7 @@ unsafe extern "C" fn get_config_c(
     alloc_fn: AllocStrFn,
 ) -> *mut c_char {
     let json = "null";
-    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
+    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
 }
 
 #[cfg(test)]

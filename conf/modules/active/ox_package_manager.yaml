@@ -1,0 +1,30 @@
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    path: /var/repos/oxIDIZER/target/debug/libox_package_manager.so
+    params:
+      config_file: /var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml
+  - id: package_manager_stream
+    name: ox_webservice_stream
+    params:
+      config_file: /var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml
+    on_content_conflict: "skip"
+routes:
+  - url: "^/packages/(upload)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+    headers:
+      Method: POST
+  - url: "^/packages/(install)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+  - url: "^/packages/(list)/"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+  - url: "^/packages/?(.*)$"
+    module_id: "package_manager_stream"
+    phase: Content
+    priority: 500

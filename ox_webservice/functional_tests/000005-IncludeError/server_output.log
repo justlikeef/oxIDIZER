@@ -1,1 +1,1 @@
-Failed to load configuration: Error reading configuration file: Error processing includes in file "/var/repos/oxIDIZER/ox_webservice/functional_tests/000005-IncludeError/ox_webservice.yaml": Included content is not an object, cannot merge into object with existing keys
+Failed to load configuration: ox_fileproc failed to process config "/var/repos/oxIDIZER/ox_webservice/functional_tests/000005-IncludeError/conf/ox_webservice.runtime.yaml": Error processing includes in file "/var/repos/oxIDIZER/ox_webservice/functional_tests/000005-IncludeError/conf/ox_webservice.runtime.yaml"

@@ -1,0 +1,2 @@
+log4rs_config: "conf/conf/log4rs.yaml"
+include: "scalar.yaml"

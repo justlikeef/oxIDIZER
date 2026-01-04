@@ -1,6 +1,0 @@
-ox_webservice_status
-ox_webservice_ping
-ox_webservice_stream
-ox_webservice_template_jinja2
-ox_webservice_errorhandler_jinja2
-ox_persistence/ox_persistence_datastore_drivermanager

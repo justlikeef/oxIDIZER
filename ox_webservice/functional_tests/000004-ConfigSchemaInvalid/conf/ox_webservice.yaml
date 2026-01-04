@@ -1,0 +1,3 @@
+log4rs_config: "conf/conf/log4rs.yaml"
+modules: []
+# Missing 'urls' and 'servers' which are required by ServerConfig

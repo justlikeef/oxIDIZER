@@ -4,11 +4,8 @@ use std::ffi::{CStr, CString, c_void};
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::ptr;
-use ox_webservice::{
-    pipeline::{get_module_context_value_c, alloc_str_c},
-    PipelineState,
-    ModuleContext,
-};
+use ox_webservice::pipeline::{get_module_context_value_c, alloc_str_c};
+use ox_webservice_api::{PipelineState, ModuleContext};
 use bumpalo::Bump;
 use axum::http::HeaderMap;
 use serde_json::Value;
@@ -30,6 +27,7 @@ fuzz_target!(|data: &[u8]| {
         pipeline_ptr: ptr::null(),
         is_modified: false,
         execution_history: Vec::new(),
+        route_capture: None,
     };
     // Pre-populate context to allow successful lookups
     state.module_context.write().unwrap().insert("test_key".to_string(), Value::String("found".to_string()));

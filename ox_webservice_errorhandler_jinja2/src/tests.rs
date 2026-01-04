@@ -85,3 +85,28 @@ fn test_errorhandler_malformed_config() {
      let result = ModuleLoader::load(initialize_module, params_json, "test_module", &api);
      assert!(result.is_err());
 }
+#[test]
+fn test_errorhandler_reproduce_crash_with_bad_structure() {
+    let api = create_mock_api();
+    
+    // Create a config file that mimics the user's recursive/bad structure
+    let mut config_file = Builder::new().suffix(".yaml").tempfile().unwrap();
+    let bad_config_content = r#"
+modules:
+  - id: "errorhandler_jinja2"
+    name: "ox_webservice_errorhandler_jinja2"
+    params:
+      config_file: "/some/path/to/self.yaml"
+    "#;
+    writeln!(config_file, "{}", bad_config_content).unwrap();
+
+    let params_json = format!(r#"{{"config_file": "{}"}}"#, config_file.path().to_str().unwrap());
+    
+    // This should fail because the config file does not match ErrorHandlerConfig (missing content_root)
+    let result = ModuleLoader::load(initialize_module, &params_json, "test_module", &api);
+    
+    // We expect an error here. If it succeeds (Ok), then the module is somehow tolerating bad config (or crashing silently).
+    // The user report says "crash", which likely means an unhandled panic or result::Err propogating to main and exiting.
+    // ModuleLoader turning null return into Err confirms the module detected the error and refused to init.
+    assert!(result.is_err(), "Module should fail to initialize with bad config structure");
+}

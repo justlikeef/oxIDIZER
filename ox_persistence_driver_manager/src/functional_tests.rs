@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_api_endpoints() {
-         use ox_webservice_api::{CoreHostApi, ModuleInterface, PipelineState, Phase};
+         use ox_webservice_api::{CoreHostApi, ModuleInterface, PipelineState};
          use ox_webservice_test_utils::{create_mock_api, create_stub_pipeline_state};
          use std::sync::{Arc, Mutex};
          
@@ -139,6 +139,7 @@ mod tests {
         let context = crate::ModuleContext {
             manager: manager.clone(),
             api: api,
+            module_id: "test_driver_manager".to_string(),
         };
         
         // We need to cast it to c_void

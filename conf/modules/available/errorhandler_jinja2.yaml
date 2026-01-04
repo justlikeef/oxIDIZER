@@ -1,9 +1,0 @@
-modules:
-  - id: "default_error_handler"
-    name: "ox_webservice_errorhandler_jinja2"
-    priority: 999
-    phase: ErrorHandling
-    uris:
-        - path: ".*"
-    params:
-      config_file: "/var/repos/oxIDIZER/conf/modules/conf/ox_webservice_errorhandler_jinja2.yaml"

@@ -1,0 +1,197 @@
+/* Specialized Card for Upload */
+.card {
+    /* Inherits background, radius, shadow from common.css .card */
+    border: 2px dashed var(--border);
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    padding: 2rem;
+    /* transition inherited */
+}
+
+.card:hover {
+    /* common.css handles shadow hover */
+}
+
+.card.drag-over {
+    border-color: var(--accent);
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Fix logo distortion inheriting from flex column stretch */
+.logo {
+    width: auto;
+    align-self: flex-start;
+    /* Prevent stretching if container is wide */
+}
+
+/* Button (Not in common.css) */
+.btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    margin-top: 1rem;
+    display: inline-block;
+    text-decoration: none;
+    /* For link buttons */
+}
+
+.btn:hover {
+    background-color: var(--accent);
+    color: var(--bg-color);
+}
+
+.btn-install {
+    border-color: var(--success);
+    color: var(--success);
+    margin-top: 0;
+}
+
+.btn-install:hover {
+    background-color: var(--success);
+    color: white;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 0.5rem;
+    color: var(--accent);
+    transition: transform 0.2s;
+    vertical-align: middle;
+}
+
+.btn-icon:hover {
+    transform: scale(1.2);
+    color: var(--text-primary);
+}
+
+#file-input {
+    display: none;
+}
+
+/* Progress Bar (specialized container, inherited bar styles) */
+.progress-container {
+    margin-top: 1rem;
+    display: none;
+}
+
+.progress-fill {
+    /* Ensure width transition matches used JS logic (0.1s linear vs common 1s ease) */
+    transition: width 0.1s linear;
+    width: 0%;
+}
+
+/* Inherit base .progress-bar from common.css */
+
+.status-text {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Staged Packages List */
+.pkg-list {
+    margin-top: 2rem;
+}
+
+.pkg-item {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pkg-name {
+    font-weight: 500;
+}
+
+.pkg-status {
+    color: var(--success);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Modal */
+dialog {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--accent);
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    color: var(--accent);
+    margin: 0;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.key-value {
+    display: flex;
+    margin-bottom: 0.75rem;
+}
+
+.key-value label {
+    width: 120px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.key-value div {
+    flex: 1;
+}

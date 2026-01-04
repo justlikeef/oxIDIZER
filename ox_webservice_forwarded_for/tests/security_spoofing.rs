@@ -10,7 +10,9 @@ lazy_static! {
 
 #[test]
 fn test_spoofing_resilience() {
-    let module = OxModule::new(&API).unwrap();
+    let api_ptr: *const _ = &*API;
+    let core_api = unsafe { &*(api_ptr as *const ox_webservice_api::CoreHostApi) };
+    let module = OxModule::new(core_api, "test_spoof".to_string()).unwrap();
     let mut ps = create_stub_pipeline_state();
 
     // 1. Simulate a request with MULTIPLE X-Forwarded-For headers

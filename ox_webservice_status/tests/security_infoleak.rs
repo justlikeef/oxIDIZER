@@ -11,7 +11,9 @@ lazy_static! {
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_info_leak() {
-    let module = OxModule::new(&API, None);
+    let api_ptr: *const _ = &*API;
+    let core_api = unsafe { &*(api_ptr as *const ox_webservice_api::CoreHostApi) };
+    let module = OxModule::new(core_api, None, "test_status".to_string());
     let mut ps = create_stub_pipeline_state();
     
     // Assuming process_request fills response_body with JSON status

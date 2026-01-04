@@ -17,6 +17,10 @@ TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 # Use provided LOGGING_LEVEL or the default
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -32,13 +36,20 @@ fi
 if [ "$MODE" == "isolated" ]; then
   # Define paths for the new parameters
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
-  TEST_WORKSPACE_DIR=$(readlink -f "$TEST_DIR/../../../")
+  TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
+
+  # Create invalid config
+  cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
+modules: [
+# Missing closing bracket
+EOF
 
   # Start the server and capture the output
   START_OUTPUT=$("$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
     "debug" \
-    "$TEST_DIR/ox_webservice.yaml" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR")
@@ -84,7 +95,7 @@ if [ "$MODE" == "isolated" ]; then
     fi
 
     # Check for correct error message in the log file
-    if grep -q "Error deserializing configuration" "$TEST_DIR/logs/ox_webservice.log"; then
+    if grep -q "Error parsing file" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found config deserialization error in log"
     else
         log_message "$LOGGING_LEVEL" "error" "Did not find error in log"

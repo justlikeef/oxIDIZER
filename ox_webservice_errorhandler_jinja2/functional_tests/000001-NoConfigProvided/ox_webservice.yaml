@@ -1,14 +1,18 @@
-log4rs_config: /var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/log4rs.yaml
-server:
-  port: 3000
-  bind_address: 0.0.0.0
+log4rs_config: /var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/000001-NoConfigProvided/conf/log4rs.yaml
 modules:
 - id: test_module_0
   name: ox_webservice_errorhandler_jinja2
-  priority: 999
-  phase: ErrorHandling
-  uris: null
   params: {}
-urls:
-- url: .*
-  module_id: test_module_0
+  phase: ErrorHandling
+  priority: 999
+  routes: null
+pipeline:
+  phases:
+  - Content: ox_pipeline_router
+routes:
+- module_id: test_module_0
+  phase: Content
+  url: .*
+server:
+  bind_address: 0.0.0.0
+  port: 3000

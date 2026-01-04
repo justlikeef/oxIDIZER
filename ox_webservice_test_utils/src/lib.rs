@@ -24,11 +24,11 @@ pub unsafe extern "C" fn mock_log(level: LogLevel, module: *const c_char, messag
 
 pub unsafe extern "C" fn mock_alloc_str(arena: *const c_void, s: *const c_char) -> *mut c_char {
     if s.is_null() { return ptr::null_mut(); }
-    let c_str = CStr::from_ptr(s);
+    let c_str = unsafe { CStr::from_ptr(s) };
     let bytes = c_str.to_bytes_with_nul();
 
     if !arena.is_null() {
-        let bump = &*(arena as *const Bump);
+        let bump = unsafe { &*(arena as *const Bump) };
         let slice = bump.alloc_slice_copy(bytes);
         slice.as_mut_ptr() as *mut c_char
     } else {
@@ -40,13 +40,13 @@ pub unsafe extern "C" fn mock_alloc_str(arena: *const c_void, s: *const c_char) 
 
 pub unsafe extern "C" fn mock_alloc_raw(arena: *mut c_void, size: usize, align: usize) -> *mut c_void {
     if !arena.is_null() {
-         let bump = &mut *(arena as *mut Bump);
+         let bump = unsafe { &mut *(arena as *mut Bump) };
          let layout = std::alloc::Layout::from_size_align(size, align).unwrap();
          let ptr = bump.alloc_layout(layout);
          ptr.as_ptr() as *mut c_void
     } else {
         let layout = std::alloc::Layout::from_size_align(size, align.max(1)).unwrap();
-        std::alloc::alloc(layout) as *mut c_void
+        unsafe { std::alloc::alloc(layout) as *mut c_void }
     }
 }
 
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn mock_get_state(state_ptr: *mut c_void, key: *const c_ch
 
     if let Some(s) = val_json {
         let c_s = CString::new(s).unwrap();
-        alloc_fn(arena, c_s.as_ptr())
+        unsafe { alloc_fn(arena, c_s.as_ptr()) }
     } else {
         ptr::null_mut()
     }
@@ -134,9 +134,24 @@ pub unsafe extern "C" fn mock_set_state(state_ptr: *mut c_void, key: *const c_ch
 
 pub unsafe extern "C" fn mock_get_config(_state_ptr: *mut c_void, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char {
     let json = CString::new("{}").unwrap();
-    alloc_fn(arena, json.as_ptr())
+    unsafe { alloc_fn(arena, json.as_ptr()) }
 }
 
+
+pub unsafe extern "C" fn mock_execute_module(
+    _state: *mut c_void,
+    module_id: *const c_char,
+) -> HandlerResult {
+    if !module_id.is_null() {
+        let id = unsafe { CStr::from_ptr(module_id).to_string_lossy() };
+        println!("[MOCK] execute_module called for '{}'", id);
+    }
+    HandlerResult {
+        status: ox_webservice_api::ModuleStatus::Unmodified,
+        flow_control: ox_webservice_api::FlowControl::Continue,
+        return_parameters: ox_webservice_api::ReturnParameters { return_data: std::ptr::null_mut() },
+    }
+}
 
 pub fn create_mock_api() -> CoreHostApi {
     CoreHostApi {
@@ -146,6 +161,7 @@ pub fn create_mock_api() -> CoreHostApi {
         get_state: mock_get_state,
         set_state: mock_set_state,
         get_config: mock_get_config,
+        execute_module: mock_execute_module,
     }
 }
 
@@ -209,5 +225,6 @@ pub fn create_stub_pipeline_state() -> PipelineState {
         pipeline_ptr: std::ptr::null_mut(),
         is_modified: false,
         execution_history: Vec::new(),
+        route_capture: None,
     }
 }
