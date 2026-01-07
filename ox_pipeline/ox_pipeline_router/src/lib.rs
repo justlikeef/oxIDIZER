@@ -234,8 +234,6 @@ pub unsafe extern "C" fn process_request(
                 // If there's a capture group (index 1), store it for later update
                 if let Some(m) = caps.get(1) {
                     path_match_capture = Some(m.as_str().to_string());
-                } else {
-                    path_match_capture = Some("".to_string());
                 }
             } else {
                 continue;

@@ -237,7 +237,13 @@ impl<'a> OxModule<'a> {
             }
         };
 
-        if let Some(file_path) = self.resolve_and_find_file(&request_path) {
+        let mut resolved_path = request_path.clone();
+        if let Some(val) = ctx.get("request.capture") {
+             resolved_path = val.as_str().unwrap_or("").to_string();
+             self.log(LogLevel::Info, format!("ox_webservice_template_jinja2: Using path_capture: '{}'", resolved_path));
+        }
+
+        if let Some(file_path) = self.resolve_and_find_file(&resolved_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
             
             // Find first matching regex

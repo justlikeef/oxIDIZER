@@ -1789,3 +1789,717 @@
 2026-01-06T23:10:22.630064180-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /index.jinja2
 2026-01-06T23:10:22.630171050-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
 2026-01-06T23:10:22.630212085-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:45:02.584586304-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:45:02.584701671-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3370,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_webservice_template_jinja2.so","params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml"},"phase":"Content","priority":999}],"pipeline":null,"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:45:02.584734233-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:45:02.584831539-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:45:02.584895691-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "/var/repos/oxIDIZER/target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:45:02.595277927-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml': Error parsing file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml"
+2026-01-07T09:45:02.596049501-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'test_module_0'
+2026-01-07T09:45:48.116274755-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:45:48.116359008-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3335,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_webservice_status","routes":[],"headers":null,"query":null,"path":"target/debug/libox_webservice_status.so","params":null,"phase":"Content","priority":100}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:45:48.116388484-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:45:48.116438542-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2026-01-07T09:45:48.187828388-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T09:45:48.188353812-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T09:45:48.188696827-05:00 INFO ox_webservice - Listening on 0.0.0.0:3335
+2026-01-07T09:46:02.607160857-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:46:02.607204883-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/100004-WebSocket/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3335,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_webservice_status","routes":[],"headers":null,"query":null,"path":"target/debug/libox_webservice_status.so","params":null,"phase":"Content","priority":100},{"id":null,"name":"ox_webservice_ping","routes":[{"protocol":null,"hostname":null,"path":"^ping/?$","headers":null,"query":null,"priority":0,"phase":null,"status_code":null}],"headers":null,"query":null,"path":"target/debug/libox_webservice_ping.so","params":null,"priority":50,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:46:02.607215359-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:46:02.607237918-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2026-01-07T09:46:02.646534678-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_ping' from "target/debug/libox_webservice_ping.so"
+2026-01-07T09:46:02.646885713-05:00 INFO ox_webservice::pipeline - [ox_webservice_ping] ox_webservice_ping initialized
+2026-01-07T09:46:02.647034719-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:02.647479501-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:02.648513225-05:00 INFO ox_webservice - Listening on 0.0.0.0:3335
+2026-01-07T09:46:08.887260656-05:00 INFO ox_webservice::pipeline - WebSocket connection established for 127.0.0.1:58119
+2026-01-07T09:46:08.888390923-05:00 INFO ox_webservice::pipeline - [ox_webservice_ping] Handling ping request (format: html)
+2026-01-07T09:46:08.888499442-05:00 DEBUG ox_webservice::pipeline - Module 'ox_webservice_ping' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:08.888538653-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:08.889254095-05:00 INFO ox_webservice::pipeline - Client closed WebSocket connection
+2026-01-07T09:46:13.907767945-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:46:13.907822212-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3365,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_content","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_content","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:46:13.907839752-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:46:13.907890320-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_content'
+2026-01-07T09:46:13.907909989-05:00 INFO ox_webservice::pipeline - Loading module 'test_content' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:46:13.910432718-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/test_content"
+2026-01-07T09:46:13.911112234-05:00 DEBUG ox_webservice::pipeline - [test_content] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:46:13.926400155-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream initialized
+2026-01-07T09:46:13.926931580-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:13.927679804-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:13.929630587-05:00 INFO ox_webservice - Listening on 0.0.0.0:3365
+2026-01-07T09:46:16.929271566-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:16.929551471-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:16.929829547-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: 
+2026-01-07T09:46:16.930056997-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:16.930294324-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:16.930468902-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:46:16.953640233-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:16.953720123-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:16.953851592-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: 
+2026-01-07T09:46:16.953930773-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:16.953957702-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:16.953986528-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:46:18.295252777-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:46:18.295338207-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3365,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:46:18.295362915-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:46:18.295416841-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:46:18.295432591-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:46:18.297633694-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/test_content"
+2026-01-07T09:46:18.298276577-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:46:18.318530750-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:46:18.318848193-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:18.319584030-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:18.323868973-05:00 INFO ox_webservice - Listening on 0.0.0.0:3365
+2026-01-07T09:46:21.303269961-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:21.303405041-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:21.303466589-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: File not found for path: 
+2026-01-07T09:46:21.303509011-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:21.303533008-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:21.315830315-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:21.316708200-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:21.317125899-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: File not found for path: 
+2026-01-07T09:46:21.317213485-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:21.317420671-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:26.119922936-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:46:26.120011998-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3365,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_content.yaml"},"priority":999,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:46:26.120042706-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:46:26.120116960-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:46:26.120139523-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:46:26.122991459-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/test_content"
+2026-01-07T09:46:26.123721753-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:46:26.141033069-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:46:26.141211607-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:26.141790126-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:46:26.143831497-05:00 INFO ox_webservice - Listening on 0.0.0.0:3365
+2026-01-07T09:46:30.849435867-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:30.849553233-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:30.849686458-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: 
+2026-01-07T09:46:30.849746108-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:30.849770525-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:30.849796034-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:46:30.877834070-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:46:30.878032450-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-07T09:46:30.878199008-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: 
+2026-01-07T09:46:30.878651931-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:30.878772643-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:46:30.878844107-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:47:03.903203199-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:47:03.903303296-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3370,"bind_address":"127.0.0.1","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/ox_content.yaml"},"priority":999,"phase":"Content"}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:47:03.903328394-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:47:03.903374908-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:47:03.903390254-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:47:03.909356627-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/test_content"
+2026-01-07T09:47:03.910554116-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:47:03.924922423-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:47:03.924983352-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:47:03.925132717-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:03.925889426-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:03.928694860-05:00 INFO ox_webservice - Listening on 127.0.0.1:3370
+2026-01-07T09:47:08.907558791-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.html': true
+2026-01-07T09:47:08.915650532-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /
+2026-01-07T09:47:08.915785094-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:08.915806931-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:08.924711416-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.html': true
+2026-01-07T09:47:08.925132308-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /
+2026-01-07T09:47:08.925226258-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:08.925265974-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:12.176087567-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:47:12.176154723-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3370,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:47:12.176184991-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:47:12.176255882-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:47:12.176275885-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:47:12.179231448-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/test_content"
+2026-01-07T09:47:12.179834010-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:47:12.197781031-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:47:12.197855111-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:47:12.198051852-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:12.198597425-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:12.202061964-05:00 INFO ox_webservice - Listening on 0.0.0.0:3370
+2026-01-07T09:47:15.197358535-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'test.html': true
+2026-01-07T09:47:15.209124042-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /test.html
+2026-01-07T09:47:15.209767909-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:15.210130461-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:15.231998401-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'test.html': true
+2026-01-07T09:47:15.232873355-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /test.html
+2026-01-07T09:47:15.233231703-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:15.233507923-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:23.418580146-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:47:23.418657708-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3370,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:47:23.418694056-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:47:23.418774318-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:47:23.418800101-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:47:23.438425755-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/test_content"
+2026-01-07T09:47:23.442060153-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:47:23.482300684-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:47:23.482385199-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:47:23.482631586-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:23.483621528-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:47:23.491970788-05:00 INFO ox_webservice - Listening on 0.0.0.0:3370
+2026-01-07T09:47:26.428242173-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.jinja2': false
+2026-01-07T09:47:26.428321186-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]txt$' against 'index.jinja2': false
+2026-01-07T09:47:26.428344412-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja$' against 'index.jinja2': false
+2026-01-07T09:47:26.428365507-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja2$' against 'index.jinja2': true
+2026-01-07T09:47:26.436347182-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /index.jinja2
+2026-01-07T09:47:26.436476421-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:26.436503191-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:26.448151847-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.jinja2': false
+2026-01-07T09:47:26.448241629-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]txt$' against 'index.jinja2': false
+2026-01-07T09:47:26.448270687-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja$' against 'index.jinja2': false
+2026-01-07T09:47:26.448300932-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja2$' against 'index.jinja2': true
+2026-01-07T09:47:26.449036623-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /index.jinja2
+2026-01-07T09:47:26.449191397-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:47:26.449251569-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:54:07.601428620-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:54:07.601529679-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3570,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_webservice_template_jinja2.so","params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml"},"phase":"Content","priority":999}],"pipeline":null,"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:54:07.601562323-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:54:07.601641786-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:54:07.601669085-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "/var/repos/oxIDIZER/target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:54:07.604062086-05:00 ERROR ox_webservice::pipeline - [ox_webservice_template_jinja2] Failed to process config file '/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml': Error parsing file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/000003-ConfigInvalid/invalid_module_config.yaml"
+2026-01-07T09:54:07.604454089-05:00 ERROR ox_webservice - Failed to initialize pipeline: Failed to initialize module 'test_module_0'
+2026-01-07T09:54:54.242658651-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:54:54.242744984-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3535,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_webservice_status","routes":[],"headers":null,"query":null,"path":"target/debug/libox_webservice_status.so","params":null,"phase":"Content","priority":100}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:54:54.242769734-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:54:54.242832287-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2026-01-07T09:54:54.300130226-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T09:54:54.300931389-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T09:54:54.301421996-05:00 INFO ox_webservice - Listening on 0.0.0.0:3535
+2026-01-07T09:55:08.191105248-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:55:08.191188203-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/100004-WebSocket/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3535,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_webservice_status","routes":[],"headers":null,"query":null,"path":"target/debug/libox_webservice_status.so","params":null,"priority":100,"phase":"Content"},{"id":null,"name":"ox_webservice_ping","routes":[{"protocol":null,"hostname":null,"path":"^ping/?$","headers":null,"query":null,"priority":0,"phase":null,"status_code":null}],"headers":null,"query":null,"path":"target/debug/libox_webservice_ping.so","params":null,"priority":50,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:55:08.191406839-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:55:08.191460705-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2026-01-07T09:55:08.255515985-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_ping' from "target/debug/libox_webservice_ping.so"
+2026-01-07T09:55:08.256164627-05:00 INFO ox_webservice::pipeline - [ox_webservice_ping] ox_webservice_ping initialized
+2026-01-07T09:55:08.256494764-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:08.257316208-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:08.260040124-05:00 INFO ox_webservice - Listening on 0.0.0.0:3535
+2026-01-07T09:55:14.344149742-05:00 INFO ox_webservice::pipeline - WebSocket connection established for 127.0.0.1:59605
+2026-01-07T09:55:14.346455341-05:00 INFO ox_webservice::pipeline - [ox_webservice_ping] Handling ping request (format: json)
+2026-01-07T09:55:14.346591792-05:00 DEBUG ox_webservice::pipeline - Module 'ox_webservice_ping' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:14.346618589-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:14.350712507-05:00 INFO ox_webservice::pipeline - Client closed WebSocket connection
+2026-01-07T09:55:18.413048895-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:55:18.413116395-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3565,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_content","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_content","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:55:18.413138162-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:55:18.413180977-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_content'
+2026-01-07T09:55:18.413196792-05:00 INFO ox_webservice::pipeline - Loading module 'test_content' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:55:18.415487866-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/test_content"
+2026-01-07T09:55:18.415787176-05:00 DEBUG ox_webservice::pipeline - [test_content] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:55:18.433322785-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream initialized
+2026-01-07T09:55:18.433625632-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:18.434344086-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:18.436625715-05:00 INFO ox_webservice - Listening on 0.0.0.0:3565
+2026-01-07T09:55:21.419545201-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:21.419624306-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: No path_capture found. request_path: '/'
+2026-01-07T09:55:21.419756668-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: /
+2026-01-07T09:55:21.419837491-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:21.419856306-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:21.419878-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:55:21.430263690-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:21.430384939-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: No path_capture found. request_path: '/'
+2026-01-07T09:55:21.430536195-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: /
+2026-01-07T09:55:21.430634286-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:21.430700105-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:21.430755048-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:55:22.679826777-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:55:22.679947361-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3565,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_content.yaml"},"priority":999,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:55:22.679975037-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:55:22.680041388-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:55:22.680068469-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:55:22.683616132-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/test_content"
+2026-01-07T09:55:22.684538603-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:55:22.713601202-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:55:22.713953460-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:22.714758327-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:22.718180617-05:00 INFO ox_webservice - Listening on 0.0.0.0:3565
+2026-01-07T09:55:25.681364646-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:25.681485651-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/test.html'
+2026-01-07T09:55:25.681628571-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /test.html
+2026-01-07T09:55:25.681735034-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:25.681773495-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:25.681837460-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:55:25.693609663-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:25.693699397-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/test.html'
+2026-01-07T09:55:25.693830299-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /test.html
+2026-01-07T09:55:25.693946951-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:25.693996562-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:25.694021448-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:55:30.140327958-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:55:30.140405658-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3565,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:55:30.140426250-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:55:30.140474193-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:55:30.140505513-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:55:30.143542078-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/test_content"
+2026-01-07T09:55:30.143941579-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:55:30.168037703-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:55:30.168461733-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:30.169503750-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:55:30.174041662-05:00 INFO ox_webservice - Listening on 0.0.0.0:3565
+2026-01-07T09:55:33.150005271-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:33.150113399-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/index.html'
+2026-01-07T09:55:33.150240942-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /index.html
+2026-01-07T09:55:33.150310039-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:33.150339758-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:33.150372541-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:55:33.169573284-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:55:33.170092286-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/index.html'
+2026-01-07T09:55:33.170395047-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /index.html
+2026-01-07T09:55:33.170584621-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:33.170802204-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:55:33.170940436-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:56:40.999379449-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:56:40.999479699-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3570,"bind_address":"127.0.0.1","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:56:40.999521602-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:56:40.999604359-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:56:40.999629923-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:56:41.004331927-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/test_content"
+2026-01-07T09:56:41.004836650-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999994-HTMLIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:56:41.058125368-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:56:41.058220995-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:56:41.058494968-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:56:41.059507732-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:56:41.068721106-05:00 INFO ox_webservice - Listening on 127.0.0.1:3570
+2026-01-07T09:56:48.626821320-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.html': true
+2026-01-07T09:56:48.627876386-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /
+2026-01-07T09:56:48.627982475-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:48.628028154-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:48.641361095-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.html': true
+2026-01-07T09:56:48.641993379-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /
+2026-01-07T09:56:48.642150772-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:48.642197254-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:52.458359332-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:56:52.458430989-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3570,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/ox_content.yaml"},"priority":999,"phase":"Content"}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:56:52.458464429-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:56:52.458522210-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:56:52.458544532-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:56:52.462125965-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/test_content"
+2026-01-07T09:56:52.462510748-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:56:52.476613711-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:56:52.476671654-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:56:52.476812998-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:56:52.477409392-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:56:52.482802352-05:00 INFO ox_webservice - Listening on 0.0.0.0:3570
+2026-01-07T09:56:55.465987732-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'test.html': true
+2026-01-07T09:56:55.466758118-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /test.html
+2026-01-07T09:56:55.466924143-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:55.466970487-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:55.480697647-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'test.html': true
+2026-01-07T09:56:55.481375777-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /test.html
+2026-01-07T09:56:55.481518041-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:56:55.481551743-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:03.264910039-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:57:03.265004988-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3570,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:57:03.265043812-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:57:03.265123233-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:57:03.265176424-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-07T09:57:03.278427952-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/test_content"
+2026-01-07T09:57:03.304625166-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999999-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:57:03.344992426-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 4 mimetypes.
+2026-01-07T09:57:03.345058282-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2 initialized
+2026-01-07T09:57:03.345226972-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:03.346613371-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:03.349170728-05:00 INFO ox_webservice - Listening on 0.0.0.0:3570
+2026-01-07T09:57:06.223911603-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.jinja2': false
+2026-01-07T09:57:06.223970461-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]txt$' against 'index.jinja2': false
+2026-01-07T09:57:06.223985339-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja$' against 'index.jinja2': false
+2026-01-07T09:57:06.224000670-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja2$' against 'index.jinja2': true
+2026-01-07T09:57:06.224720361-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /index.jinja2
+2026-01-07T09:57:06.224800252-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:06.224828274-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:06.235246890-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]html$' against 'index.jinja2': false
+2026-01-07T09:57:06.235485988-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]txt$' against 'index.jinja2': false
+2026-01-07T09:57:06.235540478-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja$' against 'index.jinja2': false
+2026-01-07T09:57:06.235597113-05:00 INFO ox_webservice::pipeline - [test_module_0] Checking regex '.*[.]jinja2$' against 'index.jinja2': true
+2026-01-07T09:57:06.236281307-05:00 WARN ox_webservice::pipeline - [test_module_0] ox_webservice_template_jinja2: Successfully handled request for path: /index.jinja2
+2026-01-07T09:57:06.236405639-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:06.236438439-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:41.747068343-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:57:41.747127328-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":4100,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_content","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_content","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:57:41.747144577-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:57:41.747181447-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_content'
+2026-01-07T09:57:41.747192841-05:00 INFO ox_webservice::pipeline - Loading module 'test_content' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:57:41.748763356-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/test_content"
+2026-01-07T09:57:41.748958131-05:00 DEBUG ox_webservice::pipeline - [test_content] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:57:41.760580294-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream initialized
+2026-01-07T09:57:41.760769617-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:41.761301745-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:41.763277367-05:00 INFO ox_webservice - Listening on 0.0.0.0:4100
+2026-01-07T09:57:44.754271737-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:44.754346758-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: No path_capture found. request_path: '/'
+2026-01-07T09:57:44.754428245-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: /
+2026-01-07T09:57:44.754468879-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:44.754481913-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:44.754496127-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:57:44.763262205-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:44.763348150-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: No path_capture found. request_path: '/'
+2026-01-07T09:57:44.763462823-05:00 INFO ox_webservice::pipeline - [test_content] ox_webservice_stream: Streaming file for path: /
+2026-01-07T09:57:44.763517730-05:00 DEBUG ox_webservice::pipeline - Module 'test_content' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:44.763575132-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:44.763620490-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:57:45.971271989-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:57:45.971343162-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":4100,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_content.yaml"},"priority":999,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:57:45.971362894-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:57:45.971415458-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:57:45.971436160-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:57:45.973577768-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/test_content"
+2026-01-07T09:57:45.973873948-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:57:45.987393258-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:57:45.987617010-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:45.988216498-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:45.990866103-05:00 INFO ox_webservice - Listening on 0.0.0.0:4100
+2026-01-07T09:57:48.979878867-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:48.979961115-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/test.html'
+2026-01-07T09:57:48.980065339-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /test.html
+2026-01-07T09:57:48.980136909-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:48.980161543-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:48.980185826-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:57:48.994510095-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:48.994594844-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/test.html'
+2026-01-07T09:57:48.994722381-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /test.html
+2026-01-07T09:57:48.994789318-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:48.994817533-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:48.994838331-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:57:56.027539705-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T09:57:56.027610081-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":4100,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T09:57:56.027631761-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T09:57:56.027705601-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-07T09:57:56.027730504-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-07T09:57:56.029649761-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/test_content"
+2026-01-07T09:57:56.029965579-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-07T09:57:56.045859730-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-07T09:57:56.046115062-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:56.046688130-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T09:57:56.048868772-05:00 INFO ox_webservice - Listening on 0.0.0.0:4100
+2026-01-07T09:57:59.034284453-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:59.034405019-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/index.html'
+2026-01-07T09:57:59.034515897-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /index.html
+2026-01-07T09:57:59.034602140-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:59.034630925-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:59.034658319-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-07T09:57:59.047395652-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T09:57:59.047483549-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: No path_capture found. request_path: '/index.html'
+2026-01-07T09:57:59.047595389-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: /index.html
+2026-01-07T09:57:59.047647166-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:59.047663825-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T09:57:59.047683701-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true

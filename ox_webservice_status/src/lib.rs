@@ -82,13 +82,13 @@ struct DiskInfo {
 }
 
 impl OxModule {
-    pub fn new(api: &'static CoreHostApi, _config_path: Option<String>, module_id: String) -> Self {
+    pub fn new(api: &'static CoreHostApi, config_path: Option<String>, module_id: String) -> Self {
         let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
         Self {
             system: Mutex::new(System::new_all()),
             disks: Mutex::new(Disks::new_with_refreshed_list()),
             api,
-            config_path: None, // Deprecated in status output
+            config_path, 
             module_id,
         }
     }

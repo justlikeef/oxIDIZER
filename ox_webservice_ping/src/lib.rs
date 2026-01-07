@@ -62,7 +62,9 @@ impl OxModule {
         ) };
 
         // Content Negotiation
-        let format = ctx.get("request.format").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or("html".to_string());
+        let verb = ctx.get("request.verb").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or("get".to_string());
+        let default_format = if verb == "stream" { "json" } else { "html" };
+        let format = ctx.get("request.format").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or(default_format.to_string());
 
         let (body_content, content_type) = if format == "html" {
             ("<html><body><h1>response: pong</h1></body></html>".to_string(), "text/html")
