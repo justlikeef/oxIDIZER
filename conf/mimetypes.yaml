@@ -1,13 +1,36 @@
 mimetypes:
-  - url: ".*\\.html$"
+  # ----------------------------------------------------------------------------
+  # MIME Type Mappings
+  # ----------------------------------------------------------------------------
+  # Maps file name patterns (regex) to MIME types.
+  #
+  # Fields:
+  #   - url: Regex pattern to match against the filename.
+  #   - mimetype: The Content-Type string to set.
+
+  - url: ".*[.]html$"
     mimetype: "text/html"
-  - url: ".*\\.htm$"
+  - url: ".*[.]htm$"
     mimetype: "text/html"
-  - url: ".*\\.json$"
-    mimetype: "application/json"
-  - url: ".*\\.css$"
+  - url: ".*[.]css$"
     mimetype: "text/css"
-  - url: ".*\\.js$"
+  - url: ".*[.]js$"
     mimetype: "application/javascript"
-  - url: .*\\.jinja.?$"
+  - url: ".*[.]png$"
+    mimetype: "image/png"
+  - url: ".*[.]jpg$"
+    mimetype: "image/jpeg"
+  - url: ".*[.]jpeg$"
+    mimetype: "image/jpeg"
+  - url: ".*[.]gif$"
+    mimetype: "image/gif"
+  - url: ".*[.]jinja$"
     mimetype: "text/html"
+  - url: ".*[.]jinja2$"
+    mimetype: "text/html"
+  - url: ".*[.]wasm$"
+    mimetype: "application/wasm"
+  - url: ".*[.]ts$"
+    mimetype: "application/typescript"
+  - url: ".*[.]d[.]ts$"
+    mimetype: "application/typescript"
