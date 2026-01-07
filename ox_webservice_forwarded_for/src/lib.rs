@@ -54,7 +54,7 @@ impl<'a> OxModule<'a> {
         ) };
 
         // 1. Get X-Forwarded-For header via Generic State
-        let header_val = match ctx.get("http.request.header.X-Forwarded-For") {
+        let header_val = match ctx.get("request.header.X-Forwarded-For") {
              Some(val) => val.as_str().unwrap_or("").to_string(),
              None => String::new(),
         };
@@ -85,21 +85,25 @@ impl<'a> OxModule<'a> {
         };
 
         // 3. Store the *original* source IP in module context for potential restoration
-        // Get current source IP
-        let current_ip = match ctx.get("http.source_ip") {
+        // Get current source IP (try generic first)
+        let current_ip = match ctx.get("request.source_ip") {
             Some(val) => val.as_str().unwrap_or("unknown").to_string(),
-            None => "unknown".to_string(),
+            None => match ctx.get("request.source_ip") {
+                 Some(val) => val.as_str().unwrap_or("unknown").to_string(),
+                 None => "unknown".to_string(),
+            }
         };
 
         let _ = ctx.set("original_source_ip", serde_json::Value::String(current_ip.clone()));
 
         // 4. Update the Source IP in PipelineState via Generic State
-        let _ = ctx.set("http.source_ip", serde_json::Value::String(new_client_ip.clone()));
+        // Use generic key; pipeline now maps this to state.source_ip
+        let _ = ctx.set("request.source_ip", serde_json::Value::String(new_client_ip.clone()));
 
         self.log(LogLevel::Info, format!("Updated Source IP from {} to {} based on X-Forwarded-For: {}", current_ip, new_client_ip, header_val));
 
         HandlerResult {
-            status: ModuleStatus::Modified,
+            status: ModuleStatus::Unmodified,
             flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
                 return_data: std::ptr::null_mut(),

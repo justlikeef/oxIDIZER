@@ -1,0 +1,56 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_stream (Ports: 28110 28111 28112 28113 28114)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000004-NoTemplate:PASSED
+[INFO] Running test: 000005-NoHTML
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000005-NoHTML:PASSED
+[INFO] Running test: 100001-HTMLIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100001-HTMLIndex:PASSED
+[INFO] Running test: 100002-HTMLNotIndex
+[ERROR] [2026-01-06 23:07:54] [notice] Starting server process...
+[2026-01-06 23:07:54] [info] Server started with PID 1936024. Output redirected to /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/logs/ox_webservice.log
+[2026-01-06 23:07:57] [notice] Stopping server with PID 1936024...
+[2026-01-06 23:07:57] [info] Server stopped.
+[ERROR] Did not find expected Streaming/Logging message in log
+[ERROR] Test FAILED
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_stream:100002-HTMLNotIndex:FAILED
+[INFO] Running test: 100003-LoggingTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100003-LoggingTest:PASSED
+[INFO] Running test: 100004-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100004-CleanConfig:PASSED
+[INFO] Running test: 100005-Regression-DefaultConfig-Crash
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100005-Regression-DefaultConfig-Crash:PASSED
+[INFO] Running test: 500001-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:500001-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:900001-Safety-Miri:PASSED
+[INFO] Running test: 999996-LoggingNotFoundTest
+[ERROR] [2026-01-06 23:09:01] [notice] Starting server process...
+[2026-01-06 23:09:01] [info] Server started with PID 1936594. Output redirected to /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/logs/ox_webservice.log
+[2026-01-06 23:09:03] [notice] Stopping server with PID 1936594...
+[2026-01-06 23:09:03] [info] Server stopped.
+[ERROR] Did not find 'File not found' message in log
+[ERROR] Test FAILED
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_stream:999996-LoggingNotFoundTest:FAILED
+[INFO] Module ox_webservice_stream completed. Tests: 13, Failures: 2
+[INFO] --------------------------------------------------

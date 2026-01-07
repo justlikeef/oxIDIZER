@@ -1,6 +1,6 @@
 use libc::{c_char, c_void};
 use ox_webservice_api::{
-    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
+    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState,
     ModuleStatus, FlowControl, ReturnParameters, CoreHostApi,
     UriMatcher
 };
@@ -126,29 +126,35 @@ impl OxModule {
             arena_ptr
         ) };
         
-        let path_json = ctx.get("http.request.path");
-        let query_json = ctx.get("http.request.query");
-        let accept_json = ctx.get("http.request.header.accept");
-
-        let _path = path_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-        let query = query_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-        let accept = accept_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-
-        self.log(LogLevel::Info, format!("DEBUG: query='{}', accept='{}'", query, accept));
-
-        // Determine mode
-        let return_json = query.contains("format=json") || accept.contains("application/json");
+        // Generic Request State detection
+        let format_val = ctx.get("request.format");
+        
+        let mut return_json = false;
+        if let Some(val) = format_val {
+            if let Some(f) = val.as_str() {
+                if f == "json" { return_json = true; }
+            }
+        }
+        
+        // Fallback for strict tests or unexpected headers (though pipeline.rs should handle it now)
+        if !return_json {
+            if let Some(accept) = ctx.get("request.header.Accept") {
+                if let Some(s) = accept.as_str() {
+                    if s.contains("application/json") { return_json = true; }
+                }
+            }
+        }
 
         if !return_json {
-             self.log(LogLevel::Info, "DEBUG: Not returning JSON.".to_string());
+             self.log(LogLevel::Info, "Status: Non-JSON request, skipping to downstream (e.g. static HTML)".to_string());
              return HandlerResult {
                 status: ModuleStatus::Unmodified,
-                flow_control: FlowControl::Continue, // Delegate to next (stream_module)
+                flow_control: FlowControl::Continue, 
                 return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
             };
         }
 
-        self.log(LogLevel::Info, "DEBUG: Returning JSON status.".to_string());
+        self.log(LogLevel::Info, "Status: Returning JSON status report".to_string());
 
         // --- JSON Mode ---
 
@@ -222,7 +228,7 @@ impl OxModule {
             Ok(s) => s,
             Err(e) => {
                 self.log(LogLevel::Error, format!("Failed to serialize status: {}", e));
-                 let _ = ctx.set("http.response.status", serde_json::json!(500));
+                 let _ = ctx.set("response.status", serde_json::json!(500));
                 return HandlerResult {
                     status: ModuleStatus::Modified,
                     flow_control: FlowControl::Continue,
@@ -233,10 +239,11 @@ impl OxModule {
             }
         };
 
-        // Use ox_plugin set for response
-        let _ = ctx.set("http.response.body", serde_json::Value::String(json_body));
-        let _ = ctx.set("http.response.status", serde_json::json!(200));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+        // Use generic keys
+        let _ = ctx.set("response.body", serde_json::Value::String(json_body));
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+
                return HandlerResult {
             status: ModuleStatus::Modified,
             flow_control: FlowControl::Continue,
@@ -293,7 +300,7 @@ unsafe extern "C" fn process_request_c(
     if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::Halt,
+            flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
                 return_data: std::ptr::null_mut(),
             },

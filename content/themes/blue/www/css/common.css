@@ -38,13 +38,17 @@ header {
 
 .logo-area {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
 }
 
 .logo {
-    height: 4rem;
-    margin-bottom: 0.5rem;
-    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+    height: 72px;
+    max-height: 72px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.3));
 }
 
 h1 {
@@ -81,13 +85,49 @@ h4 {
 }
 
 .status-badge {
-    background-color: rgba(34, 197, 94, 0.1);
-    color: var(--success);
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-weight: 600;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.status-badge::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background-color: currentColor;
+}
+
+.status-ok {
+    color: #27ae60;
+    border-color: #27ae60;
+}
+
+.status-warn {
+    color: #f1c40f;
+    border-color: #f1c40f;
+}
+
+.status-error {
+    color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.header-status-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
 }
 
 .grid {
@@ -333,4 +373,242 @@ pre {
     border-radius: 4px;
     overflow-x: auto;
     border: 1px solid var(--border);
+}
+
+/* App Layout - Sidebar & Dashboard */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.glass {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+}
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.sidebar-header {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-nav {
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.15), transparent);
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 260px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-bar {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.breadcrumb-sep {
+    opacity: 0.3;
+}
+
+.breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Status Indicator */
+.status-indicator {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.status-indicator::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    border-radius: 50%;
+}
+
+/* Content Area */
+.content-area {
+    padding: 40px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+}
+
+.header-titles h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: var(--text-primary);
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: var(--bg-color);
+    box-shadow: 0 4px 14px 0 rgba(56, 189, 248, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px 0 rgba(56, 189, 248, 0.4);
+}
+
+.btn-icon {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 10px;
+}
+
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+/* Data Sources Grid */
+.ds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+/* Loader */
+.loader-container {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 0;
+    gap: 16px;
+    color: var(--text-secondary);
+}
+
+.loader-ring {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(56, 189, 248, 0.1);
+    border-top: 3px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.blob-bg {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    filter: blur(80px);
+    z-index: -1;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.blob-1 {
+    background: radial-gradient(circle, var(--accent), transparent 70%);
+    top: -200px;
+    right: -100px;
+}
+
+.blob-2 {
+    background: radial-gradient(circle, #2563eb, transparent 70%);
+    bottom: -200px;
+    left: -100px;
 }

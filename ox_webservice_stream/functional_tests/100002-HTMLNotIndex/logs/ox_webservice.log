@@ -1,0 +1,42 @@
+2026-01-06T23:07:54.019246905-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-06T23:07:54.019401737-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":28110,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-06T23:07:54.019421031-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-06T23:07:54.019453595-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-06T23:07:54.019467253-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:07:54.021306986-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/test_content"
+2026-01-06T23:07:54.021598122-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-06T23:07:54.032475763-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-06T23:07:54.032717940-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-06T23:07:54.033203031-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-06T23:07:54.034895263-05:00 INFO ox_webservice - Listening on 0.0.0.0:28110
+2026-01-06T23:07:57.024328203-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-06T23:07:57.024577879-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-06T23:07:57.024647232-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: File not found for path: 
+2026-01-06T23:07:57.024686498-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:07:57.024728261-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:07:57.032864249-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-06T23:07:57.033065487-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-06T23:07:57.033125214-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: File not found for path: 
+2026-01-06T23:07:57.033160534-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:07:57.033194270-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.

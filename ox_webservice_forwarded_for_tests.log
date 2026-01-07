@@ -1,0 +1,14 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_forwarded_for (Ports: 28080 28081 28082 28083 28084)
+[INFO] ==================================================
+[INFO] Running test: 500001-Security-Spoofing
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500001-Security-Spoofing:PASSED
+[INFO] Running test: 500002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 500003-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500003-Safety-Miri:PASSED
+[INFO] Module ox_webservice_forwarded_for completed. Tests: 3, Failures: 0
+[INFO] --------------------------------------------------

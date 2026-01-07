@@ -1,0 +1,9 @@
+mimetypes:
+  - url: ".*[.]html$"
+    mimetype: "text/html"
+  - url: ".*[.]txt$"
+    mimetype: "text/plain"
+  - url: ".*[.]jinja$"
+    mimetype: "text/html"
+  - url: ".*[.]jinja2$"
+    mimetype: "text/html"

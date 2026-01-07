@@ -2,7 +2,7 @@ use libc::{c_char, c_void};
 use ox_webservice_api::{
     AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
     ModuleStatus, FlowControl, ReturnParameters,
-    CoreHostApi, WebServiceApiV1
+    CoreHostApi
 };
 // Use ox_plugin directly? ox_webservice_api re-exports it.
 use serde::Serialize;
@@ -15,7 +15,7 @@ const MODULE_NAME: &str = "ox_webservice_ping";
 
 #[derive(Serialize)]
 struct PingResponse {
-    result: String,
+    response: String,
 }
 
 pub struct OxModule {
@@ -43,7 +43,7 @@ impl OxModule {
             self.log(LogLevel::Error, "Pipeline state is null".to_string());
              return HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters {
                     return_data: std::ptr::null_mut(),
                 },
@@ -61,61 +61,30 @@ impl OxModule {
             arena_ptr
         ) };
 
-        // Determine format
-        let mut return_json = false;
+        // Content Negotiation
+        let format = ctx.get("request.format").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or("html".to_string());
 
-        // Check accept header
-        if let Some(accept) = ctx.get("http.request.header.accept") {
-            if let Some(s) = accept.as_str() {
-                if s.contains("application/json") {
-                    return_json = true;
-                }
-            }
-        }
-
-        // Check query string
-        if !return_json {
-            if let Some(query_val) = ctx.get("http.request.query") {
-                 if let Some(query) = query_val.as_str() {
-                    if query.contains("format=json") {
-                        return_json = true;
-                    }
-                 }
-            }
-        }
-
-        let body_content;
-        let content_type;
-
-        if return_json {
-            let response = PingResponse {
-                result: "pong".to_string(),
-            };
-            body_content = serde_json::to_string(&response).unwrap_or(r#"{"result":"pong"}"#.to_string());
-            content_type = "application/json";
+        let (body_content, content_type) = if format == "html" {
+            ("<html><body><h1>response: pong</h1></body></html>".to_string(), "text/html")
         } else {
-            body_content = "<html><body>result: pong</body></html>".to_string();
-            content_type = "text/html";
-        }
-        
-        self.log(LogLevel::Info, format!("Handling ping request. Returning JSON: {}", return_json));
+            let response = PingResponse {
+                response: "pong".to_string(),
+            };
+            (serde_json::to_string(&response).unwrap_or(r#"{"response":"pong"}"#.to_string()), "application/json")
+        };
 
-        // Use ox_plugin set for response and header
-        // Using "response" sugar setter if supported, or "http.response.body"
-        // ox_webservice_pipeline handles "response" setter in generic state??
-        // Wait, "set_state_c" in ox_webservice only handles "http.*" and context. 
-        // OX_PLUGIN handles "response" helper via generic set? 
-        // YES: ox_plugin::PluginContext::set("response", val) -> translates to FFI calls?
-        // Let's check ox_plugin source I wrote.
-        // I REMOVED the "response" logic from ox_plugin when I made it generic!
-        // It now only calls `self.api.set_state`.
-        // So I must use "http.*" keys directly OR re-implement the helper in `ox_plugin`.
-        // User wants GENERIC. HTTP is Specific.
-        // So "http.response.body" is the way.
-        
-        let _ = ctx.set("http.response.body", serde_json::Value::String(body_content));
-        let _ = ctx.set("http.response.status", serde_json::json!(200));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(content_type.to_string()));
+        self.log(LogLevel::Info, format!("Handling ping request (format: {})", format));
+
+        // Set Generic Keys (Transport Agnostic)
+        let _ = ctx.set("response.body", serde_json::Value::String(body_content));
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.type", serde_json::Value::String(content_type.to_string()));
+
+        // Set HTTP specific keys (Legacy/Fallback)
+        // Removed as pipeline no longer supports them and they are redundant
+        // let _ = ctx.set("http.response.body", serde_json::Value::String(body_content));
+        // let _ = ctx.set("http.response.status", serde_json::json!(200));
+        // let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(content_type.to_string()));
 
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -181,7 +150,7 @@ unsafe extern "C" fn process_request_c(
     if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::Halt,
+            flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
                 return_data: std::ptr::null_mut(),
             },
@@ -204,7 +173,7 @@ unsafe extern "C" fn process_request_c(
              unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
             HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters {
                     return_data: std::ptr::null_mut(),
                 },

@@ -2,7 +2,7 @@ log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
 servers:
   - id: "default_https"
     protocol: "https"
-    port: 3000
+    port: 28050
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"

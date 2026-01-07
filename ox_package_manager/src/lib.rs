@@ -6,15 +6,15 @@ use ox_webservice_api::{
     ModuleStatus, FlowControl, ReturnParameters, CoreHostApi
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value; // use serde_json::json;
+use serde_json::Value;
 use serde_yaml;
+use multipart::server::Multipart;
 use bumpalo::Bump;
-use multipart::server::{Multipart, MultipartField};
 
 const MODULE_NAME: &str = "ox_package_manager";
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Config {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Config {
     #[serde(default = "Config::default_staging_directory")]
     staging_directory: String,
     #[serde(default = "Config::default_allowed_extensions")]
@@ -38,7 +38,7 @@ impl Config {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-struct PackageMetadata {
+pub struct PackageMetadata {
     name: String,
     version: String,
     #[serde(default)]
@@ -70,7 +70,7 @@ impl OxModule {
         let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
         
         // Ensure staging directory exists
-        if let Err(e) = std::fs::create_dir_all(&config.staging_directory) {
+        if let Err(_e) = std::fs::create_dir_all(&config.staging_directory) {
              // FFI log is available via self.log if we had an instance, but here we don't.
         }
 
@@ -94,7 +94,7 @@ impl OxModule {
         if pipeline_state_ptr.is_null() {
             return HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
             };
         }
@@ -108,24 +108,23 @@ impl OxModule {
             arena_ptr
         ) };
 
-        let method_json = ctx.get("http.request.method");
-        let path_json = ctx.get("http.request.path");
+        let verb_json = ctx.get("request.verb");
+        let resource_json = ctx.get("request.resource");
 
+        let verb = verb_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        let resource = resource_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
         
-        let method = method_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-        let path = path_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-        
-        self.log(LogLevel::Error, format!("DEBUG_REQUEST: method='{}', path='{}'", method, path));
+        self.log(LogLevel::Info, format!("DEBUG_REQUEST_GENERIC: verb='{}', resource='{}'", verb, resource));
 
-        if method == "POST" && (path == "upload" || path == "upload/" || path.ends_with("/upload") || path.ends_with("/upload/")) {
+        if verb == "create" && (resource == "upload" || resource == "upload/" || resource.ends_with("/upload") || resource.ends_with("/upload/")) {
             return self.handle_upload(&ctx, pipeline_state);
         }
 
-        if method == "GET" && (path == "list" || path == "list/" || path.ends_with("/list") || path.ends_with("/list/")) {
+        if verb == "get" && (resource == "list" || resource == "list/" || resource.ends_with("/list") || resource.ends_with("/list/")) {
             return self.handle_list_staged(&ctx);
         }
 
-        if method == "POST" && (path == "install" || path == "install/" || path.ends_with("/install") || path.ends_with("/install/")) {
+        if verb == "create" && (resource == "install" || resource == "install/" || resource.ends_with("/install") || resource.ends_with("/install/")) {
             return self.handle_install(&ctx);
         }
 
@@ -138,9 +137,22 @@ impl OxModule {
     }
 
     fn handle_install(&self, ctx: &ox_pipeline_plugin::PipelineContext) -> HandlerResult {
-        let body_str = ctx.get("http.request.body")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
+        let mut body_str = String::new();
+        if let Some(v) = ctx.get("request.payload") {
+            if let Some(s) = v.as_str() {
+                body_str = s.to_string();
+            }
+        }
+        
+        if body_str.is_empty() {
+             if let Some(v) = ctx.get("request.body_path") {
+                  if let Some(path) = v.as_str() {
+                       if let Ok(s) = std::fs::read_to_string(path) {
+                            body_str = s;
+                       }
+                  }
+             }
+        }
             
         let json: Value = serde_json::from_str(&body_str).unwrap_or(Value::Null);
         let filename = json.get("filename").and_then(|v| v.as_str()).unwrap_or("");
@@ -148,9 +160,9 @@ impl OxModule {
         if filename.is_empty() {
              // return self.json_response(400, "error", "Filename is required", None);
              let response_json = serde_json::json!({ "result": "error", "message": "Filename is required" });
-             let _ = ctx.set("http.response.status", serde_json::json!(400));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+             let _ = ctx.set("response.status", serde_json::json!(400));
+             let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+             let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
              return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
 
@@ -161,9 +173,11 @@ impl OxModule {
         if !source_path.exists() {
              // return self.json_response(404, "error", "Package file not found", None);
              let response_json = serde_json::json!({ "result": "error", "message": "Package file not found" });
-             let _ = ctx.set("http.response.status", serde_json::json!(404));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+             
+             let _ = ctx.set("response.status", serde_json::json!(404));
+             let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+             let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+
              return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
 
@@ -171,9 +185,11 @@ impl OxModule {
         let installed_dir = staging_path.join("installed");
         if let Err(e) = std::fs::create_dir_all(&installed_dir) {
              let response_json = serde_json::json!({ "result": "error", "message": format!("Failed to create installed directory: {}", e) });
-             let _ = ctx.set("http.response.status", serde_json::json!(500));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+             
+             let _ = ctx.set("response.status", serde_json::json!(500));
+             let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+             let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+
              return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
 
@@ -182,9 +198,11 @@ impl OxModule {
         // Move the file
         if let Err(e) = std::fs::rename(&source_path, &dest_path) {
              let response_json = serde_json::json!({ "result": "error", "message": format!("Failed to move package: {}", e) });
-             let _ = ctx.set("http.response.status", serde_json::json!(500));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+             
+             let _ = ctx.set("response.status", serde_json::json!(500));
+             let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+             let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+
              return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
 
@@ -195,9 +213,11 @@ impl OxModule {
 
         // self.json_response(200, "success", "Package installed successfully", None)
         let response_json = serde_json::json!({ "result": "success", "message": "Package installed successfully" });
-        let _ = ctx.set("http.response.status", serde_json::json!(200));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-        let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+        
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+
         HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } }
     }
 
@@ -485,9 +505,9 @@ impl OxModule {
             "packages": packages
         });
 
-        let _ = ctx.set("http.response.status", serde_json::json!(200));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-        let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
 
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -500,31 +520,49 @@ impl OxModule {
         self.log(LogLevel::Info, "Processing upload request...".to_string());
 
         // Check Content-Type
-        let content_type = ctx.get("http.request.header.Content-Type")
+        let content_type = ctx.get("request.header.Content-Type")
             .and_then(|v| v.as_str().map(|s| s.to_string()))
             .unwrap_or_default();
         
         self.log(LogLevel::Info, format!("Content-Type: {}", content_type));
 
         if !content_type.contains("multipart/form-data") {
-            let _ = ctx.set("http.response.status", serde_json::json!(400));
-            let _ = ctx.set("http.response.body", serde_json::Value::String("Invalid Content-Type".to_string()));
-            return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Halt, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-        }
+        let _ = ctx.set("response.status", serde_json::json!(400));
+        let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String("Invalid Content-Type".to_string()));
+
+        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+    }
 
         let boundary_param = "boundary=";
         let boundary_idx = match content_type.find(boundary_param) {
-            Some(i) => i + boundary_param.len(),
-            None => {
-                 let _ = ctx.set("http.response.status", serde_json::json!(400));
-                 return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Halt, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-            }
+        Some(i) => i + boundary_param.len(),
+        None => {
+             let _ = ctx.set("response.status", serde_json::json!(400));
+              return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+         }
         };
         let boundary_full = &content_type[boundary_idx..];
         let boundary = boundary_full.split(';').next().unwrap_or(boundary_full).trim().trim_matches('"');
  
-        let cursor = Cursor::new(&pipeline_state.request_body);
-        let mut multipart = Multipart::with_body(cursor, boundary);
+        let body_reader: Box<dyn std::io::Read> = if let Some(path_val) = ctx.get("request.body_path") {
+             if let Some(path) = path_val.as_str() {
+                  match std::fs::File::open(path) {
+                       Ok(f) => Box::new(f),
+                       Err(e) => {
+                            let _ = ctx.set("response.status", serde_json::json!(500));
+                            let _ = ctx.set("response.body", serde_json::Value::String(format!("Failed to open request body file: {}", e)));
+                            return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+                       }
+                  }
+             } else {
+                  Box::new(Cursor::new(&pipeline_state.request_body))
+             }
+        } else {
+             Box::new(Cursor::new(&pipeline_state.request_body))
+        };
+
+        let mut multipart = Multipart::with_body(body_reader, boundary);
         
         let mut upload_error: Option<String> = None;
         let mut processed_files = Vec::new();
@@ -578,24 +616,25 @@ impl OxModule {
         }
 
         if let Some(err_msg) = upload_error {
-             let response_json = serde_json::json!({
-                 "result": "error",
-                 "message": err_msg
-             });
-             // Use 200 to prevent ox_webservice_errorhandler from replacing JSON with HTML
-             let _ = ctx.set("http.response.status", serde_json::json!(200));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
-        } else {
-             // Success
-             let response_json = serde_json::json!({
-                 "result": "success",
-                 "files": processed_files
-             });
-             let _ = ctx.set("http.response.status", serde_json::json!(200));
-             let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
-             let _ = ctx.set("http.response.body", serde_json::Value::String(response_json.to_string()));
-        }
+         let response_json = serde_json::json!({
+             "result": "error",
+             "message": err_msg
+         });
+         // Use 200 to prevent ox_webservice_errorhandler from replacing JSON with HTML
+         let _ = ctx.set("response.status", serde_json::json!(200));
+         let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+         let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+
+    } else {
+         // Success
+         let response_json = serde_json::json!({
+             "result": "success",
+             "files": processed_files
+         });
+         let _ = ctx.set("response.status", serde_json::json!(200));
+         let _ = ctx.set("response.type", serde_json::Value::String("application/json".to_string()));
+         let _ = ctx.set("response.body", serde_json::Value::String(response_json.to_string()));
+    }
 
         HandlerResult {
             status: ModuleStatus::Modified,
@@ -661,7 +700,7 @@ unsafe extern "C" fn process_request_c(
     _arena: *const c_void, 
 ) -> HandlerResult {
     if instance_ptr.is_null() {
-        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Halt, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
     }
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
@@ -689,7 +728,7 @@ unsafe extern "C" fn process_request_c(
 
              HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
             }
         }
@@ -697,9 +736,9 @@ unsafe extern "C" fn process_request_c(
 }
 
 unsafe extern "C" fn get_config_c(
-    instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
+    _instance_ptr: *mut c_void,
+    _arena: *const c_void,
+    _alloc_fn: AllocStrFn,
 ) -> *mut c_char {
     std::ptr::null_mut() // TODO: Implement
 }

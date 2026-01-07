@@ -1,0 +1,23 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_driver_manager (Ports: 28040 28041 28042 28043 28044)
+[INFO] ==================================================
+[INFO] Running test: 100002-Routing
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:100002-Routing:PASSED
+[INFO] Running test: 100003-DriverSchema
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:100003-DriverSchema:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_persistence_driver_manager:900001-Safety-Miri:SKIPPED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900010-Security-PathTraversal
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:900010-Security-PathTraversal:PASSED
+[INFO] Running test: 999999-CrashRepro
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:999999-CrashRepro:PASSED
+[INFO] Module ox_persistence_driver_manager completed. Tests: 6, Failures: 0
+[INFO] --------------------------------------------------

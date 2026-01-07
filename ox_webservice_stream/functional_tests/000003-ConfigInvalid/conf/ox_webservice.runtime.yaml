@@ -3,7 +3,7 @@ mimetypes_config: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/000
 servers:
   - id: default
     protocol: http
-    port: 3000
+    port: 28110
     bind_address: 0.0.0.0
     hosts:
       - name: ".*"

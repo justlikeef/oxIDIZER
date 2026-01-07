@@ -1,5 +1,1 @@
-modules:
-  - id: messaging_mqtt
-    name: ox_messaging_mqtt
-    params: {} 
-routes: []
+/var/repos/oxIDIZER/ox_messaging_client/ox_messaging_mqtt/conf/ox_messaging_mqtt.yaml

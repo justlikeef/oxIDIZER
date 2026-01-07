@@ -1,0 +1,32 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_status (Ports: 28100 28101 28102 28103 28104)
+[INFO] ==================================================
+[INFO] Running test: 000001-Status-Configuration-Negative
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:000001-Status-Configuration-Negative:PASSED
+[INFO] Running test: 100001-Status-StandardOps
+[ERROR] [2026-01-06 23:07:09] [notice] Starting server process...
+[2026-01-06 23:07:09] [info] Server started with PID 1935233. Output redirected to /var/repos/oxIDIZER/ox_webservice_status/functional_tests/100001-Status-StandardOps/logs/ox_webservice.log
+[INFO] 1. Testing fallback HTML...
+[INFO] PASS: HTML returned by default
+[INFO] 2. Testing Accept: application/json...
+[ERROR] FAIL: Content-type not json
+[INFO] 3. Testing ?format=json...
+[ERROR] FAIL: Content-type not json
+[INFO] 4. Testing static asset /status/index.html...
+[INFO] PASS: Explicit static file returned
+[2026-01-06 23:07:15] [notice] Stopping server with PID 1935233...
+[2026-01-06 23:07:15] [info] Server stopped.
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_status:100001-Status-StandardOps:FAILED
+[INFO] Running test: 200001-Safety-Fuzzing
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:200001-Safety-Fuzzing:PASSED
+[INFO] Running test: 200002-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_webservice_status:200002-Safety-Miri:SKIPPED
+[INFO] Running test: 200003-Security-InfoLeak
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:200003-Security-InfoLeak:PASSED
+[INFO] Module ox_webservice_status completed. Tests: 5, Failures: 1
+[INFO] --------------------------------------------------

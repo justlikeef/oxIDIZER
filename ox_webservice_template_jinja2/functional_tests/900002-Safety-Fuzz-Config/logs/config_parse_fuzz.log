@@ -1,0 +1,277 @@
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+warning: unused import: `WebServiceApiV1`
+ --> /var/repos/oxIDIZER/ox_webservice_template_jinja2/src/lib.rs:5:18
+  |
+5 |     CoreHostApi, WebServiceApiV1, AllocFn,...
+  |                  ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_webservice_template_jinja2` (lib) generated 1 warning (run `cargo fix --lib -p ox_webservice_template_jinja2` to apply 1 suggestion)
+warning: unused import: `Value`
+ --> fuzz_targets/config_parse.rs:4:24
+  |
+4 | use serde_json::{self, Value};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `mimetypes` is never read
+ --> fuzz_targets/config_parse.rs:9:5
+  |
+8 | struct MimeTypeConfig {
+  |        -------------- field in this struct
+9 |     mimetypes: Vec<MimeTypeMapping>,
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_webservice_template_jinja2-fuzz` (bin "config_parse") generated 2 warnings (run `cargo fix --bin "config_parse" -p ox_webservice_template_jinja2-fuzz` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.13s
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+warning: unused import: `WebServiceApiV1`
+ --> /var/repos/oxIDIZER/ox_webservice_template_jinja2/src/lib.rs:5:18
+  |
+5 |     CoreHostApi, WebServiceApiV1, AllocFn,...
+  |                  ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_webservice_template_jinja2` (lib) generated 1 warning (run `cargo fix --lib -p ox_webservice_template_jinja2` to apply 1 suggestion)
+warning: unused import: `Value`
+ --> fuzz_targets/config_parse.rs:4:24
+  |
+4 | use serde_json::{self, Value};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `mimetypes` is never read
+ --> fuzz_targets/config_parse.rs:9:5
+  |
+8 | struct MimeTypeConfig {
+  |        -------------- field in this struct
+9 |     mimetypes: Vec<MimeTypeMapping>,
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_webservice_template_jinja2-fuzz` (bin "config_parse") generated 2 warnings (run `cargo fix --bin "config_parse" -p ox_webservice_template_jinja2-fuzz` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.11s
+     Running `fuzz/target/x86_64-unknown-linux-gnu/release/config_parse -artifact_prefix=/var/repos/oxIDIZER/ox_webservice_template_jinja2/fuzz/artifacts/config_parse/ -max_total_time=15 /var/repos/oxIDIZER/ox_webservice_template_jinja2/fuzz/corpus/config_parse`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2909386105
+INFO: Loaded 1 modules   (5658 inline 8-bit counters): 5658 [0x55afd099d150, 0x55afd099e76a), 
+INFO: Loaded 1 PC tables (5658 PCs): 5658 [0x55afd099e770,0x55afd09b4910), 
+INFO:    16303 files found in /var/repos/oxIDIZER/ox_webservice_template_jinja2/fuzz/corpus/config_parse
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 16303 min: 1b max: 4021b total: 1874111b rss: 69Mb
+#16304	INITED cov: 1840 ft: 6648 corp: 2463/134Kb exec/s: 16304 rss: 249Mb
+#36490	REDUCE cov: 1840 ft: 6648 corp: 2463/134Kb lim: 3962 exec/s: 36490 rss: 281Mb L: 144/3753 MS: 1 EraseBytes-
+#67796	REDUCE cov: 1840 ft: 6648 corp: 2463/134Kb lim: 4096 exec/s: 67796 rss: 326Mb L: 25/3753 MS: 1 EraseBytes-
+#100159	REDUCE cov: 1840 ft: 6648 corp: 2463/134Kb lim: 4096 exec/s: 50079 rss: 378Mb L: 124/3753 MS: 1 EraseBytes-
+#124201	REDUCE cov: 1840 ft: 6648 corp: 2463/134Kb lim: 4096 exec/s: 62100 rss: 400Mb L: 78/3753 MS: 2 CopyPart-EraseBytes-
+#131072	pulse  cov: 1840 ft: 6648 corp: 2463/134Kb lim: 4096 exec/s: 65536 rss: 408Mb
+#149508	REDUCE cov: 1840 ft: 6648 corp: 2463/134Kb lim: 4096 exec/s: 74754 rss: 425Mb L: 43/3753 MS: 2 ShuffleBytes-EraseBytes-
+#215261	NEW    cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 71753 rss: 498Mb L: 2543/3753 MS: 3 CopyPart-ChangeBinInt-CrossOver-
+#231172	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 77057 rss: 512Mb L: 25/3753 MS: 1 EraseBytes-
+#262144	pulse  cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 65536 rss: 543Mb
+#262163	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 65540 rss: 543Mb L: 32/3753 MS: 1 EraseBytes-
+#266564	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 66641 rss: 548Mb L: 162/3753 MS: 1 EraseBytes-
+#296067	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 74016 rss: 566Mb L: 26/3753 MS: 3 ShuffleBytes-EraseBytes-CopyPart-
+#299348	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 74837 rss: 567Mb L: 95/3753 MS: 1 EraseBytes-
+#315019	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 78754 rss: 570Mb L: 57/3753 MS: 1 EraseBytes-
+#325355	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 81338 rss: 570Mb L: 68/3753 MS: 1 EraseBytes-
+#367507	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 91876 rss: 578Mb L: 28/3753 MS: 2 ChangeByte-EraseBytes-
+#454613	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 90922 rss: 579Mb L: 206/3753 MS: 1 EraseBytes-
+#471544	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 94308 rss: 579Mb L: 27/3753 MS: 1 EraseBytes-
+#504450	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 100890 rss: 579Mb L: 27/3753 MS: 1 EraseBytes-
+#520652	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 86775 rss: 579Mb L: 31/3753 MS: 2 ShuffleBytes-EraseBytes-
+#524288	pulse  cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 87381 rss: 579Mb
+#542843	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 90473 rss: 579Mb L: 33/3753 MS: 1 EraseBytes-
+#585379	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 97563 rss: 579Mb L: 23/3753 MS: 1 EraseBytes-
+#591060	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 98510 rss: 579Mb L: 123/3753 MS: 1 EraseBytes-
+#593551	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 98925 rss: 579Mb L: 338/3753 MS: 1 EraseBytes-
+#651260	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108543 rss: 579Mb L: 40/3753 MS: 4 CopyPart-CMP-CopyPart-EraseBytes- DE: "\377\374/q"-
+#683801	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 97685 rss: 579Mb L: 50/3753 MS: 1 EraseBytes-
+#757157	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108165 rss: 579Mb L: 65/3753 MS: 1 EraseBytes-
+#757313	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108187 rss: 579Mb L: 37/3753 MS: 1 EraseBytes-
+#757336	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108190 rss: 579Mb L: 919/3753 MS: 3 ChangeASCIIInt-ShuffleBytes-EraseBytes-
+#766032	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 109433 rss: 579Mb L: 105/3753 MS: 1 EraseBytes-
+#871358	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108919 rss: 579Mb L: 71/3753 MS: 1 EraseBytes-
+#911699	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113962 rss: 579Mb L: 23/3753 MS: 1 EraseBytes-
+#950795	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 105643 rss: 579Mb L: 17/3753 MS: 1 EraseBytes-
+#951976	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 105775 rss: 579Mb L: 40/3753 MS: 1 EraseBytes-
+#976842	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 108538 rss: 579Mb L: 75/3753 MS: 1 EraseBytes-
+#1005243	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 111693 rss: 579Mb L: 34/3753 MS: 1 EraseBytes-
+#1012525	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 112502 rss: 579Mb L: 23/3753 MS: 2 EraseBytes-CopyPart-
+#1021331	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113481 rss: 579Mb L: 56/3753 MS: 1 EraseBytes-
+#1048576	pulse  cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 116508 rss: 579Mb
+#1086162	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 120684 rss: 579Mb L: 136/3753 MS: 1 EraseBytes-
+#1096543	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 109654 rss: 579Mb L: 37/3753 MS: 1 EraseBytes-
+#1104634	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 110463 rss: 579Mb L: 193/3753 MS: 1 EraseBytes-
+#1110811	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 111081 rss: 579Mb L: 23/3753 MS: 2 InsertByte-EraseBytes-
+#1117942	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 111794 rss: 579Mb L: 152/3753 MS: 1 EraseBytes-
+#1142808	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 114280 rss: 579Mb L: 183/3753 MS: 1 EraseBytes-
+#1195109	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 119510 rss: 579Mb L: 20/3753 MS: 1 EraseBytes-
+#1218210	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 121821 rss: 579Mb L: 61/3753 MS: 1 EraseBytes-
+#1240383	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 112762 rss: 579Mb L: 905/3753 MS: 3 CopyPart-ChangeByte-EraseBytes-
+#1246584	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113325 rss: 579Mb L: 22/3753 MS: 1 EraseBytes-
+#1247280	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113389 rss: 579Mb L: 57/3753 MS: 1 EraseBytes-
+#1365212	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 124110 rss: 579Mb L: 159/3753 MS: 2 ChangeASCIIInt-EraseBytes-
+#1372218	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 114351 rss: 579Mb L: 33/3753 MS: 1 EraseBytes-
+#1373949	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 114495 rss: 579Mb L: 29/3753 MS: 1 EraseBytes-
+#1401495	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 116791 rss: 579Mb L: 23/3753 MS: 1 EraseBytes-
+#1411211	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 117600 rss: 579Mb L: 26/3753 MS: 1 EraseBytes-
+#1426962	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 118913 rss: 579Mb L: 30/3753 MS: 1 EraseBytes-
+#1454674	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 111898 rss: 579Mb L: 133/3753 MS: 2 CopyPart-EraseBytes-
+#1472918	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113301 rss: 579Mb L: 227/3753 MS: 4 CrossOver-ShuffleBytes-InsertByte-EraseBytes-
+#1509639	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 116126 rss: 579Mb L: 347/3753 MS: 1 EraseBytes-
+#1573875	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 121067 rss: 579Mb L: 885/3753 MS: 1 EraseBytes-
+#1576706	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 121285 rss: 579Mb L: 186/3753 MS: 1 EraseBytes-
+#1585002	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 121923 rss: 579Mb L: 123/3753 MS: 1 EraseBytes-
+#1595003	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 113928 rss: 579Mb L: 170/3753 MS: 1 EraseBytes-
+#1720299	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 114686 rss: 579Mb L: 525/3753 MS: 1 EraseBytes-
+#1731855	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 115457 rss: 579Mb L: 158/3753 MS: 1 EraseBytes-
+#1753566	REDUCE cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 116904 rss: 579Mb L: 154/3753 MS: 1 EraseBytes-
+#1827631	DONE   cov: 1840 ft: 6649 corp: 2464/136Kb lim: 4096 exec/s: 114226 rss: 579Mb
+###### Recommended dictionary. ######
+"\377\374/q" # Uses: 106175
+###### End of recommended dictionary. ######
+Done 1827631 runs in 16 second(s)

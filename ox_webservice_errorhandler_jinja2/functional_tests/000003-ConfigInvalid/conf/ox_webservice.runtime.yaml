@@ -3,7 +3,7 @@ mimetypes_config: "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functio
 servers:
   - id: default
     protocol: http
-    port: 3000
+    port: 28070
     bind_address: 0.0.0.0
     hosts:
       - name: ".*"

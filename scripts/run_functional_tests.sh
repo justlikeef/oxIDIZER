@@ -2,8 +2,8 @@
 
 # Default values
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-DEFAULT_SUPPORT_SCRIPTS_DIR="$SCRIPT_DIR/scripts"
-DEFAULT_TEST_LIBS_DIR="$SCRIPT_DIR/functional_tests/common"
+DEFAULT_SUPPORT_SCRIPTS_DIR="$SCRIPT_DIR"
+DEFAULT_TEST_LIBS_DIR="$(dirname "$SCRIPT_DIR")/functional_tests/common"
 DEFAULT_RUNNING_MODE="isolated"
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_TARGET="debug"

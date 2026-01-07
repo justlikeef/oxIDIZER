@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
-use ox_webservice_api::{ModuleConfig, UriMatcher};
+pub use ox_webservice_api::{ModuleConfig, UriMatcher};
 
 pub mod pipeline;
 

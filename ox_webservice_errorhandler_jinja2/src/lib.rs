@@ -58,13 +58,12 @@ impl<'a> OxModule<'a> {
             arena_ptr
         ) };
 
-        let status_code_val = ctx.get("http.response.status");
-        let status_code_val = ctx.get("http.response.status");
+        let status_code_val = ctx.get("response.status");
         let mut status_code = status_code_val.and_then(|v| v.as_u64()).map(|u| u as u16).unwrap_or(200);
 
         if let Some(forced) = self.debug_force_status {
             status_code = forced;
-            let _ = ctx.set("http.response.status", serde_json::Value::Number(serde_json::Number::from(forced)));
+            let _ = ctx.set("response.status", serde_json::Value::Number(serde_json::Number::from(forced)));
         }
 
         if status_code < 400 {
@@ -87,32 +86,36 @@ impl<'a> OxModule<'a> {
         let mut context_map = serde_json::Map::new();
         
         // Request Method
-        if let Some(val) = ctx.get("http.request.method") {
+        if let Some(val) = ctx.get("request.verb") {
              context_map.insert("request_method".to_string(), val);
+        } else if let Some(val) = ctx.get("request.method") {
+              context_map.insert("request_method".to_string(), val);
         }
 
         // Request Path
-        if let Some(val) = ctx.get("http.request.path") {
+        if let Some(val) = ctx.get("request.resource") {
              context_map.insert("request_path".to_string(), val);
+        } else if let Some(val) = ctx.get("request.path") {
+              context_map.insert("request_path".to_string(), val);
         }
 
         // Request Query
-        if let Some(val) = ctx.get("http.request.query") {
+        if let Some(val) = ctx.get("request.query") {
              context_map.insert("request_query".to_string(), val);
         }
         
         // Request Headers
-        if let Some(val) = ctx.get("http.request.headers") {
+        if let Some(val) = ctx.get("request.headers") {
              context_map.insert("request_headers".to_string(), val);
         }
 
         // Request Body
-        if let Some(val) = ctx.get("http.request.body") {
+        if let Some(val) = ctx.get("request.payload") {
              context_map.insert("request_body".to_string(), val);
         }
 
         // Source IP
-        if let Some(val) = ctx.get("http.source_ip") {
+        if let Some(val) = ctx.get("request.source_ip") {
              context_map.insert("source_ip".to_string(), val);
         }
 
@@ -279,8 +282,8 @@ impl<'a> OxModule<'a> {
         };
 
         // Set response headers and body using Generic API
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
-        let _ = ctx.set("http.response.body", serde_json::Value::String(response_body));
+        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String(response_body));
 
         HandlerResult {
             status: ModuleStatus::Modified,

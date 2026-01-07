@@ -61,7 +61,7 @@ fn test_ffi_get_state_header_valid() {
     let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     let arena_ptr = &mut *arena as *mut Bump as *mut c_void;
     
-    let key = CString::new("http.request.header.Host").unwrap();
+    let key = CString::new("request.header.Host").unwrap();
     
     unsafe {
         let res_ptr = get_state_c(state_ptr, key.as_ptr(), arena_ptr, alloc_str_c);
@@ -79,7 +79,7 @@ fn test_ffi_get_state_invalid_utf8_key() {
     let arena_ptr = &mut *arena as *mut Bump as *mut c_void;
     
     // Invalid UTF-8 key
-    let bytes = b"http.request.header.Host\xFF";
+    let bytes = b"request.header.Host\xFF";
     let c_key = CString::new(bytes.as_slice()).unwrap(); 
     
     unsafe {
@@ -93,7 +93,7 @@ fn test_ffi_set_state_path() {
     let (mut state, _) = create_dummy_state();
     let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let key = CString::new("http.request.path").unwrap();
+    let key = CString::new("request.path").unwrap();
     let val = CString::new("\"/new/path\"").unwrap(); // JSON String
     unsafe {
         set_state_c(state_ptr, key.as_ptr(), val.as_ptr());
@@ -106,7 +106,7 @@ fn test_ffi_set_state_header() {
     let (mut state, _) = create_dummy_state();
     let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let key = CString::new("http.response.header.X-Test").unwrap();
+    let key = CString::new("response.header.X-Test").unwrap();
     let val = CString::new("\"Value\"").unwrap(); // JSON String
     unsafe {
         set_state_c(state_ptr, key.as_ptr(), val.as_ptr());
@@ -142,7 +142,7 @@ fn test_ffi_set_state_source_ip() {
     state.source_ip = "127.0.0.1:8080".parse().unwrap();
     let state_ptr = &mut *state as *mut PipelineState as *mut c_void;
     
-    let key = CString::new("http.source_ip").unwrap();
+    let key = CString::new("request.source_ip").unwrap();
     // Setting IP string. The logic in set_state_c handles string -> IpAddr and preserves port.
     let val = CString::new("\"10.0.0.1\"").unwrap(); 
     unsafe {

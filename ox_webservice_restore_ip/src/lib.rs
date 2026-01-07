@@ -55,11 +55,11 @@ impl<'a> OxModule<'a> {
         // 1. Retrieve "original_source_ip" from module context
         if let Some(val) = ctx.get("original_source_ip") {
              if let Some(ip_str) = val.as_str() {
-                 let _ = ctx.set("http.source_ip", serde_json::Value::String(ip_str.to_string()));
+                 let _ = ctx.set("request.source_ip", serde_json::Value::String(ip_str.to_string()));
                  self.log(LogLevel::Info, format!("Restored Source IP to {}", ip_str));
 
                  return HandlerResult {
-                    status: ModuleStatus::Modified,
+                    status: ModuleStatus::Unmodified,
                     flow_control: FlowControl::Continue,
                     return_parameters: ReturnParameters {
                         return_data: std::ptr::null_mut(),

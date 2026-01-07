@@ -8,8 +8,9 @@ use axum::http::{HeaderMap, Request};
 use axum::response::Response;
 use axum::extract::ws::{WebSocket, Message, CloseFrame};
 use log::{info, debug, error};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
 use libloading::{Library, Symbol};
 use regex::Regex;
 use std::path::{Path, PathBuf};
@@ -25,13 +26,21 @@ use ox_webservice_api::{
 
 use crate::ServerConfig;
 use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use tokio_util::io::ReaderStream;
 use futures::StreamExt;
+use tempfile::NamedTempFile;
+use std::io::Write;
 
 // --- Response Body Enum ---
 pub enum PipelineResponseBody {
     Memory(Vec<u8>),
     Files(Vec<PathBuf>),
+}
+
+pub enum PipelineRequestBody {
+    Memory(Vec<u8>),
+    File(PathBuf, u64),
 }
 
 // --- Metrics Structures ---
@@ -299,39 +308,53 @@ pub unsafe extern "C" fn get_state_c(
     };
     let pipeline_state = &*(pipeline_state_ptr as *mut PipelineState);
     
-    // --- Virtual Keys for HTTP ---
-    let val_json: Option<String> = if key_str == "http.request.method" {
+    // --- Virtual Keys ---
+    let val_json: Option<String> = if key_str == "request.method" {
         Some(Value::String(pipeline_state.request_method.clone()).to_string())
-    } else if key_str == "http.request.path" {
-        // Return captured path if regex matched and captured something, otherwise original
+    } else if key_str == "request.verb" {
+        let verb = match pipeline_state.request_method.as_str() {
+            "GET" => "get",
+            "POST" => "create",
+            "PUT" => "update",
+            "DELETE" => "delete",
+            "WEBSOCKET" => "stream",
+            _ => "execute",
+        };
+        Some(Value::String(verb.to_string()).to_string())
+    } else if key_str == "request.path" {
+        Some(Value::String(pipeline_state.request_path.clone()).to_string())
+    } else if key_str == "request.capture" {
         if let Some(captured) = &pipeline_state.route_capture {
             Some(Value::String(captured.clone()).to_string())
         } else {
-            Some(Value::String(pipeline_state.request_path.clone()).to_string())
+            None
         }
-    } else if key_str == "http.request.query" {
+    } else if key_str == "request.query" {
         Some(Value::String(pipeline_state.request_query.clone()).to_string())
-    } else if key_str.starts_with("http.request.query.") {
-        let param_name = &key_str["http.request.query.".len()..];
+    } else if key_str.starts_with("request.query.") {
+        let param_name = &key_str["request.query.".len()..];
         let query_params: HashMap<String, String> = url::form_urlencoded::parse(pipeline_state.request_query.as_bytes())
             .into_owned()
             .collect();
         if let Some(val) = query_params.get(param_name) {
              Some(Value::String(val.clone()).to_string())
         } else { None }
-    } else if key_str == "http.request.body" {
+    } else if key_str == "request.body" {
         Some(Value::String(String::from_utf8_lossy(&pipeline_state.request_body).into_owned()).to_string())
-    } else if key_str == "http.source_ip" {
+    } else if key_str == "request.source_ip" {
         Some(Value::String(pipeline_state.source_ip.to_string()).to_string())
-    } else if key_str == "http.response.status" {
+    } else if key_str == "response.status" {
         Some(pipeline_state.status_code.to_string()) 
-    } else if key_str.starts_with("http.request.header.") {
-        let header_name = &key_str["http.request.header.".len()..];
-        // HeaderMap::get is case-insensitive for str, but let's be super explicit
+    } else if key_str == "response.body" {
+        Some(Value::String(String::from_utf8_lossy(&pipeline_state.response_body).into_owned()).to_string())
+    } else if key_str == "response.type" {
+        pipeline_state.response_headers.get(axum::http::header::CONTENT_TYPE).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())    } else if key_str.starts_with("request.header.") {
+        let header_name = &key_str["request.header.".len()..];
+        // HeaderMap::get is case-insensitive for str
         if let Some(val) = pipeline_state.request_headers.get(header_name) {
              Some(Value::String(val.to_str().unwrap_or("").to_string()).to_string())
         } else {
-             // Try case-insensitive fallback if somehow missed (unlikely but diagnostic)
+             // Fallback to case-insensitive scan
              let mut found = None;
              for (k, v) in &pipeline_state.request_headers {
                  if k.as_str().eq_ignore_ascii_case(header_name) {
@@ -341,14 +364,14 @@ pub unsafe extern "C" fn get_state_c(
              }
              found
         }
-    } else if key_str == "http.request.headers" {
+    } else if key_str == "request.headers" {
         let mut headers_map = serde_json::Map::new();
         for (k, v) in &pipeline_state.request_headers {
             headers_map.insert(k.to_string(), Value::String(v.to_str().unwrap_or("").to_string()));
         }
         Some(Value::Object(headers_map).to_string())
-    } else if key_str.starts_with("http.response.header.") {
-        let header_name = &key_str["http.response.header.".len()..];
+    } else if key_str.starts_with("response.header.") {
+        let header_name = &key_str["response.header.".len()..];
         if let Some(val) = pipeline_state.response_headers.get(header_name) {
              Some(Value::String(val.to_str().unwrap_or("").to_string()).to_string())
         } else { None }
@@ -367,19 +390,6 @@ pub unsafe extern "C" fn get_state_c(
     } else if key_str == "pipeline.modified" {
         Some(Value::String(pipeline_state.is_modified.to_string()).to_string())
     } else if key_str == "pipeline.execution_history" {
-        // Serialize execution history
-        // Record struct is in api, need to make sure we can serialize it. 
-        // ModuleExecutionRecord derives Serialize? Let's check api lib.rs.
-        // It does NOT derive Serialize/Deserialize in the view I saw earlier! 
-        // I need to check api lib.rs again.
-        // Assuming I might need to manual serialize or add derive there.
-        // Let's assume I need to add Serialize to ModuleExecutionRecord in api first.
-        // Wait, I can't check api now without another tool call.
-        // But assuming I can add it.
-        
-        // Actually, let's look at the implementation of ModuleExecutionRecord in api.
-        // It wasn't derived.
-        // I will add the code assuming it is serializable (I will fix api if not).
         let json = serde_json::to_string(&pipeline_state.execution_history).unwrap_or("[]".to_string());
         Some(json)
     } else if key_str == "server.routes" {
@@ -387,7 +397,7 @@ pub unsafe extern "C" fn get_state_c(
             return std::ptr::null_mut();
         }
         let pipeline = unsafe { &*(pipeline_state.pipeline_ptr as *const Pipeline) };
-        Some(pipeline.main_config_json.clone()) // We'll return the whole config for now or just routes
+        Some(pipeline.main_config_json.clone()) 
     } else if key_str == "server.pipeline_routing" {
         if pipeline_state.pipeline_ptr.is_null() {
             return std::ptr::null_mut();
@@ -412,14 +422,8 @@ pub unsafe extern "C" fn get_state_c(
                  entry.insert("config".to_string(), found_config);
                  
                  routing_list.push(Value::Object(entry));
-            } else {
-                 // Even if no router maps to this phase, we might want to show it?
-                 // The original code only showed mapped phases.
-                 // We will stick to mapped phases to avoid clutter, but iterating stages ensures order.
             }
         }
-        
-        // If router_map contains keys not in stages? (Shouldn't happen for valid pipeline phases)
         
         let json = serde_json::to_string(&routing_list).unwrap_or("[]".to_string());
         return alloc_fn(arena, CString::new(json).unwrap().as_ptr());
@@ -455,39 +459,48 @@ pub unsafe extern "C" fn set_state_c(
     let pipeline_state = &mut *(pipeline_state_ptr as *mut PipelineState);
 
     // --- Virtual Keys Setters ---
-    if key_str == "http.request.path" {
+    // --- Virtual Keys Setters ---
+    if key_str == "request.path" {
         if let Some(s) = value.as_str() {
             pipeline_state.request_path = s.to_string();
         }
-    } else if key_str == "http.request.path_capture" {
-        if let Some(s) = value.as_str() {
-            pipeline_state.route_capture = Some(s.to_string());
-        }
-    } else if key_str == "http.source_ip" {
+    } else if key_str == "request.capture" {
+        pipeline_state.route_capture = value.as_str().map(|s| s.to_string());
+    } else if key_str == "request.source_ip" {
         if let Some(s) = value.as_str() {
              if let Ok(ip) = s.parse::<std::net::IpAddr>() {
                  pipeline_state.source_ip = std::net::SocketAddr::new(ip, pipeline_state.source_ip.port());
              }
         }
-    } else if key_str == "http.response.status" {
+    } else if key_str == "response.status" {
         if let Some(i) = value.as_u64() {
              pipeline_state.status_code = i as u16;
         }
-    } else if key_str.starts_with("http.response.header.") {
-        let header_name = &key_str["http.response.header.".len()..];
+    } else if key_str == "response.body" {
         if let Some(s) = value.as_str() {
-             if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
-                 if let Ok(v) = s.parse() {
-                     pipeline_state.response_headers.insert(k, v);
-                 }
-             }
+            pipeline_state.response_body = s.as_bytes().to_vec();
         }
-    } else if key_str.starts_with("http.request.header.") {
-         let header_name = &key_str["http.request.header.".len()..];
+    } else if key_str == "response.type" {
+        if let Some(s) = value.as_str() {
+            if let Ok(v) = s.parse() {
+                pipeline_state.response_headers.insert(axum::http::header::CONTENT_TYPE, v);
+            }
+        }
+    } else if key_str.starts_with("request.header.") {
+         let header_name = &key_str["request.header.".len()..];
          if let Some(s) = value.as_str() {
             if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
                 if let Ok(v) = s.parse() {
                      pipeline_state.request_headers.insert(k, v);
+                }
+            }
+         }
+    } else if key_str.starts_with("response.header.") {
+         let header_name = &key_str["response.header.".len()..];
+         if let Some(s) = value.as_str() {
+            if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
+                if let Ok(v) = s.parse() {
+                     pipeline_state.response_headers.insert(k, v);
                 }
             }
          }
@@ -618,10 +631,18 @@ impl LoadedModule {
         let pipeline_state_arc = state.downcast_ref::<RwLock<PipelineState>>()
             .ok_or("Invalid State Type: Expected RwLock<PipelineState>")?;
 
-        let mut write_guard = pipeline_state_arc.write().map_err(|e| e.to_string())?;
-        let pipeline_state_ptr = &mut *write_guard as *mut PipelineState; // Used to pass to module as *mut
+        let pipeline_state_ptr = {
+            let mut write_guard = pipeline_state_arc.write().map_err(|e| e.to_string())?;
+            &mut *write_guard as *mut PipelineState
+        };
+        
+        // --- CRITICAL: Release lock before module execution to prevent deadlocks ---
+        // The raw pointer remains valid because we hold the Arc in 'state'.
         
         let result = unsafe { self.execute_internal(pipeline_state_ptr) };
+
+        // Re-acquire lock to handle results
+        let mut write_guard = pipeline_state_arc.write().map_err(|e| e.to_string())?;
 
         // Handle result (Wrapper responsibility)
         match result.flow_control {
@@ -784,11 +805,11 @@ pub struct Pipeline {
     pub router_map: HashMap<String, String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct RouterConfig {
     routes: Vec<RouterRouteEntry>
 }
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct RouterRouteEntry {
     matcher: Option<ox_webservice_api::UriMatcher>,
     module_id: String,
@@ -923,17 +944,42 @@ impl Pipeline {
                      phases.entry(target_phase).or_default().push(entry);
                  }
             } else {
-                 let entry = DispatchEntry {
-                     matcher: None,
-                     priority: 0, 
-                     module: loaded_module.clone(),
-                 };
-                 phases.entry("Content".to_string()).or_default().push(entry);
+                 // Fallback: If module has a phase specified in extra_params but no routes, add a catch-all.
+                 let target_phase = module_config.extra_params.get("phase")
+                     .and_then(|v| v.as_str())
+                     .map(|s| s.to_string());
+                 
+                 if let Some(phase) = target_phase {
+                     info!("Module '{}' has no routes but is in phase '{}'. Adding catch-all route.", loaded_module.module_name, phase);
+                     
+                     let priority = module_config.extra_params.get("priority")
+                         .and_then(|v| v.as_u64())
+                         .map(|v| v as u16)
+                         .unwrap_or(100);
+
+                     let entry = DispatchEntry {
+                         matcher: Some(ox_webservice_api::UriMatcher {
+                             protocol: None,
+                             hostname: None,
+                             path: ".*".to_string(),
+                             headers: None,
+                             query: None,
+                             priority,
+                             phase: Some(phase.clone()),
+                             status_code: None,
+                         }),
+                         priority,
+                         module: loaded_module.clone(),
+                     };
+                     phases.entry(phase).or_default().push(entry);
+                 } else {
+                     info!("Module '{}' produces no routes and has no phase. It will strictly be available for manual dispatch.", loaded_module.module_name);
+                 }
             }
         }
         
         for entries in phases.values_mut() {
-            entries.sort_by(|a, b| b.priority.cmp(&a.priority));
+            entries.sort_by(|a, b| a.priority.cmp(&b.priority));
         }
 
         // Parse Execution Order and Routers
@@ -995,16 +1041,33 @@ impl Pipeline {
             // 1. Check if router module is defined in configuration with a custom path
             let mut router_lib_path = PathBuf::from("target/debug").join(format!("lib{}.so", router_id));
             
+
+            
+            let mut manual_routes: Vec<RouterRouteEntry> = Vec::new();
+            
             for mod_cfg in &config.modules {
                 if mod_cfg.name == router_id {
                     if let Some(custom_path) = &mod_cfg.path {
                         router_lib_path = PathBuf::from(custom_path);
                         info!("Using custom path for router '{}': {:?}", router_id, router_lib_path);
                     }
+                    
+                    // MERGE routes from params if available
+                    let params_routes_opt = mod_cfg.params.as_ref().and_then(|p| p.get("routes"))
+                        .or_else(|| mod_cfg.extra_params.get("routes"));
+                        
+                    if let Some(Value::Array(param_routes)) = params_routes_opt {
+                         info!("Found {} manual routes in router '{}' configuration. Merging...", param_routes.len(), router_id);
+                         for route_val in param_routes {
+                             if let Ok(route) = serde_json::from_value::<RouterRouteEntry>(route_val.clone()) {
+                                 manual_routes.push(route);
+                             }
+                         }
+                    }
                     break;
                 }
             }
-
+ 
              if !router_lib_path.exists() {
                  return Err(format!("Router module '{}' not found at {:?}", router_id, router_lib_path));
             }
@@ -1025,6 +1088,27 @@ impl Pipeline {
             // Unique ID for this router instance
             let stage_router_instance_id = format!("{:?}_Router", phase);
             let c_phase_id = CString::new(stage_router_instance_id.clone()).unwrap();
+            
+            // Prepare Config
+            let mut all_routes: Vec<RouterRouteEntry> = entries.iter().map(|e| RouterRouteEntry {
+                    matcher: e.matcher.clone(),
+                    module_id: e.module.module_id.clone(),
+                    priority: e.priority
+            }).collect();
+            
+            all_routes.extend(manual_routes);
+            
+            // Critical: Sort routes by priority (Ascending) to ensure deterministic dispatch order.
+            // HashMap sourcing makes order random otherwise.
+            all_routes.sort_by(|a, b| a.priority.cmp(&b.priority));
+
+            let router_config = RouterConfig {
+                routes: all_routes
+            };
+
+            let router_config_json = serde_json::to_string(&router_config).unwrap();
+            info!("Initializing router for phase {:?} with {} routes", phase, router_config.routes.len());
+            let c_router_config = CString::new(router_config_json).unwrap();
             
             let module_interface_ptr = unsafe { init_fn(c_router_config.as_ptr(), c_phase_id.as_ptr(), core_api_ptr) };
              if module_interface_ptr.is_null() {
@@ -1098,23 +1182,28 @@ impl Pipeline {
         path: String, 
         query: String, 
         headers: HeaderMap, 
-        body_bytes: Vec<u8>, 
+        body_data: PipelineRequestBody, 
         protocol: String
     ) -> (u16, HeaderMap, PipelineResponseBody) {
+        
+        let (request_body_bytes, request_body_path, request_content_length) = match body_data {
+            PipelineRequestBody::Memory(bytes) => (bytes, None, 0),
+            PipelineRequestBody::File(path, len) => (Vec::new(), Some(path), len),
+        };
         
         let mut state = PipelineState {
             arena: Bump::new(),
             protocol,
-            request_method: method,
-            request_path: path,
+            request_method: method.clone(),
+            request_path: path.clone(),
             request_query: query,
             request_headers: headers,
-            request_body: body_bytes,
+            request_body: request_body_bytes,
             source_ip,
-            status_code: 500,
+            status_code: 500, 
             response_headers: HeaderMap::new(),
             response_body: Vec::new(),
-            module_context: Arc::new(RwLock::new(HashMap::new())),
+            module_context: Arc::new(RwLock::new(std::collections::HashMap::new())),
             pipeline_ptr: Arc::as_ptr(&self) as *const c_void, 
             is_modified: false,
             execution_history: Vec::new(),
@@ -1124,6 +1213,49 @@ impl Pipeline {
         match state.module_context.write() {
              Ok(mut ctx) => {
                  ctx.insert("module_name".to_string(), Value::String("NONE".to_string()));
+                 
+                 // --- Generic Request Mapping ---
+                 let verb = match method.as_str() {
+                    "GET" => "get",
+                    "POST" => "create", 
+                    "PUT" => "update",
+                    "DELETE" => "delete",
+                    "WEBSOCKET" => "stream",
+                    _ => "execute", 
+                 };
+                 let verb_norm = verb.to_string(); 
+                 ctx.insert("request.verb".to_string(), serde_json::Value::String(verb_norm));
+                 
+                 ctx.insert("request.resource".to_string(), serde_json::Value::String(path.clone()));
+                 
+                  let query_params: HashMap<String, String> = url::form_urlencoded::parse(state.request_query.as_bytes())
+                    .into_owned()
+                    .collect();
+
+                  let format_query = query_params.get("format").cloned();
+                  if let Some(f) = format_query {
+                      ctx.insert("request.format".to_string(), serde_json::Value::String(f));
+                  } else if let Some(accept) = state.request_headers.get("Accept") {
+                    if let Ok(s) = accept.to_str() {
+                         if s.contains("application/json") {
+                             ctx.insert("request.format".to_string(), serde_json::Value::String("json".to_string()));
+                         } else if s.contains("text/html") {
+                             ctx.insert("request.format".to_string(), serde_json::Value::String("html".to_string()));
+                         }
+                    }
+                  }
+
+                 // Map Body to Payload
+                 // Map Body to Payload / File
+                 if let Some(path) = &request_body_path {
+                      ctx.insert("request.body_path".to_string(), serde_json::Value::String(path.to_string_lossy().to_string()));
+                      ctx.insert("request.content_length".to_string(), serde_json::json!(request_content_length));
+                 } else {
+                     // Try to convert to string (UTF-8) from memory
+                     if let Ok(s) = String::from_utf8(state.request_body.clone()) {
+                         ctx.insert("request.payload".to_string(), serde_json::Value::String(s));
+                     }
+                 }
              }
              Err(e) => error!("Failed to lock module context for initialization: {}", e),
         }
@@ -1146,46 +1278,60 @@ impl Pipeline {
 
         // Downcast back to PipelineState
         if let Ok(state_lock) = final_state_arc.downcast::<RwLock<PipelineState>>() {
-             if let Ok(mut final_state) = state_lock.write() {
-                 let status_code = final_state.status_code;
-                 let response_headers = std::mem::take(&mut final_state.response_headers);
-                 // Check both the struct field (legacy/internal) and the generic context
-                 let mut response_body = std::mem::take(&mut final_state.response_body);
-                 
-                 if let Ok(ctx) = final_state.module_context.read() {
-                     if let Some(val) = ctx.get("http.response.body") {
-                         if let Some(s) = val.as_str() {
-                             response_body = s.as_bytes().to_vec();
-                         }
+             if let Ok(mut state) = state_lock.write() {
+                 // --- Generic Response Mapping ---
+                 // Extract values first to avoid borrowing state while mutating it
+                 let (generic_status, generic_body, generic_type) = if let Ok(ctx) = state.module_context.read() {
+                     (
+                         ctx.get("response.status").and_then(|v| v.as_u64()).map(|v| v as u16),
+                         ctx.get("response.body").and_then(|v| v.as_str()).map(|s| s.as_bytes().to_vec()),
+                         ctx.get("response.type").and_then(|v| v.as_str()).map(|s| s.to_string())
+                     )
+                 } else { (None, None, None) };
+ 
+                 if let Some(code) = generic_status {
+                     state.status_code = code;
+                 }
+                 if let Some(body) = generic_body {
+                     state.response_body = body;
+                 }
+                 if let Some(ctype) = generic_type {
+                     if let Ok(val) = ctype.parse() {
+                         eprintln!("DEBUG: Recovery: generic_type = {:?},", ctype); state.response_headers.insert(axum::http::header::CONTENT_TYPE, val);
                      }
                  }
-                 
-                 let mut pending_files = Vec::new();
-                 if let Ok(ctx) = final_state.module_context.read() {
-                     if let Some(val) = ctx.get("ox.response.files") {
-                         if let Some(arr) = val.as_array() {
-                             for v in arr {
-                                 if let Some(s) = v.as_str() {
-                                     pending_files.push(PathBuf::from(s));
-                                 }
-                             }
-                         }
-                     }
-                 }
+ 
+                 // Response Body Variant Logic
+                 let body_clone = state.response_body.clone();
+                 let files_list = if let Ok(ctx) = state.module_context.read() {
+                      ctx.get("ox.response.files").and_then(|v| v.as_array()).map(|arr| {
+                          arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect::<Vec<String>>()
+                      })
+                 } else { None };
 
-                 let body_variant = if pending_files.is_empty() {
-                     PipelineResponseBody::Memory(response_body)
+                 let body_variant = if let Some(files) = files_list {
+                      if !files.is_empty() {
+                          PipelineResponseBody::Files(files.into_iter().map(PathBuf::from).collect())
+                      } else {
+                          PipelineResponseBody::Memory(body_clone)
+                      }
+                 } else if body_clone.is_empty() {
+                      PipelineResponseBody::Memory(vec![])
                  } else {
-                     PipelineResponseBody::Files(pending_files)
+                      PipelineResponseBody::Memory(body_clone)
                  };
-                 
-                 return (status_code, response_headers, body_variant);
+
+                 (state.status_code, state.response_headers.clone(), body_variant)
+             } else {
+                 // Fallback if state recovery fails (Should not happen)
+                 error!("Failed to recover pipeline state after execution.");
+                 (500, HeaderMap::new(), PipelineResponseBody::Memory(Vec::from("Internal Server Error")))
              }
+        } else {
+            // Fallback if state recovery fails (Should not happen)
+            error!("Failed to recover pipeline state after execution.");
+            (500, HeaderMap::new(), PipelineResponseBody::Memory(Vec::from("Internal Server Error")))
         }
-        
-        // Fallback if state recovery fails (Should not happen)
-        error!("Failed to recover pipeline state after execution.");
-        (500, HeaderMap::new(), PipelineResponseBody::Memory(Vec::from("Internal Server Error")))
     }
 
     pub async fn handle_socket(
@@ -1214,7 +1360,7 @@ impl Pipeline {
                         path.clone(),
                         "".to_string(),
                         HeaderMap::new(),
-                        t.as_bytes().to_vec(),
+                        PipelineRequestBody::Memory(t.as_bytes().to_vec()),
                         protocol.clone()
                     ).await;
                     
@@ -1246,7 +1392,7 @@ impl Pipeline {
                          path.clone(),
                          "".to_string(),
                          HeaderMap::new(),
-                         b,
+                         PipelineRequestBody::Memory(b),
                          protocol.clone()
                      ).await;
  
@@ -1286,10 +1432,52 @@ impl Pipeline {
         protocol: String,
     ) -> Response {
         let (parts, body) = req.into_parts();
-        // Limit body size check? using usize::MAX for now as per previous code attempt or reasonably large?
-        // Previous code used 1024*1024 (1MB). I should probably keep it or increase it if needed, but for now stick to previous pattern or reasonably safer limit.
-        // The user didn't complain about request body size.
-        let body_bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap_or_default().to_vec();
+        
+        // 1. Create Temp File (auto-cleanup on drop)
+        // We use NamedTempFile to manage the lifecycle (deletion on drop), but we open an async handle for writing.
+        let temp_file = match NamedTempFile::new() {
+             Ok(f) => f,
+             Err(e) => {
+                 error!("Failed to create temp file: {}", e);
+                 return Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap();
+             }
+        };
+        let temp_path = temp_file.path().to_owned();
+
+        // 2. Open Async File via Tokio
+        let mut async_file = match File::create(&temp_path).await {
+            Ok(f) => f,
+            Err(e) => {
+                error!("Failed to create async file handle: {}", e);
+                 return Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap();
+            }
+        };
+
+        // 3. Stream Body
+        let mut body_stream = body.into_data_stream();
+        let mut total_len = 0u64;
+
+        while let Some(chunk_res) = body_stream.next().await {
+             match chunk_res {
+                 Ok(bytes) => {
+                     if let Err(e) = async_file.write_all(&bytes).await {
+                          error!("Failed to write to temp file: {}", e);
+                          return Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap();
+                     }
+                     total_len += bytes.len() as u64;
+                 }
+                 Err(e) => {
+                      error!("Error reading body stream: {}", e);
+                      return Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap();
+                 }
+             }
+        }
+        
+        if let Err(e) = async_file.flush().await {
+             error!("Failed to flush temp file: {}", e);
+             return Response::builder().status(500).body(Body::from("Internal Server Error")).unwrap();
+        }
+        drop(async_file);
         
         let path = parts.uri.path().to_string();
         let query = parts.uri.query().unwrap_or("").to_string();
@@ -1302,7 +1490,7 @@ impl Pipeline {
             path,
             query,
             headers,
-            body_bytes,
+            PipelineRequestBody::File(temp_path, total_len),
             protocol,
         ).await;
 
@@ -1359,7 +1547,7 @@ impl Pipeline {
 mod tests {
     use super::*;
     use std::sync::{Arc};
-    use ox_webservice_api::{ModuleConfig, Phase, ModuleInterface, LogLevel, ReturnParameters, LogCallback, AllocFn};
+    use ox_webservice_api::{ModuleConfig, ModuleInterface, LogLevel, ReturnParameters, LogCallback, AllocFn};
     use axum::http::HeaderMap;
 
     
@@ -1389,7 +1577,6 @@ mod tests {
         // Module A: Header Matcher
         let mut config_a = ModuleConfig::default();
         config_a.name = "ModuleA".to_string();
-        config_a.phase = Phase::Content;
         let mut headers = HashMap::new();
         headers.insert("x-test".to_string(), "^true$".to_string());
         config_a.headers = Some(headers);
@@ -1439,12 +1626,12 @@ mod tests {
             module_config: config_a,
             metrics: Arc::new(ModuleMetrics::new()),
             alloc_raw: alloc_raw_c,
+            phase_metric: None,
         });
 
         // Module B: Query Matcher
         let mut config_b = ModuleConfig::default();
         config_b.name = "ModuleB".to_string();
-        config_b.phase = Phase::Content;
         let mut query = HashMap::new();
         query.insert("mode".to_string(), "special".to_string());
         config_b.query = Some(query);
@@ -1462,6 +1649,7 @@ mod tests {
             module_config: config_b,
             metrics: Arc::new(ModuleMetrics::new()),
             alloc_raw: alloc_raw_c,
+            phase_metric: None,
         });
 
         // Construct generic pipeline
@@ -1480,6 +1668,7 @@ mod tests {
         let pipeline = Pipeline {
              core: core_pipeline,
              main_config_json: "{}".to_string(),
+             router_map: HashMap::new(),
         };
         let pipeline_arc = Arc::new(pipeline);
 
@@ -1492,7 +1681,7 @@ mod tests {
             "/".to_string(),
             "".to_string(),
             headers,
-            vec![],
+            PipelineRequestBody::Memory(vec![]),
             "HTTP/1.1".to_string()
         ).await;
         
@@ -1506,7 +1695,7 @@ mod tests {
             "/".to_string(),
             "mode=special".to_string(),
             HeaderMap::new(),
-            vec![],
+            PipelineRequestBody::Memory(vec![]),
             "HTTP/1.1".to_string()
         ).await;
         
@@ -1522,7 +1711,7 @@ mod tests {
             "/".to_string(),
             "mode=special".to_string(),
             headers_3,
-            vec![],
+            PipelineRequestBody::Memory(vec![]),
             "HTTP/1.1".to_string()
         ).await;
         
@@ -1537,7 +1726,7 @@ mod tests {
             "/".to_string(),
             "mode=normal".to_string(),
             HeaderMap::new(),
-            vec![],
+            PipelineRequestBody::Memory(vec![]),
             "HTTP/1.1".to_string()
         ).await;
         

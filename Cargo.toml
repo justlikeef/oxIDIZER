@@ -20,6 +20,7 @@ members = [
     "ox_persistence/drivers/db/ox_persistence_driver_db_sql",
     "ox_persistence/drivers/db/ox_persistence_driver_db_sqlite",
     "ox_persistence_driver_manager",
+    "ox_persistence_datasource_manager",
     "ox_type_converter",
     "ox_webservice",
     "ox_webservice_api",

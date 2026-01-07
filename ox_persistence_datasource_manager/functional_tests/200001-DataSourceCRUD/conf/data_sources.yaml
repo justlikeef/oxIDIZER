@@ -1,0 +1,7 @@
+data_sources:
+  - id: "ds1"
+    name: "Primary PostgreSQL"
+    driver_id: "postgres"
+    config:
+      host: "localhost"
+      port: 5432

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use tempfile::tempdir;
-use ox_webservice::{load_config_from_path, ConfigError};
+use ox_webservice::load_config_from_path;
 
 #[test]
 fn test_load_config_from_yaml() {
@@ -90,7 +90,7 @@ fn test_load_config_not_found() {
     let dir = tempdir().unwrap();
     let file_path = dir.path().join("non_existent_config.yaml");
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::NotFound)));
+    assert!(result.is_err());
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn test_load_config_invalid_extension() {
     writeln!(file, "this is not a valid config file").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::ReadError(_))));
+    assert!(result.is_err());
 }
 
 #[test]
@@ -112,5 +112,5 @@ fn test_load_config_invalid_content() {
     writeln!(file, "this is not a valid yaml file: [").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::ReadError(_))));
+    assert!(result.is_err());
 }

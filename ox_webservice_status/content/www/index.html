@@ -7,6 +7,7 @@
     <title>System Status | oxIDIZER</title>
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="stylesheet" href="/status/css/status.css">
+    <script src="/js/common.js"></script>
 </head>
 
 <body>
@@ -16,19 +17,10 @@
                 <div class="logo-area">
                     <img src="/images/logo.png" alt="oxIDIZER" class="logo">
                     <h1>System Status</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
                 </div>
                 <div class="header-status-area">
-                    <span class="status-badge" id="status-badge">ONLINE</span>
-                    <div class="controls-area">
-                        <label class="control-item">
-                            <input type="checkbox" id="auto-refresh-toggle" checked>
-                            Auto Refresh
-                        </label>
-                        <label class="control-item">
-                            Refresh (s):
-                            <input type="number" id="refresh-interval" min="5" max="300" value="30">
-                        </label>
-                    </div>
+                    <span class="status-badge" id="status-badge" style="border-radius: 4px;">ONLINE</span>
                 </div>
             </div>
         </header>

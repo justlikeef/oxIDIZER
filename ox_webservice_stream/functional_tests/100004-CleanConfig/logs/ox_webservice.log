@@ -1,0 +1,44 @@
+2026-01-06T23:08:01.418195620-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-06T23:08:01.418438517-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":28110,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"test_module_0","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/ox_content.yaml"},"phase":"Content","priority":999}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":0,"phase":"Content","module_id":"test_module_0","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-06T23:08:01.418470393-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-06T23:08:01.418535058-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'test_module_0'
+2026-01-06T23:08:01.418559618-05:00 INFO ox_webservice::pipeline - Loading module 'test_module_0' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:01.420252275-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/test_content"
+2026-01-06T23:08:01.420516744-05:00 DEBUG ox_webservice::pipeline - [test_module_0] Fully processed config for "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/plain",
+      "url": ".*[.]txt$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    }
+  ]
+}
+2026-01-06T23:08:01.431275656-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream initialized
+2026-01-06T23:08:01.431548357-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-06T23:08:01.432070049-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-06T23:08:01.433895839-05:00 INFO ox_webservice - Listening on 0.0.0.0:28110
+2026-01-06T23:08:04.422118236-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-06T23:08:04.422289547-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-06T23:08:04.422407554-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: 
+2026-01-06T23:08:04.422455253-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:04.422469810-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:04.422483244-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+2026-01-06T23:08:04.437061228-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-06T23:08:04.437224182-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Found path_capture: ''
+2026-01-06T23:08:04.437320995-05:00 INFO ox_webservice::pipeline - [test_module_0] ox_webservice_stream: Streaming file for path: 
+2026-01-06T23:08:04.437355755-05:00 DEBUG ox_webservice::pipeline - Module 'test_module_0' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:04.437371419-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:04.437408947-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true

@@ -1,0 +1,14 @@
+id: "json_datasource_form"
+title: "JSON File Data Source Configuration"
+fields:
+  - name: "path"
+    label: "JSON File Path"
+    data_type: "string"
+    props:
+      placeholder: "data/storage.json"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

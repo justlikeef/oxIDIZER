@@ -184,9 +184,12 @@ impl<'a> OxModule<'a> {
         ) };
 
         // --- Generic Conflict Check for Skip ---
-        let existing_body = match ctx.get("http.response.body") {
-             Some(val) => val.as_str().unwrap_or("").to_string(),
-             None => String::new(),
+        let existing_body = match ctx.get("response.body") {
+              Some(val) => val.as_str().unwrap_or("").to_string(),
+              None => match ctx.get("response.body") {
+                  Some(val) => val.as_str().unwrap_or("").to_string(),
+                  None => String::new(),
+              }
         };
 
         let has_existing_content = !existing_body.is_empty();
@@ -195,7 +198,7 @@ impl<'a> OxModule<'a> {
              match self.content_config.on_content_conflict {
                  Some(ContentConflictAction::error) => {
                       self.log(LogLevel::Error, "ox_webservice_template_jinja2: Conflict error (early check).".to_string());
-                      let _ = ctx.set("http.response.status", serde_json::json!(500));
+                       let _ = ctx.set("response.status", serde_json::json!(500));
                        return HandlerResult {
                           status: ModuleStatus::Modified,
                           flow_control: FlowControl::Continue,
@@ -218,11 +221,12 @@ impl<'a> OxModule<'a> {
              }
         }
 
-        let request_path = match ctx.get("http.request.path") {
+        // Generic Request Path
+        let request_path = match ctx.get("request.resource") {
             Some(v) => v.as_str().unwrap_or("/").to_string(),
             None => {
                  self.log(LogLevel::Error, "ox_webservice_template_jinja2: request_path not found.".to_string());
-                 let _ = ctx.set("http.response.status", serde_json::json!(500));
+                 let _ = ctx.set("response.status", serde_json::json!(500));
                   return HandlerResult {
                      status: ModuleStatus::Modified,
                      flow_control: FlowControl::Continue,
@@ -289,9 +293,10 @@ impl<'a> OxModule<'a> {
                                         }
                                     }
 
-                                    let _ = ctx.set(&format!("http.response.header.Content-Type"), serde_json::Value::String(mapping.mimetype.clone()));
-                                    let _ = ctx.set("http.response.body", serde_json::Value::String(final_content_string));
-                                    let _ = ctx.set("http.response.status", serde_json::json!(200));
+                                    // Set Generic Keys
+                                    let _ = ctx.set("response.type", serde_json::Value::String(mapping.mimetype.clone()));
+                                    let _ = ctx.set("response.body", serde_json::Value::String(final_content_string.clone()));
+                                    let _ = ctx.set("response.status", serde_json::json!(200));
 
                                     return HandlerResult {
                                         status: ModuleStatus::Modified,
@@ -326,7 +331,7 @@ impl<'a> OxModule<'a> {
                                         );
                                     }
 
-                                    let _ = ctx.set("http.response.status", serde_json::json!(500));
+                                    let _ = ctx.set("response.status", serde_json::json!(500));
                                     return HandlerResult {
                                         status: ModuleStatus::Modified,
                                         flow_control: FlowControl::Continue,
@@ -345,7 +350,7 @@ impl<'a> OxModule<'a> {
                                     request_path, e
                                 ),
                             );
-                            let _ = ctx.set("http.response.status", serde_json::json!(500));
+                            let _ = ctx.set("response.status", serde_json::json!(500));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::Continue,
@@ -373,9 +378,10 @@ impl<'a> OxModule<'a> {
                     request_path
                 ),
             );
-            let _ = ctx.set("http.response.status", serde_json::json!(404));
-            let _ = ctx.set("http.response.body", serde_json::Value::String("404 Not Found".to_string()));
-            
+            // Generic 404
+            let _ = ctx.set("response.status", serde_json::json!(404));
+            let _ = ctx.set("response.body", serde_json::Value::String("404 Not Found".to_string()));
+
              HandlerResult {
                 status: ModuleStatus::Modified,
                 flow_control: FlowControl::Continue,
@@ -569,11 +575,7 @@ unsafe extern "C" fn get_config_c(
     if instance_ptr.is_null() { return std::ptr::null_mut(); }
     let handler = unsafe { &*(instance_ptr as *mut OxModule) };
     
-    let mut config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
-    if let Value::Object(ref mut map) = config_val {
-         let mimetypes_val = serde_json::to_value(&handler.mimetypes).unwrap_or(Value::Null);
-         map.insert("loaded_mimetypes".to_string(), mimetypes_val);
-    }
+    let config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
     
     let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
     unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }

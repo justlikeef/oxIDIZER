@@ -20,6 +20,7 @@ fn test_path_traversal_protection() {
     let config = DriverManagerConfig {
         drivers_file: "dummy".to_string(),
         driver_root: driver_root.to_str().unwrap().to_string(),
+        on_content_conflict: None,
     };
     
     let manager = DriverManager::new(config);

@@ -42,6 +42,8 @@ fn test_dynamic_module_loading_custom_path() {
              phases: Some(vec![]) // Empty phases
         }),
         servers: vec![],
+        merge: None,
+        merge_recursive: None,
     };
 
     // 4. Initialize Pipeline
@@ -90,6 +92,8 @@ fn test_dynamic_router_loading_custom_path() {
              phases: Some(vec![phase_map])
         }),
         servers: vec![],
+        merge: None,
+        merge_recursive: None,
     };
     
     // 4. Initialize
@@ -122,6 +126,8 @@ fn test_dynamic_loading_failure() {
              phases: Some(vec![])
         }),
         servers: vec![],
+        merge: None,
+        merge_recursive: None,
     };
 
     let result = Pipeline::new(&server_config, "{}".to_string());

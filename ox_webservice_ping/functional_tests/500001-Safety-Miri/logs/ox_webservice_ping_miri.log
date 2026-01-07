@@ -1,0 +1,40 @@
+warning: unused import: `super::*`
+   --> ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+warning: unused imports: `AllocFn` and `WebServiceApiV1`
+ --> ox_webservice_test_utils/src/lib.rs:3:5
+  |
+3 |     AllocFn, AllocStrFn, HandlerResult, LogLevel, ModuleInterface, PipelineState, WebServiceApiV1, C...
+  |     ^^^^^^^                                                                       ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_webservice_test_utils` (lib) generated 1 warning (run `cargo fix --lib -p ox_webservice_test_utils` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.96s
+     Running unittests src/lib.rs (/var/repos/oxIDIZER/target/miri/x86_64-unknown-linux-gnu/debug/deps/ox_webservice_ping-fa01e9cbba710564)
+warning: unused import: `PipelineState`
+ --> ox_webservice_ping/src/tests.rs:2:25
+  |
+2 | ...ice_api::{PipelineState, ModuleSta...
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+
+running 1 test
+test tests::test_ping_basic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+   Doc-tests ox_webservice_ping
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

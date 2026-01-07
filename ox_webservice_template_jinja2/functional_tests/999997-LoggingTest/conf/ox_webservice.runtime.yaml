@@ -18,5 +18,5 @@ servers:
 - bind_address: 0.0.0.0
   hosts:
   - name: .*
-  port: 3000
+  port: 28120
   protocol: http

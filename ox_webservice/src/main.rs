@@ -186,6 +186,19 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
         let servers = server_details.hosts.clone();
 
         let app = Router::new()
+            .route("/ws/*path", axum::routing::get({
+                let pipeline_holder_server = pipeline_holder_server.clone();
+                let protocol_clone = protocol.clone();
+                move |ws: axum::extract::WebSocketUpgrade, axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<SocketAddr>, axum::extract::Path(path): axum::extract::Path<String>| async move {
+                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                    // If host is https, use WSS for the websocket protocol identifier
+                    let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
+                    ws.on_upgrade(move |socket| async move {
+                        pipeline_arc.handle_socket(socket, addr, path, ws_protocol).await;
+                    })
+                }
+            }))
+
             .route("/", axum::routing::any({
                 let pipeline_holder_server = pipeline_holder_server.clone();
                 let protocol_clone = protocol.clone();
@@ -194,6 +207,7 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
                     
+
                     async move {
                          pipeline_arc.execute_request(connect_info, req, protocol_clone).await
                     }

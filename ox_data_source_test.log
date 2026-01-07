@@ -1,0 +1,9 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_data_source (Ports: 3615 3616 3617 3618 3619)
+[INFO] RUNNING SPECIFIC TESTS: 200003-RoutingSeparation
+[INFO] ==================================================
+[INFO] Running test: 200003-RoutingSeparation
+[INFO] Result: PASSED
+[RESULT] ox_persistence_data_source:200003-RoutingSeparation:PASSED
+[INFO] Module ox_persistence_data_source completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------

@@ -1,0 +1,136 @@
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.05s
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `fuzz/target/x86_64-unknown-linux-gnu/release/process_file_content -artifact_prefix=/var/repos/oxIDIZER/ox_fileproc/fuzz/artifacts/process_file_content/ -max_total_time=15 /var/repos/oxIDIZER/ox_fileproc/fuzz/corpus/process_file_content`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3548797446
+INFO: Loaded 1 modules   (51882 inline 8-bit counters): 51882 [0x5ec8cbe00980, 0x5ec8cbe0d42a), 
+INFO: Loaded 1 PC tables (51882 PCs): 51882 [0x5ec8cbe0d430,0x5ec8cbed7ed0), 
+INFO:     7113 files found in /var/repos/oxIDIZER/ox_fileproc/fuzz/corpus/process_file_content
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 7113 min: 1b max: 238b total: 195988b rss: 42Mb
+Slowest unit: 12 s:
+artifact_prefix='/var/repos/oxIDIZER/ox_fileproc/fuzz/artifacts/process_file_content/'; Test unit written to /var/repos/oxIDIZER/ox_fileproc/fuzz/artifacts/process_file_content/slow-unit-7e73988ab2e794d861d881f2111ccad2c93ddda3
+Base64: fTt7elstDQAAAAAAABwNLy07YEB7elsAHA0vLTtgQHt6Wy0NLw0vLX57DXsAAAAAHA0vLTtgQHt6Wy0NAAAALQ0vDS8tfnsNewAAAAAcDS8tO2BAe3pbLQ0AAAAAAAAAAAAAHA0vLTtgQHt6Wy0NAAAAAAAAHA0vLTtgQHt6WwAcDS8tO2BAe3pbLQ0vDS8tfnsNewAAAAAcDS8tO2BAe3pbLQ0AAAAtDS8NLy1+ew17AAAAABwNLy07YEB7elstDQAAAAAAQHt6Wy0NLzQNLy17fg17
+#7114	INITED cov: 10096 ft: 38024 corp: 4490/115Kb exec/s: 296 rss: 769Mb
+#7114	DONE   cov: 10096 ft: 38024 corp: 4490/115Kb lim: 238 exec/s: 296 rss: 769Mb
+Done 7114 runs in 24 second(s)

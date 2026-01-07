@@ -1,0 +1,807 @@
+2026-01-06T23:08:04.621663874-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-06T23:08:04.621792074-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/conf/ox_webservice.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default_http","protocol":"http","port":3000,"bind_address":"0.0.0.0","hosts":[{"name":"localhost","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"default_template_jinja2","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"}},{"id":"default_theme_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"}},{"id":"default_layout_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"}},{"id":"messaging_mqtt","name":"ox_messaging_mqtt","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"}},{"id":"package_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"},"on_content_conflict":"skip"},{"id":"data_source_manager","name":"ox_persistence_datasource_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"data_sources_dir":"/var/repos/oxIDIZER/ox_persistence/conf/datasources","on_content_conflict":"skip"}},{"id":"data_source_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"}},{"id":"driver_manager","name":"ox_persistence_driver_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"drivers_file":"/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"},"phase":"Content"},{"id":"driver_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"},"phase":"Content"},{"id":"driver_manager_stream_wasm","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"},"phase":"Content"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"errorhandler_jinja2","name":"ox_webservice_errorhandler_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"}},{"id":"status_module","name":"ox_webservice_status","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"}},{"id":"stream_status","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"}},{"id":"ping_module","name":"ox_webservice_ping","routes":null,"headers":null,"query":null,"path":null,"params":null,"phase":"Content"},{"id":"forwarded_for","name":"ox_webservice_forwarded_for","routes":null,"headers":null,"query":null,"path":null,"params":null},{"id":"restore_ip","name":"ox_webservice_restore_ip","routes":null,"headers":null,"query":null,"path":null,"params":null}],"pipeline":{"phases":[{"PreEarlyRequest":"ox_pipeline_router"},{"EarlyRequest":"ox_pipeline_router"},{"PostEarlyRequest":"ox_pipeline_router"},{"PreAuthentication":"ox_pipeline_router"},{"Authentication":"ox_pipeline_router"},{"PostAuthentication":"ox_pipeline_router"},{"PreAuthorization":"ox_pipeline_router"},{"Authorization":"ox_pipeline_router"},{"PostAuthorization":"ox_pipeline_router"},{"PreContent":"ox_pipeline_router"},{"Content":"ox_pipeline_router"},{"PostContent":"ox_pipeline_router"},{"PreAccounting":"ox_pipeline_router"},{"Accounting":"ox_pipeline_router"},{"PostAccounting":"ox_pipeline_router"},{"PreErrorHandling":"ox_pipeline_router"},{"ErrorHandling":"ox_pipeline_router"},{"PostErrorHandling":"ox_pipeline_router"},{"PreLateRequest":"ox_pipeline_router"},{"LateRequest":"ox_pipeline_router"},{"PostLateRequest":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*[.]jinja[2]?$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_template_jinja2","status_code":null},{"protocol":null,"hostname":null,"url":"^(/(css|js)/.*?)$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_theme_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^(.*)$","headers":null,"query":null,"priority":999,"phase":"Content","module_id":"default_layout_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/upload","headers":{"Method":"POST"},"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(list|install)/?","headers":{"Accept":"application/json"},"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(list|install)/?","headers":null,"query":{"format":"json"},"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"package_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":"Content","module_id":"data_source_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":null,"query":{"format":"json"},"priority":499,"phase":"Content","module_id":"data_source_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"data_source_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":{"format":"json"},"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/wasm/(.*)?$","headers":null,"query":null,"priority":499,"phase":null,"module_id":"driver_manager_stream_wasm","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"driver_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":499,"phase":"ErrorHandling","module_id":"errorhandler_jinja2","status_code":"4??|5??"},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":{"format":"json"},"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"stream_status","status_code":null},{"protocol":null,"hostname":null,"url":"^/ping/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"ping_module","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PreEarlyRequest","module_id":"forwarded_for","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PostLateRequest","module_id":"restore_ip","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-06T23:08:04.621820479-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-06T23:08:04.621871071-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_template_jinja2'
+2026-01-06T23:08:04.621882758-05:00 INFO ox_webservice::pipeline - Loading module 'default_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-06T23:08:04.626077376-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content"
+2026-01-06T23:08:04.626599919-05:00 DEBUG ox_webservice::pipeline - [default_template_jinja2] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:04.655231619-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 13 mimetypes.
+2026-01-06T23:08:04.655343661-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2 initialized
+2026-01-06T23:08:04.655430658-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_theme_stream'
+2026-01-06T23:08:04.655444848-05:00 INFO ox_webservice::pipeline - Loading module 'default_theme_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:04.657099284-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/themes/brown/www/"
+2026-01-06T23:08:04.657396262-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:04.686632762-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream initialized
+2026-01-06T23:08:04.686828433-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_layout_stream'
+2026-01-06T23:08:04.686845043-05:00 INFO ox_webservice::pipeline - Loading module 'default_layout_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:04.687109260-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/www/"
+2026-01-06T23:08:04.687367998-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:04.716408298-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream initialized
+2026-01-06T23:08:04.716589454-05:00 INFO ox_webservice::pipeline - Loading module 'messaging_mqtt' from "target/debug/libox_messaging_mqtt.so"
+2026-01-06T23:08:04.717961609-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Starting Broker...
+OxMessagingMqtt: Initializing...
+Config file ox_messaging_mqtt/conf/broker.yaml not found. Using default.
+2026-01-06T23:08:04.718713072-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] spawn;
+2026-01-06T23:08:04.718939505-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start;
+2026-01-06T23:08:04.719106219-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] run;
+2026-01-06T23:08:04.719237736-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] [>] incoming; connection_id=0
+2026-01-06T23:08:04.719270267-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] incoming_connect; client_id="console"
+2026-01-06T23:08:04.719324143-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Client connection registered connection_id=0
+2026-01-06T23:08:04.719369750-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] [<] outgoing; connection_id=0
+2026-01-06T23:08:04.719398624-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] outgoing_ack; client_id="console"
+2026-01-06T23:08:04.719413919-05:00 DEBUG ox_webservice::pipeline - [messaging_mqtt] Acks sent to device acks_count=1
+2026-01-06T23:08:04.719592786-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start; console=ConsoleLink { config: ConsoleSettings { listen: "0.0.0.0:3030", filter_handle: None }, connection_id: 0, router_tx: Sender, _link_rx: LinkRx { connection_id: 0, router_tx: Sender, router_rx: Receiver, send_buffer: Mutex { data: [] }, cache: [] } }
+2026-01-06T23:08:04.722466800-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Listening for remote connections config="v4-1" listen_addr="0.0.0.0:1883"
+2026-01-06T23:08:05.731186288-05:00 INFO ox_webservice::pipeline - Module 'ox_messaging_mqtt' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-06T23:08:05.731377887-05:00 INFO ox_webservice::pipeline - Injected 3 extra URI routes into module 'package_manager'
+2026-01-06T23:08:05.731392836-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "target/debug/libox_package_manager.so"
+2026-01-06T23:08:05.731441033-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] accept name="v4-1" addr=127.0.0.1:57233 count=0 tenant=None
+2026-01-06T23:08:05.731486200-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] remote_link; tenant_id=None
+2026-01-06T23:08:05.731698301-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] Remote link error error=Network(Io(Custom { kind: ConnectionAborted, error: "connection closed by peer" }))
+2026-01-06T23:08:05.732239830-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'package_manager_stream'
+2026-01-06T23:08:05.732296541-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:05.732593005-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www"
+2026-01-06T23:08:05.732858900-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:05.762742971-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream initialized
+2026-01-06T23:08:05.762964689-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'data_source_manager'
+2026-01-06T23:08:05.762990020-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager' from "target/debug/libox_persistence_datasource_manager.so"
+2026-01-06T23:08:05.764021679-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'data_source_manager_stream'
+2026-01-06T23:08:05.764092633-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:05.764400139-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/content/www/"
+2026-01-06T23:08:05.764810597-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:05.795538135-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream initialized
+2026-01-06T23:08:05.795775461-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'driver_manager'
+2026-01-06T23:08:05.795792019-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager' from "target/debug/libox_persistence_driver_manager.so"
+2026-01-06T23:08:05.796545676-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream'
+2026-01-06T23:08:05.796602237-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:05.796851774-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/content/www"
+2026-01-06T23:08:05.797123217-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:05.828389249-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream initialized
+2026-01-06T23:08:05.828553594-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream_wasm'
+2026-01-06T23:08:05.828569121-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream_wasm' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:05.828831830-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
+2026-01-06T23:08:05.829068947-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:05.858928576-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream initialized
+2026-01-06T23:08:05.859109617-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "target/debug/libox_pipeline_router.so"
+2026-01-06T23:08:05.859617965-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-06T23:08:05.859681236-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'errorhandler_jinja2'
+2026-01-06T23:08:05.859693749-05:00 INFO ox_webservice::pipeline - Loading module 'errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
+2026-01-06T23:08:05.862634241-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/error_debug"
+2026-01-06T23:08:05.862747067-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'status_module'
+2026-01-06T23:08:05.862761617-05:00 INFO ox_webservice::pipeline - Loading module 'status_module' from "target/debug/libox_webservice_status.so"
+2026-01-06T23:08:05.898152345-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'stream_status'
+2026-01-06T23:08:05.898295208-05:00 INFO ox_webservice::pipeline - Loading module 'stream_status' from "target/debug/libox_webservice_stream.so"
+2026-01-06T23:08:05.898652378-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_status/content/www/"
+2026-01-06T23:08:05.898997272-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-06T23:08:05.930538986-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream initialized
+2026-01-06T23:08:05.930718979-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'ping_module'
+2026-01-06T23:08:05.930735200-05:00 INFO ox_webservice::pipeline - Loading module 'ping_module' from "target/debug/libox_webservice_ping.so"
+2026-01-06T23:08:05.930962393-05:00 INFO ox_webservice::pipeline - [ping_module] ox_webservice_ping initialized
+2026-01-06T23:08:05.931039498-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'forwarded_for'
+2026-01-06T23:08:05.931053975-05:00 INFO ox_webservice::pipeline - Loading module 'forwarded_for' from "target/debug/libox_webservice_forwarded_for.so"
+2026-01-06T23:08:05.931349870-05:00 INFO ox_webservice::pipeline - [forwarded_for] ox_webservice_forwarded_for initialized
+2026-01-06T23:08:05.931428646-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'restore_ip'
+2026-01-06T23:08:05.931447344-05:00 INFO ox_webservice::pipeline - Loading module 'restore_ip' from "target/debug/libox_webservice_restore_ip.so"
+2026-01-06T23:08:05.932448172-05:00 INFO ox_webservice::pipeline - [restore_ip] ox_webservice_restore_ip initialized
+2026-01-06T23:08:05.932596160-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreEarlyRequest" with 1 routes
+2026-01-06T23:08:05.932645139-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreEarlyRequest" with 1 routes
+2026-01-06T23:08:05.934168981-05:00 INFO ox_webservice::pipeline - Initializing router for phase "EarlyRequest" with 0 routes
+2026-01-06T23:08:05.934241393-05:00 INFO ox_webservice::pipeline - Initializing router for phase "EarlyRequest" with 0 routes
+2026-01-06T23:08:05.934278004-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostEarlyRequest" with 0 routes
+2026-01-06T23:08:05.934297656-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostEarlyRequest" with 0 routes
+2026-01-06T23:08:05.934316497-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthentication" with 0 routes
+2026-01-06T23:08:05.934332860-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthentication" with 0 routes
+2026-01-06T23:08:05.934351021-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authentication" with 0 routes
+2026-01-06T23:08:05.934375325-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authentication" with 0 routes
+2026-01-06T23:08:05.934411821-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthentication" with 0 routes
+2026-01-06T23:08:05.934453669-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthentication" with 0 routes
+2026-01-06T23:08:05.934476982-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthorization" with 0 routes
+2026-01-06T23:08:05.934493614-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthorization" with 0 routes
+2026-01-06T23:08:05.934512078-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authorization" with 0 routes
+2026-01-06T23:08:05.934528308-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authorization" with 0 routes
+2026-01-06T23:08:05.934545910-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthorization" with 0 routes
+2026-01-06T23:08:05.934561653-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthorization" with 0 routes
+2026-01-06T23:08:05.934579154-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreContent" with 0 routes
+2026-01-06T23:08:05.934594675-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreContent" with 0 routes
+2026-01-06T23:08:05.934716008-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 18 routes
+2026-01-06T23:08:05.934820676-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 18 routes
+2026-01-06T23:08:05.964493564-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostContent" with 0 routes
+2026-01-06T23:08:05.964665224-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostContent" with 0 routes
+2026-01-06T23:08:05.964705950-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAccounting" with 0 routes
+2026-01-06T23:08:05.964726061-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAccounting" with 0 routes
+2026-01-06T23:08:05.964744533-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Accounting" with 0 routes
+2026-01-06T23:08:05.964759972-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Accounting" with 0 routes
+2026-01-06T23:08:05.964778406-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAccounting" with 0 routes
+2026-01-06T23:08:05.964793929-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAccounting" with 0 routes
+2026-01-06T23:08:05.964812086-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreErrorHandling" with 0 routes
+2026-01-06T23:08:05.964826855-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreErrorHandling" with 0 routes
+2026-01-06T23:08:05.964855913-05:00 INFO ox_webservice::pipeline - Initializing router for phase "ErrorHandling" with 1 routes
+2026-01-06T23:08:05.964888363-05:00 INFO ox_webservice::pipeline - Initializing router for phase "ErrorHandling" with 1 routes
+2026-01-06T23:08:05.966210512-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostErrorHandling" with 0 routes
+2026-01-06T23:08:05.966282156-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostErrorHandling" with 0 routes
+2026-01-06T23:08:05.966309109-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreLateRequest" with 0 routes
+2026-01-06T23:08:05.966330564-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreLateRequest" with 0 routes
+2026-01-06T23:08:05.966349313-05:00 INFO ox_webservice::pipeline - Initializing router for phase "LateRequest" with 0 routes
+2026-01-06T23:08:05.966365-05:00 INFO ox_webservice::pipeline - Initializing router for phase "LateRequest" with 0 routes
+2026-01-06T23:08:05.966390675-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostLateRequest" with 1 routes
+2026-01-06T23:08:05.966446707-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostLateRequest" with 1 routes
+2026-01-06T23:08:05.967942756-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+2026-01-06T23:08:05.984893050-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.985037804-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.985127680-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.985141027-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.985150518-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.985261687-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:05.987381765-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.987563808-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.987650099-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.987664412-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.987674713-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.987800835-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:05.990118235-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.990232711-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.990325950-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.990340331-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.990350536-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.990550594-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:05.992671059-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.992808806-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.992950129-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.992982863-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.993001108-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.993222882-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:05.995383914-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.995510380-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.995627632-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.995660752-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.995676020-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.995848258-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:05.998235424-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:05.998360202-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.998479721-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:05.998520223-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:05.998538382-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:05.998721834-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.000777048-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.000867580-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.000948011-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.000962025-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.000972036-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.001086214-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.003361922-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.003531328-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.003684934-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.003712247-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.003727947-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.004049389-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.006680048-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.006804772-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.006906314-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.006929330-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.006941439-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.007105692-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.009232420-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.009380304-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.009487920-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.009505962-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.009517933-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.009644047-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.100952265-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.101045164-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.101116695-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.101130522-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.101140046-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.101248759-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.129640286-05:00 INFO ox_webservice::pipeline - [status_module] DEBUG: Returning JSON status (Generic).
+2026-01-06T23:08:06.142723854-05:00 DEBUG ox_webservice::pipeline - Module 'status_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.143195441-05:00 INFO ox_webservice::pipeline - [status_module] DEBUG: Returning JSON status (Generic).
+2026-01-06T23:08:06.154855483-05:00 DEBUG ox_webservice::pipeline - Module 'status_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.155127261-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.155164614-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.155227511-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.155240356-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.155258930-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.155430981-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.218073087-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.218180781-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.218266163-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.218280426-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.218290579-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.218428057-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.306846001-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.307025995-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.307178727-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.307243996-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.307266560-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.307492060-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.335527748-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.335670691-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.335798336-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.335819578-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.335835131-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.336018776-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.379299198-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.379405369-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.379487898-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.379502431-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.379512497-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.379631694-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.876178309-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.876307448-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.876437047-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.876454422-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.876464507-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.876609567-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:06.993224948-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:06.993336901-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.993412453-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:06.993436821-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:06.993447646-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:06.993586028-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:07.342695076-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:07.342848419-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.342948884-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:07.342966094-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:07.342976295-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.343109651-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:07.663533784-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:07.663633706-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.663715060-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:07.663728504-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:07.663738132-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.663855442-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:07.749050313-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:07.749151425-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.749233170-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:07.749248261-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:07.749258565-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.749390454-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:07.965062252-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:07.965165911-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.965250151-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:07.965265915-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:07.965276296-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.965398164-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:07.993644625-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:07.993761009-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.993845920-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:07.993860572-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:07.993871029-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:07.993991450-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.022761281-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.022904217-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.023043234-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.023064075-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.023079513-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.023271437-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.154937992-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.155137458-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.155357881-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.155455325-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.155484550-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.155783322-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.242385454-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.242573754-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.242711946-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.242762926-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.242779756-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.243044762-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.301246415-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.301334079-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.301403796-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.301417203-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.301436597-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.301542274-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.388177146-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.388286473-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.388367219-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.388380514-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.388389914-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.388506007-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.574975327-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.575098393-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.575177965-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.575192747-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.575203231-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.575327301-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.618068557-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.618216705-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.618355252-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.618377514-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.618393013-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.618607603-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.749667825-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.749869290-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.749999846-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.750021516-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.750039722-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.750237714-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:08.908978974-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:08.909081711-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.909180584-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:08.909195499-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:08.909205642-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:08.909325863-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:09.026238040-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:09.026372568-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.026485949-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.026505530-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.026516666-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.026691575-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:09.113779923-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:09.113897929-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.114011291-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.114029942-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.114040642-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.114169493-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:09.143290276-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:09.143387588-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.143462471-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.143476675-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.143497978-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.143613246-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:09.201261908-05:00 INFO ox_webservice::pipeline - [ping_module] Handling ping request (Transport Agnostic)
+2026-01-06T23:08:09.201364512-05:00 DEBUG ox_webservice::pipeline - Module 'ping_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.201450147-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.201472684-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.201489675-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.201633466-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+2026-01-06T23:08:09.491735165-05:00 INFO ox_webservice::pipeline - [status_module] DEBUG: Returning JSON status (Generic).
+2026-01-06T23:08:09.504160836-05:00 DEBUG ox_webservice::pipeline - Module 'status_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.504500400-05:00 INFO ox_webservice::pipeline - [status_module] DEBUG: Returning JSON status (Generic).
+2026-01-06T23:08:09.517237282-05:00 DEBUG ox_webservice::pipeline - Module 'status_module' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.517533861-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.517586541-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.517644059-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-06T23:08:09.517657128-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-06T23:08:09.517667232-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-06T23:08:09.517798031-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.

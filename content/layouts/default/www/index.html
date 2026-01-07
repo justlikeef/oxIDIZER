@@ -7,6 +7,7 @@
     <title>oxIDIZER | Default Layout</title>
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/common.js"></script>
 </head>
 
 <body>
@@ -15,11 +16,13 @@
             <div class="header-content">
                 <div class="logo-area">
                     <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Dashboard</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
                 </div>
-                <span class="status-badge"
-                    style="background-color: rgba(56, 189, 248, 0.1); color: var(--accent); border-color: rgba(56, 189, 248, 0.2);">DEFAULT</span>
+                <div class="header-status-area">
+                    <div class="status-badge" id="status-badge">ONLINE</div>
+                </div>
             </div>
-            <p class="subtitle">Server is running successfully</p>
         </header>
 
         <div class="card hero-card">
@@ -39,6 +42,11 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalStatus('status-badge');
+        });
+    </script>
 </body>
 
 </html>

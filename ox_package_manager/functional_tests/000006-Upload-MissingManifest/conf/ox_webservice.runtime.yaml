@@ -4,7 +4,7 @@ modules:
   - id: package_manager
     name: ox_package_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
-    staging_directory: "/tmp/ox_test_staging_1281444"
+    staging_directory: "/tmp/ox_test_staging_2048625"
   - id: ox_pipeline_router
     name: ox_pipeline_router
     path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
@@ -12,7 +12,7 @@ modules:
 servers:
   - id: "default_http"
     protocol: "http"
-    port: 3000
+    port: 3210
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"

@@ -1,0 +1,9 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_driver_manager (Ports: 3605 3606 3607 3608 3609)
+[INFO] RUNNING SPECIFIC TESTS: 100003-DriverSchema
+[INFO] ==================================================
+[INFO] Running test: 100003-DriverSchema
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:100003-DriverSchema:PASSED
+[INFO] Module ox_persistence_driver_manager completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------

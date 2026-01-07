@@ -1,0 +1,30 @@
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+
+modules:
+  - id: "data_source_manager"
+    name: "ox_persistence_datasource_manager"
+    path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
+    params:
+      data_sources_dir: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200001-DataSourceCRUD/conf/datastores"
+
+  - id: "ox_pipeline_router"
+    name: "ox_pipeline_router"
+    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+    params:
+      routes:
+        - matcher:
+            path: "^/data_sources(.*)$"
+            headers:
+              Accept: "application/json"
+          module_id: "data_source_manager"
+          priority: 500
+
+servers:
+  - id: "default"
+    protocol: "http"
+    port: %BASE_PORT%
+    bind_address: "127.0.0.1"
+
+log4rs_config: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200001-DataSourceCRUD/conf/log4rs.yaml"

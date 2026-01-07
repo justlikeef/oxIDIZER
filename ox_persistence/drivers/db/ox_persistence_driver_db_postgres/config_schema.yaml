@@ -1,0 +1,34 @@
+id: "postgres_datasource_form"
+title: "PostgreSQL Data Source Configuration"
+fields:
+  - name: "host"
+    label: "Host"
+    data_type: "string"
+    props:
+      placeholder: "localhost"
+    validation:
+      - rule_type: "required"
+  - name: "port"
+    label: "Port"
+    data_type: "integer"
+    props:
+      default: 5432
+  - name: "user"
+    label: "Username"
+    data_type: "string"
+    validation:
+      - rule_type: "required"
+  - name: "password"
+    label: "Password"
+    data_type: "string"
+    props:
+      type: "password"
+  - name: "dbname"
+    label: "Database Name"
+    data_type: "string"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

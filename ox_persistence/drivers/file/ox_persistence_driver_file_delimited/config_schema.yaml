@@ -1,0 +1,22 @@
+id: "delimited_datasource_form"
+title: "Delimited File Data Source Configuration"
+fields:
+  - name: "path"
+    label: "File Path"
+    data_type: "string"
+    props:
+      placeholder: "data/storage.csv"
+    validation:
+      - rule_type: "required"
+  - name: "delimiter"
+    label: "Delimiter"
+    data_type: "string"
+    props:
+      default: ","
+      placeholder: "e.g., , or | or \t"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

@@ -1,0 +1,305 @@
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `CString` and `c_void`
+ --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:6:16
+  |
+6 | use std::ffi::{c_void, CString};
+  |                ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `libc::c_char`
+ --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:7:5
+  |
+7 | use libc::c_char;
+  |     ^^^^^^^^^^^^
+
+warning: value assigned to `obj` is never read
+   --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:226:32
+    |
+226 | ... = GenericDataObject::new(&self.identifier_name, None);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+warning: `ox_persistence` (lib) generated 3 warnings (run `cargo fix --lib -p ox_persistence` to apply 2 suggestions)
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+warning: variant `overwrite` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:27:5
+   |
+27 |     overwrite,
+   |     ^^^^^^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Overwrite`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `append` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:28:5
+   |
+28 |     append,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Append`
+
+warning: variant `skip` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:29:5
+   |
+29 |     skip,
+   |     ^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Skip`
+
+warning: variant `error` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:30:5
+   |
+30 |     error,
+   |     ^^^^^ help: convert the identifier to upper camel case: `Error`
+
+warning: unused import: `ConfiguredDriver`
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:42:22
+   |
+42 | ...tence::{ConfiguredDriver, Drivers...
+   |            ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_persistence_driver_manager` (lib) generated 5 warnings (run `cargo fix --lib -p ox_persistence_driver_manager` to apply 1 suggestion)
+warning: unused import: `Value`
+ --> fuzz_targets/config_parse.rs:4:24
+  |
+4 | use serde_json::{self, Value};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_persistence_datastore_drivermanager-fuzz` (bin "config_parse") generated 1 warning (run `cargo fix --bin "config_parse" -p ox_persistence_datastore_drivermanager-fuzz` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.10s
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `CString` and `c_void`
+ --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:6:16
+  |
+6 | use std::ffi::{c_void, CString};
+  |                ^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `libc::c_char`
+ --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:7:5
+  |
+7 | use libc::c_char;
+  |     ^^^^^^^^^^^^
+
+warning: value assigned to `obj` is never read
+   --> /var/repos/oxIDIZER/ox_persistence/src/lib.rs:226:32
+    |
+226 | ... = GenericDataObject::new(&self.identifier_name, None);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+warning: `ox_persistence` (lib) generated 3 warnings (run `cargo fix --lib -p ox_persistence` to apply 2 suggestions)
+warning: unused import: `anyhow`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:3:31
+  |
+3 | use anyhow::{Result, Context, anyhow};
+  |                               ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/processor.rs:7:11
+  |
+7 | use log::{warn, error};
+  |           ^^^^
+
+warning: unused import: `std::ops::Range`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:1:5
+  |
+1 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Format`
+ --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/mod.rs:2:29
+  |
+2 | use crate::cursor::{Cursor, Format};
+  |                             ^^^^^^
+
+warning: variable `block_end` is assigned to, but never used
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:51:30
+   |
+51 | ...   let mut block_end = block.len();
+   |           ^^^^^^^^^^^^^
+   |
+   = note: consider using `_block_end` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `block_end` is never read
+  --> /var/repos/oxIDIZER/ox_fileproc/src/scanners/yaml.rs:75:34
+   |
+75 | ...   block_end = relative_offset;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /var/repos/oxIDIZER/ox_fileproc/src/cursor.rs:62:17
+   |
+62 | ...nd(&self, query: &str) -> impl Iterator<Item = Cursor> + '_ {
+   |       ^^^^^                                       ^^^^^^    ^^ the same lifetime is elided here
+   |       |                                           |
+   |       the lifetime is elided here                 the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+62 |     pub fn find(&self, query: &str) -> impl Iterator<Item = Cursor<'_>> + '_ {
+   |                                                                   ++++
+
+warning: `ox_fileproc` (lib) generated 7 warnings (run `cargo fix --lib -p ox_fileproc` to apply 5 suggestions)
+warning: variant `overwrite` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:27:5
+   |
+27 |     overwrite,
+   |     ^^^^^^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Overwrite`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `append` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:28:5
+   |
+28 |     append,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Append`
+
+warning: variant `skip` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:29:5
+   |
+29 |     skip,
+   |     ^^^^ help: convert the identifier to upper camel case (notice the capitalization): `Skip`
+
+warning: variant `error` should have an upper camel case name
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:30:5
+   |
+30 |     error,
+   |     ^^^^^ help: convert the identifier to upper camel case: `Error`
+
+warning: unused import: `ConfiguredDriver`
+  --> /var/repos/oxIDIZER/ox_persistence_driver_manager/src/lib.rs:42:22
+   |
+42 | ...tence::{ConfiguredDriver, Drivers...
+   |            ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_persistence_driver_manager` (lib) generated 5 warnings (run `cargo fix --lib -p ox_persistence_driver_manager` to apply 1 suggestion)
+warning: unused import: `Value`
+ --> fuzz_targets/config_parse.rs:4:24
+  |
+4 | use serde_json::{self, Value};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_persistence_datastore_drivermanager-fuzz` (bin "config_parse") generated 1 warning (run `cargo fix --bin "config_parse" -p ox_persistence_datastore_drivermanager-fuzz` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.11s
+     Running `fuzz/target/x86_64-unknown-linux-gnu/release/config_parse -artifact_prefix=/var/repos/oxIDIZER/ox_persistence_driver_manager/fuzz/artifacts/config_parse/ -max_total_time=15 /var/repos/oxIDIZER/ox_persistence_driver_manager/fuzz/corpus/config_parse`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1728233031
+INFO: Loaded 1 modules   (3574 inline 8-bit counters): 3574 [0x62f466845490, 0x62f466846286), 
+INFO: Loaded 1 PC tables (3574 PCs): 3574 [0x62f466846288,0x62f4668541e8), 
+INFO:    11240 files found in /var/repos/oxIDIZER/ox_persistence_driver_manager/fuzz/corpus/config_parse
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 11240 min: 1b max: 4073b total: 3141199b rss: 47Mb
+#11241	INITED cov: 1321 ft: 4219 corp: 1761/149Kb exec/s: 0 rss: 186Mb
+#106312	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 106312 rss: 271Mb L: 168/3807 MS: 1 EraseBytes-
+#131072	pulse  cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 65536 rss: 291Mb
+#139923	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 69961 rss: 297Mb L: 42/3807 MS: 1 EraseBytes-
+#151394	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 75697 rss: 306Mb L: 567/3807 MS: 1 EraseBytes-
+#262144	pulse  cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 65536 rss: 400Mb
+#265345	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 66336 rss: 400Mb L: 50/3807 MS: 1 EraseBytes-
+#408086	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 81617 rss: 458Mb L: 77/3807 MS: 1 EraseBytes-
+#524288	pulse  cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 74898 rss: 486Mb
+#531357	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 75908 rss: 486Mb L: 323/3807 MS: 1 EraseBytes-
+#544949	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 77849 rss: 494Mb L: 39/3807 MS: 2 ShuffleBytes-EraseBytes-
+#578020	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 82574 rss: 494Mb L: 273/3807 MS: 1 EraseBytes-
+#714451	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 89306 rss: 496Mb L: 43/3807 MS: 1 EraseBytes-
+#819872	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 91096 rss: 497Mb L: 141/3807 MS: 1 EraseBytes-
+#979023	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 97902 rss: 498Mb L: 1650/3807 MS: 1 EraseBytes-
+#1031526	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 93775 rss: 498Mb L: 148/3807 MS: 3 CopyPart-CopyPart-EraseBytes-
+#1044678	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 94970 rss: 498Mb L: 630/3807 MS: 2 ShuffleBytes-EraseBytes-
+#1048576	pulse  cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 95325 rss: 498Mb
+#1251234	REDUCE cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 83415 rss: 498Mb L: 1247/3807 MS: 1 EraseBytes-
+#1251729	DONE   cov: 1321 ft: 4219 corp: 1761/149Kb lim: 4096 exec/s: 78233 rss: 498Mb
+Done 1251729 runs in 16 second(s)

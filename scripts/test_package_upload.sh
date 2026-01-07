@@ -27,7 +27,11 @@ trap cleanup EXIT
 
 # 1. Setup
 echo "Creating test file..."
-echo "dummy content" > "$TEST_FILE"
+rm -rf /tmp/pkg_content
+mkdir -p /tmp/pkg_content
+echo '{"name": "test_pkg", "version": "1.0", "description": "Test"}' > /tmp/pkg_content/ox_package.json
+zip -j "$TEST_FILE" /tmp/pkg_content/ox_package.json
+rm -rf /tmp/pkg_content
 mkdir -p "$STAGING_DIR"
 rm -f "$STAGING_DIR/$(basename $TEST_FILE)"
 

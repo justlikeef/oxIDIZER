@@ -64,6 +64,7 @@ mod tests {
         let config = DriverManagerConfig {
             drivers_file: "dummy".to_string(),
             driver_root: temp_dir.to_str().unwrap().to_string(),
+            on_content_conflict: None,
         };
 
         let manager = DriverManager::new(config);
@@ -96,6 +97,7 @@ mod tests {
          let config = DriverManagerConfig {
             drivers_file: drivers_yaml.to_str().unwrap().to_string(),
             driver_root: "dummy".to_string(),
+            on_content_conflict: None,
         };
 
         let manager = DriverManager::new(config);
@@ -130,6 +132,7 @@ mod tests {
           let config = DriverManagerConfig {
             drivers_file: drivers_yaml.to_str().unwrap().to_string(),
             driver_root: temp_dir.to_str().unwrap().to_string(),
+            on_content_conflict: None,
         };
         
         // Construct Context manually since we can't easily use initialize_module from within test without raw pointer gymnastics

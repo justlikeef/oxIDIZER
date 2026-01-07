@@ -1,11 +1,11 @@
 use super::*;
-use ox_webservice_api::{PipelineState, ModuleStatus, FlowControl};
+use ox_webservice_api::{PipelineState, ModuleStatus, FlowControl, CoreHostApi};
 use ox_webservice_test_utils::{create_mock_api, create_stub_pipeline_state};
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref API: WebServiceApiV1 = create_mock_api();
+    static ref API: CoreHostApi = create_mock_api();
 }
 
 #[test]

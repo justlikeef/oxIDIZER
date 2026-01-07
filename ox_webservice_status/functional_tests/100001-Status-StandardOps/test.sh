@@ -72,9 +72,17 @@ modules:
     params:
       routes:
         - matcher:
-            path: "^/status"
+            path: "^/status/?(.*)?$"
+            headers:
+              Accept: "application/json"
           module_id: "status_module"
-          priority: 100
+          priority: 80
+        - matcher:
+            path: "^/status/?(.*)?$"
+            query:
+              format: "json"
+          module_id: "status_module"
+          priority: 80
         - matcher:
             path: "^/status(/.*)?"
           module_id: "stream_module"

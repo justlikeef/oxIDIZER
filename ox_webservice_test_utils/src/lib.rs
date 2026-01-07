@@ -57,21 +57,27 @@ pub unsafe extern "C" fn mock_get_state(state_ptr: *mut c_void, key: *const c_ch
     let pipeline_state = unsafe { &*(state_ptr as *mut PipelineState) };
     
     // Virtual Keys
-    let val_json: Option<String> = if key_str == "http.request.method" {
+    let val_json: Option<String> = if key_str == "request.method" || key_str == "request.verb" {
         Some(Value::String(pipeline_state.request_method.clone()).to_string())
-    } else if key_str == "http.request.path" {
+    } else if key_str == "request.path" || key_str == "request.resource" {
         Some(Value::String(pipeline_state.request_path.clone()).to_string())
-    } else if key_str == "http.request.query" {
+    } else if key_str == "request.capture" {
+         if let Some(captured) = &pipeline_state.route_capture {
+            Some(Value::String(captured.clone()).to_string())
+        } else {
+            None
+        }
+    } else if key_str == "request.query" {
         Some(Value::String(pipeline_state.request_query.clone()).to_string())
-    } else if key_str == "http.source_ip" {
+    } else if key_str == "request.source_ip" {
         Some(Value::String(pipeline_state.source_ip.to_string()).to_string())
-    } else if key_str == "http.response.status" {
+    } else if key_str == "response.status" {
         Some(pipeline_state.status_code.to_string())
-    } else if key_str.starts_with("http.request.header.") {
-        let header_name = &key_str["http.request.header.".len()..];
+    } else if key_str.starts_with("request.header.") {
+        let header_name = &key_str["request.header.".len()..];
         pipeline_state.request_headers.get(header_name).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())
-    } else if key_str.starts_with("http.response.header.") {
-        let header_name = &key_str["http.response.header.".len()..];
+    } else if key_str.starts_with("response.header.") {
+        let header_name = &key_str["response.header.".len()..];
         pipeline_state.response_headers.get(header_name).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())
     } else if key_str == "pipeline.modified" {
         Some(pipeline_state.is_modified.to_string())
@@ -96,21 +102,23 @@ pub unsafe extern "C" fn mock_set_state(state_ptr: *mut c_void, key: *const c_ch
 
     let pipeline_state = unsafe { &mut *(state_ptr as *mut PipelineState) };
 
-    if key_str == "http.request.path" {
+    if key_str == "request.path" {
         if let Some(s) = value.as_str() {
              pipeline_state.request_path = s.to_string();
         }
-    } else if key_str == "http.source_ip" {
+    } else if key_str == "request.capture" {
+         pipeline_state.route_capture = value.as_str().map(|s| s.to_string());
+    } else if key_str == "request.source_ip" {
          if let Some(s) = value.as_str() {
              if let Ok(ip) = s.parse() {
                  pipeline_state.source_ip = ip;
              }
          }
-    } else if key_str == "http.response.status" {
+    } else if key_str == "response.status" {
          if let Some(i) = value.as_u64() {
              pipeline_state.status_code = i as u16;
          }
-    } else if key_str == "http.response.body" {
+    } else if key_str == "response.body" {
          if let Some(s) = value.as_str() {
              pipeline_state.response_body = s.as_bytes().to_vec();
          } else if let Some(arr) = value.as_array() {
@@ -118,8 +126,8 @@ pub unsafe extern "C" fn mock_set_state(state_ptr: *mut c_void, key: *const c_ch
              let bytes: Vec<u8> = arr.iter().filter_map(|v| v.as_u64().map(|b| b as u8)).collect();
              pipeline_state.response_body = bytes;
          }
-    } else if key_str.starts_with("http.response.header.") {
-        let header_name = &key_str["http.response.header.".len()..];
+    } else if key_str.starts_with("response.header.") {
+        let header_name = &key_str["response.header.".len()..];
         if let Some(s) = value.as_str() {
              if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
                  if let Ok(v) = s.parse() {
@@ -127,6 +135,21 @@ pub unsafe extern "C" fn mock_set_state(state_ptr: *mut c_void, key: *const c_ch
                  }
              }
         }
+    } else if key_str.starts_with("request.header.") {
+        let header_name = &key_str["request.header.".len()..];
+        if let Some(s) = value.as_str() {
+             if let Ok(k) = axum::http::header::HeaderName::from_bytes(header_name.as_bytes()) {
+                 if let Ok(v) = s.parse() {
+                     pipeline_state.request_headers.insert(k, v);
+                 }
+             }
+        }
+    } else if key_str == "response.type" {
+         if let Some(s) = value.as_str() {
+             if let Ok(v) = s.parse() {
+                 pipeline_state.response_headers.insert(axum::http::header::CONTENT_TYPE, v);
+             }
+         }
     } else {
         pipeline_state.module_context.write().unwrap().insert(key_str, value);
     }

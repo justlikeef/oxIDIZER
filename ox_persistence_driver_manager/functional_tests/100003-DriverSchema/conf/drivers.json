@@ -1,0 +1,19 @@
+{
+    "drivers": [
+        {
+            "id": "postgres",
+            "name": "ox_persistence_driver_db_postgres",
+            "state": "enabled"
+        },
+        {
+            "id": "json",
+            "name": "ox_persistence_driver_file_json",
+            "state": "disabled"
+        },
+        {
+            "id": "api",
+            "name": "ox_persistence_api",
+            "state": "enabled"
+        }
+    ]
+}

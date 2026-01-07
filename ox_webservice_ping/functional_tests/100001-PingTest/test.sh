@@ -10,7 +10,7 @@ DEFAULT_LOGGING_LEVEL="info"
 TARGET=${5:-"debug"}
 PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
-BASE_PORT=${PORTS[0]}
+BASE_PORT=3201
 DEFAULT_MODE="isolated"
 DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
 
@@ -24,7 +24,7 @@ LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
 TARGET=${5:-"debug"}
 PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
-BASE_PORT=${PORTS[0]}
+BASE_PORT=3201
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -95,9 +95,9 @@ EOF
 
   # 1. Test Default HTML
   log_message "$LOGGING_LEVEL" "info" "Testing Default (HTML)..."
-  RESP=$(curl --connect-timeout 30 --max-time 60 -i -s http://localhost:$BASE_PORT/ping)
+  RESP=$(curl -v --connect-timeout 30 --max-time 60 -i -s http://localhost:$BASE_PORT/ping)
   if echo "$RESP" | grep -i -q "content-type: text/html"; then
-      if echo "$RESP" | grep -q "result: pong"; then
+      if echo "$RESP" | grep -q "response: pong"; then
           log_message "$LOGGING_LEVEL" "info" "Default HTML test passed."
       else
           log_message "$LOGGING_LEVEL" "error" "Default HTML test body failed."
@@ -110,9 +110,9 @@ EOF
 
   # 2. Test JSON via Header
   log_message "$LOGGING_LEVEL" "info" "Testing JSON (Accept Header)..."
-  RESP=$(curl --connect-timeout 30 --max-time 60 -i -s -H "Accept: application/json" http://localhost:$BASE_PORT/ping)
+  RESP=$(curl -v --connect-timeout 30 --max-time 60 -i -s -H "Accept: application/json" http://localhost:$BASE_PORT/ping)
   if echo "$RESP" | grep -i -q "content-type: application/json"; then
-      if echo "$RESP" | grep -q '"result":"pong"'; then
+      if echo "$RESP" | grep -q '"response":"pong"'; then
           log_message "$LOGGING_LEVEL" "info" "JSON Header test passed."
       else
           log_message "$LOGGING_LEVEL" "error" "JSON Header test body failed."
@@ -125,9 +125,9 @@ EOF
 
   # 3. Test JSON via Query
   log_message "$LOGGING_LEVEL" "info" "Testing JSON (Query Param)..."
-  RESP=$(curl --connect-timeout 30 --max-time 60 -i -s http://localhost:$BASE_PORT/ping?format=json)
+  RESP=$(curl -v --connect-timeout 30 --max-time 60 -i -s http://localhost:$BASE_PORT/ping?format=json)
   if echo "$RESP" | grep -i -q "content-type: application/json"; then
-      if echo "$RESP" | grep -q '"result":"pong"'; then
+      if echo "$RESP" | grep -q '"response":"pong"'; then
           log_message "$LOGGING_LEVEL" "info" "JSON Query test passed."
       else
           log_message "$LOGGING_LEVEL" "error" "JSON Query test body failed."

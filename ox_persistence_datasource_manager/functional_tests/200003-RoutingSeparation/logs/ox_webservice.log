@@ -1,0 +1,99 @@
+2026-01-07T00:02:17.405867857-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T00:02:17.406057379-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/ox_webservice.active.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":3215,"bind_address":"127.0.0.1","hosts":[]}],"modules":[{"id":"data_source_manager","name":"ox_persistence_datasource_manager","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so","params":{"data_sources_dir":"/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/datastores","on_content_conflict":"skip"},"phase":"Manual"},{"id":"data_source_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so","params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/stream.yaml"},"phase":"Manual"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so","params":{"routes":[{"matcher":{"headers":{"Accept":"application/json"},"path":"^/data_sources/?(.*)?$"},"module_id":"data_source_manager","priority":499},{"matcher":{"path":"^/data_sources/?(.*)?$","query":{"format":"json"}},"module_id":"data_source_manager","priority":499},{"matcher":{"path":"^/data_sources/?(.*)?$"},"module_id":"data_source_manager_stream","priority":500}]}}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T00:02:17.406076741-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T00:02:17.406107707-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager' from "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
+2026-01-07T00:02:17.407247470-05:00 INFO ox_webservice::pipeline - Module 'ox_persistence_datasource_manager' has no routes but is in phase 'Manual'. Adding catch-all route.
+2026-01-07T00:02:17.407301789-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager_stream' from "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+2026-01-07T00:02:17.409050708-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/content/www/"
+2026-01-07T00:02:17.409357147-05:00 DEBUG ox_webservice::pipeline - [data_source_manager_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-07T00:02:17.472420404-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream initialized
+2026-01-07T00:02:17.472562568-05:00 INFO ox_webservice::pipeline - Module 'ox_webservice_stream' has no routes but is in phase 'Manual'. Adding catch-all route.
+2026-01-07T00:02:17.472629491-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T00:02:17.478391303-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-07T00:02:17.478546546-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T00:02:17.478569035-05:00 INFO ox_webservice::pipeline - Using custom path for router 'ox_pipeline_router': "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T00:02:17.478583881-05:00 INFO ox_webservice::pipeline - Found 3 manual routes in router 'ox_pipeline_router' configuration. Merging...
+2026-01-07T00:02:17.478725464-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 3 routes
+2026-01-07T00:02:17.483576310-05:00 INFO ox_webservice - Listening on 127.0.0.1:3215
+DEBUG: request_query = "",
+2026-01-07T00:02:20.400156937-05:00 DEBUG ox_webservice::pipeline - Module 'data_source_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.400955384-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-07T00:02:20.400992083-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-07T00:02:20.401005783-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+DEBUG: request_query = "format=json",
+DEBUG: Accept header = Some("*/*"),
+2026-01-07T00:02:20.420642151-05:00 DEBUG ox_webservice::pipeline - Module 'data_source_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.421135896-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=Some(skip)
+2026-01-07T00:02:20.421175108-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-07T00:02:20.421189996-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+DEBUG: request_query = "",
+2026-01-07T00:02:20.443548427-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Early conflict check. is_modified=false, action=Some(skip)
+2026-01-07T00:02:20.443623585-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Found path_capture: ''
+2026-01-07T00:02:20.443749710-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Streaming file for path: 
+2026-01-07T00:02:20.443797856-05:00 DEBUG ox_webservice::pipeline - Module 'data_source_manager_stream' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.443813034-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.443830462-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+DEBUG: request_query = "",
+2026-01-07T00:02:20.469300686-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Early conflict check. is_modified=false, action=Some(skip)
+2026-01-07T00:02:20.469408573-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Found path_capture: 'css/style.css'
+2026-01-07T00:02:20.469564470-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: Streaming file for path: css/style.css
+2026-01-07T00:02:20.469622402-05:00 DEBUG ox_webservice::pipeline - Module 'data_source_manager_stream' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.469656199-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T00:02:20.469678710-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true

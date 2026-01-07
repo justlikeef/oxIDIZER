@@ -1,0 +1,44 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_template_jinja2 (Ports: 28120 28121 28122 28123 28124)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000004-NoTemplate:PASSED
+[INFO] Running test: 000005-NoHTML
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000005-NoHTML:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900001-Safety-Miri:PASSED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900010-Security-SSTI
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900010-Security-SSTI:PASSED
+[INFO] Running test: 999994-HTMLIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999994-HTMLIndex:PASSED
+[INFO] Running test: 999995-HTMLNotIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999995-HTMLNotIndex:PASSED
+[INFO] Running test: 999996-LoggingNotFoundTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999996-LoggingNotFoundTest:PASSED
+[INFO] Running test: 999997-LoggingTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999997-LoggingTest:PASSED
+[INFO] Running test: 999999-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999999-CleanConfig:PASSED
+[INFO] Module ox_webservice_template_jinja2 completed. Tests: 13, Failures: 0
+[INFO] --------------------------------------------------

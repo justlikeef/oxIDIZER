@@ -9,7 +9,7 @@ pipeline:
     - Content: default
 servers:
 - protocol: http
-  port: 3000
+  port: 3210
   bind_address: 0.0.0.0
   hosts:
   - name: .*

@@ -16,13 +16,26 @@ use bumpalo::Bump;
 
 use ox_fileproc::{process_file, RawFile};
 
+const MODULE_NAME: &str = "ox_persistence_driver_manager";
 
 
+
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentConflictAction {
+    overwrite,
+    append,
+    skip,
+    error,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DriverManagerConfig {
     pub drivers_file: String,
     pub driver_root: String,
+    #[serde(default)]
+    pub on_content_conflict: Option<ContentConflictAction>,
 }
 
 
@@ -104,6 +117,25 @@ impl DriverManager {
         }
     }
 
+    pub fn get_driver_schema(&self, library_path: &str) -> Result<String, String> {
+        unsafe {
+            let lib = libloading::Library::new(library_path).map_err(|e| format!("Failed to load library '{}': {}", library_path, e))?;
+            
+            let get_schema: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> = 
+                lib.get(b"ox_driver_get_config_schema").map_err(|_| "Missing symbol: ox_driver_get_config_schema".to_string())?;
+            
+            let ptr = get_schema();
+            if ptr.is_null() {
+                return Err("ox_driver_get_config_schema returned null".to_string());
+            }
+            
+            let c_str = std::ffi::CStr::from_ptr(ptr);
+             let schema_str = c_str.to_string_lossy().into_owned();
+             
+             Ok(schema_str)
+        }
+    }
+
     pub fn toggle_driver_status(&self, id: &str) -> Result<String, String> {
          let mut raw = RawFile::open(&self.config.drivers_file).map_err(|e| e.to_string())?;
          
@@ -170,9 +202,20 @@ pub unsafe extern "C" fn initialize_module(
     let drivers_file = params.get("drivers_file").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers.json").to_string();
     let driver_root = params.get("driver_root").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers").to_string();
 
+    let on_content_conflict = params.get("on_content_conflict")
+        .and_then(|v| v.as_str())
+        .and_then(|s| match s {
+            "overwrite" => Some(ContentConflictAction::overwrite),
+            "append" => Some(ContentConflictAction::append),
+            "skip" => Some(ContentConflictAction::skip),
+            "error" => Some(ContentConflictAction::error),
+            _ => None,
+        });
+
     let config = DriverManagerConfig {
         drivers_file,
         driver_root,
+        on_content_conflict,
     };
 
     let manager = Arc::new(DriverManager::new(config));
@@ -220,15 +263,54 @@ pub unsafe extern "C" fn process_request(
         arena_ptr
     ) };
 
+    // --- Conflict Management ---
+    let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
+         val.as_str().unwrap_or("false") == "true"
+    } else { false };
+
+    if is_modified {
+         let action = context.manager.config.on_content_conflict.unwrap_or(ContentConflictAction::skip);
+         if let Ok(c_msg) = CString::new(format!("Conflict check: is_modified=true, action={:?}", action)) {
+              let module_name = CString::new(context.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
+              unsafe { (context.api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_msg.as_ptr()); }
+         }
+
+         match action {
+             ContentConflictAction::skip => {
+                 return HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                 };
+             },
+             ContentConflictAction::error => {
+                 let _ = ctx.set("response.status", serde_json::json!(500));
+                 let _ = ctx.set("response.body", serde_json::json!("Conflict: Pipeline content already modified"));
+                 return HandlerResult {
+                     status: ModuleStatus::Modified,
+                     flow_control: FlowControl::Continue,
+                     return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                 };
+             },
+             _ => {} // overwrite/append: proceed as normal
+         }
+    }
 
 
-    let path = match ctx.get("http.request.path") {
+
+    let path = match ctx.get("request.resource") {
         Some(v) => v.as_str().unwrap_or("/").to_string(),
-        None => "/".to_string()
+        None => match ctx.get("request.path") {
+            Some(v) => v.as_str().unwrap_or("/").to_string(),
+            None => "/".to_string()
+        }
     };
-    let method = match ctx.get("http.request.method") {
-        Some(v) => v.as_str().unwrap_or("GET").to_string(),
-        None => "GET".to_string()
+    let method = match ctx.get("request.verb") {
+        Some(v) => v.as_str().unwrap_or("get").to_string(),
+        None => match ctx.get("request.method") {
+            Some(v) => v.as_str().unwrap_or("GET").to_string().to_lowercase(),
+            None => "get".to_string()
+        }
     };
 
     // Helper closure for JSON error responses
@@ -236,23 +318,23 @@ pub unsafe extern "C" fn process_request(
         let json_error = serde_json::json!({
             "error": error_msg
         });
-        let _ = ctx.set("http.response.body", serde_json::Value::String(json_error.to_string()));
-        let _ = ctx.set("http.response.status", serde_json::json!(status_code));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String(json_error.to_string()));
+        let _ = ctx.set("response.status", serde_json::json!(status_code));
+        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
     };
 
     // Helper closure for JSON success responses
     let send_json_success = |body: String| {
-        let _ = ctx.set("http.response.body", serde_json::Value::String(body));
-        let _ = ctx.set("http.response.status", serde_json::json!(200));
-        let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+        let _ = ctx.set("response.body", serde_json::Value::String(body));
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
     };
 
     // --- Route Dispatching ---
 
     // 1. POST (Toggle) - matches any path ending in a driver ID, e.g., /drivers/driver_id
     // We treat the *last segment* of the path as the ID.
-    if method == "POST" {
+    if method == "create" {
         // Extract ID from the last path segment (ignoring trailing slash)
         let trimmed_path = path.trim_end_matches('/');
         let id = trimmed_path.split('/').last().unwrap_or("");
@@ -283,13 +365,13 @@ pub unsafe extern "C" fn process_request(
         }
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::Continue, // Continue as requested by user
+            flow_control: FlowControl::Continue, // Halt on successful toggle
             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
         };
     }
 
     // 2. GET /available - List available driver files from disk
-    if method == "GET" && path.ends_with("/available") { // strict suffix match
+    if method == "get" && path.ends_with("/available") { // strict suffix match
         let manager = &context.manager;
         match manager.list_available_driver_files() {
             Ok(files) => {
@@ -307,23 +389,89 @@ pub unsafe extern "C" fn process_request(
         };
     }
 
-    // 3. GET (Default) - List configured drivers
-    if method == "GET" {
+    // 3. GET (Default or Schema)
+    if method == "get" {
          let manager = &context.manager;
+         
+         // 3a. GET /drivers/<id>/schema
+         if path.ends_with("/schema") {
+             let trimmed_path = path.trim_end_matches("/");
+             let segments: Vec<&str> = trimmed_path.split('/').collect();
+             if segments.len() >= 2 {
+                 let id = segments[segments.len() - 2];
+                 match manager.load_configured_drivers() {
+                     Ok(list) => {
+                         if let Some(driver) = list.drivers.iter().find(|d| d.id == id) {
+                             let lib_name = if driver.library_path.is_empty() {
+                                 format!("{}/lib{}.so", manager.config.driver_root, driver.name)
+                             } else {
+                                 format!("{}/lib{}.so", driver.library_path, driver.name)
+                             };
+                             match manager.get_driver_schema(&lib_name) {
+                                 Ok(schema) => {
+                                     send_json_success(schema);
+                                     return HandlerResult {
+                                         status: ModuleStatus::Modified,
+                                         flow_control: FlowControl::Continue,
+                                         return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                                     };
+                                 },
+                                 Err(e) => {
+                                     send_json_error(format!("Failed to retrieve schema for driver '{}': {}", id, e), 500);
+                                     return HandlerResult {
+                                         status: ModuleStatus::Modified,
+                                         flow_control: FlowControl::Continue,
+                                         return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                                     };
+                                 }
+                             }
+                         } else {
+                             send_json_error(format!("Driver with ID '{}' not found", id), 404);
+                             return HandlerResult {
+                                 status: ModuleStatus::Modified,
+                                 flow_control: FlowControl::Continue,
+                                 return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                             };
+                         }
+                     },
+                     Err(e) => {
+                         send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                         return HandlerResult {
+                             status: ModuleStatus::Modified,
+                             flow_control: FlowControl::Continue,
+                             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                         };
+                     }
+                 }
+             }
+         }
+
+         // 3b. GET /drivers (with optional ?state=enabled|disabled)
          match manager.load_configured_drivers() {
-             Ok(list) => {
+             Ok(mut list) => {
+                if let Some(state_filter) = ctx.get("request.query.state") {
+                    let state_str = state_filter.as_str().unwrap_or("");
+                    if !state_str.is_empty() {
+                        list.drivers.retain(|d| d.state == state_str);
+                    }
+                }
                 let json = serde_json::to_string(&list).unwrap_or_default();
                 send_json_success(json);
+                return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                };
              },
              Err(e) => {
                 send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                };
              }
          }
-         return HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-         };
     }
 
     // Capture Unhandled Methods (e.g., PUT, DELETE) if routed here

@@ -7,26 +7,23 @@
     <title>OxIDIZER - Drivers</title>
     <!-- CSS path updated based on recent user config -->
     <link rel="stylesheet" href="css/drivermanager.css">
+    <script src="/js/common.js"></script>
 </head>
 
 <body>
     <div class="container">
         <header>
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="display: flex; flex-direction: column; align-items: flex-start;">
-                    <img src="/images/logo.png" alt="oxIDIZER"
-                        style="height: 6rem; margin-bottom: 0.5rem; filter: drop_shadow(0 0 5px rgba(0,0,0,0.5));">
-                    <h1 style="font-size: 3rem; line-height: 1.1;">Persistence Driver Manager</h1>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Driver Manager</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
                 </div>
-                <div class="version-badge"
-                    style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; color: var(--text-secondary);">
-                    HTML-JS
+                <div class="header-status-area">
+                    <div id="status-badge" class="status-badge">ONLINE</div>
                 </div>
             </div>
         </header>
-
-        <div class="section-title">Configured Drivers</div>
-
         <div id="error-banner"
             style="display:none; background: #e74c3c; color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
         </div>
@@ -37,6 +34,11 @@
     </div>
 
     <script type="module" src="./js/drivermanager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalStatus('status-badge');
+        });
+    </script>
 </body>
 
 </html>

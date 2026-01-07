@@ -1,0 +1,8 @@
+2026-01-06T23:01:47.049121729-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-06T23:01:47.049398669-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":28050,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_webservice_status","routes":[],"headers":null,"query":null,"path":"target/debug/libox_webservice_status.so","params":null,"priority":100,"phase":"Content"}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-06T23:01:47.049433308-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-06T23:01:47.049459940-05:00 INFO ox_webservice::pipeline - Loading module 'ox_webservice_status' from "target/debug/libox_webservice_status.so"
+2026-01-06T23:01:47.093360350-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-06T23:01:47.094062043-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-06T23:01:47.094557806-05:00 INFO ox_webservice - Listening on 0.0.0.0:28050

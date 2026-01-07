@@ -1,0 +1,9 @@
+{
+  "id": "ds2",
+  "name": "Secondary MySQL",
+  "driver_id": "mysql",
+  "config": {
+    "host": "remote-host",
+    "port": 3306
+  }
+}

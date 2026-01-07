@@ -8,11 +8,11 @@ modules:
     params:
       config_file: "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
 routes:
-  - url: "^(/css/.*)?$"
+  - url: "^(/(css|js)/.*?)$"
     module_id: default_theme_stream
     phase: Content
     priority: 998
-  - url: ".*"
+  - url: "^(.*)$"
     module_id: default_layout_stream
     phase: Content
     priority: 999

@@ -58,30 +58,36 @@ impl<'a> RewriteModule<'a> {
             arena_ptr
         ) };
 
-        if let Some(path_val) = ctx.get("http.request.path") {
-            let path = path_val.as_str().unwrap_or("/");
+        let mut path_str = "/".to_string();
+        if let Some(path_val) = ctx.get("request.resource") {
+            path_str = path_val.as_str().unwrap_or("/").to_string();
+        } else if let Some(path_val) = ctx.get("request.path") {
+            // Fallback
+             path_str = path_val.as_str().unwrap_or("/").to_string();
+        }
 
-            for (i, regex) in self.regexes.iter().enumerate() {
-                if regex.is_match(path) {
-                    let rule = &self.config.rules[i];
-                    let replacement = regex.replace(path, rule.replace_string.as_str());
-                    let new_path = replacement.to_string();
+        let path = path_str.as_str();
 
-                    if path != new_path {
-                        let module_name = CString::new(MODULE_NAME).unwrap();
-                        let message = CString::new(format!("Rewrite match found. Rewriting path from '{}' to '{}'", path, new_path)).unwrap();
-                        unsafe { (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr()); }
+        for (i, regex) in self.regexes.iter().enumerate() {
+            if regex.is_match(path) {
+                let rule = &self.config.rules[i];
+                let replacement = regex.replace(path, rule.replace_string.as_str());
+                let new_path = replacement.to_string();
 
-                        let _ = ctx.set("http.request.path", serde_json::Value::String(new_path));
-                        
-                        return HandlerResult {
-                            status: ModuleStatus::Modified,
-                            flow_control: FlowControl::Continue,
-                            return_parameters: ReturnParameters {
-                                return_data: std::ptr::null_mut(),
-                            },
-                        };
-                    }
+                if path != new_path {
+                    let module_name = CString::new(MODULE_NAME).unwrap();
+                    let message = CString::new(format!("Rewrite match found. Rewriting path from '{}' to '{}'", path, new_path)).unwrap();
+                    unsafe { (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr()); }
+
+                    let _ = ctx.set("request.resource", serde_json::Value::String(new_path));
+                    
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::Continue,
+                        return_parameters: ReturnParameters {
+                            return_data: std::ptr::null_mut(),
+                        },
+                    };
                 }
             }
         }

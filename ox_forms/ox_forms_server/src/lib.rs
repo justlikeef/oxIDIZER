@@ -53,8 +53,20 @@ impl OxModule {
 
 
     pub fn process(&self, pipeline_state: &mut PipelineState) -> HandlerResult {
-        // Only handle GET requests for now
-        if pipeline_state.request_method != "GET" {
+        // Initialize Context wrapper
+        let arena_ptr = &pipeline_state.arena as *const bumpalo::Bump as *const std::ffi::c_void;
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
+            self.api, 
+            pipeline_state as *mut PipelineState as *mut std::ffi::c_void, 
+            arena_ptr
+        ) };
+
+        // Check Verb (Generic)
+        let verb_json = ctx.get("request.verb");
+        let verb = verb_json.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(|| pipeline_state.request_method.to_lowercase());
+
+        // Only handle GET (read) requests for now
+        if verb != "get" && verb != "read" {
              return HandlerResult {
                 status: ModuleStatus::Unmodified,
                 flow_control: FlowControl::Continue, 
@@ -62,10 +74,7 @@ impl OxModule {
              };
         }
 
-        let ctx = &pipeline_state.module_context;
-        // In this C-struct pattern, we might need to access context differently or just use PipelineState directly since we have it.
-        // We will stick to hardcoded form for demo.
-        
+        // Hardcoded form for demo
         let form = FormDefinition {
             id: "server_test_form".to_string(),
             title: "Server Side Form".to_string(),
@@ -105,18 +114,17 @@ impl OxModule {
 
         match engine.render(&form, &render_ctx) {
             Ok(html) => {
-                // Populate response in PipelineState
-                // We need to convert string to Vec<u8>
-                pipeline_state.response_body = html.into_bytes();
-                pipeline_state.response_headers.insert(
-                    http::header::CONTENT_TYPE, 
-                    http::header::HeaderValue::from_static("text/html")
-                );
-                pipeline_state.status_code = 200;
+                // Populate Generic Response
+                let _ = ctx.set("response.body", serde_json::Value::String(html.clone()));
+                let _ = ctx.set("response.type", serde_json::Value::String("text/html".to_string()));
+                let _ = ctx.set("response.status", serde_json::json!(200));
+
             },
             Err(e) => {
-                pipeline_state.response_body = format!("Render Error: {}", e).into_bytes();
-                pipeline_state.status_code = 500;
+                let err_msg = format!("Render Error: {}", e);
+                let _ = ctx.set("response.status", serde_json::json!(500));
+                let _ = ctx.set("response.body", serde_json::Value::String(err_msg.clone()));
+                
             }
         }
 
@@ -137,7 +145,7 @@ unsafe extern "C" fn ox_forms_server_handler(
     _arena: *const std::ffi::c_void,
 ) -> HandlerResult {
     let module = &*(instance_ptr as *mut OxModule);
-    let state = &mut *pipeline_state_ptr;
+    let state = &mut *pipeline_state_ptr; // Still pass state ptr, but logic now uses Context wrapper
     module.process(state)
 }
 

@@ -1,0 +1,48 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+  - id: package_manager_stream
+    name: ox_webservice_stream
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+    params:
+      content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www/"
+    on_content_conflict: skip
+  - id: ox_pipeline_router
+    name: ox_pipeline_router
+    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+    params:
+      routes:
+        - matcher:
+            path: "^/packages/upload"
+            headers:
+              Method: POST
+          module_id: "package_manager"
+          priority: 450
+        - matcher:
+            path: "^/packages/(list|install)/?"
+            headers:
+              Accept: "application/json"
+          module_id: "package_manager"
+          priority: 450
+        - matcher:
+            path: "^/packages/(list|install)/?"
+            query:
+              format: "json"
+          module_id: "package_manager"
+          priority: 450
+        - matcher:
+            path: "^/packages/?(.*)$"
+          module_id: "package_manager_stream"
+          priority: 500
+servers:
+  - id: "default"
+    protocol: "http"
+    port: 3210
+    bind_address: "127.0.0.1"
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"

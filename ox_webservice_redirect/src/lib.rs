@@ -58,7 +58,7 @@ impl<'a> RedirectModule<'a> {
             arena_ptr
         ) };
 
-        if let Some(path_val) = ctx.get("http.request.path") {
+        if let Some(path_val) = ctx.get("request.path") {
             let path = path_val.as_str().unwrap_or("/");
 
             for (i, regex) in self.regexes.iter().enumerate() {
@@ -75,8 +75,8 @@ impl<'a> RedirectModule<'a> {
                         return_string
                     );
                     
-                    let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
-                    let _ = ctx.set("http.response.body", serde_json::Value::String(html_content));
+                    let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+                    let _ = ctx.set("response.body", serde_json::Value::String(html_content));
                     // Maybe set generic redirect status?
                     // Typically redirects use 3xx, but this implementation uses meta refresh.
                     // If we wanted 302:

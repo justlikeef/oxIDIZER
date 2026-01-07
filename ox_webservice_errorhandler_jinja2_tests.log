@@ -1,0 +1,26 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_errorhandler_jinja2 (Ports: 28070 28071 28072 28073 28074)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000003-ConfigInvalid:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_webservice_errorhandler_jinja2:900001-Safety-Miri:SKIPPED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 999998-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:999998-NoTemplate:PASSED
+[INFO] Running test: 999999-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:999999-CleanConfig:PASSED
+[INFO] Module ox_webservice_errorhandler_jinja2 completed. Tests: 7, Failures: 0
+[INFO] --------------------------------------------------

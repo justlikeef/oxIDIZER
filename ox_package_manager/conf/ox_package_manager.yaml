@@ -3,18 +3,37 @@ modules:
     name: ox_package_manager
     params:
       config_file: /var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml
+  - id: package_manager_stream
+    name: ox_webservice_stream
+    params:
+      config_file: /var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml
+    on_content_conflict: "skip"
+
 routes:
-  - url: "^/packages/(upload)/"
-    module_id: "package_manager"
-    phase: Content
-    priority: 450
+  # API Routes (High Priority)
+  - url: "^/packages/upload"
     headers:
       Method: POST
-  - url: "^/packages/(install)/"
     module_id: "package_manager"
     phase: Content
     priority: 450
-  - url: "^/packages/(list)/"
+
+  - url: "^/packages/(list|install)/?"
+    headers:
+      Accept: "application/json"
     module_id: "package_manager"
     phase: Content
     priority: 450
+
+  - url: "^/packages/(list|install)/?"
+    query:
+      format: "json"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450
+
+  # Fallback (UI/Assets)
+  - url: "^/packages/?(.*)$"
+    module_id: "package_manager_stream"
+    phase: Content
+    priority: 500

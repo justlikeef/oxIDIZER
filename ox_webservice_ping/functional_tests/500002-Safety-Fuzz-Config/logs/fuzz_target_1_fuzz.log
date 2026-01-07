@@ -1,0 +1,34 @@
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.05s
+warning: unused import: `super::*`
+   --> /var/repos/oxIDIZER/ox_pipeline/ox_pipeline_plugin/src/lib.rs:149:9
+    |
+149 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ox_pipeline_plugin` (lib) generated 1 warning (run `cargo fix --lib -p ox_pipeline_plugin` to apply 1 suggestion)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `fuzz/target/x86_64-unknown-linux-gnu/release/fuzz_target_1 -artifact_prefix=/var/repos/oxIDIZER/ox_webservice_ping/fuzz/artifacts/fuzz_target_1/ -max_total_time=15 /var/repos/oxIDIZER/ox_webservice_ping/fuzz/corpus/fuzz_target_1`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 579099174
+INFO: Loaded 1 modules   (380 inline 8-bit counters): 380 [0x563e1b2e8550, 0x563e1b2e86cc), 
+INFO: Loaded 1 PC tables (380 PCs): 380 [0x563e1b2e86d0,0x563e1b2e9e90), 
+INFO:        0 files found in /var/repos/oxIDIZER/ox_webservice_ping/fuzz/corpus/fuzz_target_1
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 14 ft: 15 corp: 1/1b exec/s: 0 rss: 38Mb
+#2097152	pulse  cov: 14 ft: 15 corp: 1/1b lim: 4096 exec/s: 699050 rss: 191Mb
+#4194304	pulse  cov: 14 ft: 15 corp: 1/1b lim: 4096 exec/s: 599186 rss: 349Mb
+#8388608	pulse  cov: 14 ft: 15 corp: 1/1b lim: 4096 exec/s: 599186 rss: 616Mb
+#8657192	DONE   cov: 14 ft: 15 corp: 1/1b lim: 4096 exec/s: 541074 rss: 617Mb
+Done 8657192 runs in 16 second(s)

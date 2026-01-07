@@ -141,8 +141,24 @@ impl<'a> OxModule<'a> {
             }
         }
 
+        let canonical_root = match fs::canonicalize(&config.content_root) {
+            Ok(p) => p,
+            Err(e) => {
+                 if let Ok(c_message) = CString::new(format!(
+                    "ox_webservice_stream: Failed to canonicalize content_root '{:?}': {}",
+                    config.content_root, e
+                )) {
+                    let module_name = CString::new(module_id.clone()).unwrap();
+                    unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                }
+                // Fallback to provided path if canonicalization fails (e.g. doesn't exist yet but might?)
+                // But resolving requires existence usually.
+                PathBuf::from(config.content_root.clone())
+            }
+        };
+
         Ok(Self {
-            content_root: PathBuf::from(config.content_root.clone()),
+            content_root: canonical_root,
             mimetypes: mimetype_config.mimetypes,
             default_documents: config.default_documents.clone(),
             content_config: config,
@@ -156,7 +172,7 @@ impl<'a> OxModule<'a> {
             self.log(LogLevel::Error, "ox_webservice_stream: proccess_request called with null pipeline state.".to_string());
             return HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters {
                     return_data: std::ptr::null_mut(),
                 },
@@ -195,7 +211,7 @@ impl<'a> OxModule<'a> {
                  },
                  ContentConflictAction::error => {
                      self.log(LogLevel::Error, "ox_webservice_stream: Conflict error (early check).".to_string());
-                     let _ = ctx.set("http.response.status", serde_json::json!(500));
+                     let _ = ctx.set("response.status", serde_json::json!(500));
                       return HandlerResult {
                          status: ModuleStatus::Modified,
                          flow_control: FlowControl::Continue, // Return 500 but continue pipeline? Or halt on 500?
@@ -208,35 +224,44 @@ impl<'a> OxModule<'a> {
              }
         }
 
-        // Get Path
-        let request_path = match ctx.get("http.request.path") {
+        // Get Path (Prioritize generic resource, fallback to HTTP path)
+        // Get Path (Prioritize generic resource)
+        let request_path = match ctx.get("request.resource") {
             Some(v) => v.as_str().unwrap_or("/").to_string(),
-            None => {
-                 self.log(LogLevel::Error, "ox_webservice_stream: get(http.request.path) returned None.".to_string());
-                 let _ = ctx.set("http.response.status", serde_json::json!(500));
-                  return HandlerResult {
-                     status: ModuleStatus::Modified,
-                     flow_control: FlowControl::Continue,
-                     return_parameters: ReturnParameters {
-                         return_data: std::ptr::null_mut(),
-                     },
-                  };
+            None => match ctx.get("request.path") {
+                Some(v) => v.as_str().unwrap_or("/").to_string(),
+                None => {
+                     self.log(LogLevel::Error, "ox_webservice_stream: Both request.resource and request.path returned None.".to_string());
+                     let _ = ctx.set("response.status", serde_json::json!(500));
+                      return HandlerResult {
+                         status: ModuleStatus::Modified,
+                         flow_control: FlowControl::Continue,
+                         return_parameters: ReturnParameters {
+                             return_data: std::ptr::null_mut(),
+                         },
+                      };
+                }
             }
         };
 
         // Check for regex matches in module context (Legacy?)
         // "regex_matches" key relies on Generic State
-        let mut resolved_path = request_path;
+        let mut resolved_path = request_path.clone();
         
         // Router sets "http.request.path_capture"
-        if let Some(val) = ctx.get("http.request.path_capture") {
-             resolved_path = val.as_str().unwrap_or("").to_string();
+        // Router sets "http.request.path_capture"
+        if let Some(val) = ctx.get("request.capture") {
+             let val_str = val.as_str().unwrap_or("").to_string();
+             self.log(LogLevel::Info, format!("ox_webservice_stream: Found path_capture: '{}'", val_str));
+             resolved_path = val_str;
         } else if let Some(val) = ctx.get("regex_matches") {
               if let Some(matches) = val.as_array() {
                   if let Some(first) = matches.get(0).and_then(|v| v.as_str()) {
                       resolved_path = first.to_string();
                   }
               }
+        } else {
+             self.log(LogLevel::Info, format!("ox_webservice_stream: No path_capture found. request_path: '{}'", request_path));
         }
 
         if let Some(file_path) = self.resolve_and_find_file(&resolved_path) {
@@ -280,7 +305,7 @@ impl<'a> OxModule<'a> {
             match fs::metadata(&file_path) {
                 Ok(metadata) => {
                         if !metadata.is_file() {
-                            let _ = ctx.set("http.response.status", serde_json::json!(404));
+                            let _ = ctx.set("response.status", serde_json::json!(404));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::Continue, // Or halt?
@@ -290,7 +315,7 @@ impl<'a> OxModule<'a> {
                         
                         if let Err(e) = fs::File::open(&file_path) {
                             self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", resolved_path, e));
-                            let _ = ctx.set("http.response.status", serde_json::json!(500));
+                            let _ = ctx.set("response.status", serde_json::json!(500));
                             return HandlerResult {
                                 status: ModuleStatus::Modified,
                                 flow_control: FlowControl::Continue,
@@ -306,9 +331,9 @@ impl<'a> OxModule<'a> {
                         ),
                     );
 
-                    // Set Content-Type
-                    let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(mimetype));
-                    let _ = ctx.set("http.response.status", serde_json::json!(200));
+                    // Set Content-Type (Generic and HTTP)
+                    let _ = ctx.set("response.type", serde_json::Value::String(mimetype.clone()));
+                    let _ = ctx.set("response.status", serde_json::json!(200));
 
                     // Pass file path to host
                     // Host takes ownership of the CString pointer
@@ -332,7 +357,7 @@ impl<'a> OxModule<'a> {
                         ),
                     );
 
-                    let _ = ctx.set("http.response.status", serde_json::json!(500));
+                    let _ = ctx.set("response.status", serde_json::json!(500));
                     return HandlerResult {
                         status: ModuleStatus::Modified,
                         flow_control: FlowControl::Continue, 
@@ -349,8 +374,9 @@ impl<'a> OxModule<'a> {
                 ),
             );
             
-            let _ = ctx.set("http.response.status", serde_json::json!(404));
-            let _ = ctx.set("http.response.body", serde_json::Value::String("404 Not Found".to_string()));
+            let _ = ctx.set("response.status", serde_json::json!(404));
+            // Generic body?
+            let _ = ctx.set("response.body", serde_json::Value::String("404 Not Found".to_string()));
 
              HandlerResult {
                 status: ModuleStatus::Modified,
@@ -424,34 +450,36 @@ pub unsafe extern "C" fn initialize_module(
         let params: Value =
             serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
 
-        let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
-            Some(name) => name,
-            None => {
-                let log_msg = CString::new("'config_file' parameter is missing or not a string.").unwrap();
-                let _ = panic::catch_unwind(|| {
-                    unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
-                });
-                return std::ptr::null_mut();
-            }
-        };
-
-        let config_path = PathBuf::from(config_file_name);
-        
-        let config: ContentConfig = match ox_fileproc::process_file(&config_path, 5) {
-            Ok(value) => match serde_json::from_value(value) {
-                Ok(c) => c,
-                Err(e) => {
-                     let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
-                     unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
-                     return std::ptr::null_mut();
+        let config: ContentConfig = match params.get("config_file").and_then(|v| v.as_str()) {
+            Some(config_file_name) => {
+                let config_path = PathBuf::from(config_file_name);
+                match ox_fileproc::process_file(&config_path, 5) {
+                    Ok(value) => match serde_json::from_value(value) {
+                        Ok(c) => c,
+                        Err(e) => {
+                             let log_msg = CString::new(format!("Failed to deserialize ContentConfig from {}: {}", config_file_name, e)).unwrap();
+                             unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
+                             return std::ptr::null_mut();
+                        }
+                    },
+                    Err(e) => {
+                         let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
+                         unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
+                         return std::ptr::null_mut();
+                    }
                 }
             },
-            Err(e) => {
-                 let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
-                 let _ = panic::catch_unwind(|| {
-                     unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
-                 });
-                 return std::ptr::null_mut();
+            None => {
+                // Fallback: Construct ContentConfig from direct params
+                let content_root = params.get("content_root").and_then(|v| v.as_str()).unwrap_or("./www").to_string();
+                let mimetypes_file = params.get("mimetypes_file").and_then(|v| v.as_str()).unwrap_or("conf/mimetypes.yaml").to_string();
+                
+                ContentConfig {
+                    content_root,
+                    mimetypes_file,
+                    default_documents: vec![DocumentConfig { document: "index.html".to_string() }],
+                    on_content_conflict: None,
+                }
             }
         };
 
@@ -503,7 +531,7 @@ pub unsafe extern "C" fn process_request_c(
     if instance_ptr.is_null() {
         return HandlerResult {
             status: ModuleStatus::Modified,
-            flow_control: FlowControl::Halt,
+            flow_control: FlowControl::Continue,
             return_parameters: ReturnParameters {
                 return_data: std::ptr::null_mut(),
             },
@@ -534,7 +562,7 @@ pub unsafe extern "C" fn process_request_c(
             
             HandlerResult {
                 status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
+                flow_control: FlowControl::Continue,
                 return_parameters: ReturnParameters {
                     return_data: std::ptr::null_mut(),
                 },
@@ -552,11 +580,7 @@ pub unsafe extern "C" fn get_config_c(
     if instance_ptr.is_null() { return std::ptr::null_mut(); }
     let handler = unsafe { &*(instance_ptr as *mut OxModule) };
     
-    let mut config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
-    if let Value::Object(ref mut map) = config_val {
-         let mimetypes_val = serde_json::to_value(&handler.mimetypes).unwrap_or(Value::Null);
-         map.insert("loaded_mimetypes".to_string(), mimetypes_val);
-    }
+    let config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
     
     let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
     
