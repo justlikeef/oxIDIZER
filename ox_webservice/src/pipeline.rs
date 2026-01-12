@@ -70,7 +70,7 @@ pub struct ServerMetrics {
 }
 
 static SERVER_METRICS: Lazy<ServerMetrics> = Lazy::new(|| {
-    let mut phases = HashMap::new();
+    let phases = HashMap::new();
     // Dynamic phases - initialized empty
     
     ServerMetrics {
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn get_state_c(
          }
          None
     } else if key_str == "pipeline.modified" {
-        Some(Value::String(pipeline_state.is_modified.to_string()).to_string())
+        Some(Value::String(pipeline_state.has_flag("content_modified").to_string()).to_string())
     } else if key_str == "pipeline.execution_history" {
         let json = serde_json::to_string(&pipeline_state.execution_history).unwrap_or("[]".to_string());
         Some(json)
@@ -626,7 +626,7 @@ impl LoadedModule {
 
     // Refactored execute: Assumes routing decision is already made by Pipeline
     // Returns Result for Wrapper
-    fn execute_handler(&self, state: ox_pipeline::State) -> Result<(), String> {
+    fn execute_handler(&self, state: ox_pipeline::State) -> Result<ox_pipeline::PipelineStatus, String> {
         // Downcast generic state to the specific PipelineState we use
         let pipeline_state_arc = state.downcast_ref::<RwLock<PipelineState>>()
             .ok_or("Invalid State Type: Expected RwLock<PipelineState>")?;
@@ -647,6 +647,17 @@ impl LoadedModule {
         // Handle result (Wrapper responsibility)
         match result.flow_control {
              FlowControl::Halt => return Err("Halted by module".to_string()),
+             FlowControl::JumpTo => {
+                 let target_ptr = result.return_parameters.return_data as *const libc::c_char;
+                 if !target_ptr.is_null() {
+                     let target_c = unsafe { CStr::from_ptr(target_ptr) };
+                     let target = target_c.to_string_lossy().into_owned();
+                     debug!("Module '{}' JumpTo phase '{}'", self.module_id, target);
+                     return Ok(ox_pipeline::PipelineStatus::JumpTo(target));
+                 } else {
+                     return Err("JumpTo requrested but no target phase provided".to_string());
+                 }
+             },
              FlowControl::StreamFile => {
                  let path_ptr = result.return_parameters.return_data as *mut libc::c_char;
                  if !path_ptr.is_null() {
@@ -662,10 +673,10 @@ impl LoadedModule {
                          }
                      }
                  }
-                 debug!("StreamFile processing complete. Pipeline is_modified={}", write_guard.is_modified);
-                 Ok(())
+                 debug!("StreamFile processing complete. Pipeline content_modified={}", write_guard.has_flag("content_modified"));
+                 Ok(ox_pipeline::PipelineStatus::Continue)
              },
-             _ => Ok(()),
+             _ => Ok(ox_pipeline::PipelineStatus::Continue),
         }
     }
 
@@ -727,14 +738,30 @@ impl LoadedModule {
             pm.fetch_add(1, Ordering::Relaxed);
         }
 
-        // Call Module Handler
-        let result = (self.module_interface.handler_fn)(
-            self.module_interface.instance_ptr,
-            pipeline_state_ptr,
-            self.module_interface.log_callback,
-            self.alloc_raw,
-            (&write_guard.arena) as *const Bump as *const c_void
-        );
+        // Call Module Handler (Defensive: Catch Panics)
+        let handler_fn = self.module_interface.handler_fn;
+        let instance_ptr = self.module_interface.instance_ptr;
+        
+        // Safety: We are passing raw pointers. catch_unwind requires AssertUnwindSafe because we are sharing mutable state
+        // via raw pointers across the unwind boundary. If a panic occurs, the state in write_guard might be corrupt, 
+        // but we assume the module isolate it OR we accept the risk as better than full process crash.
+        // Since PipelineState is managed by us and mostly POD or std containers, it *might* survive simple panics.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            (handler_fn)(
+                instance_ptr,
+                pipeline_state_ptr,
+                self.module_interface.log_callback,
+                self.alloc_raw,
+                (&write_guard.arena) as *const Bump as *const c_void
+            )
+        })).unwrap_or_else(|_| {
+            error!("Module '{}' PANICKED during execution. Replacing result with FlowControl::Halt.", self.module_id);
+            HandlerResult {
+                status: ModuleStatus::Unmodified,
+                flow_control: FlowControl::Halt,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+            }
+        });
 
         if metrics_enabled {
              if let Some(start) = start_time {
@@ -753,8 +780,8 @@ impl LoadedModule {
         
         // 1. Update State Latch (Monotonic)
         if result.status == ModuleStatus::Modified {
-            write_guard.is_modified = true;
-            debug!("Module '{}' returned Modified. Pipeline is_modified set to true.", self.module_id);
+            write_guard.add_flag("content_modified");
+            debug!("Module '{}' returned Modified. Pipeline content_modified set to true.", self.module_id);
         }
 
         // 2. Record Execution History
@@ -782,7 +809,7 @@ impl ox_pipeline::PipelineModule for LoadedModuleWrapper {
         self.0.get_config()
     }
 
-    fn execute(&self, state: ox_pipeline::State) -> Result<(), String> {
+    fn execute(&self, state: ox_pipeline::State) -> Result<ox_pipeline::PipelineStatus, String> {
         // Wrapper now calls execute_handler. 
         // Note: usage of Wrapper implies "Any request runs module", but we only use Wrapper if dispatched.
         self.0.execute_handler(state)
@@ -845,17 +872,31 @@ impl Pipeline {
         // Pre-process URLs to inject into modules
         let mut extra_uris: HashMap<String, Vec<ox_webservice_api::UriMatcher>> = HashMap::new();
         for route in &config.routes {
+             let url = if let Some(u) = &route.url {
+                 u.clone()
+             } else {
+                 error!("Route definition missing 'url'. Skipping.");
+                 continue;
+             };
+
+             let module_id = if let Some(mid) = &route.module_id {
+                 mid.clone()
+             } else {
+                 error!("Route definition missing 'module_id'. Skipping.");
+                 continue;
+             };
+
              let matcher = ox_webservice_api::UriMatcher {
                  protocol: route.protocol.clone(),
                  hostname: route.hostname.clone(),
-                 path: route.url.clone(),
+                 path: url,
                  headers: route.headers.clone(),
                  query: route.query.clone(),
-                  priority: route.priority,
-                  phase: route.phase.clone(),
-                  status_code: route.status_code.clone(),
+                 priority: route.priority,
+                 phase: route.phase.clone(),
+                 status_code: route.status_code.clone(),
               };
-             extra_uris.entry(route.module_id.clone()).or_default().push(matcher);
+             extra_uris.entry(module_id).or_default().push(matcher);
         }
 
         for module_config_ref in &config.modules {
@@ -880,101 +921,116 @@ impl Pipeline {
 
             info!("Loading module '{}' from {:?}", module_id, lib_path);
 
-            let lib = if let Some(lib) = loaded_libraries.get(lib_path.to_str().unwrap()) {
-                 lib.clone()
-            } else {
-                let lib = unsafe { Library::new(&lib_path) }.map_err(|e| format!("Failed to load library {:?}: {}", lib_path, e))?;
-                let lib_arc = Arc::new(lib);
-                loaded_libraries.insert(lib_path.to_str().unwrap().to_string(), lib_arc.clone());
-                lib_arc
-            };
+            // Defensive Loading: Wrap in block to capture errors without returning early from function
+            let load_result = (|| -> Result<Arc<LoadedModule>, String> {
+                let lib = if let Some(lib) = loaded_libraries.get(lib_path.to_str().unwrap()) {
+                     lib.clone()
+                } else {
+                    let lib = unsafe { Library::new(&lib_path) }.map_err(|e| format!("Failed to load library {:?}: {}", lib_path, e))?;
+                    let lib_arc = Arc::new(lib);
+                    loaded_libraries.insert(lib_path.to_str().unwrap().to_string(), lib_arc.clone());
+                    lib_arc
+                };
 
-            let init_fn: Symbol<InitializeModuleFn> = unsafe {
-                lib.get(b"initialize_module").map_err(|e| format!("Failed to find 'initialize_module' in {:?}: {}", lib_path, e))?
-            };
+                let init_fn: Symbol<InitializeModuleFn> = unsafe {
+                    lib.get(b"initialize_module").map_err(|e| format!("Failed to find 'initialize_module' in {:?}: {}", lib_path, e))?
+                };
 
-            let mut merged_params = module_config.extra_params.clone();
-            if let Some(Value::Object(nested_params)) = module_config.params.clone() {
-                for (k, v) in nested_params {
-                    merged_params.insert(k, v);
+                let mut merged_params = module_config.extra_params.clone();
+                if let Some(Value::Object(nested_params)) = module_config.params.clone() {
+                    for (k, v) in nested_params {
+                        merged_params.insert(k, v);
+                    }
                 }
-            }
-            let params_json = serde_json::to_string(&merged_params).unwrap();
-            let c_params_json = CString::new(params_json).unwrap();
-            
-            let c_module_id = CString::new(module_id.clone()).unwrap();
+                let params_json = serde_json::to_string(&merged_params).unwrap();
+                let c_params_json = CString::new(params_json).unwrap();
+                
+                let c_module_id = CString::new(module_id.clone()).unwrap();
 
-            let module_interface_ptr = unsafe { init_fn(c_params_json.as_ptr(), c_module_id.as_ptr(), core_api_ptr) };
+                // Safety: calling foreign code. We trust the module not to segfault on init.
+                let module_interface_ptr = unsafe { init_fn(c_params_json.as_ptr(), c_module_id.as_ptr(), core_api_ptr) };
 
-            if module_interface_ptr.is_null() {
-                return Err(format!("Failed to initialize module '{}'", module_id));
-            }
+                if module_interface_ptr.is_null() {
+                    return Err(format!("Failed to initialize module '{}' (returned null interface)", module_id));
+                }
 
-            let module_interface = unsafe { Box::from_raw(module_interface_ptr) };
+                let module_interface = unsafe { Box::from_raw(module_interface_ptr) };
 
-            let metrics = Arc::new(ModuleMetrics::new());
-            if let Ok(mut registry) = MODULE_METRICS_REGISTRY.write() {
-                registry.insert(module_id.clone(), metrics.clone());
-            }
+                let metrics = Arc::new(ModuleMetrics::new());
+                if let Ok(mut registry) = MODULE_METRICS_REGISTRY.write() {
+                    registry.insert(module_id.clone(), metrics.clone());
+                }
 
-            let loaded_module = Arc::new(LoadedModule {
-                _library: lib.clone(),
-                module_name: module_config.name.clone(),
-                module_id: module_id.clone(),
-                module_interface,
-                module_config: module_config.clone(),
-                metrics, 
-                alloc_raw: alloc_raw_c,
-                phase_metric: None,
-            });
-            
-            // Register in GLOBAL_MODULE_REGISTRY
-            if let Ok(mut registry) = GLOBAL_MODULE_REGISTRY.write() {
-                registry.insert(module_id.clone(), loaded_module.clone());
-            }
+                let loaded_module = Arc::new(LoadedModule {
+                    _library: lib.clone(),
+                    module_name: module_config.name.clone(),
+                    module_id: module_id.clone(),
+                    module_interface,
+                    module_config: module_config.clone(),
+                    metrics, 
+                    alloc_raw: alloc_raw_c,
+                    phase_metric: None,
+                });
+                
+                // Register in GLOBAL_MODULE_REGISTRY
+                if let Ok(mut registry) = GLOBAL_MODULE_REGISTRY.write() {
+                    registry.insert(module_id.clone(), loaded_module.clone());
+                }
 
-            if let Some(routes) = &module_config.routes {
-                 for route in routes {
-                     let entry = DispatchEntry {
-                         matcher: Some(route.clone()),
-                         priority: route.priority,
-                         module: loaded_module.clone(),
-                     };
-                     let target_phase = route.phase.clone().unwrap_or_else(|| "Content".to_string());
-                     phases.entry(target_phase).or_default().push(entry);
-                 }
-            } else {
-                 // Fallback: If module has a phase specified in extra_params but no routes, add a catch-all.
-                 let target_phase = module_config.extra_params.get("phase")
-                     .and_then(|v| v.as_str())
-                     .map(|s| s.to_string());
-                 
-                 if let Some(phase) = target_phase {
-                     info!("Module '{}' has no routes but is in phase '{}'. Adding catch-all route.", loaded_module.module_name, phase);
-                     
-                     let priority = module_config.extra_params.get("priority")
-                         .and_then(|v| v.as_u64())
-                         .map(|v| v as u16)
-                         .unwrap_or(100);
+                Ok(loaded_module)
+            })();
 
-                     let entry = DispatchEntry {
-                         matcher: Some(ox_webservice_api::UriMatcher {
-                             protocol: None,
-                             hostname: None,
-                             path: ".*".to_string(),
-                             headers: None,
-                             query: None,
-                             priority,
-                             phase: Some(phase.clone()),
-                             status_code: None,
-                         }),
-                         priority,
-                         module: loaded_module.clone(),
-                     };
-                     phases.entry(phase).or_default().push(entry);
-                 } else {
-                     info!("Module '{}' produces no routes and has no phase. It will strictly be available for manual dispatch.", loaded_module.module_name);
-                 }
+            match load_result {
+                Ok(loaded_module) => {
+                    if let Some(routes) = &module_config.routes {
+                         for route in routes {
+                             let entry = DispatchEntry {
+                                 matcher: Some(route.clone()),
+                                 priority: route.priority,
+                                 module: loaded_module.clone(),
+                             };
+                             let target_phase = route.phase.clone().unwrap_or_else(|| "Content".to_string());
+                             phases.entry(target_phase).or_default().push(entry);
+                         }
+                    } else {
+                         // Fallback: If module has a phase specified in extra_params but no routes, add a catch-all.
+                         let target_phase = module_config.extra_params.get("phase")
+                             .and_then(|v| v.as_str())
+                             .map(|s| s.to_string());
+                         
+                         if let Some(phase) = target_phase {
+                             info!("Module '{}' has no routes but is in phase '{}'. Adding catch-all route.", loaded_module.module_name, phase);
+                             
+                             let priority = module_config.extra_params.get("priority")
+                                 .and_then(|v| v.as_u64())
+                                 .map(|v| v as u16)
+                                 .unwrap_or(100);
+
+                             let entry = DispatchEntry {
+                                 matcher: Some(ox_webservice_api::UriMatcher {
+                                     protocol: None,
+                                     hostname: None,
+                                     path: ".*".to_string(),
+                                     headers: None,
+                                     query: None,
+                                     priority,
+                                     phase: Some(phase.clone()),
+                                     status_code: None,
+                                 }),
+                                 priority,
+                                 module: loaded_module.clone(),
+                             };
+                             phases.entry(phase).or_default().push(entry);
+                         } else {
+                             info!("Module '{}' produces no routes and has no phase. It will strictly be available for manual dispatch.", loaded_module.module_name);
+                         }
+                    }
+                },
+                Err(e) => {
+                    error!("CRITICAL: {}", e);
+                    // Continue to next module
+                    continue;
+                }
             }
         }
         
@@ -1191,7 +1247,7 @@ impl Pipeline {
             PipelineRequestBody::File(path, len) => (Vec::new(), Some(path), len),
         };
         
-        let mut state = PipelineState {
+        let state = PipelineState {
             arena: Bump::new(),
             protocol,
             request_method: method.clone(),
@@ -1204,8 +1260,8 @@ impl Pipeline {
             response_headers: HeaderMap::new(),
             response_body: Vec::new(),
             module_context: Arc::new(RwLock::new(std::collections::HashMap::new())),
-            pipeline_ptr: Arc::as_ptr(&self) as *const c_void, 
-            is_modified: false,
+            pipeline_ptr: Arc::as_ptr(&self) as *const c_void,
+            flags: std::collections::HashSet::new(),
             execution_history: Vec::new(),
             route_capture: None,
         };
@@ -1532,8 +1588,8 @@ impl Pipeline {
  
  #[unsafe(no_mangle)]
  pub unsafe extern "C" fn log_callback_c(level: ox_webservice_api::LogLevel, module: *const libc::c_char, message: *const libc::c_char) {
-     let module = unsafe { CStr::from_ptr(module).to_str().unwrap() };
-     let message = unsafe { CStr::from_ptr(message).to_str().unwrap() };
+     let module = unsafe { CStr::from_ptr(module).to_string_lossy() };
+     let message = unsafe { CStr::from_ptr(message).to_string_lossy() };
      match level {
          ox_webservice_api::LogLevel::Error => log::error!("[{}] {}", module, message),
          ox_webservice_api::LogLevel::Warn => log::warn!("[{}] {}", module, message),

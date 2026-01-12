@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+   "ox_webservice_vary_header",
     "ox_callback_manager",
 
     "ox_data_broker",
@@ -20,11 +21,13 @@ members = [
     "ox_persistence/drivers/db/ox_persistence_driver_db_sql",
     "ox_persistence/drivers/db/ox_persistence_driver_db_sqlite",
     "ox_persistence_driver_manager",
+    "ox_persistence_driver_installer",
     "ox_persistence_datasource_manager",
     "ox_type_converter",
     "ox_webservice",
     "ox_webservice_api",
     "ox_webservice_errorhandler_jinja2",
+    "ox_webservice_errorhandler_json",
     "ox_webservice_stream",
     "ox_webservice_template_jinja2",
     "ox_webservice_forwarded_for",
@@ -35,5 +38,6 @@ members = [
     "ox_webservice_test_utils",
     "ox_webservice_ping", "ox_pipeline", "ox_pipeline/ox_pipeline_plugin", "ox_pipeline/ox_pipeline_router",
     "ox_package_manager", "ox_forms", "ox_forms/ox_forms_std_renderers", "ox_forms/ox_forms_server", "ox_forms/ox_forms_client",
-    "ox_event_bus", "ox_messaging_client/ox_messaging_mqtt", "ox_event_bus/ox_event_bus_mqtt", "ox_messaging_client",
+    "ox_event_bus", "ox_messaging_client/ox_messaging_mqtt", "ox_event_bus/ox_event_bus_mqtt", "ox_messaging_client", "ox_auth_ip",
+    "ox_webservice_wsgi",
 ]

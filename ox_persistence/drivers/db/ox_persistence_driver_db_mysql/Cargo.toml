@@ -15,6 +15,7 @@ ox_persistence_driver_sql = { package = "ox_persistence_driver_db_sql", path = "
 ox_data_object = { path = "../../../../ox_data_object" }
 ox_type_converter = { path = "../../../../ox_type_converter" }
 mysql = "25.0.0"
+myloginrs = "0.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }

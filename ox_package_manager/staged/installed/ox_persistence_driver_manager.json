@@ -1,0 +1,13 @@
+{
+    "name": "ox_persistence_driver_manager",
+    "version": "0.1.0",
+    "description": "Manager for persistence drivers",
+    "package_type": "module",
+    "resources": [],
+    "filename": "ox_persistence_driver_manager.tar.gz",
+    "size": 0,
+    "dependencies": [
+        "ox_persistence"
+    ],
+    "installer_handlers": {}
+}

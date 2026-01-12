@@ -23,8 +23,8 @@ fuzz_target!(|data: &[u8]| {
         response_headers: HeaderMap::new(),
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
-        pipeline_ptr: ptr::null(),
-        is_modified: false,
+        pipeline_ptr: std::ptr::null(),
+        flags: std::collections::HashSet::new(),
         execution_history: Vec::new(),
         route_capture: None,
     };

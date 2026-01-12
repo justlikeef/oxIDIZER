@@ -1,0 +1,28 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+    staging_directory: "/var/repos/oxIDIZER/ox_package_manager/functional_tests/100006-InstallPackage/staging"
+  - id: ox_pipeline_router
+    name: ox_pipeline_router
+    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3000
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+
+routes:
+  - url: "^/packages/(upload|list|install)/?"
+    module_id: "package_manager"
+    phase: Content
+    priority: 450

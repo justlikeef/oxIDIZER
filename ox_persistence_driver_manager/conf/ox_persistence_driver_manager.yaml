@@ -4,6 +4,7 @@ modules:
     phase: Content
     params:
       drivers_file: "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+      driver_root: "/var/repos/oxIDIZER/target/debug"
   - id: "driver_manager_stream"
     name: "ox_webservice_stream"
     phase: Content
@@ -19,12 +20,12 @@ routes:
     headers:
       Accept: "application/json"
     module_id: "driver_manager"
-    priority: 499
+    priority: 10
   - url: "^/drivers/(.*)?$"
     query:
       format: "json"
     module_id: "driver_manager"
-    priority: 499
+    priority: 10
   - url: "^/drivers/wasm/(.*)?$"
     module_id: "driver_manager_stream_wasm"
     priority: 499

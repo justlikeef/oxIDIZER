@@ -7,50 +7,151 @@
     <title>Package Manager | oxIDIZER</title>
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="css/style.css">
+    <script src="/js/common.js"></script>
     <!-- Using relative path since we are served from /packages/ -->
 </head>
 
 <body>
     <div class="container">
         <header>
-            <div class="logo-area">
-                <img src="/images/logo.png" alt="oxIDIZER" class="logo">
-                <h1>Package Manager</h1>
-                <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
-            </div>
-            <div>
-                <a href="/status" class="btn" style="text-decoration:none; font-size: 0.9rem;">Back to Status</a>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Package Manager</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
+                </div>
+                <div class="header-status-area">
+                    <div id="status-badge" class="status-badge">ONLINE</div>
+                </div>
             </div>
         </header>
 
-        <div id="drop-zone" class="card">
-            <span class="upload-icon">☁️</span>
-            <h2>Drag & Drop package file here</h2>
-            <p style="color: var(--text-secondary)">or</p>
-            <button id="browse-btn" class="btn">Select File</button>
-            <input type="file" id="file-input" name="package">
-
-            <div class="progress-container" id="progress-container">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                    <div class="progress-bar" style="flex-grow: 1;">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                    <button id="cancel-btn" class="btn"
-                        style="display:none; padding: 4px 10px; font-size: 0.8rem; background: var(--error);">Cancel</button>
+        <!-- Installed Packages Card -->
+        <div class="card collapsible-card" id="installed-card">
+            <div class="card-header collapsible-header" onclick="toggleCard('installed-card')">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="indicator">▼</span>
+                    <h2>Installed Packages</h2>
                 </div>
-                <div class="status-text" id="status-text">Waiting...</div>
+                <button class="btn-icon refresh-btn" id="refresh-installed" title="Refresh"
+                    onclick="event.stopPropagation(); loadInstalledPackages()">↻</button>
+            </div>
+            <div class="card-body collapsible-body">
+                <div class="pkg-list" id="installed-list">
+                    <!-- Installed packages populated by JS -->
+                </div>
             </div>
         </div>
 
-        <div class="pkg-list" id="staged-list">
-            <h4
-                style="margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">
-                Staged Packages</h4>
-            <!-- Items added via JS -->
+        <!-- Staged / Upload Card -->
+        <div class="card collapsible-card collapsed" id="staged-card">
+            <div class="card-header collapsible-header" onclick="toggleCard('staged-card')">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="indicator">▶</span>
+                    <h2>Upload & Stage</h2>
+                </div>
+                <button class="btn-icon refresh-btn" id="refresh-staged" title="Refresh"
+                    onclick="event.stopPropagation(); loadStagedPackages()">↻</button>
+            </div>
+            <div class="card-body collapsible-body" style="display: none;">
+                <div id="drop-zone" class="upload-zone">
+                    <span class="upload-icon">☁️</span>
+                    <h3>Drag & Drop package file here</h3>
+                    <p style="color: var(--text-secondary)">or</p>
+                    <button id="browse-btn" class="btn">Select File</button>
+                    <input type="file" id="file-input" name="package" hidden>
+
+                    <div class="progress-container" id="progress-container">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                            <div class="progress-bar" style="flex-grow: 1;">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <button id="cancel-btn" class="btn"
+                                style="display:none; padding: 4px 10px; font-size: 0.8rem; background: var(--error);">Cancel</button>
+                        </div>
+                        <div class="status-text" id="status-text">Waiting...</div>
+                    </div>
+                </div>
+
+                <div class="pkg-list" id="staged-list" style="margin-top: 1rem;">
+                    <h4
+                        style="margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">
+                        Staged Packages</h4>
+                    <!-- Items added via JS -->
+                </div>
+            </div>
         </div>
+
     </div>
 
+    <style>
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .collapsible-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .indicator {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .collapsed .collapsible-body {
+            display: none;
+            content-visibility: hidden;
+        }
+
+        .collapsed .indicator {
+            transform: rotate(-90deg);
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone.drag-over {
+            border-color: var(--accent-color);
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+    </style>
+    <script>
+        function toggleCard(id) {
+            const card = document.getElementById(id);
+            const body = card.querySelector('.collapsible-body');
+            const indicator = card.querySelector('.indicator');
+
+            if (card.classList.contains('collapsed')) {
+                card.classList.remove('collapsed');
+                body.style.display = 'block';
+                body.style.contentVisibility = 'visible';
+                indicator.textContent = '▼';
+            } else {
+                card.classList.add('collapsed');
+                body.style.display = 'none';
+                body.style.contentVisibility = 'hidden';
+                indicator.textContent = '▶';
+            }
+        }
+    </script>
     <script src="js/upload.js"></script>
 </body>
 

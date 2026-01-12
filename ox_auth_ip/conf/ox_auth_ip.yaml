@@ -1,0 +1,10 @@
+modules:
+  - id: "ip_auth"
+    name: "ox_auth_ip"
+    phase: PreContent
+    params:
+      config_file: "/opt/repos/oxIDIZER/ox_auth_ip/conf/ip_rules.yaml"
+routes:
+  - url: ".*"
+    module_id: "ip_auth"
+    priority: 100

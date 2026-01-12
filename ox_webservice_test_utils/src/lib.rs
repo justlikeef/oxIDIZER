@@ -80,7 +80,7 @@ pub unsafe extern "C" fn mock_get_state(state_ptr: *mut c_void, key: *const c_ch
         let header_name = &key_str["response.header.".len()..];
         pipeline_state.response_headers.get(header_name).map(|v| Value::String(v.to_str().unwrap_or("").to_string()).to_string())
     } else if key_str == "pipeline.modified" {
-        Some(pipeline_state.is_modified.to_string())
+        Some(pipeline_state.has_flag("content_modified").to_string())
     } else {
         // Generic module context
          pipeline_state.module_context.read().unwrap().get(key_str.as_ref()).map(|v| v.to_string())
@@ -245,8 +245,8 @@ pub fn create_stub_pipeline_state() -> PipelineState {
         response_headers: HeaderMap::new(),
         response_body: Vec::new(),
         module_context: Arc::new(RwLock::new(HashMap::new())),
-        pipeline_ptr: std::ptr::null_mut(),
-        is_modified: false,
+        pipeline_ptr: std::ptr::null(),
+        flags: std::collections::HashSet::new(),
         execution_history: Vec::new(),
         route_capture: None,
     }

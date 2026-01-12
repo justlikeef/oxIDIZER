@@ -1,0 +1,7 @@
+name: app_two
+version: 1.0.0
+package_type: module
+description: App Two depending on shared_lib.
+dependencies:
+  - shared_lib
+installer_handlers: {}

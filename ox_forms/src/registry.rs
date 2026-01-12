@@ -14,7 +14,7 @@ pub struct DefaultFieldConfig {
     pub default_props: Value,
 }
 
-use crate::traits::{ElementRenderer, FormRenderer};
+use crate::traits::{ElementRenderer, FormRenderer, ActionRenderer};
 use std::sync::Arc;
 
 pub struct TypeRegistry {
@@ -22,6 +22,8 @@ pub struct TypeRegistry {
     mapping: HashMap<String, DefaultFieldConfig>,
     /// Maps component names (e.g. "email-input") to actual renderers
     element_renderers: HashMap<String, Arc<dyn ElementRenderer>>,
+    /// Maps component names (e.g. "submit-button") to action renderers
+    action_renderers: HashMap<String, Arc<dyn ActionRenderer>>,
     /// Maps form renderer names to implementations
     form_renderers: HashMap<String, Arc<dyn FormRenderer>>,
 }
@@ -31,6 +33,7 @@ impl TypeRegistry {
         Self {
             mapping: HashMap::new(),
             element_renderers: HashMap::new(),
+            action_renderers: HashMap::new(),
             form_renderers: HashMap::new(),
         }
     }
@@ -49,5 +52,21 @@ impl TypeRegistry {
 
     pub fn get_element_renderer(&self, component_name: &str) -> Option<Arc<dyn ElementRenderer>> {
         self.element_renderers.get(component_name).cloned()
+    }
+
+    pub fn register_action_renderer(&mut self, name: &str, renderer: Arc<dyn ActionRenderer>) {
+        self.action_renderers.insert(name.to_string(), renderer);
+    }
+
+    pub fn get_action_renderer(&self, component_name: &str) -> Option<Arc<dyn ActionRenderer>> {
+        self.action_renderers.get(component_name).cloned()
+    }
+
+    pub fn register_form_renderer(&mut self, name: &str, renderer: Arc<dyn FormRenderer>) {
+        self.form_renderers.insert(name.to_string(), renderer);
+    }
+
+    pub fn get_form_renderer(&self, name: &str) -> Option<Arc<dyn FormRenderer>> {
+        self.form_renderers.get(name).cloned()
     }
 }

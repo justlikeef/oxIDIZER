@@ -1,0 +1,78 @@
+/* 
+   DataSource Manager - Supplemental Styles
+   Inherits from common.css (Brown Theme)
+*/
+
+/* Form Controls */
+.form-control {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid var(--border);
+    color: var(--text-primary) !important;
+    border-radius: 12px;
+    /* Matches common.css border-radius */
+    padding: 0.75rem;
+    width: 100%;
+    font-family: var(--font-family);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.2);
+    /* Orange glow matches accent */
+}
+
+.form-control option {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+/* Utility & Helper Classes specific to DataSource Manager */
+.header-badge {
+    margin-left: 0.5rem;
+    opacity: 0.8;
+}
+
+.content-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.content-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-top: 1rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.modal-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.grid-col-full {
+    grid-column: 1 / -1;
+}
+
+.text-danger {
+    color: var(--error);
+}
+
+.empty-state-container {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+}

@@ -1,157 +1,146 @@
 @import url("/css/common.css");
 
-/* Extra styles for drivers */
-.driver-meta {
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: var(--text-secondary);
-}
+@import url("/css/common.css");
 
-.driver-meta p {
-    margin: 4px 0;
-}
-
-/* Redesign overwrites */
-.kv-row {
+/* Compact List Styles */
+.driver-list {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    overflow: hidden;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 1px solid var(--border);
 }
 
-.kv-value {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 70%;
-    text-align: right;
-}
-
-.card.status-ok {
-    background-color: rgba(39, 174, 96, 0.1);
-    border-color: #27ae60;
-}
-
-.card.status-error {
-    background-color: rgba(231, 76, 60, 0.1);
-    border-color: #e74c3c;
-}
-
-.card-header {
+.driver-row {
     display: flex;
-    justify-content: flex-start;
-    /* Align to left */
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
+    transition: background-color 0.1s ease;
 }
 
-/* Override common.card-header if it exists or just style here */
-.card-header .status-badge {
-    order: -1;
-    /* Move to first */
-    margin: 0;
-    /* Reset margins */
-    background: transparent;
-    /* Remove background */
-    border: none;
-    /* Remove border */
-    padding: 0;
-    /* Align tightly */
-    font-weight: 800;
-    /* Bold text */
+.driver-row:last-child {
+    border-bottom: none;
+}
+
+.driver-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.driver-status {
+    width: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-dot.enabled {
+    background-color: #27ae60;
+    box-shadow: 0 0 5px #27ae60;
+}
+
+.status-dot.disabled {
+    background-color: #e74c3c;
+    box-shadow: 0 0 2px #e74c3c;
+}
+
+.driver-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.driver-name {
+    font-weight: 600;
+    color: var(--text-primary);
     font-size: 1rem;
 }
 
-.card.status-ok .status-badge {
+.driver-id {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.driver-actions {
+    margin-left: 1rem;
+}
+
+/* Compact Button */
+.btn-toggle {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 600;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    transition: all 0.1s;
+}
+
+.btn-toggle.enable {
+    background: transparent;
+    border-color: #27ae60;
     color: #27ae60;
 }
 
-.card.status-error .status-badge {
-    color: #e74c3c;
-}
-
-.card-header .card-title {
-    font-weight: 600;
-    font-size: 1.1em;
-    color: var(--text-primary);
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Button Styles */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1.25rem;
-    font-family: inherit;
-    font-weight: 600;
-    font-size: 0.875rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.1s ease;
-    border: 1px solid transparent;
-    text-transform: uppercase;
-    text-decoration: none;
-
-    /* 3D Texture Effect */
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
-    position: relative;
-    top: 0;
-}
-
-.btn:hover,
-.btn:active {
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
-    top: 3px;
-    transform: none;
-    /* Override hover transform if any */
-}
-
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    box-shadow: none;
-    top: 3px;
-}
-
-.btn-enable {
-    background-color: var(--card-bg);
-    /* Dark background */
-    border-color: var(--success);
-    color: var(--success);
-    box-shadow: 0 4px 0 #1e8449;
-    /* Darker green shadow */
-}
-
-/* On hover/active, depress the button (reduce shadow, move down) */
-.btn-enable:hover:not(:disabled),
-.btn-enable:active:not(:disabled) {
-    background-color: var(--success);
-    color: #fff;
-    box-shadow: 0 1px 0 #196f3d;
-}
-
-/* "Disable" button styled like disabled cards (Red/Error) */
-.btn-disable {
-    background-color: var(--card-bg);
-    border-color: #e74c3c;
-    /* Red */
-    color: #e74c3c;
-    box-shadow: 0 4px 0 #c0392b;
-    /* Darker red shadow */
-}
-
-.btn-disable:hover:not(:disabled),
-.btn-disable:active:not(:disabled) {
-    background-color: #e74c3c;
+.btn-toggle.enable:hover {
+    background: #27ae60;
     color: white;
-    box-shadow: 0 1px 0 #a93226;
+}
+
+.btn-toggle.disable {
+    background: transparent;
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.btn-toggle.disable:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+
+/* Info Icon */
+.driver-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    vertical-align: middle;
+}
+
+.driver-icon-btn:hover {
+    color: var(--primary);
+}
+
+.btn-info {
+    margin-left: 0.5rem;
+}
+
+.meta-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.meta-table th {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.meta-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
 }

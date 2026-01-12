@@ -347,7 +347,7 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
 
 #[no_mangle]
 pub extern "C" fn ox_driver_get_config_schema() -> *mut c_char {
-    let schema = include_str!("../config_schema.yaml");
+    let schema = include_str!("../ox_persistence_driver_file_yaml_config_schema.yaml");
     CString::new(schema).expect("Failed to create CString").into_raw()
 }
 

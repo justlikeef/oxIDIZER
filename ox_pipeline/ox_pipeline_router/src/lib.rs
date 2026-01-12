@@ -318,12 +318,15 @@ pub unsafe extern "C" fn process_request(
         route.dispatch_count.fetch_add(1, Ordering::Relaxed); // Metric Increment
         let res = ctx.execute_module(&route.module_id);
         
+        let msg = CString::new(format!("Router dispatch '{}' result: Status={:?}, Flow={:?}", route.module_id, res.status, res.flow_control)).unwrap();
+        unsafe { (context.module.api.log_callback)(LogLevel::Debug, context.module_id.as_ptr() as *const i8, msg.as_ptr()); }
+        
         // Track status propagation
         if res.status == ModuleStatus::Modified {
             current_status = ModuleStatus::Modified;
         }
 
-        if res.flow_control == FlowControl::Halt || res.flow_control == FlowControl::StreamFile {
+        if res.flow_control == FlowControl::Halt || res.flow_control == FlowControl::StreamFile || res.flow_control == FlowControl::JumpTo {
             return res;
         }
         // If Continue, we keep searching for more matching routes (sequential pipeline)

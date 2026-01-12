@@ -1,0 +1,819 @@
+2026-01-09T22:41:04.199126002-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-09T22:41:04.199341558-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/conf_copy/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default_http","protocol":"http","port":3000,"bind_address":"0.0.0.0","hosts":[{"name":"localhost","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"default_template_jinja2","name":"ox_webservice_template_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"}},{"id":"default_theme_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"}},{"id":"default_layout_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"}},{"id":"messaging_mqtt","name":"ox_messaging_mqtt","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"}},{"id":"package_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"},"on_content_conflict":"skip"},{"id":"data_source_manager","name":"ox_persistence_datasource_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"data_sources_dir":"/var/repos/oxIDIZER/ox_persistence/conf/datasources","on_content_conflict":"skip"}},{"id":"data_source_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"}},{"id":"driver_manager","name":"ox_persistence_driver_manager","routes":null,"headers":null,"query":null,"path":null,"params":{"drivers_file":"/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"},"phase":"Content"},{"id":"driver_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"},"phase":"Content"},{"id":"driver_manager_stream_wasm","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"},"phase":"Content"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":null,"params":{}},{"id":"errorhandler_jinja2","name":"ox_webservice_errorhandler_jinja2","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"}},{"id":"status_module","name":"ox_webservice_status","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"}},{"id":"stream_status","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":null,"params":{"config_file":"/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"}},{"id":"ping_module","name":"ox_webservice_ping","routes":null,"headers":null,"query":null,"path":null,"params":null,"phase":"Content"},{"id":"forwarded_for","name":"ox_webservice_forwarded_for","routes":null,"headers":null,"query":null,"path":null,"params":null},{"id":"restore_ip","name":"ox_webservice_restore_ip","routes":null,"headers":null,"query":null,"path":null,"params":null}],"pipeline":{"phases":[{"PreEarlyRequest":"ox_pipeline_router"},{"EarlyRequest":"ox_pipeline_router"},{"PostEarlyRequest":"ox_pipeline_router"},{"PreAuthentication":"ox_pipeline_router"},{"Authentication":"ox_pipeline_router"},{"PostAuthentication":"ox_pipeline_router"},{"PreAuthorization":"ox_pipeline_router"},{"Authorization":"ox_pipeline_router"},{"PostAuthorization":"ox_pipeline_router"},{"PreContent":"ox_pipeline_router"},{"Content":"ox_pipeline_router"},{"PostContent":"ox_pipeline_router"},{"PreAccounting":"ox_pipeline_router"},{"Accounting":"ox_pipeline_router"},{"PostAccounting":"ox_pipeline_router"},{"PreErrorHandling":"ox_pipeline_router"},{"ErrorHandling":"ox_pipeline_router"},{"PostErrorHandling":"ox_pipeline_router"},{"PreLateRequest":"ox_pipeline_router"},{"LateRequest":"ox_pipeline_router"},{"PostLateRequest":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":".*[.]jinja[2]?$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_template_jinja2","status_code":null},{"protocol":null,"hostname":null,"url":"^(/(css|js)/.*?)$","headers":null,"query":null,"priority":998,"phase":"Content","module_id":"default_theme_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^(.*)$","headers":null,"query":null,"priority":999,"phase":"Content","module_id":"default_layout_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/upload","headers":{"Method":"POST"},"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/(list|install|uninstall)(/.*)?$","headers":null,"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/installer/(subscribe|unsubscribe)/?$","headers":null,"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"package_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":"Content","module_id":"data_source_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":null,"query":{"format":"json"},"priority":499,"phase":"Content","module_id":"data_source_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/data_sources/?(.*)?$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"data_source_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/installer/subscribe$","headers":null,"query":null,"priority":100,"phase":"Content","module_id":"driver_installer","status_code":null},{"protocol":null,"hostname":null,"url":"^/packages/installer/install$","headers":null,"query":null,"priority":100,"phase":"Content","module_id":"driver_installer","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":{"format":"json"},"priority":499,"phase":null,"module_id":"driver_manager","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/wasm/(.*)?$","headers":null,"query":null,"priority":499,"phase":null,"module_id":"driver_manager_stream_wasm","status_code":null},{"protocol":null,"hostname":null,"url":"^/drivers/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"driver_manager_stream","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":499,"phase":"ErrorHandling","module_id":"errorhandler_jinja2","status_code":"4??|5??"},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":{"Accept":"application/json"},"query":null,"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":{"format":"json"},"priority":499,"phase":"Content","module_id":"status_module","status_code":null},{"protocol":null,"hostname":null,"url":"^/status/?(.*)$","headers":null,"query":null,"priority":500,"phase":"Content","module_id":"stream_status","status_code":null},{"protocol":null,"hostname":null,"url":"^/ping/(.*)?$","headers":null,"query":null,"priority":500,"phase":null,"module_id":"ping_module","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PreEarlyRequest","module_id":"forwarded_for","status_code":null},{"protocol":null,"hostname":null,"url":".*","headers":null,"query":null,"priority":100,"phase":"PostLateRequest","module_id":"restore_ip","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-09T22:41:04.199385746-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-09T22:41:04.199472299-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_template_jinja2'
+2026-01-09T22:41:04.199492656-05:00 INFO ox_webservice::pipeline - Loading module 'default_template_jinja2' from "target/debug/libox_webservice_template_jinja2.so"
+2026-01-09T22:41:04.206887966-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content"
+2026-01-09T22:41:04.208082496-05:00 DEBUG ox_webservice::pipeline - [default_template_jinja2] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:04.248941694-05:00 INFO ox_webservice::pipeline - [ox_webservice_template_jinja2] ox_webservice_template_jinja2: Loaded 13 mimetypes.
+2026-01-09T22:41:04.249099710-05:00 INFO ox_webservice::pipeline - [default_template_jinja2] ox_webservice_template_jinja2 initialized
+2026-01-09T22:41:04.249247543-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_theme_stream'
+2026-01-09T22:41:04.249338070-05:00 INFO ox_webservice::pipeline - Loading module 'default_theme_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:04.253826126-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/themes/brown/www/"
+2026-01-09T22:41:04.254705861-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:04.290663117-05:00 INFO ox_webservice::pipeline - [default_theme_stream] ox_webservice_stream initialized
+2026-01-09T22:41:04.290813284-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'default_layout_stream'
+2026-01-09T22:41:04.290830116-05:00 INFO ox_webservice::pipeline - Loading module 'default_layout_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:04.291048976-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/www/"
+2026-01-09T22:41:04.291299549-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:04.340026676-05:00 INFO ox_webservice::pipeline - [default_layout_stream] ox_webservice_stream initialized
+2026-01-09T22:41:04.340185184-05:00 INFO ox_webservice::pipeline - Loading module 'messaging_mqtt' from "target/debug/libox_messaging_mqtt.so"
+2026-01-09T22:41:04.343857515-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Starting Broker...
+OxMessagingMqtt: Initializing...
+Config file ox_messaging_mqtt/conf/broker.yaml not found. Using default.
+2026-01-09T22:41:04.345600572-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] spawn;
+2026-01-09T22:41:04.345995878-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start;
+2026-01-09T22:41:04.346054084-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] run;
+2026-01-09T22:41:04.346359893-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] [>] incoming; connection_id=0
+2026-01-09T22:41:04.346481781-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] incoming_connect; client_id="console"
+2026-01-09T22:41:04.346621737-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Client connection registered connection_id=0
+2026-01-09T22:41:04.346769139-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] [<] outgoing; connection_id=0
+2026-01-09T22:41:04.346834524-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] outgoing_ack; client_id="console"
+2026-01-09T22:41:04.346857951-05:00 DEBUG ox_webservice::pipeline - [messaging_mqtt] Acks sent to device acks_count=1
+2026-01-09T22:41:04.347252709-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] start; console=ConsoleLink { config: ConsoleSettings { listen: "0.0.0.0:3030", filter_handle: None }, connection_id: 0, router_tx: Sender, _link_rx: LinkRx { connection_id: 0, router_tx: Sender, router_rx: Receiver, send_buffer: Mutex { data: [] }, cache: [] } }
+2026-01-09T22:41:04.349238112-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] Listening for remote connections config="v4-1" listen_addr="0.0.0.0:1883"
+2026-01-09T22:41:05.370480502-05:00 INFO ox_webservice::pipeline - Module 'ox_messaging_mqtt' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-09T22:41:05.370660075-05:00 INFO ox_webservice::pipeline - Injected 3 extra URI routes into module 'package_manager'
+2026-01-09T22:41:05.370693667-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "target/debug/libox_package_manager.so"
+2026-01-09T22:41:05.370940674-05:00 INFO ox_webservice::pipeline - [messaging_mqtt] accept name="v4-1" addr=127.0.0.1:58405 count=0 tenant=None
+2026-01-09T22:41:05.371183048-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] remote_link; tenant_id=None
+2026-01-09T22:41:05.371998314-05:00 ERROR ox_webservice::pipeline - [messaging_mqtt] Remote link error error=Network(Io(Custom { kind: ConnectionAborted, error: "connection closed by peer" }))
+2026-01-09T22:41:05.373917502-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'package_manager_stream'
+2026-01-09T22:41:05.374026737-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:05.374413228-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www"
+2026-01-09T22:41:05.375039977-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:05.420018325-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream initialized
+2026-01-09T22:41:05.420182265-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'data_source_manager'
+2026-01-09T22:41:05.420199007-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager' from "target/debug/libox_persistence_datasource_manager.so"
+2026-01-09T22:41:05.421470652-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'data_source_manager_stream'
+2026-01-09T22:41:05.421566084-05:00 INFO ox_webservice::pipeline - Loading module 'data_source_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:05.421822697-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/content/www/"
+2026-01-09T22:41:05.422065197-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:05.459971933-05:00 INFO ox_webservice::pipeline - [data_source_manager_stream] ox_webservice_stream initialized
+2026-01-09T22:41:05.460221089-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'driver_manager'
+2026-01-09T22:41:05.460238196-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager' from "target/debug/libox_persistence_driver_manager.so"
+2026-01-09T22:41:05.461727953-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream'
+2026-01-09T22:41:05.461817528-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:05.462116798-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/content/www"
+2026-01-09T22:41:05.462452531-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:05.500093813-05:00 INFO ox_webservice::pipeline - [driver_manager_stream] ox_webservice_stream initialized
+2026-01-09T22:41:05.500281826-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'driver_manager_stream_wasm'
+2026-01-09T22:41:05.500300287-05:00 INFO ox_webservice::pipeline - Loading module 'driver_manager_stream_wasm' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:05.500603962-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
+2026-01-09T22:41:05.500915270-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:05.530807320-05:00 INFO ox_webservice::pipeline - [driver_manager_stream_wasm] ox_webservice_stream initialized
+2026-01-09T22:41:05.530979873-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "target/debug/libox_pipeline_router.so"
+2026-01-09T22:41:05.531561122-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-09T22:41:05.531641493-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'errorhandler_jinja2'
+2026-01-09T22:41:05.531652897-05:00 INFO ox_webservice::pipeline - Loading module 'errorhandler_jinja2' from "target/debug/libox_webservice_errorhandler_jinja2.so"
+2026-01-09T22:41:05.536059024-05:00 WARN ox_webservice::pipeline - [ox_webservice_errorhandler_jinja2] ox_webservice_errorhandler_jinja2: new: Initializing with content_root: "/var/repos/oxIDIZER/content/layouts/default/error_debug"
+2026-01-09T22:41:05.536185431-05:00 INFO ox_webservice::pipeline - Injected 2 extra URI routes into module 'status_module'
+2026-01-09T22:41:05.536207278-05:00 INFO ox_webservice::pipeline - Loading module 'status_module' from "target/debug/libox_webservice_status.so"
+2026-01-09T22:41:05.547641016-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'stream_status'
+2026-01-09T22:41:05.547741249-05:00 INFO ox_webservice::pipeline - Loading module 'stream_status' from "target/debug/libox_webservice_stream.so"
+2026-01-09T22:41:05.548098312-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_webservice_status/content/www/"
+2026-01-09T22:41:05.548463321-05:00 DEBUG ox_webservice::pipeline - [default_theme_stream] Fully processed config for "/var/repos/oxIDIZER/conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-09T22:41:05.585428260-05:00 INFO ox_webservice::pipeline - [stream_status] ox_webservice_stream initialized
+2026-01-09T22:41:05.585650678-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'ping_module'
+2026-01-09T22:41:05.585668989-05:00 INFO ox_webservice::pipeline - Loading module 'ping_module' from "target/debug/libox_webservice_ping.so"
+2026-01-09T22:41:05.585974256-05:00 INFO ox_webservice::pipeline - [ping_module] ox_webservice_ping initialized
+2026-01-09T22:41:05.586058206-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'forwarded_for'
+2026-01-09T22:41:05.586071039-05:00 INFO ox_webservice::pipeline - Loading module 'forwarded_for' from "target/debug/libox_webservice_forwarded_for.so"
+2026-01-09T22:41:05.586334371-05:00 INFO ox_webservice::pipeline - [forwarded_for] ox_webservice_forwarded_for initialized
+2026-01-09T22:41:05.586404239-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'restore_ip'
+2026-01-09T22:41:05.586428168-05:00 INFO ox_webservice::pipeline - Loading module 'restore_ip' from "target/debug/libox_webservice_restore_ip.so"
+2026-01-09T22:41:05.586667058-05:00 INFO ox_webservice::pipeline - [restore_ip] ox_webservice_restore_ip initialized
+2026-01-09T22:41:05.586803866-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreEarlyRequest" with 1 routes
+2026-01-09T22:41:05.586842413-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreEarlyRequest" with 1 routes
+2026-01-09T22:41:05.588758729-05:00 INFO ox_webservice::pipeline - Initializing router for phase "EarlyRequest" with 0 routes
+2026-01-09T22:41:05.588844551-05:00 INFO ox_webservice::pipeline - Initializing router for phase "EarlyRequest" with 0 routes
+2026-01-09T22:41:05.588875732-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostEarlyRequest" with 0 routes
+2026-01-09T22:41:05.588893324-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostEarlyRequest" with 0 routes
+2026-01-09T22:41:05.588911172-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthentication" with 0 routes
+2026-01-09T22:41:05.588927663-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthentication" with 0 routes
+2026-01-09T22:41:05.588953991-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authentication" with 0 routes
+2026-01-09T22:41:05.588976749-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authentication" with 0 routes
+2026-01-09T22:41:05.589001927-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthentication" with 0 routes
+2026-01-09T22:41:05.589025669-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthentication" with 0 routes
+2026-01-09T22:41:05.589050319-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthorization" with 0 routes
+2026-01-09T22:41:05.589072441-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAuthorization" with 0 routes
+2026-01-09T22:41:05.589095913-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authorization" with 0 routes
+2026-01-09T22:41:05.589117864-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Authorization" with 0 routes
+2026-01-09T22:41:05.589147133-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthorization" with 0 routes
+2026-01-09T22:41:05.589168630-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAuthorization" with 0 routes
+2026-01-09T22:41:05.589193350-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreContent" with 0 routes
+2026-01-09T22:41:05.589213777-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreContent" with 0 routes
+2026-01-09T22:41:05.589571401-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 18 routes
+2026-01-09T22:41:05.590018207-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 18 routes
+2026-01-09T22:41:05.621494386-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostContent" with 0 routes
+2026-01-09T22:41:05.621685880-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostContent" with 0 routes
+2026-01-09T22:41:05.621735635-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAccounting" with 0 routes
+2026-01-09T22:41:05.621753704-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreAccounting" with 0 routes
+2026-01-09T22:41:05.621772157-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Accounting" with 0 routes
+2026-01-09T22:41:05.621787863-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Accounting" with 0 routes
+2026-01-09T22:41:05.621807153-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAccounting" with 0 routes
+2026-01-09T22:41:05.621822922-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostAccounting" with 0 routes
+2026-01-09T22:41:05.621855364-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreErrorHandling" with 0 routes
+2026-01-09T22:41:05.621872094-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreErrorHandling" with 0 routes
+2026-01-09T22:41:05.621920601-05:00 INFO ox_webservice::pipeline - Initializing router for phase "ErrorHandling" with 1 routes
+2026-01-09T22:41:05.621946891-05:00 INFO ox_webservice::pipeline - Initializing router for phase "ErrorHandling" with 1 routes
+2026-01-09T22:41:05.623416446-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostErrorHandling" with 0 routes
+2026-01-09T22:41:05.623503126-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostErrorHandling" with 0 routes
+2026-01-09T22:41:05.623532627-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreLateRequest" with 0 routes
+2026-01-09T22:41:05.623549584-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PreLateRequest" with 0 routes
+2026-01-09T22:41:05.623568275-05:00 INFO ox_webservice::pipeline - Initializing router for phase "LateRequest" with 0 routes
+2026-01-09T22:41:05.623583720-05:00 INFO ox_webservice::pipeline - Initializing router for phase "LateRequest" with 0 routes
+2026-01-09T22:41:05.623611074-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostLateRequest" with 1 routes
+2026-01-09T22:41:05.623634588-05:00 INFO ox_webservice::pipeline - Initializing router for phase "PostLateRequest" with 1 routes
+2026-01-09T22:41:05.624921464-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.header.X-Forwarded-For) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.capture) -> NULL
+DEBUG: [PLUGIN] set(request.capture, "")
+DEBUG: [PLUGIN] get(pipeline.modified) -> "false"
+2026-01-09T22:41:09.202927566-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Early conflict check. is_modified=false, action=Some(skip)
+DEBUG: [PLUGIN] get(request.resource) -> "/packages/"
+DEBUG: [PLUGIN] get(request.capture) -> ""
+2026-01-09T22:41:09.203204841-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Found path_capture: ''
+2026-01-09T22:41:09.203352548-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Streaming file for path: 
+DEBUG: [PLUGIN] set(response.type, "text/html")
+DEBUG: [PLUGIN] set(response.status, 200)
+2026-01-09T22:41:09.203465650-05:00 DEBUG ox_webservice::pipeline - Module 'package_manager_stream' returned Modified. Pipeline is_modified set to true.
+2026-01-09T22:41:09.203482985-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-09T22:41:09.203498339-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(response.status) -> 200
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(request.protocol) -> NULL
+DEBUG: [PLUGIN] get(request.path) -> "/packages/"
+DEBUG: [PLUGIN] get(original_source_ip) -> NULL
+2026-01-09T22:41:09.203867122-05:00 DEBUG ox_webservice::pipeline - [restore_ip] No 'original_source_ip' found in module context. Skipping restore.
+< HTTP/1.1 200 OK
+< content-type: text/html
+< transfer-encoding: chunked
+< date: Sat, 10 Jan 2026 03:41:09 GMT
+< 
+{ [4096 bytes data]
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Manager | oxIDIZER</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/common.js"></script>
+    <!-- Using relative path since we are served from /packages/ -->
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Package Manager</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
+                </div>
+                <div class="header-status-area">
+                    <div id="status-badge" class="status-badge">ONLINE</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Installed Packages Card -->
+        <div class="card collapsible-card" id="installed-card">
+            <div class="card-header collapsible-header" onclick="toggleCard('installed-card')">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="indicator">▼</span>
+                    <h2>Installed Packages</h2>
+                </div>
+                <button class="btn-icon refresh-btn" id="refresh-installed" title="Refresh"
+                    onclick="event.stopPropagation(); loadInstalledPackages()">↻</button>
+            </div>
+            <div class="card-body collapsible-body">
+                <div class="pkg-list" id="installed-list">
+                    <!-- Installed packages populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Staged / Upload Card -->
+        <div class="card collapsible-card collapsed" id="staged-card">
+            <div class="card-header collapsible-header" onclick="toggleCard('staged-card')">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="indicator">▶</span>
+                    <h2>Upload & Stage</h2>
+                </div>
+                <button class="btn-icon refresh-btn" id="refresh-staged" title="Refresh"
+                    onclick="event.stopPropagation(); loadStagedPackages()">↻</button>
+            </div>
+            <div class="card-body collapsible-body" style="display: none;">
+                <div id="drop-zone" class="upload-zone">
+                    <span class="upload-icon">☁️</span>
+                    <h3>Drag & Drop package file here</h3>
+                    <p style="color: var(--text-secondary)">or</p>
+                    <button id="browse-btn" class="btn">Select File</button>
+                    <input type="file" id="file-input" name="package" hidden>
+
+                    <div class="progress-container" id="progress-container">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                            <div class="progress-bar" style="flex-grow: 1;">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <button id="cancel-btn" class="btn"
+                                style="display:none; padding: 4px 10px; font-size: 0.8rem; background: var(--error);">Cancel</button>
+                        </div>
+                        <div class="status-text" id="status-text">Waiting...</div>
+                    </div>
+                </div>
+
+                <div class="pkg-list" id="staged-list" style="margin-top: 1rem;">
+                    <h4
+                        style="margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">
+                        Staged Packages</h4>
+                    <!-- Items added via JS -->
+                </div>
+            </div>
+        100  5998    0  5998    0     0  1013k      0 --:--:-- --:--:-- --:--:-- 1171k
+* Connection #0 to host 127.0.0.1 left intact
+</div>
+
+    </div>
+
+    <style>
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .collapsible-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .indicator {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .collapsed .collapsible-body {
+            display: none;
+        }
+
+        .collapsed .indicator {
+            transform: rotate(-90deg);
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone.drag-over {
+            border-color: var(--accent-color);
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+    </style>
+    <script>
+        function toggleCard(id) {
+            const card = document.getElementById(id);
+            const body = card.querySelector('.collapsible-body');
+            const indicator = card.querySelector('.indicator');
+
+            if (card.classList.contains('collapsed')) {
+                card.classList.remove('collapsed');
+                body.style.display = 'block';
+                indicator.textContent = '▼';
+            } else {
+                card.classList.add('collapsed');
+                body.style.display = 'none';
+                indicator.textContent = '▶';
+            }
+        }
+    </script>
+    <script src="../js/upload.js"></script>
+</body>
+
+</html>

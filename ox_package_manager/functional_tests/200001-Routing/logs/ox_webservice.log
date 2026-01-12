@@ -1,0 +1,90 @@
+2026-01-07T18:35:27.493855414-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T18:35:27.494009342-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_package_manager/functional_tests/200001-Routing/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":4500,"bind_address":"127.0.0.1","hosts":[]}],"modules":[{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_package_manager.so","params":{"config_file":"/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"}},{"id":"package_manager_stream","name":"ox_webservice_stream","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so","params":{"content_root":"/var/repos/oxIDIZER/ox_package_manager/content/www/"},"on_content_conflict":"skip"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so","params":{"routes":[{"matcher":{"headers":{"Method":"POST"},"path":"^/packages/upload"},"module_id":"package_manager","priority":450},{"matcher":{"headers":{"Accept":"application/json"},"path":"^/packages/(list|install)/?"},"module_id":"package_manager","priority":450},{"matcher":{"path":"^/packages/(list|install)/?","query":{"format":"json"}},"module_id":"package_manager","priority":450},{"matcher":{"path":"^/packages/?(.*)$"},"module_id":"package_manager_stream","priority":500}]}}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T18:35:27.494036195-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T18:35:27.494061682-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+2026-01-07T18:35:27.494704028-05:00 INFO ox_webservice::pipeline - Module 'ox_package_manager' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-07T18:35:27.494775086-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager_stream' from "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+2026-01-07T18:35:27.495715324-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: new: Initializing with content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www/"
+2026-01-07T18:35:27.497456395-05:00 DEBUG ox_webservice::pipeline - [package_manager_stream] Fully processed config for "conf/mimetypes.yaml":
+{
+  "mimetypes": [
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]html$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]htm$"
+    },
+    {
+      "mimetype": "text/css",
+      "url": ".*[.]css$"
+    },
+    {
+      "mimetype": "application/javascript",
+      "url": ".*[.]js$"
+    },
+    {
+      "mimetype": "image/png",
+      "url": ".*[.]png$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpg$"
+    },
+    {
+      "mimetype": "image/jpeg",
+      "url": ".*[.]jpeg$"
+    },
+    {
+      "mimetype": "image/gif",
+      "url": ".*[.]gif$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja$"
+    },
+    {
+      "mimetype": "text/html",
+      "url": ".*[.]jinja2$"
+    },
+    {
+      "mimetype": "application/wasm",
+      "url": ".*[.]wasm$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]ts$"
+    },
+    {
+      "mimetype": "application/typescript",
+      "url": ".*[.]d[.]ts$"
+    }
+  ]
+}
+2026-01-07T18:35:27.530792688-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream initialized
+2026-01-07T18:35:27.530957399-05:00 INFO ox_webservice::pipeline - Module 'ox_webservice_stream' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-07T18:35:27.530990623-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T18:35:27.538361244-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-07T18:35:27.538587738-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 0 routes
+2026-01-07T18:35:27.538606359-05:00 INFO ox_webservice::pipeline - Using custom path for router 'ox_pipeline_router': "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T18:35:27.538630861-05:00 INFO ox_webservice::pipeline - Found 4 manual routes in router 'ox_pipeline_router' configuration. Merging...
+2026-01-07T18:35:27.538736052-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 4 routes
+2026-01-07T18:35:27.545503291-05:00 INFO ox_webservice - Listening on 127.0.0.1:4500
+2026-01-07T18:35:34.818932822-05:00 INFO ox_webservice::pipeline - [package_manager] DEBUG_REQUEST_GENERIC: verb='get', resource='/packages/list'
+2026-01-07T18:35:34.834513855-05:00 DEBUG ox_webservice::pipeline - Module 'package_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.834804558-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=None
+2026-01-07T18:35:34.834843546-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-07T18:35:34.834854634-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.844134736-05:00 INFO ox_webservice::pipeline - [package_manager] DEBUG_REQUEST_GENERIC: verb='get', resource='/packages/list'
+2026-01-07T18:35:34.845096772-05:00 DEBUG ox_webservice::pipeline - Module 'package_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.845251940-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Early conflict check. is_modified=true, action=None
+2026-01-07T18:35:34.845290906-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Skipping due to existing content (early check).
+2026-01-07T18:35:34.845301813-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.854835028-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Early conflict check. is_modified=false, action=None
+2026-01-07T18:35:34.854949885-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Found path_capture: ''
+2026-01-07T18:35:34.855095506-05:00 INFO ox_webservice::pipeline - [package_manager_stream] ox_webservice_stream: Streaming file for path: 
+2026-01-07T18:35:34.855167588-05:00 DEBUG ox_webservice::pipeline - Module 'package_manager_stream' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.855189478-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:35:34.855213746-05:00 DEBUG ox_webservice::pipeline - StreamFile processing complete. Pipeline is_modified=true

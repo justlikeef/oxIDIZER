@@ -3,7 +3,8 @@ use std::fs;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
+use std::collections::HashMap;
 use std::ffi::{CString, CStr};
 use libc::{c_char, c_void};
 use ox_webservice_api::{
@@ -13,10 +14,15 @@ use ox_webservice_api::{
 };
 use lazy_static::lazy_static;
 use bumpalo::Bump;
+use serde_json::Value;
+use ox_pipeline_plugin::PipelineContext;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use ox_fileproc::{process_file, RawFile};
 
 const MODULE_NAME: &str = "ox_persistence_driver_manager";
+
+
 
 
 
@@ -39,6 +45,7 @@ pub struct DriverManagerConfig {
 }
 
 
+
 use ox_persistence::{ConfiguredDriver, DriversList}; // Import from shared crate
 
 
@@ -48,7 +55,9 @@ pub struct DriverManager {
 
 impl DriverManager {
     pub fn new(config: DriverManagerConfig) -> Self {
-        DriverManager { config }
+        DriverManager { 
+            config,
+        }
     }
 
     pub fn list_available_driver_files(&self) -> Result<Vec<String>, String> {
@@ -160,6 +169,14 @@ impl DriverManager {
              Err(format!("Driver with ID '{}' not found or has no state field", id))
          }
     }
+
+    pub fn log(&self, ctx: &PipelineContext, level: LogLevel, message: String) {
+        if let (Ok(mid), Ok(cmsg)) = (CString::new("driver_manager"), CString::new(message)) {
+            unsafe {
+                (ctx.api.log_callback)(level, mid.as_ptr(), cmsg.as_ptr());
+            }
+        }
+    }
 }
 
 pub struct ModuleContext {
@@ -199,7 +216,7 @@ pub unsafe extern "C" fn initialize_module(
     
     let params: serde_json::Value = serde_json::from_str(&params_str).unwrap_or(serde_json::Value::Null);
 
-    let drivers_file = params.get("drivers_file").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers.json").to_string();
+    let drivers_file = params.get("drivers_file").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers.yaml").to_string();
     let driver_root = params.get("driver_root").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers").to_string();
 
     let on_content_conflict = params.get("on_content_conflict")
@@ -220,7 +237,9 @@ pub unsafe extern "C" fn initialize_module(
 
     let manager = Arc::new(DriverManager::new(config));
     
-    *DRIVER_MANAGER_INSTANCE.lock().unwrap() = Some(manager.clone());
+    if let Ok(mut guard) = DRIVER_MANAGER_INSTANCE.lock() {
+        *guard = Some(manager.clone());
+    }
 
     let ctx = Box::new(ModuleContext {
         manager,
@@ -244,7 +263,7 @@ pub unsafe extern "C" fn process_request(
     pipeline_state_ptr: *mut PipelineState,
     _log_callback: LogCallback,
     _alloc_fn: AllocFn,
-    _arena: *const c_void,
+    _arena_ptr: *const c_void,
 ) -> HandlerResult {
     if instance_ptr.is_null() {
         return HandlerResult {
@@ -253,25 +272,40 @@ pub unsafe extern "C" fn process_request(
             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
         };
     }
+
     let context = unsafe { &*(instance_ptr as *mut ModuleContext) };
+    
     let pipeline_state = unsafe { &mut *pipeline_state_ptr };
     let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
-
     let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
         context.api, 
         pipeline_state_ptr as *mut c_void, 
         arena_ptr
     ) };
 
+    let path_val = ctx.get("request.resource").or(ctx.get("request.path"));
+    let path = path_val.as_ref().and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(|| "/".to_string());
+    
+    let action_val = ctx.get("installer.action");
+    let action_str = action_val.as_ref().and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(|| "none".to_string());
+
+    context.manager.log(&ctx, LogLevel::Info, format!("DEBUG: DriverManager Routing: action='{}', path='{}'", action_str, path));
+
+    
+    // 3. Fallbacks (only if action is not handled and it's a direct URL call)
+    if action_str == "none" || action_val.as_ref().map(|v| v.is_null()).unwrap_or(true) {
+        // Removed implicit installer routes
+    }
+
     // --- Conflict Management ---
     let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
          val.as_str().unwrap_or("false") == "true"
     } else { false };
 
-    if is_modified {
+    if is_modified && action_str == "none" && !path.contains("/installer/status") {
          let action = context.manager.config.on_content_conflict.unwrap_or(ContentConflictAction::skip);
          if let Ok(c_msg) = CString::new(format!("Conflict check: is_modified=true, action={:?}", action)) {
-              let module_name = CString::new(context.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
+              let module_name = CString::new(context.module_id.clone()).unwrap_or_else(|_| CString::new(MODULE_NAME).unwrap_or_else(|_| CString::new("unknown").unwrap()));
               unsafe { (context.api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_msg.as_ptr()); }
          }
 
@@ -298,13 +332,7 @@ pub unsafe extern "C" fn process_request(
 
 
 
-    let path = match ctx.get("request.resource") {
-        Some(v) => v.as_str().unwrap_or("/").to_string(),
-        None => match ctx.get("request.path") {
-            Some(v) => v.as_str().unwrap_or("/").to_string(),
-            None => "/".to_string()
-        }
-    };
+
     let method = match ctx.get("request.verb") {
         Some(v) => v.as_str().unwrap_or("get").to_string(),
         None => match ctx.get("request.method") {
@@ -354,11 +382,8 @@ pub unsafe extern "C" fn process_request(
                  Err(e) => {
                      let err_msg = format!("Failed to toggle driver '{}': {}", id, e);
                      // Log error internally
-                     if let Ok(c_msg) = CString::new(err_msg.clone()) {
-                          let module_name = CString::new(context.module_id.clone()).unwrap_or(CString::new("ox_persistence_driver_manager").unwrap());
-                          unsafe { (context.api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_msg.as_ptr()); }
-                     }
-                     // Return JSON error to user
+                     manager.log(&ctx, LogLevel::Error, err_msg.clone());
+                 // Return JSON error to user
                      send_json_error(err_msg, 500);
                  }
              }
@@ -455,7 +480,50 @@ pub unsafe extern "C" fn process_request(
                         list.drivers.retain(|d| d.state == state_str);
                     }
                 }
-                let json = serde_json::to_string(&list).unwrap_or_default();
+                
+                // Enhance drivers with display_name from schema
+                #[derive(Serialize)]
+                struct DisplayDriver {
+                    id: String,
+                    name: String,
+                    library_path: String,
+                    state: String,
+                    display_name: String,
+                    metadata: Option<String>,
+                }
+                
+                let mut display_list = Vec::new();
+                for d in list.drivers {
+                    let mut display_name = d.name.clone();
+                    
+                    // Try to get schema name
+                    let lib_name = if d.library_path.is_empty() {
+                         format!("{}/lib{}.so", manager.config.driver_root, d.name)
+                     } else {
+                         format!("{}/lib{}.so", d.library_path, d.name)
+                     };
+                     
+                     if let Ok(schema_str) = manager.get_driver_schema(&lib_name) {
+                         if let Ok(yaml) = serde_yaml::from_str::<serde_json::Value>(&schema_str) {
+                             if let Some(n) = yaml.get("name").and_then(|v| v.as_str()) {
+                                 display_name = n.to_string();
+                             }
+                         }
+                     }
+
+                     let metadata = manager.get_driver_metadata(&lib_name).ok();
+                     
+                     display_list.push(DisplayDriver {
+                         id: d.id,
+                         name: d.name,
+                         library_path: d.library_path,
+                         state: d.state,
+                         display_name,
+                         metadata,
+                     });
+                }
+                
+                let json = serde_json::json!({ "drivers": display_list }).to_string();
                 send_json_success(json);
                 return HandlerResult {
                     status: ModuleStatus::Modified,
@@ -497,7 +565,8 @@ pub unsafe extern "C" fn get_config(
     let manager = &context.manager;
     
     let json = serde_json::to_string(&manager.config).unwrap_or("{}".to_string());
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+    let json_cstring = CString::new(json).unwrap_or_else(|_| CString::new("{}").unwrap());
+    unsafe { alloc_fn(arena, json_cstring.as_ptr()) }
 }
 
 #[cfg(test)]

@@ -1,0 +1,15 @@
+name: XML File
+id: "xml_datasource_form"
+title: "XML File Data Source Configuration"
+fields:
+  - name: "path"
+    label: "XML File Path"
+    data_type: "string"
+    props:
+      placeholder: "data/storage.xml"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

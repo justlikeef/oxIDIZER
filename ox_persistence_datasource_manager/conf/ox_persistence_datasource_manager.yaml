@@ -4,6 +4,8 @@ modules:
     params:
       data_sources_dir: "/var/repos/oxIDIZER/ox_persistence/conf/datasources"
       on_content_conflict: "skip"
+      drivers_file: "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+      driver_root: "/var/repos/oxIDIZER/target/debug"
   
   - id: "data_source_manager_stream"
     name: "ox_webservice_stream"
@@ -12,14 +14,19 @@ modules:
 
 routes:
   # API Routes (High Priority)
-  - url: "^/data_sources/?(.*)?$"
+  - url: "^/datasources/(new/form)$"
+    module_id: "data_source_manager"
+    priority: 100
+    phase: Content
+
+  - url: "^/datasources/?(.*)?$"
     headers:
       Accept: "application/json"
     module_id: "data_source_manager"
     priority: 499
     phase: Content
 
-  - url: "^/data_sources/?(.*)?$"
+  - url: "^/datasources/?(.*)?$"
     query:
       format: "json"
     module_id: "data_source_manager"
@@ -27,7 +34,7 @@ routes:
     phase: Content
 
   # 4. Fallback (Assets, remaining requests)
-  - url: "^/data_sources/?(.*)?$"
+  - url: "^/datasources/?(.*)?$"
     module_id: "data_source_manager_stream"
     priority: 500
     phase: Content

@@ -1,0 +1,16 @@
+modules:
+  - name: ox_webservice_errorhandler_json
+    routes:
+      - headers:
+          Accept: ".*application/json.*"
+        phase: ErrorHandling
+        priority: 600
+        path: ".*"
+      - query:
+          format: "json"
+        phase: ErrorHandling
+        priority: 600
+        path: ".*"
+    params:
+      on_success: ignore
+      on_error: replace

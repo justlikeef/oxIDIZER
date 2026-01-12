@@ -6,61 +6,122 @@ use std::collections::HashMap;
 
 pub struct FormEngine<'a> {
     registry: &'a TypeRegistry,
+    forms: HashMap<String, &'a FormDefinition>,
+    fields: HashMap<String, &'a FieldDefinition>,
 }
 
 impl<'a> FormEngine<'a> {
     pub fn new(registry: &'a TypeRegistry) -> Self {
-        Self { registry }
+        Self { 
+            registry, 
+            forms: HashMap::new(),
+            fields: HashMap::new(),
+        }
+    }
+
+    pub fn with_module(mut self, module: &'a crate::schema::ModuleSchema) -> Self {
+        for form in &module.forms {
+            self.forms.insert(form.id.clone(), form);
+            for field in &form.fields {
+                self.fields.insert(field.name.clone(), field);
+            }
+        }
+        self
     }
 
     pub fn render(&self, form: &FormDefinition, ctx: &RenderContext) -> Result<String> {
-        // Default to a simple form renderer if none specified, 
-        // or look up a registered form renderer.
-        // For now, hardcode a basic HTML form wrapper for simplicity 
-        // until we have a proper FormRenderer registry/lookup in place.
+        // Build a local field map for just this form to ensure we find fields even if not in a module
+        let mut local_fields = self.fields.clone();
+        for field in &form.fields {
+            local_fields.insert(field.name.clone(), field);
+        }
         
+        // Render content (fields or layout)
         let content = if let Some(layout) = &form.layout {
-            self.render_layout(layout, ctx)?
+            self.render_layout(layout, &local_fields, ctx)?
         } else {
             self.render_fields(&form.fields, ctx)?
         };
 
-        Ok(format!(r#"<form id="{}" method="post">{}</form>"#, form.id, content))
+        // Render actions
+        let mut final_output = content;
+        final_output.push_str(&self.render_actions(&form.actions, ctx)?);
+
+        // Get Renderer from registry
+        let renderer = self.registry.get_form_renderer("html")
+            .context("No form renderer named 'html' found in registry")?;
+        
+        renderer.render(form, &final_output)
     }
 
-    fn render_layout(&self, layout: &LayoutDefinition, ctx: &RenderContext) -> Result<String> {
+    pub fn render_form_content(&self, form: &FormDefinition, ctx: &RenderContext) -> Result<String> {
+        let mut local_fields = self.fields.clone();
+        for field in &form.fields {
+            local_fields.insert(field.name.clone(), field);
+        }
+
+        let mut content = if let Some(layout) = &form.layout {
+            self.render_layout(layout, &local_fields, ctx)?
+        } else {
+            self.render_fields(&form.fields, ctx)?
+        };
+
+        // Render actions
+        content.push_str(&self.render_actions(&form.actions, ctx)?);
+        Ok(content)
+    }
+
+    pub fn render_actions(&self, actions: &[crate::schema::ActionDefinition], ctx: &RenderContext) -> Result<String> {
+        if actions.is_empty() {
+            return Ok(String::new());
+        }
+        let mut output = String::new();
+        output.push_str("<div class=\"form-actions\">");
+        for action in actions {
+            output.push_str(&self.render_action(action, ctx)?);
+        }
+        output.push_str("</div>");
+        Ok(output)
+    }
+
+    pub fn render_action(&self, action: &crate::schema::ActionDefinition, ctx: &RenderContext) -> Result<String> {
+        let component_name = action.component.as_deref().unwrap_or("action-button");
+        
+        let renderer = self.registry.get_action_renderer(component_name)
+            .context(format!("No action renderer found for component '{}'", component_name))?;
+
+        renderer.render(action, ctx).map_err(|e| anyhow::anyhow!(e.to_string()))
+    }
+
+    fn render_layout(&self, layout: &LayoutDefinition, fields: &HashMap<String, &'a FieldDefinition>, ctx: &RenderContext) -> Result<String> {
         let mut output = String::new();
         for item in &layout.items {
-            output.push_str(&self.render_layout_item(item, ctx)?);
+            output.push_str(&self.render_layout_item(item, fields, ctx)?);
         }
         Ok(output)
     }
 
-    fn render_layout_item(&self, item: &LayoutItem, ctx: &RenderContext) -> Result<String> {
+    fn render_layout_item(&self, item: &LayoutItem, fields: &HashMap<String, &'a FieldDefinition>, ctx: &RenderContext) -> Result<String> {
         match item {
             LayoutItem::Row { items, classes } => {
-                let inner = items.iter().map(|i| self.render_layout_item(i, ctx)).collect::<Result<Vec<_>>>()?.join("");
+                let inner = items.iter().map(|i| self.render_layout_item(i, fields, ctx)).collect::<Result<Vec<_>>>()?.join("");
                 let cls = classes.clone().unwrap_or_default();
                 Ok(format!(r#"<div class="row {}">{}</div>"#, cls, inner))
             }
             LayoutItem::Column { items, width } => {
-                let inner = items.iter().map(|i| self.render_layout_item(i, ctx)).collect::<Result<Vec<_>>>()?.join("");
+                let inner = items.iter().map(|i| self.render_layout_item(i, fields, ctx)).collect::<Result<Vec<_>>>()?.join("");
                 let w = width.unwrap_or(12);
                 Ok(format!(r#"<div class="col-{}">{}</div>"#, w, inner))
             }
             LayoutItem::Field { name } => {
-                // Find field definition from context? Context doesn't have fields.
-                // We need to pass the map of fields down or look it up.
-                // For this implementation, let's assume we can't easily look up by name 
-                // without passing the FormDefinition around constantly or preprocessing.
-                // NOTE: This implementation fails because we don't have access to the FieldDefinition here.
-                // We should probably build a map of fields first.
-                // Skipping for now, will implement generic "render_field_by_name" placeholder.
-                Ok(format!("<!-- Field {} placeholder -->", name))
+                if let Some(field) = fields.get(name) {
+                    self.render_field(field, ctx)
+                } else {
+                    Ok(format!("<!-- Field {} not found -->", name))
+                }
             }
             LayoutItem::HTML { content } => Ok(content.clone()),
-            LayoutItem::Tabs { tabs } => {
-                // ... render tabs ...
+            LayoutItem::Tabs { tabs: _ } => {
                 Ok("<!-- Tabs -->".to_string())
             }
         }
@@ -87,6 +148,35 @@ impl<'a> FormEngine<'a> {
         let renderer = self.registry.get_element_renderer(&component_name)
             .context(format!("No renderer found for component '{}'", component_name))?;
 
-        renderer.render(field, ctx)
+        let mut output = renderer.render(field, ctx)?;
+
+        // Render subfields if any
+        if let Some(subfields) = &field.subfields {
+            output.push_str("<div class=\"form-subfields\">");
+            output.push_str(&self.render_fields(subfields, ctx)?);
+            output.push_str("</div>");
+        }
+
+        // Render subforms if any
+        if let Some(subform_ids) = &field.subforms {
+            for subform_id in subform_ids {
+                if let Some(subform) = self.forms.get(subform_id) {
+                    let content = self.render_form_content(subform, ctx)?;
+                    let wrapped = if let Some(cond) = &subform.condition {
+                        format!(r#"<div class="conditional-form" data-condition="{}">{}</div>"#, cond, content)
+                    } else {
+                        content
+                    };
+                    output.push_str(&wrapped);
+                }
+            }
+        }
+
+        // Apply conditional wrapper if condition exists
+        if let Some(condition) = &field.condition {
+            output = format!(r#"<div class="conditional-field" data-condition="{}">{}</div>"#, condition, output);
+        }
+
+        Ok(output)
     }
 }

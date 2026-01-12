@@ -38,13 +38,13 @@ pub struct UrlRoute {
     pub protocol: Option<String>,
     pub hostname: Option<String>,
     #[serde(alias = "url")]
-    pub url: String,
+    pub url: Option<String>,
     pub headers: Option<HashMap<String, String>>,
     pub query: Option<HashMap<String, String>>,
     #[serde(default)]
     pub priority: u16,
     pub phase: Option<String>,
-    pub module_id: String,
+    pub module_id: Option<String>,
     pub status_code: Option<String>,
 }
 

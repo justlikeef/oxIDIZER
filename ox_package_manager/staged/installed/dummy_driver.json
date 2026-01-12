@@ -1,0 +1,21 @@
+{
+  "name": "dummy_driver",
+  "version": "1.0.0",
+  "description": "A dummy persistence driver for testing",
+  "package_type": "persistence_drivers",
+  "resources": [
+    {
+      "resource_type": "driver_library",
+      "filename": "libdummy.so"
+    },
+    {
+      "resource_type": "driver_config",
+      "filename": "driver_config.json"
+    }
+  ],
+  "filename": "dummy_driver.zip",
+  "size": 3186736,
+  "dependencies": [
+    "dependency_library"
+  ]
+}

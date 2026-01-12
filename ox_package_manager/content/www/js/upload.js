@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status-text');
     const stagedList = document.getElementById('staged-list');
 
+    // Initialize Status Badge
+    if (typeof initGlobalStatus === 'function') {
+        initGlobalStatus();
+    }
+
     // Create Modal Element
     const modal = document.createElement('dialog');
     modal.innerHTML = `
@@ -28,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) closeModal();
     });
 
-    // Load initial list
+    // Load initial lists
     loadStagedPackages();
+    loadInstalledPackages();
 
     // Drag & Drop Events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -169,10 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadStagedPackages() {
-        stagedList.innerHTML = `
-            <h4 style="margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">
-            Staged Packages</h4>`;
-
+        stagedList.innerHTML = `<h4 style="margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Staged Packages</h4>`;
         const loading = document.createElement('div');
         loading.textContent = "Loading...";
         loading.style.color = "var(--text-secondary)";
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             })
             .catch(err => {
-                loading.textContent = "Failed to load packages.";
+                loading.textContent = "Failed to load staged packages.";
                 console.error(err);
             });
     }
@@ -207,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function addStagedItem(pkg) {
         const div = document.createElement('div');
         div.className = 'pkg-item';
-
         div.innerHTML = `
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span class="pkg-name">${pkg.filename}</span>
@@ -221,28 +223,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="btn btn-install install-btn" style="margin:0;">Install</button>
             </div>
         `;
-
         div.querySelector('.info-btn').addEventListener('click', () => showPackageInfo(pkg));
         div.querySelector('.install-btn').addEventListener('click', () => installPackage(pkg.filename));
-
         stagedList.appendChild(div);
     }
 
-    async function installPackage(filename) {
+    window.installPackage = async function (filename) {
         if (!confirm(`Are you sure you want to install ${filename}?`)) return;
-
         try {
             const response = await fetch('/packages/install/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename: filename })
             });
-
             const result = await response.json();
-
             if (result.result === 'success') {
                 alert('Package installed successfully!');
                 loadStagedPackages();
+                loadInstalledPackages();
             } else {
                 alert('Installation failed: ' + (result.message || 'Unknown error'));
             }
@@ -250,35 +248,313 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Install error:', error);
             alert('Installation failed due to network or server error.');
         }
+    };
+
+    function loadInstalledPackages() {
+        const list = document.getElementById('installed-list');
+        list.innerHTML = '';
+        const loading = document.createElement('div');
+        loading.textContent = "Loading installed packages...";
+        loading.style.textAlign = 'center';
+        loading.style.color = 'var(--text-secondary)';
+        list.appendChild(loading);
+
+        fetch('/packages/list/installed')
+            .then(res => res.json())
+            .then(data => {
+                list.removeChild(loading);
+                if (data.result === 'success' && data.packages) {
+                    if (data.packages.length === 0) {
+                        list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-style:italic;">No packages installed.</div>';
+                    } else {
+                        // Build checks for package hierarchy
+                        // 1. Identify which packages handle other types
+                        const packages = data.packages;
+                        const handlerMap = {}; // type -> module_package_name
+                        packages.forEach(pkg => {
+                            if (pkg.installer_handlers && typeof pkg.installer_handlers === 'object') {
+                                for (const type in pkg.installer_handlers) {
+                                    handlerMap[type] = pkg.name;
+                                }
+                            }
+                        });
+
+                        // 2. Identify top-level packages (Modules only)
+                        const topLevel = packages.filter(pkg => pkg.package_type === 'module');
+
+                        topLevel.forEach(pkg => {
+                            try {
+                                renderInstalledItem(pkg, packages, list);
+                            } catch (renderErr) {
+                                console.error('Error rendering package:', pkg.name, renderErr);
+                                const errDiv = document.createElement('div');
+                                errDiv.style.color = 'red';
+                                errDiv.textContent = `Error rendering ${pkg.name}: ${renderErr.message}`;
+                                list.appendChild(errDiv);
+                            }
+                        });
+                    }
+                } else {
+                    list.textContent = "Failed to load installed packages: " + (data.message || "Unknown error");
+                }
+            })
+            .catch(e => {
+                list.textContent = "Error loading installed packages: " + e.message;
+                console.error(e);
+            });
     }
+    // Expose to window for HTML onclick handlers
+    window.loadInstalledPackages = loadInstalledPackages;
+    window.loadStagedPackages = loadStagedPackages;
 
-    window.showPackageInfo = showPackageInfo;
-    window.installPackage = installPackage;
+    function renderInstalledItem(pkg, allPackages, container) {
+        const div = document.createElement('div');
+        div.className = 'pkg-item';
 
-    function showPackageInfo(pkg) {
-        const content = document.getElementById('modal-content');
-        content.innerHTML = `
-            <div class="key-value">
-                <label>Name:</label>
-                <div>${pkg.name || 'N/A'}</div>
-            </div>
-            <div class="key-value">
-                <label>Version:</label>
-                <div>${pkg.version || 'N/A'}</div>
-            </div>
-            <div class="key-value">
-                <label>File:</label>
-                <div>${pkg.filename}</div>
-            </div>
-            <div class="key-value">
-                <label>Size:</label>
-                <div>${formatBytes(pkg.size)}</div>
-            </div>
-            <div class="key-value">
-                <label>Description:</label>
-                <div>${pkg.description || 'No description provided.'}</div>
-            </div>
+        // Calculate Dependents (Reverse Dependencies)
+        // Find all packages p where p.dependencies includes pkg.name
+        const dependents = allPackages.filter(p => p.dependencies && Array.isArray(p.dependencies) && p.dependencies.includes(pkg.name));
+
+        const hasDependents = dependents.length > 0;
+        const showExpand = hasDependents || pkg.description;
+
+        let html = `
+            <div style="display: flex; flex-direction: column; width: 100%;">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${showExpand ? `<span class="toggle-sub" style="cursor:pointer; width:1.5rem; text-align:center;">▶</span>` : `<span style="width:1.5rem;"></span>`}
+                        <span class="pkg-name">${pkg.name}</span>
+                        <span class="badge badge-neutral" style="font-size: 0.7rem; opacity: 0.7;">${pkg.package_type || 'unknown'}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-secondary);">
+                            <div>${pkg.version ? 'v' + pkg.version : ''}</div>
+                        </div>
+                        <button class="btn btn-delete uninstall-btn" style="margin:0; background: var(--error); color: white;">Uninstall</button>
+                    </div>
+                </div>
         `;
-        modal.showModal();
+
+        if (showExpand) {
+            html += `<div class="sub-packages" style="display:none; padding-left: 2rem; margin-top: 0.5rem; border-left: 1px solid var(--border-color);"></div>`;
+        }
+
+        html += `</div>`;
+        div.innerHTML = html;
+
+        const uninstallBtn = div.querySelector('.uninstall-btn');
+        if (uninstallBtn) {
+            uninstallBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                confirmUninstall(pkg, allPackages);
+            });
+        }
+
+        if (showExpand) {
+            const toggle = div.querySelector('.toggle-sub');
+            const subContainer = div.querySelector('.sub-packages');
+
+            if (toggle && subContainer) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (subContainer.style.display === 'none') {
+                        subContainer.style.display = 'block';
+                        toggle.textContent = '▼';
+
+                        // Populate content if empty
+                        if (subContainer.innerHTML === '') {
+                            // 1. Module Info Block
+                            const infoDiv = document.createElement('div');
+                            infoDiv.className = 'pkg-details';
+                            infoDiv.style.marginBottom = '1rem';
+                            infoDiv.style.padding = '0.5rem';
+                            infoDiv.style.background = 'rgba(255, 255, 255, 0.03)';
+                            infoDiv.style.borderRadius = '4px';
+                            infoDiv.style.fontSize = '0.9rem';
+
+                            const depList = (pkg.dependencies && pkg.dependencies.length) ? pkg.dependencies.join(', ') : 'None';
+                            const handlers = (pkg.installer_handlers && Object.keys(pkg.installer_handlers).length > 0) ? JSON.stringify(pkg.installer_handlers) : 'None';
+
+                            infoDiv.innerHTML = `
+                                <div style="font-weight: bold; margin-bottom: 0.25rem; color: var(--accent-color);">Package Information</div>
+                                <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem;">
+                                    <span style="color: var(--text-secondary);">Description:</span> <span>${pkg.description || 'N/A'}</span>
+                                    <span style="color: var(--text-secondary);">Type:</span> <span>${pkg.package_type}</span>
+                                    <span style="color: var(--text-secondary);">Dependencies:</span> <span>${depList}</span>
+                                    <span style="color: var(--text-secondary);">Handlers:</span> <span>${handlers}</span>
+                                    <span style="color: var(--text-secondary);">Dependents:</span> <span>${dependents.length}</span>
+                                </div>
+                             `;
+                            subContainer.appendChild(infoDiv);
+
+                            // 2. Dependents List
+                            if (hasDependents) {
+                                const depsHeader = document.createElement('div');
+                                depsHeader.textContent = "Modules dependent on this package";
+                                depsHeader.style.fontSize = '0.8rem';
+                                depsHeader.style.textTransform = 'uppercase';
+                                depsHeader.style.color = 'var(--text-secondary)';
+                                depsHeader.style.marginBottom = '0.5rem';
+                                depsHeader.style.marginTop = '0.5rem';
+                                subContainer.appendChild(depsHeader);
+
+                                dependents.forEach(child => renderInstalledItem(child, allPackages, subContainer));
+                            }
+                        }
+                    } else {
+                        subContainer.style.display = 'none';
+                        toggle.textContent = '▶';
+                    }
+                });
+            }
+        }
+
+        container.appendChild(div);
     }
+
+    function confirmUninstall(pkg, allPackages) {
+        // Step 1: Initial Verification
+        if (!confirm(`Are you sure you want to uninstall '${pkg.name}'?`)) {
+            return;
+        }
+
+        // Step 2: Check for Dependents (Recursive)
+        const dependents = getRecursiveDependents(pkg.name, allPackages);
+
+        if (dependents.length > 0) {
+            // Found dependents
+            const depNames = dependents.map(p => p.name).join(', ');
+
+            // Step 3: Warning
+            if (!confirm(`WARNING: The following packages depend on '${pkg.name}' and will ALSO be uninstalled:\n\n${depNames}\n\nDo you want to continue?`)) {
+                return;
+            }
+
+            // Step 4: Final List & Confirmation
+            const allToRemove = [...dependents, pkg]; // Dependents first, then target
+            const listStr = allToRemove.map(p => `- ${p.name}`).join('\n');
+
+            if (!confirm(`The following packages will be uninstalled:\n${listStr}\n\nThis action cannot be undone. Proceed?`)) {
+                return;
+            }
+
+            // Execute Sequential Uninstall (Dependents first)
+            performSequentialUninstall(allToRemove);
+
+        } else {
+            // No dependents, just uninstall target
+            performUninstall(pkg.name);
+        }
+    }
+
+    function getRecursiveDependents(targetName, allPackages, visited = new Set()) {
+        const directDependents = allPackages.filter(p =>
+            p.dependencies &&
+            Array.isArray(p.dependencies) &&
+            p.dependencies.includes(targetName) &&
+            !visited.has(p.name)
+        );
+
+        let allDependents = [...directDependents];
+        directDependents.forEach(dep => {
+            visited.add(dep.name);
+            const subDependents = getRecursiveDependents(dep.name, allPackages, visited);
+            // Add only new ones
+            subDependents.forEach(sd => {
+                if (!allDependents.find(ad => ad.name === sd.name)) {
+                    allDependents.push(sd);
+                }
+            });
+        });
+
+        return allDependents;
+    }
+
+    function performSequentialUninstall(packages) {
+        // packages is list of objects. We want to uninstall them in order (0 to N).
+        // Since we collected dependents first, this is the correct order (Leaves -> Root).
+
+        if (packages.length === 0) {
+            alert('All selected packages have been uninstalled.');
+            loadInstalledPackages(); // Refresh UI
+            loadStagedPackages();
+            return;
+        }
+
+        const current = packages[0];
+        const remaining = packages.slice(1);
+
+        console.log(`Uninstalling ${current.name}...`);
+
+        fetch('/packages/uninstall', {
+            method: 'POST',
+            body: JSON.stringify({ package: current.name }),
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.result !== 'success') {
+                    alert(`Failed to uninstall ${current.name}: ${data.message}\nStopping sequence.`);
+                    loadInstalledPackages();
+                } else {
+                    performSequentialUninstall(remaining);
+                }
+            })
+            .catch(err => {
+                alert(`Error uninstalling ${current.name}: ${err.message}`);
+                loadInstalledPackages();
+            });
+    }
+
+    function performUninstall(pkgName) {
+        fetch('/packages/uninstall', {
+            method: 'POST',
+            body: JSON.stringify({ package: pkgName }),
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    alert("Package uninstalled successfully.");
+                    loadInstalledPackages();
+                    loadStagedPackages();
+                } else {
+                    alert("Failed to uninstall package: " + (data.message || "Unknown error"));
+                }
+            })
+            .catch(e => {
+                alert("Error uninstalling package: " + e.message);
+            });
+    }
+
+    window.showPackageInfo = function (pkg) {
+        fetch(`/packages/installed/package?name=${pkg.name}`)
+            .then(res => {
+                if (res.ok) return res.json();
+                return pkg;
+            })
+            .then(details => {
+                const content = document.getElementById('modal-content');
+                content.innerHTML = `
+                    <div class="key-value"><label>Name:</label><div>${details.name}</div></div>
+                    <div class="key-value"><label>Version:</label><div>${details.version}</div></div>
+                    <div class="key-value"><label>Type:</label><div>${details.package_type}</div></div>
+                    <div class="key-value"><label>Description:</label><div>${details.description || 'N/A'}</div></div>
+                    <hr style="border-color: var(--border-color); opacity: 0.3; margin: 1rem 0;">
+                    <div class="key-value"><label>Dependencies:</label><div>${(details.dependencies || []).join(', ') || 'None'}</div></div>
+                    <div class="key-value"><label>Handlers:</label><div>${JSON.stringify(details.installer_handlers || {})}</div></div>
+                 `;
+                document.querySelector('dialog').showModal();
+            })
+            .catch(e => {
+                console.error(e);
+                const content = document.getElementById('modal-content');
+                content.innerHTML = `
+                    <div class="key-value"><label>Name:</label><div>${pkg.name}</div></div>
+                    <div class="key-value"><label>Version:</label><div>${pkg.version}</div></div>
+                    <div class="key-value"><label>Type:</label><div>${pkg.package_type}</div></div>
+                 `;
+                document.querySelector('dialog').showModal();
+            });
+    };
 });

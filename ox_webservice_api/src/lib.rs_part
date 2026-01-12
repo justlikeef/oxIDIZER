@@ -1,0 +1,14 @@
+
+impl PipelineState {
+    pub fn add_flag(&mut self, flag: &str) {
+        self.flags.insert(flag.to_string());
+    }
+
+    pub fn remove_flag(&mut self, flag: &str) {
+        self.flags.remove(flag);
+    }
+
+    pub fn has_flag(&self, flag: &str) -> bool {
+        self.flags.contains(flag)
+    }
+}

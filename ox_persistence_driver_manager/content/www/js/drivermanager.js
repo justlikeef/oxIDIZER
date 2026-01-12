@@ -28,52 +28,61 @@ function showError(msg) {
 }
 
 function renderDrivers(drivers) {
-    const grid = document.getElementById('driver-grid');
-    grid.innerHTML = '';
+    const list = document.getElementById('driver-list');
+    list.innerHTML = '';
 
     if (drivers.length === 0) {
-        grid.innerHTML = '<div style="padding: 1rem;">No drivers found.</div>';
+        list.innerHTML = '<div style="padding: 1rem;">No drivers found.</div>';
         return;
     }
 
     drivers.forEach(driver => {
-        const statusClass = driver.state === 'enabled' ? 'status-ok' : 'status-error';
-        const btnLabel = driver.state === 'enabled' ? 'Disable' : 'Enable';
-        const btnClass = driver.state === 'enabled' ? 'btn-disable' : 'btn-enable'; // Optional styling
+        const isEnabled = driver.state === 'enabled';
+        const statusClass = isEnabled ? 'enabled' : 'disabled';
+        const btnLabel = isEnabled ? 'Disable' : 'Enable';
+        const btnClass = isEnabled ? 'disable' : 'enable';
 
-        const card = document.createElement('div');
-        card.className = `card ${statusClass}`;
+        // Use display_name if available, fallback to name (friendly name ideally), otherwise ID
+        // Currently 'name' returns package name like 'ox_persistence_driver_db_mysql'
+        // 'display_name' returns e.g. 'MySQL' if backend works
+        const displayName = driver.display_name || driver.name;
 
-        // Note: Regular JSON API does not currently return version/description metadata.
-        // We render what we have available in the basic struct.
+        const row = document.createElement('div');
+        row.className = 'driver-row';
 
-        const libName = `lib${driver.name}.so`;
-        const dirPath = driver.library_path ? driver.library_path : 'target/debug';
-        const fullPath = `${dirPath}/${libName}`; // Simplified path construction
+        let infoButton = '';
+        if (driver.metadata) {
+            infoButton = `
+                <button class="driver-icon-btn btn-info" data-metadata='${driver.metadata.replace(/'/g, "&apos;")}' title="Info">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                </button>
+            `;
+        }
 
-        card.innerHTML = `
-            <div class="card-header">
-                <div class="status-badge ${statusClass}">${driver.state.toUpperCase()}</div>
-                <div class="card-title">${driver.id}</div> 
+        row.innerHTML = `
+            <div class="driver-status">
+                <div class="status-dot ${statusClass}" title="${driver.state}"></div>
             </div>
-            <div class="card-content">
-                <div class="kv-row">
-                    <span class="kv-key">Library</span>
-                    <span class="kv-value" title="${fullPath}">${libName}</span> 
+            <div class="driver-info">
+                <div class="driver-name">
+                    ${displayName}
+                    ${infoButton}
                 </div>
-                <div class="actions" style="margin-top: 1rem; text-align: right;">
-                     <button class="btn toggle-btn ${btnClass}" 
-                             data-id="${driver.id}">
-                        ${btnLabel}
-                    </button>
-                </div>
+                <div class="driver-id">${driver.id}</div>
+            </div>
+            <div class="driver-actions">
+                <button class="btn-toggle ${btnClass}" data-id="${driver.id}">
+                    ${btnLabel}
+                </button>
             </div>
         `;
-        grid.appendChild(card);
+        list.appendChild(row);
     });
 
     // Attach event listeners for buttons
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
+    document.querySelectorAll('.btn-toggle').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
             // Disable button to prevent double-click
@@ -84,7 +93,55 @@ function renderDrivers(drivers) {
             await toggleDriver(id);
         });
     });
+
+    // Attach event listeners for info buttons
+    document.querySelectorAll('.btn-info').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const meta = e.currentTarget.getAttribute('data-metadata');
+            showMetadata(meta);
+        });
+    });
 }
+
+function showMetadata(metaStr) {
+    let content = metaStr;
+    try {
+        // Try parsing as JSON for prettier display
+        const json = JSON.parse(metaStr);
+        content = '<table class="meta-table">';
+        for (const [key, value] of Object.entries(json)) {
+            content += `<tr><th>${key}</th><td>${value}</td></tr>`;
+        }
+        content += '</table>';
+    } catch (e) {
+        // Not JSON, just show as text
+        content = `<pre>${metaStr}</pre>`;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Driver Information</h3>
+                <button class="btn-close">&times;</button>
+            </div>
+            <div class="modal-content">
+                ${content}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const close = () => document.body.removeChild(modal);
+    modal.querySelector('.btn-close').addEventListener('click', close);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+}
+
 
 async function toggleDriver(id) {
     try {

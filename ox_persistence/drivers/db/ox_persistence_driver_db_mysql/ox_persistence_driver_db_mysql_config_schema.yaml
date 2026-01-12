@@ -1,0 +1,66 @@
+name: MySQL
+forms:
+  - id: "mysql_main"
+    title: "MySQL Data Source Configuration"
+    fields:
+      - name: "driver"
+        data_type: "hidden"
+        default_value: "ox_persistence_driver_db_mysql"
+      - name: "config_method"
+        label: "Configuration Method"
+        data_type: "radio"
+        default_value: "manual"
+        props:
+          options:
+            - label: "Use mylogin File"
+              value: "mylogin"
+            - label: "Specified Parameters"
+              value: "manual"
+      - name: "auth_settings"
+        data_type: "container"
+        subforms: ["mysql_manual", "mysql_mylogin"]
+    styles: "overflow-y: auto; max-height: 70vh;"
+    actions:
+      - name: "submit"
+        label: "Save Data Source"
+        action_type: "submit"
+      - name: "cancel"
+        label: "Cancel"
+        action_type: "button"
+        props:
+          classes: "btn-light"
+
+  - id: "mysql_manual"
+    title: "Manual Parameters"
+    condition: "config_method == 'manual'"
+    fields:
+      - name: "host"
+        label: "Host"
+        data_type: "string"
+        default_value: "127.0.0.1"
+      - name: "port"
+        label: "Port"
+        data_type: "integer"
+        default_value: 3306
+      - name: "user"
+        label: "Username"
+        data_type: "string"
+      - name: "password"
+        label: "Password"
+        data_type: "password"
+      - name: "dbname"
+        label: "Database Name"
+        data_type: "string"
+
+  - id: "mysql_mylogin"
+    title: "mylogin Parameters"
+    condition: "config_method == 'mylogin'"
+    fields:
+      - name: "mylogin_path"
+        label: "MySQL Login Path"
+        data_type: "string"
+        props:
+          placeholder: "client"
+      - name: "dbname"
+        label: "Database Name"
+        data_type: "string"

@@ -13,7 +13,10 @@ use ox_webservice_api::{
 use lazy_static::lazy_static;
 use bumpalo::Bump;
 
-use ox_fileproc::process_file;
+use ox_forms::schema::{FormDefinition, ModuleSchema};
+use ox_persistence::{ConfiguredDriver, DriversList};
+
+use ox_fileproc::{process_file, RawFile};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DataSource {
@@ -43,7 +46,14 @@ pub struct DataSourceManagerConfig {
     pub data_sources_dir: String,
     #[serde(default)]
     pub on_content_conflict: Option<ContentConflictAction>,
+    #[serde(default = "default_drivers_file")]
+    pub drivers_file: String,
+    #[serde(default = "default_driver_root")]
+    pub driver_root: String,
 }
+
+fn default_drivers_file() -> String { "/var/repos/oxIDIZER/conf/drivers.yaml".to_string() }
+fn default_driver_root() -> String { "/var/repos/oxIDIZER/conf/drivers".to_string() }
 
 pub struct DataSourceManager {
     config: DataSourceManagerConfig,
@@ -52,6 +62,60 @@ pub struct DataSourceManager {
 impl DataSourceManager {
     pub fn new(config: DataSourceManagerConfig) -> Self {
         DataSourceManager { config }
+    }
+
+    pub fn load_configured_drivers(&self) -> Result<DriversList, String> {
+        let path = Path::new(&self.config.drivers_file);
+        if !path.exists() {
+            return Ok(DriversList { drivers: Vec::new() });
+        }
+         // Max depth 5 for recursion
+        let val = process_file(path, 5).map_err(|e| e.to_string())?;
+        serde_json::from_value(val).map_err(|e| e.to_string())
+    }
+    
+    pub fn get_driver_schema(&self, library_path: &str) -> Result<String, String> {
+         unsafe {
+            let lib = libloading::Library::new(library_path).map_err(|e| format!("Failed to load library '{}': {}", library_path, e))?;
+            
+            let get_schema: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> = 
+                lib.get(b"ox_driver_get_config_schema").map_err(|_| "Missing symbol: ox_driver_get_config_schema".to_string())?;
+            
+            let ptr = get_schema();
+            if ptr.is_null() {
+                return Err("ox_driver_get_config_schema returned null".to_string());
+            }
+            
+            let c_str = std::ffi::CStr::from_ptr(ptr);
+             let schema_str = c_str.to_string_lossy().into_owned();
+             
+             Ok(schema_str)
+        }
+    }
+
+    pub fn get_data_source(&self, id: &str) -> Result<Option<DataSource>, String> {
+         let dir_path = Path::new(&self.config.data_sources_dir);
+         let file_path = dir_path.join(format!("{}.yaml", id)); // Assume yaml for now
+         let file_path_json = dir_path.join(format!("{}.json", id));
+         
+         let path = if file_path.exists() {
+             file_path
+         } else if file_path_json.exists() {
+             file_path_json
+         } else {
+             return Ok(None);
+         };
+
+         let val = process_file(&path, 5).map_err(|e| e.to_string())?;
+         // Try single
+         if let Ok(ds) = serde_json::from_value::<DataSource>(val.clone()) {
+              if ds.id == id { return Ok(Some(ds)); }
+         } 
+         // Try list
+         if let Ok(list) = serde_json::from_value::<DataSourcesList>(val) {
+              return Ok(list.data_sources.into_iter().find(|ds| ds.id == id));
+         }
+         Ok(None)
     }
 
     pub fn load_data_sources(&self) -> Result<DataSourcesList, String> {
@@ -160,9 +224,21 @@ pub unsafe extern "C" fn initialize_module(
             _ => None,
         });
 
+    let drivers_file = params.get("drivers_file")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(default_drivers_file);
+
+    let driver_root = params.get("driver_root")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(default_driver_root);
+
     let config = DataSourceManagerConfig {
         data_sources_dir,
         on_content_conflict,
+        drivers_file,
+        driver_root,
     };
 
     let manager = Arc::new(DataSourceManager::new(config));
@@ -353,6 +429,113 @@ pub unsafe extern "C" fn process_request(
             }
             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
+    }
+
+    // 4. Render Creation Form
+    // Path: /data_sources/new/form
+    if method == "get" && (clean_path == "new/form" || path_str.ends_with("/data_sources/new/form")) {
+        let driver_id = ctx.get("request.query.driver")
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_default();
+        
+        let ds_id = ctx.get("request.query.id")
+            .and_then(|v| v.as_str().map(|s| s.to_string()));
+
+        let mut existing_ds: Option<DataSource> = None;
+        let mut driver_id_to_use = driver_id.clone();
+        
+        // If ID provided, load existing DS to get driver_id and values
+        if let Some(ref id) = ds_id {
+             match context.manager.get_data_source(id) {
+                 Ok(Some(ds)) => {
+                     driver_id_to_use = ds.driver_id.clone();
+                     existing_ds = Some(ds);
+                 },
+                 Ok(None) => {
+                      send_json_error(format!("Data source '{}' not found", id), 404);
+                      return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+                 },
+                 Err(e) => {
+                      send_json_error(format!("Error loading data source: {}", e), 500);
+                      return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+                 }
+             }
+        }
+
+        if driver_id_to_use.is_empty() {
+             send_json_error("Missing 'driver' query parameter and no 'id' provided for lookup.".to_string(), 400);
+             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        }
+
+        // Load Drivers Config to find library
+        let drivers_list = match context.manager.load_configured_drivers() {
+             Ok(l) => l,
+             Err(e) => {
+                  send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                  return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+             }
+        };
+
+        let driver_opt = drivers_list.drivers.iter().find(|d| d.id == driver_id_to_use);
+        if driver_opt.is_none() {
+             send_json_error(format!("Driver '{}' not found in configuration.", driver_id_to_use), 404);
+             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        }
+        let driver_conf = driver_opt.unwrap();
+        
+        let lib_path = if !driver_conf.library_path.is_empty() {
+             format!("{}/lib{}.so", driver_conf.library_path, driver_conf.name)
+        } else {
+             format!("{}/lib{}.so", context.manager.config.driver_root, driver_conf.name)
+        };
+
+        // Load Schema
+        let schema_yaml = match context.manager.get_driver_schema(&lib_path) {
+             Ok(s) => s,
+             Err(e) => {
+                  send_json_error(format!("Failed to load schema from driver: {}", e), 500);
+                  return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+             }
+        };
+
+        let mut props: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+        if let Some(ds) = existing_ds {
+            if let Some(obj) = ds.config.as_object() {
+                for (k, v) in obj {
+                    props.insert(k.clone(), v.clone());
+                }
+            }
+        }
+
+        // Parse Form Definition or Module Schema
+        let render_res = if let Ok(module) = serde_yaml::from_str::<ModuleSchema>(&schema_yaml) {
+            // Determine which form to render. 
+            // We search for a "main" form or use the first one.
+            let form_id = module.forms.iter().find(|f| f.id.contains("main")).map(|f| f.id.as_str()).unwrap_or(module.forms[0].id.as_str());
+            ox_forms::render_standard_module(&module, form_id, &props)
+        } else {
+            // Fallback to single form
+            serde_yaml::from_str::<FormDefinition>(&schema_yaml)
+                .map_err(|e| anyhow::anyhow!("Schema Parse Error: {}", e))
+                .and_then(|form_def| ox_forms::render_standard_form(&form_def, &props))
+        };
+
+        match render_res {
+            Ok(html) => {
+                let _ = ctx.set("response.body", serde_json::Value::String(html));
+                let _ = ctx.set("response.status", serde_json::json!(200));
+                let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+            },
+            Err(e) => {
+                let err_msg = format!("Form Render Error: {}", e);
+                if let Ok(c_msg) = std::ffi::CString::new(err_msg.clone()) {
+                    let module_name = std::ffi::CString::new(context.module_id.clone()).unwrap_or(std::ffi::CString::new("ox_persistence_datasource_manager").unwrap());
+                    unsafe { (context.api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_msg.as_ptr()); }
+                }
+                send_json_error(err_msg, 500);
+            },
+        }
+        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
     }
 
     HandlerResult {

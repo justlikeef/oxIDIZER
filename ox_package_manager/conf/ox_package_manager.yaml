@@ -18,16 +18,12 @@ routes:
     phase: Content
     priority: 450
 
-  - url: "^/packages/(list|install)/?"
-    headers:
-      Accept: "application/json"
+  - url: "^/packages/(list|install|uninstall)(/.*)?$"
     module_id: "package_manager"
     phase: Content
     priority: 450
 
-  - url: "^/packages/(list|install)/?"
-    query:
-      format: "json"
+  - url: "^/packages/installer/(subscribe|unsubscribe)/?$"
     module_id: "package_manager"
     phase: Content
     priority: 450

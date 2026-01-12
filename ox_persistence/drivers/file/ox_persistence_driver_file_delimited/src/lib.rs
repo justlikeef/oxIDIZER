@@ -356,7 +356,7 @@ pub unsafe extern "C" fn ox_driver_fetch(
 
 #[no_mangle]
 pub extern "C" fn ox_driver_get_config_schema() -> *mut c_char {
-    let schema = include_str!("../config_schema.yaml");
+    let schema = include_str!("../ox_persistence_driver_file_delimited_config_schema.yaml");
     CString::new(schema).expect("Failed to create CString").into_raw()
 }
 

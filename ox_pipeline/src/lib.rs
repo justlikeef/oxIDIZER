@@ -13,10 +13,17 @@ pub enum PipelineResult {
     Aborted(String, State),
 }
 
+/// Status returned by module execution to control pipeline flow.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PipelineStatus {
+    Continue,
+    JumpTo(String),
+}
+
 /// A generic trait for any executable module in the pipeline.
 pub trait PipelineModule: Send + Sync {
     fn name(&self) -> &str;
-    fn execute(&self, state: State) -> Result<(), String>;
+    fn execute(&self, state: State) -> Result<PipelineStatus, String>;
     fn get_config(&self) -> serde_json::Value {
         serde_json::Value::Null
     }
@@ -39,21 +46,31 @@ impl Pipeline {
     }
 
     pub fn start(&self, initial_state: State) -> PipelineResult {
-        for stage in &self.stages {
+        let mut stage_idx = 0;
+        'stage_loop: while stage_idx < self.stages.len() {
+            let stage = &self.stages[stage_idx];
+            
             for module in &stage.modules {
-                if let Err(e) = module.execute(initial_state.clone()) {
-                    return PipelineResult::Aborted(e, initial_state);
+                let result = module.execute(initial_state.clone());
+                match result {
+                    Ok(PipelineStatus::Continue) => {},
+                    Ok(PipelineStatus::JumpTo(target_phase)) => {
+                        // Find matching stage
+                        if let Some(pos) = self.stages.iter().position(|s| s.name == target_phase) {
+                             // Jump to that stage index
+                             stage_idx = pos;
+                             // Break module loop to restart outer loop at new index
+                             continue 'stage_loop; 
+                        } else {
+                             // Target not found - treat as error or ignore? 
+                             // Treating as error for safety
+                             return PipelineResult::Aborted(format!("JumpTo target phase '{}' not found", target_phase), initial_state);
+                        }
+                    },
+                    Err(e) => return PipelineResult::Aborted(e, initial_state),
                 }
-                
-                // Flow control logic removal:
-                // Since State is Any, "ox_pipeline" cannot know how to read "ox.flow_control".
-                // The implementation of `module.execute` (which is Host logic) must handle checks and return Err if halted,
-                // OR `State` must explicitly support a generic `is_halted()`?
-                // Given "The generic function... is to do nothing more than pass the state", I remove the generic flow control check.
-                // The `PipelineModule::execute` return value (Result) indicates success (continue) or failure (abort).
-                // A logic "Halt" can be treated as an Err("Halted") or we add `PipelineStatus` enum to execute return?
-                // I'll stick to Result. Modules return Err to stop.
             }
+            stage_idx += 1;
         }
         PipelineResult::Completed(initial_state)
     }

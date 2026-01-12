@@ -1,0 +1,32 @@
+2026-01-07T18:34:48.004920872-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T18:34:48.005100096-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_package_manager/functional_tests/000007-Upload-CorruptedArchive/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"ox_package_manager/functional_tests/000007-Upload-CorruptedArchive//conf/log4rs.yaml","servers":[{"id":"default","protocol":"http","port":4500,"bind_address":"0.0.0.0","hosts":[{"name":".*","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":null,"name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":"target/debug/libox_package_manager.so","params":null,"phase":"Content","priority":100}],"pipeline":{"phases":[{"Content":"default"}]},"routes":[],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T18:34:48.005120658-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T18:34:48.005155346-05:00 INFO ox_webservice::pipeline - Loading module 'ox_package_manager' from "target/debug/libox_package_manager.so"
+2026-01-07T18:34:48.005755790-05:00 INFO ox_webservice::pipeline - Module 'ox_package_manager' has no routes but is in phase 'Content'. Adding catch-all route.
+2026-01-07T18:34:48.005856732-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T18:34:48.006340602-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T18:34:48.009423421-05:00 INFO ox_webservice - Listening on 0.0.0.0:4500
+2026-01-07T18:34:53.023964790-05:00 INFO ox_webservice::pipeline - [ox_package_manager] DEBUG_REQUEST_GENERIC: verb='create', resource='/packages/upload'
+2026-01-07T18:34:53.024107413-05:00 INFO ox_webservice::pipeline - [ox_package_manager] Processing upload request...
+2026-01-07T18:34:53.024139381-05:00 INFO ox_webservice::pipeline - [ox_package_manager] Content-Type: multipart/form-data; boundary=------------------------1fF5Ln7Y1aJCWimDoKYf0F
+2026-01-07T18:34:53.024189084-05:00 INFO ox_webservice::pipeline - [ox_package_manager] Multipart::with_boundary(_, "------------------------1fF5Ln7Y1aJCWimDoKYf0F")
+2026-01-07T18:34:53.024210689-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] ReadEntry::read_entry()
+2026-01-07T18:34:53.024220139-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Consume boundary!
+2026-01-07T18:34:53.024229065-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Boundary not found yet
+2026-01-07T18:34:53.024249295-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Before search Buf len: 243 Search idx: 0 State: Searching
+2026-01-07T18:34:53.024263542-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] After search Buf len: 243 Search idx: 0 State: BoundaryRead
+2026-01-07T18:34:53.024273255-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Discarding 0 bytes
+2026-01-07T18:34:53.024287929-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Consume! amt: 0 true amt: 0
+2026-01-07T18:34:53.024304909-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Before search Buf len: 193 Search idx: 0 State: Searching
+2026-01-07T18:34:53.024316003-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] After search Buf len: 193 Search idx: 141 State: BoundaryRead
+2026-01-07T18:34:53.024327423-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Subtract two!
+2026-01-07T18:34:53.024352886-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Parsed headers: [StrHeader { name: "Content-Disposition", val: "form-data; name=\"package\"; filename=\"corrupted.zip\"" }, StrHeader { name: "Content-Type", val: "application/octet-stream" }]
+2026-01-07T18:34:53.024372726-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Found Content-Type: "application/octet-stream"
+2026-01-07T18:34:53.024384799-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Consume! amt: 116 true amt: 116
+2026-01-07T18:34:53.024776754-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Before search Buf len: 77 Search idx: 23 State: BoundaryRead
+2026-01-07T18:34:53.024819783-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Consume! amt: 23 true amt: 23
+2026-01-07T18:34:53.024838021-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Before search Buf len: 54 Search idx: 0 State: BoundaryRead
+2026-01-07T18:34:53.024847469-05:00 DEBUG ox_webservice::pipeline - [ox_package_manager] Consume! amt: 0 true amt: 0
+2026-01-07T18:34:53.024969596-05:00 DEBUG ox_webservice::pipeline - Module 'ox_package_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:34:53.024989128-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.

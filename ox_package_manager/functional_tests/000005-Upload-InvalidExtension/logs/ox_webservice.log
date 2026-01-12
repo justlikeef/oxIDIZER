@@ -1,0 +1,33 @@
+2026-01-07T18:34:37.534610216-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-07T18:34:37.534866901-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_package_manager/functional_tests/000005-Upload-InvalidExtension/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default_http","protocol":"http","port":4500,"bind_address":"0.0.0.0","hosts":[{"name":"localhost","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_package_manager.so","params":null,"staging_directory":"/tmp/ox_test_staging_2258585"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so","params":null}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":"^/packages/(upload)/?","headers":{"Method":"POST"},"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-07T18:34:37.534931364-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-07T18:34:37.535000035-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'package_manager'
+2026-01-07T18:34:37.535020426-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+2026-01-07T18:34:37.536273806-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T18:34:37.537057907-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-07T18:34:37.537176516-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T18:34:37.537197641-05:00 INFO ox_webservice::pipeline - Using custom path for router 'ox_pipeline_router': "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-07T18:34:37.537241902-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-07T18:34:37.539585308-05:00 INFO ox_webservice - Listening on 0.0.0.0:4500
+2026-01-07T18:34:42.550632712-05:00 INFO ox_webservice::pipeline - [package_manager] DEBUG_REQUEST_GENERIC: verb='create', resource='/packages/upload'
+2026-01-07T18:34:42.550851582-05:00 INFO ox_webservice::pipeline - [package_manager] Processing upload request...
+2026-01-07T18:34:42.550942249-05:00 INFO ox_webservice::pipeline - [package_manager] Content-Type: multipart/form-data; boundary=------------------------krbdNY3M1MiPYkIJesBQbB
+2026-01-07T18:34:42.551106816-05:00 INFO ox_webservice::pipeline - [package_manager] Multipart::with_boundary(_, "------------------------krbdNY3M1MiPYkIJesBQbB")
+2026-01-07T18:34:42.551174308-05:00 DEBUG ox_webservice::pipeline - [package_manager] ReadEntry::read_entry()
+2026-01-07T18:34:42.551189124-05:00 DEBUG ox_webservice::pipeline - [package_manager] Consume boundary!
+2026-01-07T18:34:42.551200138-05:00 DEBUG ox_webservice::pipeline - [package_manager] Boundary not found yet
+2026-01-07T18:34:42.551567404-05:00 DEBUG ox_webservice::pipeline - [package_manager] Before search Buf len: 203 Search idx: 0 State: Searching
+2026-01-07T18:34:42.551667094-05:00 DEBUG ox_webservice::pipeline - [package_manager] After search Buf len: 203 Search idx: 0 State: BoundaryRead
+2026-01-07T18:34:42.551687873-05:00 DEBUG ox_webservice::pipeline - [package_manager] Discarding 0 bytes
+2026-01-07T18:34:42.551699471-05:00 DEBUG ox_webservice::pipeline - [package_manager] Consume! amt: 0 true amt: 0
+2026-01-07T18:34:42.551743569-05:00 DEBUG ox_webservice::pipeline - [package_manager] Before search Buf len: 153 Search idx: 0 State: Searching
+2026-01-07T18:34:42.551764240-05:00 DEBUG ox_webservice::pipeline - [package_manager] After search Buf len: 153 Search idx: 101 State: BoundaryRead
+2026-01-07T18:34:42.551786338-05:00 DEBUG ox_webservice::pipeline - [package_manager] Subtract two!
+2026-01-07T18:34:42.551915004-05:00 DEBUG ox_webservice::pipeline - [package_manager] Parsed headers: [StrHeader { name: "Content-Disposition", val: "form-data; name=\"package\"; filename=\"invalid.png\"" }, StrHeader { name: "Content-Type", val: "image/png" }]
+2026-01-07T18:34:42.551970913-05:00 DEBUG ox_webservice::pipeline - [package_manager] Found Content-Type: "image/png"
+2026-01-07T18:34:42.552007068-05:00 DEBUG ox_webservice::pipeline - [package_manager] Consume! amt: 99 true amt: 99
+2026-01-07T18:34:42.552581646-05:00 DEBUG ox_webservice::pipeline - [package_manager] Before search Buf len: 54 Search idx: 0 State: BoundaryRead
+2026-01-07T18:34:42.552681805-05:00 DEBUG ox_webservice::pipeline - [package_manager] Consume! amt: 0 true amt: 0
+2026-01-07T18:34:42.553048781-05:00 DEBUG ox_webservice::pipeline - Module 'package_manager' returned Modified. Pipeline is_modified set to true.
+2026-01-07T18:34:42.553135806-05:00 DEBUG ox_webservice::pipeline - Module '"Content"_Router' returned Modified. Pipeline is_modified set to true.

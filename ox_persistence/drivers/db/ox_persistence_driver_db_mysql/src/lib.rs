@@ -250,13 +250,36 @@ impl PersistenceDriver for MysqlPersistenceDriver {
 #[no_mangle]
 pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
     let config_str = unsafe { CStr::from_ptr(config_json).to_string_lossy() };
-    let config: HashMap<String, String> = serde_json::from_str(&config_str).unwrap_or_default();
+    let config: HashMap<String, String> = serde_json::from_str(&config_str).unwrap_or_else(|_| HashMap::new());
     
-    let pool = if let Some(dsn) = config.get("dsn") {
-        mysql::Pool::new(dsn.as_str()).ok()
+    let opts = if config.get("config_method").map(|s| s.as_str()) == Some("mylogin") {
+        let login_path = config.get("mylogin_path").map(|s| s.as_str()).unwrap_or("client");
+        let creds = myloginrs::parse(login_path, None);
+        let mut builder = mysql::OptsBuilder::new();
+        if let Some(host) = creds.get("host") { builder = builder.ip_or_hostname(Some(host)); }
+        if let Some(user) = creds.get("user") { builder = builder.user(Some(user)); }
+        if let Some(pass) = creds.get("password") { builder = builder.pass(Some(pass)); }
+        if let Some(port) = creds.get("port") { 
+            if let Ok(p) = port.parse::<u16>() { builder = builder.tcp_port(p); }
+        }
+        if let Some(db) = config.get("dbname") { builder = builder.db_name(Some(db)); }
+        Some(builder.into())
+    } else if let Some(dsn) = config.get("dsn") {
+        mysql::Opts::from_url(dsn).ok()
     } else {
-        None
+        // Build from individual fields
+        let mut builder = mysql::OptsBuilder::new();
+        if let Some(h) = config.get("host") { builder = builder.ip_or_hostname(Some(h)); }
+        if let Some(u) = config.get("user") { builder = builder.user(Some(u)); }
+        if let Some(p) = config.get("password") { builder = builder.pass(Some(p)); }
+        if let Some(db) = config.get("dbname") { builder = builder.db_name(Some(db)); }
+        if let Some(port) = config.get("port") {
+            if let Ok(p) = port.parse::<u16>() { builder = builder.tcp_port(p); }
+        }
+        Some(builder.into())
     };
+
+    let pool = opts.and_then(|o| mysql::Pool::new(o).ok());
 
     let driver = Box::new(MysqlPersistenceDriver { pool });
     Box::into_raw(driver) as *mut c_void
@@ -377,7 +400,7 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
 
 #[no_mangle]
 pub extern "C" fn ox_driver_get_config_schema() -> *mut c_char {
-    let schema = include_str!("../config_schema.yaml");
+    let schema = include_str!("../ox_persistence_driver_db_mysql_config_schema.yaml");
     CString::new(schema).expect("Failed to create CString").into_raw()
 }
 

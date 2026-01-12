@@ -17,6 +17,11 @@ pub trait ElementRenderer: Send + Sync {
     fn render(&self, field: &FieldDefinition, ctx: &RenderContext) -> Result<String, Error>;
 }
 
+pub trait ActionRenderer: Send + Sync {
+    /// Render the action to a string (HTML)
+    fn render(&self, action: &crate::schema::ActionDefinition, ctx: &RenderContext) -> Result<String, Error>;
+}
+
 pub trait FormRenderer: Send + Sync {
     /// Render the overall form container
     fn render(&self, form: &FormDefinition, content: &str) -> Result<String, Error>;

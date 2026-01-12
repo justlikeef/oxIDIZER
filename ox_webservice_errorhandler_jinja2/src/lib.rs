@@ -183,7 +183,7 @@ impl<'a> OxModule<'a> {
         }
 
         context_map.insert("message".to_string(), Value::String("An error occurred.".to_string()));
-        context_map.insert("module_name".to_string(), Value::String(culprit_module_name));
+        context_map.insert("module_name".to_string(), Value::String(culprit_module_name.clone()));
         // Inject empty module_context to prevent template errors if accessed
         context_map.insert("module_context".to_string(), serde_json::Value::Object(serde_json::Map::new()));
 
@@ -281,9 +281,39 @@ impl<'a> OxModule<'a> {
             }
         };
 
-        // Set response headers and body using Generic API
-        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
-        let _ = ctx.set("response.body", serde_json::Value::String(response_body));
+        // Determine if we should serve HTML or JSON
+        let mut serve_json = false;
+        let accept_header = ctx.get("request.header.Accept").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        if accept_header.contains("application/json") {
+            serve_json = true;
+        }
+
+        let existing_content_type = ctx.get("response.header.Content-Type").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
+        if existing_content_type.contains("application/json") {
+            serve_json = true;
+        }
+
+        if serve_json {
+            let existing_body = ctx.get("response.body").unwrap_or(Value::Null);
+            let mut json_response = if let Value::Object(obj) = existing_body {
+                obj
+            } else {
+                let mut obj = serde_json::Map::new();
+                obj.insert("message".to_string(), Value::String(response_body.clone()));
+                obj
+            };
+            
+            json_response.insert("status".to_string(), serde_json::json!(status_code));
+            json_response.insert("status_text".to_string(), Value::String(status_text.to_string()));
+            json_response.insert("module".to_string(), Value::String(culprit_module_name));
+            
+            let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+            let _ = ctx.set("response.body", Value::Object(json_response));
+        } else {
+            // Set response headers and body using Generic API
+            let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+            let _ = ctx.set("response.body", serde_json::Value::String(response_body));
+        }
 
         HandlerResult {
             status: ModuleStatus::Modified,

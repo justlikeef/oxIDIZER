@@ -31,7 +31,7 @@ pub struct PipelineState {
     pub module_context: ModuleContext,
     pub pipeline_ptr: *const c_void,
     // New Fields
-    pub is_modified: bool,
+    pub flags: std::collections::HashSet<String>,
     pub execution_history: Vec<ModuleExecutionRecord>,
     // Route Capture (for path rewriting)
     pub route_capture: Option<String>,
@@ -52,6 +52,20 @@ unsafe impl Sync for ModuleExecutionRecord {}
 
 unsafe impl Send for PipelineState {}
 unsafe impl Sync for PipelineState {}
+
+impl PipelineState {
+    pub fn add_flag(&mut self, flag: &str) {
+        self.flags.insert(flag.to_string());
+    }
+
+    pub fn remove_flag(&mut self, flag: &str) {
+        self.flags.remove(flag);
+    }
+
+    pub fn has_flag(&self, flag: &str) -> bool {
+        self.flags.contains(flag)
+    }
+}
 
 // Define the C-compatible function signature for handlers
 pub type WebServiceHandler = unsafe extern "C" fn(
