@@ -48,6 +48,7 @@ fn main() -> anyhow::Result<()> {
                 validation: vec![],
                 dependencies: vec![],
                 props: serde_json::Value::Null,
+                ..Default::default()
             },
             FieldDefinition {
                 name: "age".to_string(),
@@ -58,11 +59,13 @@ fn main() -> anyhow::Result<()> {
                 validation: vec![],
                 dependencies: vec![],
                 props: serde_json::Value::Null,
+                ..Default::default()
             },
         ],
         layout: None,
         actions: vec![],
         data_source_binding: None,
+        ..Default::default()
     };
 
     // 4. Render

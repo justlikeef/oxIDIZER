@@ -143,6 +143,23 @@ impl ConversionRegistry {
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
 
+        // Identity conversions (parsing from string repr)
+        self.register_conversion("integer", "integer", |v, p| {
+            string_to_integer(v, p).map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
+        });
+        self.register_conversion("float", "float", |v, p| {
+            string_to_float(v, p).map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
+        });
+        self.register_conversion("boolean", "boolean", |v, p| {
+            string_to_boolean(v, p).map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
+        });
+        self.register_conversion("u64", "u64", |v, p| {
+            string_to_uinteger(v, p).map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
+        });
+        self.register_conversion("i32", "i32", |v, p| {
+             string_to_i32(v, p).map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
+        });
+
         // Boolean conversions
         self.register_conversion("boolean", "string", |v, p| {
             v.parse::<bool>().map_err(|e| format!("Failed to parse boolean: {:?}", e))

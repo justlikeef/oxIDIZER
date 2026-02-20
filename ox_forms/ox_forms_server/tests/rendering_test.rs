@@ -8,43 +8,30 @@ use std::collections::HashMap;
 
 #[test]
 fn test_render_hardcoded_form() {
-    let registry = TypeRegistry::new();
+    let mut registry = TypeRegistry::new();
+    ox_forms_std_renderers::register_standard_renderers(&mut registry);
     let engine = FormEngine::new(&registry);
     
     // This test verifies FormEngine independently of server loading logic
     let form = FormDefinition {
         id: "server_test_form".to_string(),
         title: "Auto-Generated Form".to_string(),
-        style: None,
         fields: vec![
             FieldDefinition {
                 name: "full_name".to_string(),
                 label: "Full Name".to_string(),
                 data_type: "string".to_string(),
-                component: None, 
-                plugins: vec![],
-                validation: vec![],
-                dependencies: vec![],
-                props: serde_json::Value::Null,
-                classes: None,
-                styles: None,
+                ..Default::default()
             },
             FieldDefinition {
                 name: "quantity".to_string(),
                 label: "Quantity".to_string(),
                 data_type: "integer".to_string(),
                 component: Some("number-input".to_string()),
-                plugins: vec![],
-                validation: vec![],
-                dependencies: vec![],
-                props: serde_json::Value::Null,
-                classes: None,
-                styles: None,
+                ..Default::default()
             },
         ],
-        layout: None,
-        actions: vec![],
-        data_source_binding: None,
+        ..Default::default()
     };
 
     let render_ctx = RenderContext {

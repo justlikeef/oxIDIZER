@@ -1,4 +1,4 @@
-name: PostgreSQL
+friendly_name: PostgreSQL
 id: "postgres_datasource_form"
 title: "PostgreSQL Data Source Configuration"
 fields:

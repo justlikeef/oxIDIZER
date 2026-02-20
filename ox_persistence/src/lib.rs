@@ -120,6 +120,8 @@ pub struct ModuleCompatibility {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DriverMetadata {
     pub name: String, // The crate name, e.g., "ox_persistence_flatfile"
+    #[serde(default)]
+    pub friendly_name: Option<String>,
     pub version: String, // The crate version
     pub description: String,
     pub compatible_modules: HashMap<String, ModuleCompatibility>,
@@ -198,8 +200,13 @@ pub trait PersistenceDriver {
     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
     fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
 
-/// Gets the definition of connection parameters required by the driver.
+    /// Gets the definition of connection parameters required by the driver.
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
+
+    /// Executes a generic action defined by the driver (e.g., "discover_local", "validate_connection").
+    fn call_action(&self, action: &str, params: &serde_json::Value) -> Result<serde_json::Value, String> {
+        Err(format!("Action '{}' not supported by this driver", action))
+    }
 }
 
 impl Persistent for GenericDataObject {
@@ -280,6 +287,8 @@ impl Persistent for GenericDataObject {
 pub struct ConfiguredDriver {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub friendly_name: Option<String>,
     #[serde(default)]
     pub library_path: String,
     #[serde(default)]

@@ -8,6 +8,7 @@ pub struct FormEngine<'a> {
     registry: &'a TypeRegistry,
     forms: HashMap<String, &'a FormDefinition>,
     fields: HashMap<String, &'a FieldDefinition>,
+    actions: HashMap<String, &'a crate::schema::ActionDefinition>,
 }
 
 impl<'a> FormEngine<'a> {
@@ -16,6 +17,7 @@ impl<'a> FormEngine<'a> {
             registry, 
             forms: HashMap::new(),
             fields: HashMap::new(),
+            actions: HashMap::new(),
         }
     }
 
@@ -25,33 +27,42 @@ impl<'a> FormEngine<'a> {
             for field in &form.fields {
                 self.fields.insert(field.name.clone(), field);
             }
+            for action in &form.actions {
+                self.actions.insert(action.name.clone(), action);
+            }
         }
         self
     }
 
     pub fn render(&self, form: &FormDefinition, ctx: &RenderContext) -> Result<String> {
-        // Build a local field map for just this form to ensure we find fields even if not in a module
+        // Build a local field map
         let mut local_fields = self.fields.clone();
         for field in &form.fields {
             local_fields.insert(field.name.clone(), field);
         }
         
-        // Render content (fields or layout)
+        // Build local action map
+        let mut local_actions = self.actions.clone();
+        for action in &form.actions {
+            local_actions.insert(action.name.clone(), action);
+        }
+        
+        // Render content
         let content = if let Some(layout) = &form.layout {
-            self.render_layout(layout, &local_fields, ctx)?
+            // If layout is present, it is responsible for EVERYTHING including actions.
+            self.render_layout(layout, &local_fields, &local_actions, ctx)?
         } else {
-            self.render_fields(&form.fields, ctx)?
+            // Default behavior: Fields then Actions Footer
+            let mut c = self.render_fields(&form.fields, ctx)?;
+            c.push_str(&self.render_actions(&form.actions, ctx)?);
+            c
         };
-
-        // Render actions
-        let mut final_output = content;
-        final_output.push_str(&self.render_actions(&form.actions, ctx)?);
 
         // Get Renderer from registry
         let renderer = self.registry.get_form_renderer("html")
             .context("No form renderer named 'html' found in registry")?;
         
-        renderer.render(form, &final_output)
+        renderer.render(form, &content)
     }
 
     pub fn render_form_content(&self, form: &FormDefinition, ctx: &RenderContext) -> Result<String> {
@@ -59,16 +70,18 @@ impl<'a> FormEngine<'a> {
         for field in &form.fields {
             local_fields.insert(field.name.clone(), field);
         }
+        let mut local_actions = self.actions.clone();
+        for action in &form.actions {
+            local_actions.insert(action.name.clone(), action);
+        }
 
-        let mut content = if let Some(layout) = &form.layout {
-            self.render_layout(layout, &local_fields, ctx)?
+        if let Some(layout) = &form.layout {
+             self.render_layout(layout, &local_fields, &local_actions, ctx)
         } else {
-            self.render_fields(&form.fields, ctx)?
-        };
-
-        // Render actions
-        content.push_str(&self.render_actions(&form.actions, ctx)?);
-        Ok(content)
+            let mut content = self.render_fields(&form.fields, ctx)?;
+            content.push_str(&self.render_actions(&form.actions, ctx)?);
+            Ok(content)
+        }
     }
 
     pub fn render_actions(&self, actions: &[crate::schema::ActionDefinition], ctx: &RenderContext) -> Result<String> {
@@ -84,6 +97,8 @@ impl<'a> FormEngine<'a> {
         Ok(output)
     }
 
+    //Removed render_actions_filtered and collect_layout_actions as they are no longer needed.
+
     pub fn render_action(&self, action: &crate::schema::ActionDefinition, ctx: &RenderContext) -> Result<String> {
         let component_name = action.component.as_deref().unwrap_or("action-button");
         
@@ -93,32 +108,42 @@ impl<'a> FormEngine<'a> {
         renderer.render(action, ctx).map_err(|e| anyhow::anyhow!(e.to_string()))
     }
 
-    fn render_layout(&self, layout: &LayoutDefinition, fields: &HashMap<String, &'a FieldDefinition>, ctx: &RenderContext) -> Result<String> {
+    fn render_layout(&self, layout: &LayoutDefinition, fields: &HashMap<String, &'a FieldDefinition>, actions: &HashMap<String, &'a crate::schema::ActionDefinition>, ctx: &RenderContext) -> Result<String> {
         let mut output = String::new();
         for item in &layout.items {
-            output.push_str(&self.render_layout_item(item, fields, ctx)?);
+            output.push_str(&self.render_layout_item(item, fields, actions, ctx)?);
         }
         Ok(output)
     }
 
-    fn render_layout_item(&self, item: &LayoutItem, fields: &HashMap<String, &'a FieldDefinition>, ctx: &RenderContext) -> Result<String> {
+    fn render_layout_item(&self, item: &LayoutItem, fields: &HashMap<String, &'a FieldDefinition>, actions: &HashMap<String, &'a crate::schema::ActionDefinition>, ctx: &RenderContext) -> Result<String> {
         match item {
             LayoutItem::Row { items, classes } => {
-                let inner = items.iter().map(|i| self.render_layout_item(i, fields, ctx)).collect::<Result<Vec<_>>>()?.join("");
+                let inner = items.iter().map(|i| self.render_layout_item(i, fields, actions, ctx)).collect::<Result<Vec<_>>>()?.join("");
                 let cls = classes.clone().unwrap_or_default();
                 Ok(format!(r#"<div class="row {}">{}</div>"#, cls, inner))
             }
             LayoutItem::Column { items, width } => {
-                let inner = items.iter().map(|i| self.render_layout_item(i, fields, ctx)).collect::<Result<Vec<_>>>()?.join("");
+                let inner = items.iter().map(|i| self.render_layout_item(i, fields, actions, ctx)).collect::<Result<Vec<_>>>()?.join("");
                 let w = width.unwrap_or(12);
                 Ok(format!(r#"<div class="col-{}">{}</div>"#, w, inner))
             }
             LayoutItem::Field { name } => {
+                // Try to find in form specific fields first (passed in arg), then global
                 if let Some(field) = fields.get(name) {
                     self.render_field(field, ctx)
+                } else if let Some(field) = self.fields.get(name) {
+                     self.render_field(field, ctx)
                 } else {
                     Ok(format!("<!-- Field {} not found -->", name))
                 }
+            }
+            LayoutItem::Action { name } => {
+                 if let Some(action) = actions.get(name) {
+                     self.render_action(action, ctx)
+                 } else {
+                      Ok(format!("<!-- Action {} not found -->", name))
+                 }
             }
             LayoutItem::HTML { content } => Ok(content.clone()),
             LayoutItem::Tabs { tabs: _ } => {

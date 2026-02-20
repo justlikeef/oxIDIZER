@@ -5,6 +5,7 @@ use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
 use std::sync::Arc;
 use chrono;
+use ox_fileproc::serde_json;
 
 
 use tokio::runtime::Runtime;
@@ -337,8 +338,28 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_db_mssql_config_schema.yaml");
+    let friendly_name = match ox_fileproc::processor::parse_content(schema, "yaml") {
+        Ok(serde_json::Value::Object(map)) => {
+            map.get("friendly_name")
+               .and_then(|v| v.as_str())
+               .map(|s| s.to_string())
+               .unwrap_or("MS SQL Server".to_string())
+        },
+        Ok(_) => {
+            eprintln!("Schema parsed but not an object!");
+            "MS SQL Server".to_string()
+        },
+        Err(e) => {
+            eprintln!("Schema parse error: {}", e);
+            "MS SQL Server".to_string()
+        }
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_mssql".to_string(),
+        friendly_name: Some(friendly_name),
         description: "A MSSQL persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

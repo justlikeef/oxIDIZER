@@ -1,4 +1,4 @@
-name: MySQL
+friendly_name: "MySQL / MariaDB"
 forms:
   - id: "mysql_main"
     title: "MySQL Data Source Configuration"
@@ -30,10 +30,44 @@ forms:
         props:
           classes: "btn-light"
 
+    layout:
+      items:
+        - type: "Row"
+          items:
+          - type: "Field"
+            name: "driver"
+        - type: "Row"
+          items:
+          - type: "Field"
+            name: "config_method"
+        - type: "Row"
+          items:
+          - type: "Field"
+            name: "auth_settings"
+#        - type: "HTML"
+#          content: "<hr/>"
+        - type: "Row"
+          classes: "form-actions d-flex justify-content-end gap-2"
+          items:
+            - type: "Action"
+              name: "cancel"
+            - type: "Action"
+              name: "submit"
+
   - id: "mysql_manual"
     title: "Manual Parameters"
     condition: "config_method == 'manual'"
     fields:
+      - name: "discovered_server"
+        label: "Discovered Servers"
+        data_type: "select"
+        props:
+          placeholder: "Select server..."
+          empty_text: "None found" # Hints for client-side empty state
+          disabled_if_empty: true 
+          # Client-side JS hook to populate this
+          classes: "js-server-scanner-target"
+          options: [] 
       - name: "host"
         label: "Host"
         data_type: "string"
@@ -41,7 +75,7 @@ forms:
       - name: "port"
         label: "Port"
         data_type: "integer"
-        default_value: 3306
+        default_value: 3306 
       - name: "user"
         label: "Username"
         data_type: "string"
@@ -50,7 +84,70 @@ forms:
         data_type: "password"
       - name: "dbname"
         label: "Database Name"
-        data_type: "string"
+        data_type: "select"
+        props:
+           placeholder: "Select or Enter Database"
+           allow_custom: true
+           actions:
+              list: "/datasources/list_datasets/ox_persistence_driver_db_mysql"
+           dependencies: ["host", "port", "user", "password"]
+    
+    actions:
+      - name: "scan_local"
+        label: "Scan"
+        action_type: "button"
+        props:
+           # The action URL/hook
+           action: "/datasources/action/ox_persistence_driver_db_mysql/discover_local"
+           target_field: "discovered_server" # metadata for client JS
+           icon: "fa-sync"
+
+    layout:
+      items:
+        - type: "Row"
+          items:
+            - type: "Column"
+              width: 10
+              items:
+                - type: "Field"
+                  name: "discovered_server"
+            - type: "Column"
+              width: 2
+              items:
+                 - type: "HTML"
+                   content: "<label class='form-label'>&nbsp;</label>"
+                 - type: "Action" 
+                   name: "scan_local"
+        - type: "Row"
+          items:
+            - type: "Column"
+              width: 8
+              items: [{ type: "Field", name: "host" }]
+            - type: "Column"
+              width: 4
+              items: 
+                - type: "HTML"
+                  content: ":"
+            - type: "Column"
+              width: 4
+              items: 
+                - type: "Field"
+                  name: "port" 
+        - type: "Row"
+          items:
+            - type: "Column"
+              width: 6
+              items: [{ type: "Field", name: "user" }]
+        - type: "Row"
+          items:
+            - type: "Column"
+              width: 6
+              items: [{ type: "Field", name: "password" }]
+        - type: "Row"
+          items:
+            - type: "Column"
+              width: 12
+              items: [{ type: "Field", name: "dbname" }]
 
   - id: "mysql_mylogin"
     title: "mylogin Parameters"
@@ -64,3 +161,9 @@ forms:
       - name: "dbname"
         label: "Database Name"
         data_type: "string"
+    layout:
+      items:
+        - type: "Field"
+          name: "mylogin_path"
+        - type: "Field"
+          name: "dbname"

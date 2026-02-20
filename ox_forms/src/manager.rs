@@ -1,7 +1,6 @@
 use crate::registry::TypeRegistry;
 use anyhow::{Context, Result};
 use libloading::{Library, Symbol};
-use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 

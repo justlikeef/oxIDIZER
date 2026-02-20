@@ -1,4 +1,4 @@
-name: MS SQL Server
+friendly_name: MS SQL Server
 id: "mssql_datasource_form"
 title: "Microsoft SQL Server Data Source Configuration"
 fields:

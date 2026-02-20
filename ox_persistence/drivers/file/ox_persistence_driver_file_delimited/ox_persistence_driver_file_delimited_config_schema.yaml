@@ -1,4 +1,4 @@
-name: Delimited File
+friendly_name: Delimited File
 id: "delimited_datasource_form"
 title: "Delimited File Data Source Configuration"
 fields:

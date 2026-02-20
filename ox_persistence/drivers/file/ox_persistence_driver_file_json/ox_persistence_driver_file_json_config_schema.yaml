@@ -1,4 +1,4 @@
-name: JSON File
+friendly_name: JSON File
 id: "json_datasource_form"
 title: "JSON File Data Source Configuration"
 fields:

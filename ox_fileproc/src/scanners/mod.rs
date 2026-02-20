@@ -1,5 +1,4 @@
-use std::ops::Range;
-use crate::cursor::{Cursor, Format};
+use crate::cursor::Cursor;
 
 pub trait Scanner {
     fn find_child<'a>(&self, parent: &Cursor<'a>, key: &str) -> Option<Cursor<'a>>;

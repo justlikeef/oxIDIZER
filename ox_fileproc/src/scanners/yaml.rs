@@ -24,8 +24,8 @@ impl Scanner for YamlScanner {
              let trimmed = line.trim_start();
              if trimmed.starts_with("#") { continue; }
              
-             if let Some(rest) = trimmed.strip_prefix(key) {
-                 if rest.trim_start().starts_with(':') {
+             if let Some(rest) = trimmed.strip_prefix(key)
+                 && rest.trim_start().starts_with(':') {
                      // Check inline value
                      let val_part = rest.trim_start().strip_prefix(':').unwrap_or("").trim();
                      if !val_part.is_empty() && !val_part.starts_with('#') {
@@ -48,7 +48,7 @@ impl Scanner for YamlScanner {
                          // Identify key indent
                          let key_indent = line.len() - line.trim_start().len();
                          let mut block_start: Option<usize> = None;
-                         let mut block_end = block.len();
+                         let mut _block_end = block.len();
                          
                          // Start checking lines after this key
                          let start_line_idx = idx + 1;
@@ -72,7 +72,7 @@ impl Scanner for YamlScanner {
                              let sub_indent = sub_line.len() - sub_line.trim_start().len();
                              if sub_indent <= key_indent {
                                  // End of block
-                                 block_end = relative_offset;
+                                 _block_end = relative_offset;
                                  break;
                              }
                              
@@ -112,7 +112,6 @@ impl Scanner for YamlScanner {
                          });
                      }
                  }
-             }
         }
         None
     }
@@ -155,30 +154,39 @@ impl Scanner for YamlScanner {
                 trimmed
             };
 
-            if content_to_check.starts_with(key) {
-                 if let Some(rest) = content_to_check.strip_prefix(key) {
-                     if rest.trim_start().starts_with(':') {
+            if content_to_check.starts_with(key)
+                 && let Some(rest) = content_to_check.strip_prefix(key)
+                     && rest.trim_start().starts_with(':') {
                          let val_part = rest.trim_start().strip_prefix(':').unwrap_or("").trim();
                          if val_part == value {
                              // Found it! 
-                             // We need to return the Cursor covering the whole ITEM BLOCK.
-                             // Start is current_item_start.
-                             // End is ... start of next item?
                              if let Some(start) = current_item_start {
-                                  // Find end of this block (next line starting with - at same indent?)
-                                  // For now, return start..end_of_block
-                                  // Hack: return start..end_of_string (rest of parent). 
-                                  // Ideally we bound it.
+                                  // Find the end of this item block
+                                  // It ends before the next line at the SAME indentation level starting with "-"
+                                  let item_indent = line.len() - line.trim_start().len();
+                                  let mut end_offset = block.len();
+                                  let mut sub_offset = offset + line_len;
+                                  
+                                  for sub_line in block[sub_offset..].split_inclusive('\n') {
+                                      let sub_trimmed = sub_line.trim_start();
+                                      if !sub_trimmed.is_empty() && !sub_trimmed.starts_with('#') {
+                                          let sub_indent = sub_line.len() - sub_line.trim_start().len();
+                                          if sub_indent <= item_indent && (sub_trimmed.starts_with('-') || sub_indent < item_indent) {
+                                              end_offset = sub_offset;
+                                              break;
+                                          }
+                                      }
+                                      sub_offset += sub_line.len();
+                                  }
+
                                   return Some(Cursor {
-                                      span: (parent_offset + start)..(parent_offset + block.len()), // TODO: tighten end
+                                      span: (parent_offset + start)..(parent_offset + end_offset),
                                       format: parent.format,
                                       content_ref: parent.content_ref,
                                   });
                              }
                          }
                      }
-                 }
-            }
             
             offset += line_len;
         }
@@ -197,4 +205,63 @@ fn find_line_start(s: &str, line_idx: usize) -> Option<usize> {
         offset += line.len();
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_yaml_scanner_find_child_block() {
+        let content = r#"key:
+  child: value
+"#;
+        let scanner = YamlScanner;
+        let root = Cursor {
+            span: 0..content.len(),
+            format: crate::cursor::Format::Yaml,
+            content_ref: content,
+        };
+        
+        let child = scanner.find_child(&root, "key").expect("Should find key");
+        assert!(child.value().contains("child: value"));
+    }
+
+    #[test]
+    fn test_yaml_scanner_find_child_inline() {
+        let content = r#"key: value"#;
+        let scanner = YamlScanner;
+        let root = Cursor {
+            span: 0..content.len(),
+            format: crate::cursor::Format::Yaml,
+            content_ref: content,
+        };
+        
+        let child = scanner.find_child(&root, "key").expect("Should find key");
+        assert_eq!(child.value(), "value");
+    }
+    
+    #[test]
+    fn test_yaml_scanner_find_entry() {
+        let content = r#"
+items:
+  - id: 1
+    val: a
+  - id: 2
+    val: b
+"#;
+        let scanner = YamlScanner;
+        let root = Cursor {
+            span: 0..content.len(),
+            format: crate::cursor::Format::Yaml,
+            content_ref: content,
+        };
+        
+        // First find items block to scope it
+        let items_cursor = scanner.find_child(&root, "items").expect("Should find items");
+        
+        // Find entry with id: 2
+        let entry = scanner.find_entry_with_key_value(&items_cursor, "id", "2").expect("Should find entry 2");
+        assert!(entry.value().contains("val: b"));
+    }
 }

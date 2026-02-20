@@ -53,6 +53,7 @@ pub type GetStateFn = unsafe extern "C" fn(state: *mut c_void, key: *const c_cha
 pub type SetStateFn = unsafe extern "C" fn(state: *mut c_void, key: *const c_char, value_json: *const c_char);
 pub type GetConfigFn = unsafe extern "C" fn(state: *mut c_void, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char;
 pub type ExecuteModuleFn = unsafe extern "C" fn(state: *mut c_void, module_id: *const c_char) -> HandlerResult;
+pub type RenderFormFn = unsafe extern "C" fn(arena: *const c_void, alloc_fn: AllocStrFn, form_def_json: *const c_char, props_json: *const c_char) -> *mut c_char;
 
 // --- Core Host API ---
 // This is the generic interface that any host (ox_webservice, etc.) must implement.
@@ -65,6 +66,7 @@ pub struct CoreHostApi {
     pub set_state: SetStateFn,
     pub get_config: GetConfigFn,
     pub execute_module: ExecuteModuleFn,
+    pub render_form: RenderFormFn,
 }
 
 // --- Plugin Context ---
@@ -141,6 +143,19 @@ impl<'a> PipelineContext<'a> {
             Err(_) => return std::ptr::null_mut(),
         };
         unsafe { (self.api.alloc_str)(self.arena_ptr, c_str.as_ptr()) }
+    }
+
+    pub fn render_form(&self, form_def_json: &str, props_json: &str) -> Result<String, String> {
+        let c_form = CString::new(form_def_json).map_err(|e| e.to_string())?;
+        let c_props = CString::new(props_json).map_err(|e| e.to_string())?;
+        
+        unsafe {
+            let ptr = (self.api.render_form)(self.arena_ptr, self.api.alloc_str, c_form.as_ptr(), c_props.as_ptr());
+            if ptr.is_null() {
+                return Err("Render returned null".to_string());
+            }
+            Ok(CStr::from_ptr(ptr).to_string_lossy().into_owned())
+        }
     }
 }
 

@@ -176,6 +176,17 @@ pub unsafe extern "C" fn mock_execute_module(
     }
 }
 
+pub unsafe extern "C" fn mock_render_form(
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+    _form_def_json: *const c_char,
+    _props_json: *const c_char,
+) -> *mut c_char {
+    let mock_html = "<div>Mock Form</div>";
+    let c_str = CString::new(mock_html).unwrap();
+    alloc_fn(arena, c_str.as_ptr())
+}
+
 pub fn create_mock_api() -> CoreHostApi {
     CoreHostApi {
         log_callback: mock_log,
@@ -185,6 +196,7 @@ pub fn create_mock_api() -> CoreHostApi {
         set_state: mock_set_state,
         get_config: mock_get_config,
         execute_module: mock_execute_module,
+        render_form: mock_render_form,
     }
 }
 

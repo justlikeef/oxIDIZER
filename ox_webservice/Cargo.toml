@@ -1,6 +1,7 @@
 [package]
 name = "ox_webservice"
 version = "0.0.1"
+license = "GPL-3.0-only"
 edition = "2024"
 build = "build.rs"
 
@@ -43,6 +44,7 @@ ox_webservice_api = { path = "../ox_webservice_api" }
 ox_pipeline = { path = "../ox_pipeline" }
 ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
 ox_fileproc = { path = "../ox_fileproc" }
+ox_forms_api = { path = "../ox_forms/ox_forms_api" }
 
 sysinfo = "0.30"
 regex = "1.10"

@@ -5,7 +5,9 @@ use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
 use std::sync::Arc;
 use chrono::{Datelike, Timelike};
+use mysql::prelude::Queryable;
 
+use ox_fileproc::serde_json;
 
 pub struct MysqlPersistenceDriver {
     pool: Option<mysql::Pool>,
@@ -25,6 +27,7 @@ impl MysqlPersistenceDriver {
 
         let metadata = DriverMetadata {
             name: "ox_persistence_driver_mysql".to_string(),
+            friendly_name: Some("MySQL".to_string()),
             description: "A MySQL persistence driver.".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
             compatible_modules,
@@ -227,7 +230,13 @@ impl PersistenceDriver for MysqlPersistenceDriver {
     }
 
     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
-        Ok(vec!["default".to_string()])
+        let opts = build_opts(connection_info).ok_or("Invalid connection parameters")?;
+        let pool = mysql::Pool::new(opts).map_err(|e| e.to_string())?;
+        let mut conn = pool.get_conn().map_err(|e| e.to_string())?;
+        
+        // SHOW DATABASES
+        let databases: Vec<String> = conn.query("SHOW DATABASES").map_err(|e| e.to_string())?;
+        Ok(databases)
     }
     
     fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
@@ -235,24 +244,64 @@ impl PersistenceDriver for MysqlPersistenceDriver {
     }
 
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {
-        vec![ConnectionParameter {
-            name: "dsn".to_string(),
-            description: "MySQL Connection String".to_string(),
-            data_type: "string".to_string(),
-            is_required: true,
-            default_value: None,
-        }]
+        vec![
+            ConnectionParameter {
+                name: "host".to_string(),
+                description: "Hostname or IP".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: Some("localhost".to_string()),
+            },
+            ConnectionParameter {
+                name: "port".to_string(),
+                description: "TCP Port".to_string(),
+                data_type: "integer".to_string(),
+                is_required: true,
+                default_value: Some("3306".to_string()),
+            },
+            ConnectionParameter {
+                name: "user".to_string(),
+                description: "Username".to_string(),
+                data_type: "string".to_string(),
+                is_required: true,
+                default_value: None,
+            },
+            ConnectionParameter {
+                name: "password".to_string(),
+                description: "Password".to_string(),
+                data_type: "password".to_string(),
+                is_required: false,
+                default_value: None,
+            },
+             ConnectionParameter {
+                name: "dbname".to_string(),
+                description: "Database Name".to_string(),
+                data_type: "string".to_string(),
+                is_required: false, // For initial connection, might be optional?
+                default_value: None,
+            },
+        ]
+    }
+
+    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, String> {
+        match action {
+            "discover_local" => {
+                // Mock implementation of local discovery
+                // In a real scenario, this might use mDNS or scan common ports
+                let servers = vec![
+                    serde_json::json!({"host": "localhost", "port": 3306, "label": "Local MySQL (Default)"}),
+                    serde_json::json!({"host": "127.0.0.1", "port": 3307, "label": "Local Mail Hog (3307)"}), 
+                ];
+                Ok(serde_json::json!(servers))
+            },
+            _ => Err(format!("Action '{}' not supported", action))
+        }
     }
 }
- 
-// --- FFI Exports ---
 
-#[no_mangle]
-pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
-    let config_str = unsafe { CStr::from_ptr(config_json).to_string_lossy() };
-    let config: HashMap<String, String> = serde_json::from_str(&config_str).unwrap_or_else(|_| HashMap::new());
-    
-    let opts = if config.get("config_method").map(|s| s.as_str()) == Some("mylogin") {
+// Helper to build MySQL options from generic map
+fn build_opts(config: &HashMap<String, String>) -> Option<mysql::Opts> {
+     if config.get("config_method").map(|s| s.as_str()) == Some("mylogin") {
         let login_path = config.get("mylogin_path").map(|s| s.as_str()).unwrap_or("client");
         let creds = myloginrs::parse(login_path, None);
         let mut builder = mysql::OptsBuilder::new();
@@ -269,15 +318,30 @@ pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
     } else {
         // Build from individual fields
         let mut builder = mysql::OptsBuilder::new();
-        if let Some(h) = config.get("host") { builder = builder.ip_or_hostname(Some(h)); }
+        let host = config.get("host").map(|s| s.as_str()).unwrap_or("localhost");
+        builder = builder.ip_or_hostname(Some(host));
+        
         if let Some(u) = config.get("user") { builder = builder.user(Some(u)); }
         if let Some(p) = config.get("password") { builder = builder.pass(Some(p)); }
         if let Some(db) = config.get("dbname") { builder = builder.db_name(Some(db)); }
+        
         if let Some(port) = config.get("port") {
             if let Ok(p) = port.parse::<u16>() { builder = builder.tcp_port(p); }
+        } else {
+             builder = builder.tcp_port(3306);
         }
         Some(builder.into())
-    };
+    }
+}
+ 
+// --- FFI Exports ---
+
+#[no_mangle]
+pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
+    let config_str = unsafe { CStr::from_ptr(config_json).to_string_lossy() };
+    let config: HashMap<String, String> = serde_json::from_str(&config_str).unwrap_or_else(|_| HashMap::new());
+    
+    let opts = build_opts(&config);
 
     let pool = opts.and_then(|o| mysql::Pool::new(o).ok());
 
@@ -387,8 +451,29 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_db_mysql_config_schema.yaml");
+    let friendly_name = match ox_fileproc::processor::parse_content(schema, "yaml") {
+        Ok(serde_json::Value::Object(map)) => {
+            map.get("friendly_name")
+               .and_then(|v| v.as_str())
+               .or_else(|| map.get("name").and_then(|v| v.as_str()))
+               .map(|s| s.to_string())
+                .unwrap_or("MySQL".to_string())
+        },
+        Ok(_) => {
+            eprintln!("Schema parsed but not an object!");
+            "MySQL".to_string()
+        },
+        Err(e) => {
+            eprintln!("Schema parse error: {}", e);
+            "MySQL".to_string()
+        }
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_mysql".to_string(),
+        friendly_name: Some(friendly_name),
         description: "A MySQL persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,
@@ -402,6 +487,56 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
 pub extern "C" fn ox_driver_get_config_schema() -> *mut c_char {
     let schema = include_str!("../ox_persistence_driver_db_mysql_config_schema.yaml");
     CString::new(schema).expect("Failed to create CString").into_raw()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ox_driver_call_action(
+    ctx: *mut c_void, 
+    action: *const c_char, 
+    params_json: *const c_char
+) -> OxBuffer {
+    let driver = &*(ctx as *mut MysqlPersistenceDriver);
+    let action_str = CStr::from_ptr(action).to_string_lossy();
+    let params_str = CStr::from_ptr(params_json).to_string_lossy();
+
+    let params: serde_json::Value = serde_json::from_str(&params_str).unwrap_or(serde_json::Value::Null);
+
+    match driver.call_action(&action_str, &params) {
+        Ok(val) => {
+            let json = serde_json::to_string(&val).unwrap_or_default();
+            OxBuffer::from_str(json)
+        },
+        Err(e) => {
+            // Return error as a JSON object or empty buffer?
+            // Convention: specific error structure or handle in wrapper.
+            // For now, empty buffer behaves like 'fail'. 
+            // Better: return JSON { "error": ... }
+            let err_json = serde_json::json!({ "error": e });
+            OxBuffer::from_str(err_json.to_string())
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ox_driver_list_datasets(
+    ctx: *mut c_void, 
+    connection_info_json: *const c_char
+) -> OxBuffer {
+    let driver = &*(ctx as *mut MysqlPersistenceDriver);
+    let info_str = CStr::from_ptr(connection_info_json).to_string_lossy();
+    
+    let connection_info: HashMap<String, String> = serde_json::from_str(&info_str).unwrap_or_default();
+
+    match driver.list_datasets(&connection_info) {
+        Ok(datasets) => {
+             let json = serde_json::to_string(&datasets).unwrap_or_default();
+             OxBuffer::from_str(json)
+        },
+        Err(e) => {
+             let err_json = serde_json::json!({ "error": e });
+             OxBuffer::from_str(err_json.to_string())
+        }
+    }
 }
 
 #[no_mangle]

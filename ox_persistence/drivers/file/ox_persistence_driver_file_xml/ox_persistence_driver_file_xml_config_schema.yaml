@@ -1,4 +1,4 @@
-name: XML File
+friendly_name: XML File
 id: "xml_datasource_form"
 title: "XML File Data Source Configuration"
 fields:

@@ -13,7 +13,7 @@ use ox_webservice_api::{
 use lazy_static::lazy_static;
 use bumpalo::Bump;
 
-use ox_forms::schema::{FormDefinition, ModuleSchema};
+
 use ox_persistence::{ConfiguredDriver, DriversList};
 
 use ox_fileproc::{process_file, RawFile};
@@ -90,6 +90,86 @@ impl DataSourceManager {
              let schema_str = c_str.to_string_lossy().into_owned();
              
              Ok(schema_str)
+        }
+    }
+
+    pub fn execute_driver_action(&self, driver_id: &str, action: &str, params: &serde_json::Value) -> Result<serde_json::Value, String> {
+        let drivers_list = self.load_configured_drivers()?;
+        let driver_conf = drivers_list.drivers.iter().find(|d| d.id == driver_id)
+            .ok_or_else(|| format!("Driver '{}' not found", driver_id))?;
+        
+        let lib_path = if !driver_conf.library_path.is_empty() {
+             format!("{}/lib{}.so", driver_conf.library_path, driver_conf.name)
+        } else {
+             format!("{}/lib{}.so", self.config.driver_root, driver_conf.name)
+        };
+
+        unsafe {
+             let lib = libloading::Library::new(&lib_path).map_err(|e| format!("Failed to load library '{}': {}", lib_path, e))?;
+             
+             // First init driver (stateless for action?) 
+             // Ideally actions like 'discover' are stateless or static.
+             // But valid FFI requires an instance context?
+             // ox_driver_call_action takes context. Setup needs to initialize dummy driver.
+             // We init with empty config just to get a handle.
+             let init_driver: libloading::Symbol<unsafe extern "C" fn(*const libc::c_char) -> *mut libc::c_void> =
+                lib.get(b"ox_driver_init").expect("Missing ox_driver_init");
+             let destroy_driver: libloading::Symbol<unsafe extern "C" fn(*mut libc::c_void)> =
+                lib.get(b"ox_driver_destroy").expect("Missing ox_driver_destroy");
+             
+             let config_json = CString::new("{}").unwrap();
+             let ctx = init_driver(config_json.as_ptr());
+             
+             let call_action: libloading::Symbol<unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char, *const libc::c_char) -> ox_persistence::OxBuffer> =
+                 lib.get(b"ox_driver_call_action").map_err(|_| "Driver does not support actions (missing symbols)".to_string())?;
+             
+             let action_c = CString::new(action).unwrap();
+             let params_json = CString::new(params.to_string()).unwrap();
+             
+             let buf = call_action(ctx, action_c.as_ptr(), params_json.as_ptr());
+             let result_json = buf.to_string();
+             ox_persistence::free_ox_buffer(buf);
+             
+             destroy_driver(ctx);
+             
+             serde_json::from_str(&result_json).map_err(|e| e.to_string())
+        }
+    }
+    
+    pub fn list_driver_datasets(&self, driver_id: &str, connection_info: &serde_json::Value) -> Result<Vec<String>, String> {
+        let drivers_list = self.load_configured_drivers()?;
+        let driver_conf = drivers_list.drivers.iter().find(|d| d.id == driver_id)
+            .ok_or_else(|| format!("Driver '{}' not found", driver_id))?;
+            
+        let lib_path = if !driver_conf.library_path.is_empty() {
+             format!("{}/lib{}.so", driver_conf.library_path, driver_conf.name)
+        } else {
+             format!("{}/lib{}.so", self.config.driver_root, driver_conf.name)
+        };
+
+        unsafe {
+             let lib = libloading::Library::new(&lib_path).map_err(|e| format!("Failed to load library '{}': {}", lib_path, e))?;
+             
+             let init_driver: libloading::Symbol<unsafe extern "C" fn(*const libc::c_char) -> *mut libc::c_void> =
+                lib.get(b"ox_driver_init").expect("Missing ox_driver_init");
+             let destroy_driver: libloading::Symbol<unsafe extern "C" fn(*mut libc::c_void)> =
+                lib.get(b"ox_driver_destroy").expect("Missing ox_driver_destroy");
+             
+             let config_json = CString::new("{}").unwrap();
+             let ctx = init_driver(config_json.as_ptr());
+
+             let list_datasets: libloading::Symbol<unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char) -> ox_persistence::OxBuffer> =
+                 lib.get(b"ox_driver_list_datasets").map_err(|_| "Driver does not support listing datasets".to_string())?;
+                 
+             let info_c = CString::new(connection_info.to_string()).unwrap();
+             
+             let buf = list_datasets(ctx, info_c.as_ptr());
+             let result_json = buf.to_string();
+             ox_persistence::free_ox_buffer(buf);
+             
+             destroy_driver(ctx);
+             
+             serde_json::from_str(&result_json).map_err(|e| format!("Error parsing driver response: {} | JSON: {}", e, result_json))
         }
     }
 
@@ -415,7 +495,7 @@ pub unsafe extern "C" fn process_request(
     // Legacy fallback: path starts with "data_sources/"
     if method == "delete" {
         let id_opt = if using_capture {
-            if !clean_path.is_empty() { Some(clean_path) } else { None }
+             if !clean_path.is_empty() { Some(clean_path) } else { None }
         } else {
              if path_str.starts_with("/data_sources/") {
                  Some(path_str.trim_start_matches("/data_sources/").trim_matches('/'))
@@ -429,6 +509,51 @@ pub unsafe extern "C" fn process_request(
             }
             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
         }
+    }
+    
+    // 3.5. Execute Action (POST /datasources/action/<driver_id>/<action_name> or /datasources/list_datasets/<driver_id>)
+    if method == "post" && (path_str.contains("/action/") || path_str.contains("/list_datasets/")) {
+         // Need to parse path segments better
+         let parts: Vec<&str> = clean_path.split('/').collect();
+         
+         // Route: action/<driver_id>/<action_name>
+         if parts.len() >= 3 && parts[0] == "action" {
+             let driver_id = parts[1];
+             let action_name = parts[2];
+             let body = match ctx.get("request.payload") {
+                Some(v) => v.as_str().unwrap_or("{}").to_string(),
+                None => match ctx.get("request.body_path") {
+                    Some(val) => std::fs::read_to_string(val.as_str().unwrap_or("")).unwrap_or("{}".to_string()),
+                    None => "{}".to_string()
+                }
+             };
+             let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
+             
+             match context.manager.execute_driver_action(driver_id, action_name, &params) {
+                 Ok(val) => send_json_success(val.to_string()),
+                 Err(e) => send_json_error(e, 500),
+             }
+             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+         }
+         
+         // Route: list_datasets/<driver_id>
+         if parts.len() >= 2 && parts[0] == "list_datasets" {
+             let driver_id = parts[1];
+             let body = match ctx.get("request.payload") {
+                Some(v) => v.as_str().unwrap_or("{}").to_string(),
+                None => match ctx.get("request.body_path") {
+                     Some(val) => std::fs::read_to_string(val.as_str().unwrap_or("")).unwrap_or("{}".to_string()),
+                     None => "{}".to_string()
+                }
+             };
+             let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
+             
+             match context.manager.list_driver_datasets(driver_id, &params) {
+                 Ok(val) => send_json_success(serde_json::json!(val).to_string()),
+                 Err(e) => send_json_error(e, 500),
+             }
+             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+         }
     }
 
     // 4. Render Creation Form
@@ -507,18 +632,16 @@ pub unsafe extern "C" fn process_request(
             }
         }
 
-        // Parse Form Definition or Module Schema
-        let render_res = if let Ok(module) = serde_yaml::from_str::<ModuleSchema>(&schema_yaml) {
-            // Determine which form to render. 
-            // We search for a "main" form or use the first one.
-            let form_id = module.forms.iter().find(|f| f.id.contains("main")).map(|f| f.id.as_str()).unwrap_or(module.forms[0].id.as_str());
-            ox_forms::render_standard_module(&module, form_id, &props)
-        } else {
-            // Fallback to single form
-            serde_yaml::from_str::<FormDefinition>(&schema_yaml)
-                .map_err(|e| anyhow::anyhow!("Schema Parse Error: {}", e))
-                .and_then(|form_def| ox_forms::render_standard_form(&form_def, &props))
-        };
+        // Parse Form Definition or Module Schema (Transcode to JSON for API)
+        let yaml_val: serde_yaml::Value = serde_yaml::from_str(&schema_yaml)
+            .map_err(|e| format!("YAML Parse Error: {}", e))
+            .unwrap_or(serde_yaml::Value::Null);
+            
+        let json_val = serde_json::to_value(yaml_val).unwrap_or(serde_json::Value::Null);
+        let form_def_json = serde_json::to_string(&json_val).unwrap_or("{}".to_string());
+
+        let render_res = ox_forms_api::render_form(&form_def_json, &serde_json::Value::Object(props.into_iter().collect()));
+
 
         match render_res {
             Ok(html) => {

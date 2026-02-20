@@ -6,11 +6,13 @@ members = [
 
     "ox_data_broker",
     "ox_data_object",
-    "ox_data_object_manager", "ox_fileproc",
+    "ox_data_object/ox_data_object_manager", "ox_fileproc",
     "ox_locking",
     "ox_persistence_driver_manager/ox_persistence_driver_manager_wasm",
     "ox_persistence_gdo_relational",
     "ox_persistence/ox_persistence_api",
+    "ox_persistence/ox_persistence_dictionary_manager",
+    "ox_data_object/ox_data_object_dictionary_manager",
     "ox_persistence/drivers/file/ox_persistence_driver_file_delimited",
     "ox_persistence/drivers/file/ox_persistence_driver_file_json",
     "ox_persistence/drivers/file/ox_persistence_driver_file_xml",
@@ -37,7 +39,7 @@ members = [
     "ox_webservice_status",
     "ox_webservice_test_utils",
     "ox_webservice_ping", "ox_pipeline", "ox_pipeline/ox_pipeline_plugin", "ox_pipeline/ox_pipeline_router",
-    "ox_package_manager", "ox_forms", "ox_forms/ox_forms_std_renderers", "ox_forms/ox_forms_server", "ox_forms/ox_forms_client",
+    "ox_package_manager", "ox_forms", "ox_forms/ox_forms_std_renderers", "ox_forms/ox_forms_server", "ox_forms/ox_forms_client", "ox_forms/ox_forms_api",
     "ox_event_bus", "ox_messaging_client/ox_messaging_mqtt", "ox_event_bus/ox_event_bus_mqtt", "ox_messaging_client", "ox_auth_ip",
     "ox_webservice_wsgi",
 ]

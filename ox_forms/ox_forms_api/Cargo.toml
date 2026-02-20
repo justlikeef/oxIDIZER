@@ -1,0 +1,13 @@
+[package]
+name = "ox_forms_api"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2024"
+
+[dependencies]
+libc = "0.2"
+libloading = "0.8"
+serde_json = "1.0"
+anyhow = "1.0"
+ox_webservice_api = { path = "../../ox_webservice_api" }
+

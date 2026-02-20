@@ -5,7 +5,7 @@ use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
 use std::sync::Arc;
 use chrono;
-use serde_json; // Added this import for serde_json::to_string
+use ox_fileproc::serde_json;
 
 
 use std::sync::Mutex;
@@ -332,8 +332,21 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_db_postgres_config_schema.yaml");
+    let friendly_name = if let Ok(serde_json::Value::Object(map)) = ox_fileproc::processor::parse_content(schema, "yaml") {
+        map.get("friendly_name")
+           .and_then(|v| v.as_str())
+           .or_else(|| map.get("name").and_then(|v| v.as_str()))
+           .map(|s| s.to_string())
+           .unwrap_or("PostgreSQL".to_string())
+    } else {
+        "PostgreSQL".to_string()
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_postgresql".to_string(),
+        friendly_name: Some(friendly_name),
         description: "A PostgreSQL persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

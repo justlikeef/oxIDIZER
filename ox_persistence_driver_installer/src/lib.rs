@@ -241,6 +241,7 @@ impl DriverInstaller {
 
                          let mut cfg = ConfiguredDriver {
                              id: id.clone(),
+                              friendly_name: None,
                              name: driver_code.get("config").and_then(|c| c.get("name")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
                              library_path: "".to_string(), 
                              state: driver_code.get("config").and_then(|c| c.get("state")).and_then(|v| v.as_str()).unwrap_or("enabled").to_string(),

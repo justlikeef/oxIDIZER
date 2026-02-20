@@ -1,15 +1,25 @@
+pub mod generator;
 pub mod schema;
 pub mod traits;
 pub mod registry;
+pub mod render;
+pub mod binding;
+pub mod validation;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod manager;
 
+pub use generator::*;
 pub use schema::*;
 pub use traits::*;
 pub use registry::*;
+pub use render::*;
+pub use binding::*;
+pub use validation::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use manager::*;
-pub mod render;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn render_standard_form(form: &schema::FormDefinition, props: &std::collections::HashMap<String, serde_json::Value>) -> anyhow::Result<String> {
@@ -102,4 +112,44 @@ pub fn render_standard_module(module: &schema::ModuleSchema, form_id: &str, prop
 
     let render_ctx = traits::RenderContext { props };
     engine.render(form, &render_ctx)
+}
+// --- FFI Exports ---
+use std::ffi::{CString, CStr};
+use ox_webservice_api::AllocStrFn;
+use libc::{c_void, c_char};
+
+#[no_mangle]
+pub unsafe extern "C" fn ox_forms_render(
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+    form_def_json: *const c_char,
+    props_json: *const c_char,
+) -> *mut c_char {
+    let form_def_str = CStr::from_ptr(form_def_json).to_string_lossy();
+    let props_str = CStr::from_ptr(props_json).to_string_lossy();
+
+    let props: std::collections::HashMap<String, serde_json::Value> =
+        serde_json::from_str(&props_str).unwrap_or_default();
+
+    // Try ModuleSchema first, then FormDefinition
+    let result = if let Ok(module) = serde_json::from_str::<schema::ModuleSchema>(&form_def_str) {
+         let form_id = module.forms.iter().find(|f| f.id.contains("main")).map(|f| f.id.as_str()).unwrap_or(module.forms[0].id.as_str());
+         render_standard_module(&module, form_id, &props)
+    } else if let Ok(form) = serde_json::from_str::<schema::FormDefinition>(&form_def_str) {
+         render_standard_form(&form, &props)
+    } else {
+         Err(anyhow::anyhow!("Invalid Form Definition JSON"))
+    };
+
+    match result {
+        Ok(html) => {
+             let c_str = CString::new(html).unwrap_or_default();
+             alloc_fn(arena, c_str.as_ptr())
+        },
+        Err(e) => {
+             let err_msg = format!("<!-- Render Error: {} -->", e);
+             let c_str = CString::new(err_msg).unwrap_or_default();
+             alloc_fn(arena, c_str.as_ptr())
+        }
+    }
 }

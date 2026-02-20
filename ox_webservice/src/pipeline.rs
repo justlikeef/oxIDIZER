@@ -22,7 +22,10 @@ use ox_webservice_api::{
     ModuleConfig, InitializeModuleFn,
     ModuleInterface, WebServiceApiV1,
     PipelineState, FlowControl, ModuleStatus, HandlerResult, ReturnParameters,
+    AllocStrFn, // Added
 };
+
+use libc::c_char; // Added
 
 use crate::ServerConfig;
 use tokio::fs::File;
@@ -30,7 +33,7 @@ use tokio::io::AsyncWriteExt;
 use tokio_util::io::ReaderStream;
 use futures::StreamExt;
 use tempfile::NamedTempFile;
-use std::io::Write;
+// use std::io::Write; // Removed unused import
 
 // --- Response Body Enum ---
 pub enum PipelineResponseBody {
@@ -843,6 +846,31 @@ struct RouterRouteEntry {
     priority: u16
 }
 
+unsafe extern "C" fn host_render_form(
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+    form_def_json: *const c_char,
+    props_json: *const c_char,
+) -> *mut c_char {
+    let form_def = CStr::from_ptr(form_def_json).to_string_lossy();
+    let props_str = CStr::from_ptr(props_json).to_string_lossy();
+    
+    let props_val: Value = serde_json::from_str(&props_str).unwrap_or(Value::Null);
+
+    // Call ox_forms_api
+    match ox_forms_api::render_form(&form_def, &props_val) {
+        Ok(html) => {
+            let c_str = CString::new(html).unwrap_or_default();
+            alloc_fn(arena, c_str.as_ptr())
+        },
+        Err(e) => {
+            eprintln!("Form render error: {}", e);
+            let c_str = CString::new(format!("<div class='alert alert-danger'>Error rendering form: {}</div>", e)).unwrap_or_default();
+            alloc_fn(arena, c_str.as_ptr())
+        }
+    }
+}
+
 impl Pipeline {
     pub fn new(config: &ServerConfig, main_config_json: String) -> Result<Self, String> {
         // Initialize metrics gating
@@ -863,7 +891,8 @@ impl Pipeline {
             get_state: get_state_c,
             set_state: set_state_c,
             get_config: get_config_c,
-            execute_module: execute_module_c, // Added
+            execute_module: execute_module_c,
+            render_form: host_render_form,
         });
 
         let api_ptr = Box::leak(api) as *const WebServiceApiV1;

@@ -1,6 +1,7 @@
 [package]
 name = "ox_forms_server"
 version = "0.1.0"
+license = "GPL-3.0-only"
 edition = "2021"
 
 [lib]
@@ -17,3 +18,6 @@ log = "0.4"
 anyhow = "1.0"
 http = "1.0"
 bumpalo = "3.19.0"
+
+[dev-dependencies]
+ox_forms_std_renderers = { path = "../ox_forms_std_renderers" }

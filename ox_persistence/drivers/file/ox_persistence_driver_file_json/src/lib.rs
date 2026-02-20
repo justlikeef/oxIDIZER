@@ -4,6 +4,7 @@ use ox_type_converter::ValueType;
 use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
 use std::sync::Arc;
+use ox_fileproc::serde_json;
 
 pub struct JsonPersistenceDriver;
 
@@ -21,6 +22,7 @@ impl JsonPersistenceDriver {
 
         let metadata = DriverMetadata {
             name: "ox_persistence_driver_json".to_string(),
+            friendly_name: Some("JSON File".to_string()),
             description: "A JSON persistence driver.".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
             compatible_modules,
@@ -344,8 +346,21 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_file_json_config_schema.yaml");
+    let friendly_name = if let Ok(serde_json::Value::Object(map)) = ox_fileproc::processor::parse_content(schema, "yaml") {
+        map.get("friendly_name")
+           .and_then(|v| v.as_str())
+           .or_else(|| map.get("name").and_then(|v| v.as_str()))
+           .map(|s| s.to_string())
+           .unwrap_or("JSON File".to_string())
+    } else {
+        "JSON File".to_string()
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_json".to_string(),
+        friendly_name: Some(friendly_name),
         description: "A JSON persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

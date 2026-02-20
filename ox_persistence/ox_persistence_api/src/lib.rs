@@ -248,6 +248,7 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
 
     let metadata = DriverMetadata {
         name: "ox_persistence_api".to_string(),
+        friendly_name: Some("API Persistence Driver".to_string()),
         description: "A persistence driver that delegates to an HTTP API.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

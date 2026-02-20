@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use libc::{c_char, c_void};
 use std::ffi::CStr;
-use serde_json;
+use ox_fileproc::serde_json;
 
 pub struct FlatfileDriver;
 
@@ -244,8 +244,21 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_file_delimited_config_schema.yaml");
+    let friendly_name = if let Ok(serde_json::Value::Object(map)) = ox_fileproc::processor::parse_content(schema, "yaml") {
+        map.get("friendly_name")
+           .and_then(|v| v.as_str())
+           .or_else(|| map.get("name").and_then(|v| v.as_str()))
+           .map(|s| s.to_string())
+           .unwrap_or("Delimited File".to_string())
+    } else {
+        "Delimited File".to_string()
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_flatfile".to_string(),
+        friendly_name: Some(friendly_name),
         description: "A flatfile (CSV) persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

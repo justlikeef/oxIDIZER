@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ModuleSchema {
     #[serde(default)]
     pub name: String,
@@ -9,7 +9,7 @@ pub struct ModuleSchema {
     pub forms: Vec<FormDefinition>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct FormDefinition {
     pub id: String,
     pub title: String,
@@ -30,7 +30,7 @@ pub struct FormDefinition {
     pub condition: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct FieldDefinition {
     pub name: String,
     #[serde(default)]
@@ -62,7 +62,7 @@ pub struct FieldDefinition {
     pub subforms: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ActionDefinition {
     pub name: String,
     pub label: String,
@@ -72,7 +72,7 @@ pub struct ActionDefinition {
     pub props: Value,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ValidationRule {
     pub rule_type: String, // "required", "min", "max", "regex"
     #[serde(default)]
@@ -101,6 +101,9 @@ pub enum LayoutItem {
     },
     HTML { 
         content: String 
+    },
+    Action {
+        name: String
     },
     Tabs { 
         tabs: Vec<TabDefinition> 

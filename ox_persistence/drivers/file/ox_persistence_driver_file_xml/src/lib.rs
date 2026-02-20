@@ -4,6 +4,7 @@ use std::ffi::{CString, CStr};
 use libc::{c_char, c_void};
 use std::sync::Arc;
 use ox_type_converter::ValueType;
+use ox_fileproc::serde_json;
 
 
 pub struct XmlPersistenceDriver;
@@ -248,14 +249,34 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         },
     );
 
+    // Parse friendly_name from schema using ox_fileproc
+    let schema = include_str!("../ox_persistence_driver_file_xml_config_schema.yaml");
+    let friendly_name = match ox_fileproc::processor::parse_content(schema, "yaml") {
+        Ok(ox_fileproc::serde_json::Value::Object(map)) => {
+            map.get("friendly_name")
+               .and_then(|v| v.as_str())
+               .map(|s| s.to_string())
+               .unwrap_or("XML File".to_string())
+        },
+        Ok(_) => {
+            eprintln!("Schema parsed but not an object!");
+            "XML File".to_string()
+        },
+        Err(e) => {
+            eprintln!("Schema parse error: {}", e);
+            "XML File".to_string()
+        }
+    };
+
     let metadata = DriverMetadata {
         name: "ox_persistence_driver_xml".to_string(),
+        friendly_name: Some(friendly_name),
         description: "An XML persistence driver.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,
     };
 
-    let json_string = serde_json::to_string(&metadata).expect("Failed to serialize metadata");
+    let json_string = ox_fileproc::serde_json::to_string(&metadata).expect("Failed to serialize metadata");
     CString::new(json_string).expect("Failed to create CString").into_raw()
 }
 

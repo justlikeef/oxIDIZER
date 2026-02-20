@@ -68,7 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-group" style="margin-top: 1rem;">
                         <label for="driver-select" style="display: block; margin-bottom: 0.5rem; color: #ccc;">Available Drivers</label>
                         <select id="driver-select" class="form-control">
-                            ${drivers.map(d => `<option value="${d.id}">${d.display_name || d.name}</option>`).join('')}
+                            ${drivers.map(d => {
+                let friendly = d.friendly_name;
+                if (!friendly && d.metadata) {
+                    try {
+                        const meta = typeof d.metadata === 'string' ? JSON.parse(d.metadata) : d.metadata;
+                        friendly = meta.friendly_name || meta.human_name;
+                    } catch (e) { }
+                }
+                return `<option value="${d.id}">${friendly || d.name}</option>`;
+            }).join('')}
                         </select>
                     </div>
                     <div class="modal-actions" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
@@ -245,10 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = `
                 <div class="empty-state-container" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
                     <h3>No Data Sources</h3>
-                    <button class="btn btn-primary" id="add-first-btn">Add Data Source</button>
                 </div>
             `;
-            document.getElementById('add-first-btn').onclick = openNewDataSource;
             return;
         }
 
