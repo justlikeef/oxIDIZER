@@ -4,6 +4,8 @@
 
 **oxIDIZER** is a powerful collection of modular Rust libraries designed to work together or independently. It provides a robust foundation for building data-driven applications, web services, and automated file processing systems.
 
+> **Note:** The core libraries within oxIDIZER are currently under active development. They are considered unstable and APIs are subject to change.
+
 ## Project Vision
 
 Modern software requires flexibility. oxIDIZER (pronounced "oxidizer") follows a "pick-and-choose" philosophy. You can use the core [Generic Data Object (GDO)](./ox_data_object) for dynamic data management, or pull in the [Webservice Framework](./ox_webservice) for building extensible APIs, all while benefiting from shared infrastructure like [ox_fileproc](./ox_fileproc) for surgical configuration handling.
