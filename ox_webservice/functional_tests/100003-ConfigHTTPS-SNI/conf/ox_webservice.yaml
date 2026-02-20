@@ -1,0 +1,28 @@
+log4rs_config: /var/repos/oxIDIZER/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/conf/log4rs.yaml
+routes:
+- module_id: content_handler_1
+  phase: Content
+  url: /extra_content_path/
+- module_id: content_handler_1
+  phase: Content
+  url: /another_path/
+- module_id: content_error_handler
+  phase: Content
+  url: /another_error/
+- module_id: content_handler_1
+  phase: Content
+  url: /specific_http_path/
+- module_id: content_handler_1
+  phase: Content
+  url: /specific_https_path/
+servers:
+- bind_address: 0.0.0.0
+  hosts:
+  - name: localhost
+    tls_cert_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/localhost-cert.pem
+    tls_key_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/localhost-key.pem
+  - name: .*
+    tls_cert_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/default-cert.pem
+    tls_key_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/default-key.pem
+  port: 3443
+  protocol: https

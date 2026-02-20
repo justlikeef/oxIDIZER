@@ -1,0 +1,11 @@
+modules:
+  - id: "vary_header"
+    name: "ox_webservice_vary_header"
+    phase: LateRequest
+    params: {}
+
+routes:
+  - url: ".*"
+    match_type: "regex"
+    module_id: "vary_header"
+    phase: "LateRequest"

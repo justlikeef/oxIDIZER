@@ -2,7 +2,8 @@ use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, PipelineState,
+    CoreHostApi, WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    ModuleStatus, FlowControl, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -10,6 +11,7 @@ use std::ffi::{CStr, CString};
 use std::fs;
 use std::panic;
 use std::path::PathBuf;
+use std::error::Error;
 use anyhow::Result;
 use bumpalo::Bump;
 
@@ -19,7 +21,7 @@ use tera::{Context, Tera};
 
 const MODULE_NAME: &str = "ox_webservice_template_jinja2";
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct MimeTypeMapping {
     url: String,
     mimetype: String,
@@ -34,25 +36,27 @@ struct MimeTypeConfig {
 
 #[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct DocumentConfig {
-    document: String,
+    pub document: String,
 }
 
 #[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct ContentConfig {
-    content_root: String,
-    mimetypes_file: String,
+    pub content_root: String,
+    pub mimetypes_file: String,
     #[serde(default)]
-    default_documents: Vec<DocumentConfig>,
+    pub default_documents: Vec<DocumentConfig>,
     #[serde(default)]
-    on_content_conflict: Option<ContentConflictAction>,
+    pub on_content_conflict: Option<ContentConflictAction>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(non_camel_case_types)]
 pub enum ContentConflictAction {
-    Overwrite,
-    Append,
-    Skip,
-    Error,
+    overwrite,
+    append,
+    skip,
+    error,
 }
 
 pub struct OxModule<'a> {
@@ -60,33 +64,41 @@ pub struct OxModule<'a> {
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub content_config: ContentConfig,
-    api: &'a WebServiceApiV1,
+    pub module_id: String,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> OxModule<'a> {
     fn log(&self, level: LogLevel, message: String) {
         if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
+            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
             unsafe {
                 (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
             }
         }
     }
 
-    pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+    pub fn new(config: ContentConfig, api: &'a CoreHostApi, module_id: String) -> Result<Self> {
+        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
+
         if let Ok(c_message) = CString::new(format!(
             "ox_webservice_template_jinja2: new: Initializing with content_root: {:?}",
             config.content_root
         )) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
-            unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), c_message.as_ptr()); }
+            let module_name = CString::new(module_id.clone()).unwrap();
+            unsafe { (api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_message.as_ptr()); }
         }
 
         let mimetype_file_name = &config.mimetypes_file;
         let mimetype_path = PathBuf::from(mimetype_file_name);
         
         let mut mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
-            Ok(value) => match serde_json::from_value(value) {
+            Ok(value) => {
+                 if let Ok(json_str) = serde_json::to_string_pretty(&value) {
+                     use log::debug;
+                     debug!("Fully processed config for {:?}:\n{}", mimetype_path, json_str);
+                 }
+                 match serde_json::from_value(value) {
                 Ok(cfg) => cfg,
                 Err(e) => {
                      if let Ok(c_message) = CString::new(format!(
@@ -97,6 +109,7 @@ impl<'a> OxModule<'a> {
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
                     anyhow::bail!("Failed to deserialize mimetype config: {}", e);
+                }
                 }
             },
             Err(e) => {
@@ -133,7 +146,7 @@ impl<'a> OxModule<'a> {
              mimetype_config.mimetypes.len()
         )) {
              let module_name = CString::new(MODULE_NAME).unwrap();
-             unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), c_message.as_ptr()); }
+             unsafe { (api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_message.as_ptr()); }
         }
 
 
@@ -143,6 +156,7 @@ impl<'a> OxModule<'a> {
             mimetypes: mimetype_config.mimetypes,
             default_documents: config.default_documents.clone(),
             content_config: config,
+            module_id,
             api,
         })
     }
@@ -150,52 +164,93 @@ impl<'a> OxModule<'a> {
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         if pipeline_state_ptr.is_null() {
             self.log(LogLevel::Error, "ox_webservice_template_jinja2: proccess_request called with null pipeline state.".to_string());
-            return HandlerResult::ModifiedJumpToError;
+                return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::Halt,
+                    return_parameters: ReturnParameters {
+                        return_data: std::ptr::null_mut(),
+                    },
+                };
         }
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        // --- Early Conflict Check for Skip ---
-        let existing_body_ptr = unsafe { (self.api.get_response_body)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        let mut existing_body = String::new();
-        if !existing_body_ptr.is_null() {
-            existing_body = unsafe { CStr::from_ptr(existing_body_ptr).to_string_lossy().into_owned() };
-        }
-        
+        // Initialize PluginContext
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
+        // --- Generic Conflict Check for Skip ---
+        let existing_body = match ctx.get("response.body") {
+              Some(val) => val.as_str().unwrap_or("").to_string(),
+              None => match ctx.get("response.body") {
+                  Some(val) => val.as_str().unwrap_or("").to_string(),
+                  None => String::new(),
+              }
+        };
+
         let has_existing_content = !existing_body.is_empty();
 
         if has_existing_content {
              match self.content_config.on_content_conflict {
-                 Some(ContentConflictAction::Skip) => {
-                     self.log(LogLevel::Debug, "ox_webservice_template_jinja2: Skipping due to existing content (early check).".to_string());
-                     return HandlerResult::UnmodifiedContinue;
-                 },
-                 Some(ContentConflictAction::Error) => {
-                     self.log(LogLevel::Error, "ox_webservice_template_jinja2: Conflict error (early check).".to_string());
-                     unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                     return HandlerResult::ModifiedJumpToError;
-                 },
-                 _ => {}
+                 Some(ContentConflictAction::error) => {
+                      self.log(LogLevel::Error, "ox_webservice_template_jinja2: Conflict error (early check).".to_string());
+                       let _ = ctx.set("response.status", serde_json::json!(500));
+                       return HandlerResult {
+                          status: ModuleStatus::Modified,
+                          flow_control: FlowControl::Continue,
+                          return_parameters: ReturnParameters {
+                              return_data: std::ptr::null_mut(),
+                          },
+                       };
+                  },
+                  Some(ContentConflictAction::skip) => {
+                      self.log(LogLevel::Info, "ox_webservice_template_jinja2: Skipping due to existing content (early check).".to_string());
+                      return HandlerResult {
+                         status: ModuleStatus::Unmodified,
+                         flow_control: FlowControl::Continue,
+                         return_parameters: ReturnParameters {
+                             return_data: std::ptr::null_mut(),
+                         },
+                      };
+                  },
+                  _ => {}
              }
         }
 
-        let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        if request_path_ptr.is_null() {
-             self.log(LogLevel::Error, "ox_webservice_template_jinja2: get_request_path returned null.".to_string());
-             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-             return HandlerResult::ModifiedJumpToError;
-        }
-        let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+        // Generic Request Path
+        let request_path = match ctx.get("request.resource") {
+            Some(v) => v.as_str().unwrap_or("/").to_string(),
+            None => {
+                 self.log(LogLevel::Error, "ox_webservice_template_jinja2: request_path not found.".to_string());
+                 let _ = ctx.set("response.status", serde_json::json!(500));
+                  return HandlerResult {
+                     status: ModuleStatus::Modified,
+                     flow_control: FlowControl::Continue,
+                     return_parameters: ReturnParameters {
+                         return_data: std::ptr::null_mut(),
+                     },
+                  };
+            }
+        };
 
-        if let Some(file_path) = self.resolve_and_find_file(request_path) {
+        let mut resolved_path = request_path.clone();
+        if let Some(val) = ctx.get("request.capture") {
+             resolved_path = val.as_str().unwrap_or("").to_string();
+             self.log(LogLevel::Info, format!("ox_webservice_template_jinja2: Using path_capture: '{}'", resolved_path));
+        }
+
+        if let Some(file_path) = self.resolve_and_find_file(&resolved_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
             
             // Find first matching regex
             let mimetype_mapping = self.mimetypes.iter().find(|m| {
                 if let Some(re) = &m.compiled_regex {
                      let matched = re.is_match(file_name_str);
-                     self.log(LogLevel::Debug, format!("Checking regex '{}' against '{}': {}", m.url, file_name_str, matched));
+                     self.log(LogLevel::Info, format!("Checking regex '{}' against '{}': {}", m.url, file_name_str, matched));
                      matched
                 } else {
                     false
@@ -203,13 +258,18 @@ impl<'a> OxModule<'a> {
             });
 
             if let Some(mapping) = mimetype_mapping {
-                    // Late Conflict Check (Optimization: Skip/Error handled early)
+                    // Late Conflict Check
                     if has_existing_content {
-                         // Only Overwrite and Append reach here
-                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::Overwrite) {
-                             ContentConflictAction::Skip | ContentConflictAction::Error => {
+                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::overwrite) {
+                             ContentConflictAction::skip | ContentConflictAction::error => {
                                  // Should have been caught early
-                                 return HandlerResult::UnmodifiedContinue; 
+                                 return HandlerResult {
+                                    status: ModuleStatus::Unmodified,
+                                    flow_control: FlowControl::Continue,
+                                    return_parameters: ReturnParameters {
+                                        return_data: std::ptr::null_mut(),
+                                    },
+                                 }; 
                              },
                              _ => {} // Proceed for Overwrite/Append
                          }
@@ -221,49 +281,70 @@ impl<'a> OxModule<'a> {
                             match Tera::one_off(&template_content, &context, false) {
                                 Ok(rendered) => {
                                     self.log(
-                                        LogLevel::Debug,
+                                        LogLevel::Warn,
                                         format!(
                                             "ox_webservice_template_jinja2: Successfully handled request for path: {}",
                                             request_path
                                         ),
                                     );
                                     let content_bytes = rendered.into_bytes();
-                                    let mut final_content_bytes = content_bytes;
+                                    
                                      // Handle Append
+                                    let mut final_content_string = String::from_utf8_lossy(&content_bytes).into_owned();
                                     if has_existing_content {
-                                        if let Some(ContentConflictAction::Append) = self.content_config.on_content_conflict {
-                                            let mut combined = existing_body.into_bytes();
-                                            combined.extend(final_content_bytes);
-                                            final_content_bytes = combined;
+                                        if let Some(ContentConflictAction::append) = self.content_config.on_content_conflict {
+                                             let mut combined = existing_body.clone();
+                                             combined.push_str(&final_content_string);
+                                             final_content_string = combined;
                                         }
                                     }
 
-                                    unsafe {
-                                        let c_content_type_key = CString::new("Content-Type").unwrap();
-                                        let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
-                                        (self.api.set_response_header)(
-                                            pipeline_state,
-                                            c_content_type_key.as_ptr(),
-                                            c_content_type_value.as_ptr(),
-                                        );
-                                        (self.api.set_response_body)(
-                                            pipeline_state,
-                                            final_content_bytes.as_ptr(),
-                                            final_content_bytes.len(),
-                                        );
-                                    }
-                                    return HandlerResult::ModifiedContinue;
+                                    // Set Generic Keys
+                                    let _ = ctx.set("response.type", serde_json::Value::String(mapping.mimetype.clone()));
+                                    let _ = ctx.set("response.body", serde_json::Value::String(final_content_string.clone()));
+                                    let _ = ctx.set("response.status", serde_json::json!(200));
+
+                                    return HandlerResult {
+                                        status: ModuleStatus::Modified,
+                                        flow_control: FlowControl::Continue,
+                                        return_parameters: ReturnParameters {
+                                            return_data: std::ptr::null_mut(),
+                                        },
+                                    };
                                 }
                                 Err(e) => {
-                                      self.log(
-                                        LogLevel::Error,
-                                        format!(
-                                            "ox_webservice_template_jinja2: Failed to render template {}: {}",
-                                            request_path, e
-                                        ),
-                                    );
-                                    unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                                    return HandlerResult::ModifiedJumpToError;
+                                    let mut logged_as_missing_var = false;
+                                    let source_desc = e.source().map(|s| s.to_string()).unwrap_or_default();
+
+                                    if source_desc.contains("not found in context") {
+                                        self.log(
+                                            LogLevel::Info,
+                                            format!(
+                                                "ox_webservice_template_jinja2: Missing variable in template {}: {}",
+                                                request_path, source_desc
+                                            ),
+                                        );
+                                        logged_as_missing_var = true;
+                                    }
+
+                                    if !logged_as_missing_var {
+                                          self.log(
+                                            LogLevel::Error,
+                                            format!(
+                                                "ox_webservice_template_jinja2: Failed to render template {}: {}",
+                                                request_path, e
+                                            ),
+                                        );
+                                    }
+
+                                    let _ = ctx.set("response.status", serde_json::json!(500));
+                                    return HandlerResult {
+                                        status: ModuleStatus::Modified,
+                                        flow_control: FlowControl::Continue,
+                                        return_parameters: ReturnParameters {
+                                            return_data: std::ptr::null_mut(),
+                                        },
+                                    };
                                 }
                             }
                         }
@@ -275,29 +356,48 @@ impl<'a> OxModule<'a> {
                                     request_path, e
                                 ),
                             );
-                            unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                            return HandlerResult::ModifiedJumpToError;
+                            let _ = ctx.set("response.status", serde_json::json!(500));
+                            return HandlerResult {
+                                status: ModuleStatus::Modified,
+                                flow_control: FlowControl::Continue,
+                                return_parameters: ReturnParameters {
+                                    return_data: std::ptr::null_mut(),
+                                },
+                            };
                         }
                    }
 
+            } else {
+                 HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters {
+                        return_data: std::ptr::null_mut(),
+                    },
+                }
             }
         } else {
              self.log(
-                LogLevel::Debug,
+                LogLevel::Warn,
                 format!(
                     "ox_webservice_template_jinja2: File not found for path: {}",
                     request_path
                 ),
             );
-            unsafe { 
-                (self.api.set_response_status)(pipeline_state, 404);
-                let body = CString::new("404 Not Found").unwrap();
-                (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
+            // Generic 404
+            let _ = ctx.set("response.status", serde_json::json!(404));
+            let _ = ctx.set("response.body", serde_json::Value::String("404 Not Found".to_string()));
+
+             HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
             }
         }
-        
-        HandlerResult::ModifiedContinue
     }
+
 
     fn resolve_and_find_file(&self, request_path: &str) -> Option<PathBuf> {
         let mut file_path = self.content_root.clone();
@@ -334,7 +434,8 @@ impl<'a> OxModule<'a> {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    module_id_ptr: *const c_char,
+    api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         eprintln!("ox_webservice_template_jinja2: api_ptr is null");
@@ -342,10 +443,16 @@ pub unsafe extern "C" fn initialize_module(
     }
     let api_instance = unsafe { &*api_ptr };
 
+    let module_id = if !module_id_ptr.is_null() {
+        unsafe { CStr::from_ptr(module_id_ptr).to_string_lossy().to_string() }
+    } else {
+        MODULE_NAME.to_string()
+    };
+    let c_module_id = CString::new(module_id.clone()).unwrap();
+
     if module_params_json_ptr.is_null() {
          let log_msg = CString::new("ox_webservice_template_jinja2: module_params_json_ptr is null").unwrap();
-         let module_name = CString::new(MODULE_NAME).unwrap();
-         unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+         unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
          return std::ptr::null_mut();
     }
 
@@ -358,9 +465,8 @@ pub unsafe extern "C" fn initialize_module(
             Some(name) => name,
             None => {
                 let log_msg = CString::new("'config_file' parameter is missing or not a string.").unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
                 let _ = panic::catch_unwind(|| {
-                    unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                    unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
                 });
                 return std::ptr::null_mut();
             }
@@ -373,8 +479,7 @@ pub unsafe extern "C" fn initialize_module(
                 Ok(c) => c,
                 Err(e) => {
                      let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
-                     let module_name = CString::new(MODULE_NAME).unwrap();
-                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                     unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
                      return std::ptr::null_mut();
                 }
             },
@@ -388,17 +493,15 @@ pub unsafe extern "C" fn initialize_module(
             }
         };
 
-        let handler = match OxModule::new(config, api_instance) {
+        let handler = match OxModule::new(config, api_instance, module_id.clone()) {
             Ok(h) => {
                 let log_msg = CString::new("ox_webservice_template_jinja2 initialized").unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Info, module_name.as_ptr(), log_msg.as_ptr()); }
+                unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), log_msg.as_ptr()); }
                 h
             },
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -409,6 +512,7 @@ pub unsafe extern "C" fn initialize_module(
             instance_ptr,
             handler_fn: process_request_c,
             log_callback: api_instance.log_callback,
+            get_config: get_config_c,
         });
 
         Box::into_raw(module_interface)
@@ -434,7 +538,13 @@ unsafe extern "C" fn process_request_c(
         let log_msg = CString::new("ox_webservice_template_jinja2: process_request_c called with null instance_ptr").unwrap();
         let module_name = CString::new(MODULE_NAME).unwrap();
         unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-        return HandlerResult::ModifiedJumpToError;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Halt,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
@@ -447,9 +557,35 @@ unsafe extern "C" fn process_request_c(
         Err(e) => {
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
-            let module_name = CString::new(MODULE_NAME).unwrap();
+            
+            let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
+            let module_name = CString::new(handler_unsafe.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
+            
             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-            HandlerResult::ModifiedJumpToError
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Halt,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            }
         }
     }
 }
+
+unsafe extern "C" fn get_config_c(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() { return std::ptr::null_mut(); }
+    let handler = unsafe { &*(instance_ptr as *mut OxModule) };
+    
+    let config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
+    
+    let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
+    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+}
+
+#[cfg(test)]
+mod functional_tests_security;

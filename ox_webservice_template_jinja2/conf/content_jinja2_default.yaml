@@ -1,0 +1,12 @@
+modules:
+  - id: "default_template_jinja2"
+    name: "ox_webservice_template_jinja2"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"
+
+routes:
+  - url: ".*[.]jinja[2]?$"
+    module_id: "default_template_jinja2"
+    priority: 998
+    phase: Content
+

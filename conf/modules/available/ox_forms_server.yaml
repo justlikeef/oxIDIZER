@@ -1,0 +1,9 @@
+modules:
+  - id: "forms_server"
+    name: "ox_forms_server"
+    phase: Content
+    params:
+      forms_file: "/var/repos/oxIDIZER/ox_forms/ox_forms_server/conf/forms.json"
+routes:
+  - url: "/forms/.*"
+    module_id: "forms_server"

@@ -1,0 +1,575 @@
+
+use std::fs;
+use std::path::Path;
+use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
+use std::sync::{Arc, Mutex, RwLock};
+use std::collections::HashMap;
+use std::ffi::{CString, CStr};
+use libc::{c_char, c_void};
+use ox_webservice_api::{
+    ModuleInterface, PipelineState, HandlerResult,
+    LogCallback, AllocFn, AllocStrFn,
+    ModuleStatus, FlowControl, ReturnParameters, LogLevel, CoreHostApi,
+};
+use lazy_static::lazy_static;
+use bumpalo::Bump;
+use serde_json::Value;
+use ox_pipeline_plugin::PipelineContext;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use ox_fileproc::{process_file, RawFile};
+
+const MODULE_NAME: &str = "ox_persistence_driver_manager";
+
+
+
+
+
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentConflictAction {
+    overwrite,
+    append,
+    skip,
+    error,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DriverManagerConfig {
+    pub drivers_file: String,
+    pub driver_root: String,
+    #[serde(default)]
+    pub on_content_conflict: Option<ContentConflictAction>,
+}
+
+
+
+use ox_persistence::{ConfiguredDriver, DriversList}; // Import from shared crate
+
+
+pub struct DriverManager {
+    config: DriverManagerConfig,
+}
+
+impl DriverManager {
+    pub fn new(config: DriverManagerConfig) -> Self {
+        DriverManager { 
+            config,
+        }
+    }
+
+    pub fn list_available_driver_files(&self) -> Result<Vec<String>, String> {
+        let root = Path::new(&self.config.driver_root);
+        if !root.exists() {
+            return Err(format!("Driver root directory does not exist: {}", self.config.driver_root));
+        }
+
+        let mut files = Vec::new();
+        for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    let ext_str = ext.to_string_lossy();
+                    if ext_str == "so" || ext_str == "dll" || ext_str == "dylib" {
+                        if let Ok(stripped) = path.strip_prefix(root) {
+                            files.push(stripped.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        Ok(files)
+    }
+
+    pub fn load_configured_drivers(&self) -> Result<DriversList, String> {
+        let path_str = &self.config.drivers_file;
+        let path = Path::new(path_str);
+        
+        if !path.exists() {
+             return Ok(DriversList { drivers: Vec::new() });
+        }
+        
+        // Use ox_fileproc::process_file (supports JSON/YAML and includes)
+        // Max depth 5 for recursion
+        let val = process_file(path, 5).map_err(|e| e.to_string())?;
+        
+        // Convert Value to DriversList
+        serde_json::from_value(val).map_err(|e| e.to_string())
+    }
+
+    pub fn save_configured_drivers(&self, list: &DriversList) -> Result<(), String> {
+         let content = serde_json::to_string_pretty(list).map_err(|e| e.to_string())?;
+         if let Some(parent) = Path::new(&self.config.drivers_file).parent() {
+             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+         }
+         fs::write(&self.config.drivers_file, content).map_err(|e| e.to_string())
+    }
+
+    pub fn get_driver_metadata(&self, library_path: &str) -> Result<String, String> {
+        unsafe {
+            let lib = libloading::Library::new(library_path).map_err(|e| format!("Failed to load library '{}': {}", library_path, e))?;
+            
+            let get_metadata: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> = 
+                lib.get(b"ox_driver_get_driver_metadata").map_err(|_| "Missing symbol: ox_driver_get_driver_metadata".to_string())?;
+            
+            let ptr = get_metadata();
+            if ptr.is_null() {
+                return Err("ox_driver_get_driver_metadata returned null".to_string());
+            }
+            
+            let c_str = std::ffi::CStr::from_ptr(ptr);
+             let meta_str = c_str.to_string_lossy().into_owned();
+             
+             Ok(meta_str)
+        }
+    }
+
+    pub fn get_driver_schema(&self, library_path: &str) -> Result<String, String> {
+        unsafe {
+            let lib = libloading::Library::new(library_path).map_err(|e| format!("Failed to load library '{}': {}", library_path, e))?;
+            
+            let get_schema: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> = 
+                lib.get(b"ox_driver_get_config_schema").map_err(|_| "Missing symbol: ox_driver_get_config_schema".to_string())?;
+            
+            let ptr = get_schema();
+            if ptr.is_null() {
+                return Err("ox_driver_get_config_schema returned null".to_string());
+            }
+            
+            let c_str = std::ffi::CStr::from_ptr(ptr);
+             let schema_str = c_str.to_string_lossy().into_owned();
+             
+             Ok(schema_str)
+        }
+    }
+
+    pub fn toggle_driver_status(&self, id: &str) -> Result<String, String> {
+         let mut raw = RawFile::open(&self.config.drivers_file).map_err(|e| e.to_string())?;
+         
+         // We must construct the filter syntax.
+         // The ID in the file is quoted, so we must quote it in the query too.
+         let query = format!("drivers[id=\"{}\"]/state", id);
+         
+
+         let span_and_quoted = raw.find(&query).next().map(|c| {
+             let val = c.value().trim();
+             (c.span.clone(), val.starts_with('"'), val.trim_matches('"').to_string())
+         });
+         
+         if let Some((span, is_quoted, current_val)) = span_and_quoted {
+              let new_status_val = if current_val == "enabled" { "disabled" } else { "enabled" };
+              let replacement = if is_quoted { format!("\"{}\"", new_status_val) } else { new_status_val.to_string() };
+              
+              raw.update(span, &replacement);
+              raw.save().map_err(|e| e.to_string())?;
+              Ok(new_status_val.to_string())
+         } else {
+             Err(format!("Driver with ID '{}' not found or has no state field", id))
+         }
+    }
+
+    pub fn log(&self, ctx: &PipelineContext, level: LogLevel, message: String) {
+        if let (Ok(mid), Ok(cmsg)) = (CString::new("driver_manager"), CString::new(message)) {
+            unsafe {
+                (ctx.api.log_callback)(level, mid.as_ptr(), cmsg.as_ptr());
+            }
+        }
+    }
+}
+
+pub struct ModuleContext {
+    manager: Arc<DriverManager>,
+    api: &'static CoreHostApi,
+    module_id: String,
+}
+
+lazy_static! {
+    static ref DRIVER_MANAGER_INSTANCE: Mutex<Option<Arc<DriverManager>>> = Mutex::new(None);
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn initialize_module(
+    module_params_json_ptr: *const c_char,
+    module_id: *const c_char,
+    api_ptr: *const CoreHostApi,
+) -> *mut ModuleInterface {
+    if api_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let api = unsafe { &*api_ptr };
+
+    let module_id_str = if !module_id.is_null() {
+        unsafe { CStr::from_ptr(module_id).to_string_lossy().to_string() }
+    } else {
+        "ox_persistence_driver_manager".to_string()
+    };
+
+    let _ = ox_webservice_api::init_logging(api.log_callback, &module_id_str);
+
+    let params_str = if !module_params_json_ptr.is_null() {
+        unsafe { CStr::from_ptr(module_params_json_ptr).to_string_lossy().to_string() }
+    } else {
+        "{}".to_string()
+    };
+    
+    let params: serde_json::Value = serde_json::from_str(&params_str).unwrap_or(serde_json::Value::Null);
+
+    let drivers_file = params.get("drivers_file").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers.yaml").to_string();
+    let driver_root = params.get("driver_root").and_then(|v| v.as_str()).unwrap_or("/var/repos/oxIDIZER/conf/drivers").to_string();
+
+    let on_content_conflict = params.get("on_content_conflict")
+        .and_then(|v| v.as_str())
+        .and_then(|s| match s {
+            "overwrite" => Some(ContentConflictAction::overwrite),
+            "append" => Some(ContentConflictAction::append),
+            "skip" => Some(ContentConflictAction::skip),
+            "error" => Some(ContentConflictAction::error),
+            _ => None,
+        });
+
+    let config = DriverManagerConfig {
+        drivers_file,
+        driver_root,
+        on_content_conflict,
+    };
+
+    let manager = Arc::new(DriverManager::new(config));
+    
+    if let Ok(mut guard) = DRIVER_MANAGER_INSTANCE.lock() {
+        *guard = Some(manager.clone());
+    }
+
+    let ctx = Box::new(ModuleContext {
+        manager,
+        api,
+        module_id: module_id_str,
+    });
+
+    let interface = Box::new(ModuleInterface {
+        instance_ptr: Box::into_raw(ctx) as *mut c_void,
+        handler_fn: process_request,
+        log_callback: api.log_callback,
+        get_config: get_config,
+    });
+
+    Box::into_raw(interface)
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn process_request(
+    instance_ptr: *mut c_void,
+    pipeline_state_ptr: *mut PipelineState,
+    _log_callback: LogCallback,
+    _alloc_fn: AllocFn,
+    _arena_ptr: *const c_void,
+) -> HandlerResult {
+    if instance_ptr.is_null() {
+        return HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
+    }
+
+    let context = unsafe { &*(instance_ptr as *mut ModuleContext) };
+    
+    let pipeline_state = unsafe { &mut *pipeline_state_ptr };
+    let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+    let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
+        context.api, 
+        pipeline_state_ptr as *mut c_void, 
+        arena_ptr
+    ) };
+
+    let path_val = ctx.get("request.resource").or(ctx.get("request.path"));
+    let path = path_val.as_ref().and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(|| "/".to_string());
+    
+    let action_val = ctx.get("installer.action");
+    let action_str = action_val.as_ref().and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_else(|| "none".to_string());
+
+    context.manager.log(&ctx, LogLevel::Info, format!("DEBUG: DriverManager Routing: action='{}', path='{}'", action_str, path));
+
+    
+    // 3. Fallbacks (only if action is not handled and it's a direct URL call)
+    if action_str == "none" || action_val.as_ref().map(|v| v.is_null()).unwrap_or(true) {
+        // Removed implicit installer routes
+    }
+
+    // --- Conflict Management ---
+    let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
+         val.as_str().unwrap_or("false") == "true"
+    } else { false };
+
+    if is_modified && action_str == "none" && !path.contains("/installer/status") {
+         let action = context.manager.config.on_content_conflict.unwrap_or(ContentConflictAction::skip);
+         if let Ok(c_msg) = CString::new(format!("Conflict check: is_modified=true, action={:?}", action)) {
+              let module_name = CString::new(context.module_id.clone()).unwrap_or_else(|_| CString::new(MODULE_NAME).unwrap_or_else(|_| CString::new("unknown").unwrap()));
+              unsafe { (context.api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_msg.as_ptr()); }
+         }
+
+         match action {
+             ContentConflictAction::skip => {
+                 return HandlerResult {
+                    status: ModuleStatus::Unmodified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                 };
+             },
+             ContentConflictAction::error => {
+                 let _ = ctx.set("response.status", serde_json::json!(500));
+                 let _ = ctx.set("response.body", serde_json::json!("Conflict: Pipeline content already modified"));
+                 return HandlerResult {
+                     status: ModuleStatus::Modified,
+                     flow_control: FlowControl::Continue,
+                     return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                 };
+             },
+             _ => {} // overwrite/append: proceed as normal
+         }
+    }
+
+
+
+
+    let method = match ctx.get("request.verb") {
+        Some(v) => v.as_str().unwrap_or("get").to_string(),
+        None => match ctx.get("request.method") {
+            Some(v) => v.as_str().unwrap_or("GET").to_string().to_lowercase(),
+            None => "get".to_string()
+        }
+    };
+
+    // Helper closure for JSON error responses
+    let send_json_error = |error_msg: String, status_code: i32| {
+        let json_error = serde_json::json!({
+            "error": error_msg
+        });
+        let _ = ctx.set("response.body", serde_json::Value::String(json_error.to_string()));
+        let _ = ctx.set("response.status", serde_json::json!(status_code));
+        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+    };
+
+    // Helper closure for JSON success responses
+    let send_json_success = |body: String| {
+        let _ = ctx.set("response.body", serde_json::Value::String(body));
+        let _ = ctx.set("response.status", serde_json::json!(200));
+        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+    };
+
+    // --- Route Dispatching ---
+
+    // 1. POST (Toggle) - matches any path ending in a driver ID, e.g., /drivers/driver_id
+    // We treat the *last segment* of the path as the ID.
+    if method == "create" {
+        // Extract ID from the last path segment (ignoring trailing slash)
+        let trimmed_path = path.trim_end_matches('/');
+        let id = trimmed_path.split('/').last().unwrap_or("");
+        
+        if id.is_empty() || id == "available" { // "available" is reserved for GET
+             send_json_error("Invalid driver ID provided.".to_string(), 400);
+        } else {
+             let manager = &context.manager;
+             match manager.toggle_driver_status(id) {
+                 Ok(new_status) => {
+                     let response = serde_json::json!({
+                         "status": new_status,
+                         "id": id
+                     });
+                     send_json_success(response.to_string());
+                 },
+                 Err(e) => {
+                     let err_msg = format!("Failed to toggle driver '{}': {}", id, e);
+                     // Log error internally
+                     manager.log(&ctx, LogLevel::Error, err_msg.clone());
+                 // Return JSON error to user
+                     send_json_error(err_msg, 500);
+                 }
+             }
+        }
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue, // Halt on successful toggle
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
+    }
+
+    // 2. GET /available - List available driver files from disk
+    if method == "get" && path.ends_with("/available") { // strict suffix match
+        let manager = &context.manager;
+        match manager.list_available_driver_files() {
+            Ok(files) => {
+                let json = serde_json::to_string(&files).unwrap_or_default();
+                send_json_success(json);
+            },
+            Err(e) => {
+                send_json_error(format!("Failed to list available drivers: {}", e), 500);
+            }
+        }
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+        };
+    }
+
+    // 3. GET (Default or Schema)
+    if method == "get" {
+         let manager = &context.manager;
+         
+         // 3a. GET /drivers/<id>/schema
+         if path.ends_with("/schema") {
+             let trimmed_path = path.trim_end_matches("/");
+             let segments: Vec<&str> = trimmed_path.split('/').collect();
+             if segments.len() >= 2 {
+                 let id = segments[segments.len() - 2];
+                 match manager.load_configured_drivers() {
+                     Ok(list) => {
+                         if let Some(driver) = list.drivers.iter().find(|d| d.id == id) {
+                             let lib_name = if driver.library_path.is_empty() {
+                                 format!("{}/lib{}.so", manager.config.driver_root, driver.name)
+                             } else {
+                                 format!("{}/lib{}.so", driver.library_path, driver.name)
+                             };
+                             match manager.get_driver_schema(&lib_name) {
+                                 Ok(schema) => {
+                                     send_json_success(schema);
+                                     return HandlerResult {
+                                         status: ModuleStatus::Modified,
+                                         flow_control: FlowControl::Continue,
+                                         return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                                     };
+                                 },
+                                 Err(e) => {
+                                     send_json_error(format!("Failed to retrieve schema for driver '{}': {}", id, e), 500);
+                                     return HandlerResult {
+                                         status: ModuleStatus::Modified,
+                                         flow_control: FlowControl::Continue,
+                                         return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                                     };
+                                 }
+                             }
+                         } else {
+                             send_json_error(format!("Driver with ID '{}' not found", id), 404);
+                             return HandlerResult {
+                                 status: ModuleStatus::Modified,
+                                 flow_control: FlowControl::Continue,
+                                 return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                             };
+                         }
+                     },
+                     Err(e) => {
+                         send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                         return HandlerResult {
+                             status: ModuleStatus::Modified,
+                             flow_control: FlowControl::Continue,
+                             return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                         };
+                     }
+                 }
+             }
+         }
+
+         // 3b. GET /drivers (with optional ?state=enabled|disabled)
+         match manager.load_configured_drivers() {
+             Ok(mut list) => {
+                if let Some(state_filter) = ctx.get("request.query.state") {
+                    let state_str = state_filter.as_str().unwrap_or("");
+                    if !state_str.is_empty() {
+                        list.drivers.retain(|d| d.state == state_str);
+                    }
+                }
+                
+                // Enhance drivers with display_name from schema
+                #[derive(Serialize)]
+                struct DisplayDriver {
+                    id: String,
+                    name: String,
+                    library_path: String,
+                    state: String,
+                    display_name: String,
+                    metadata: Option<String>,
+                }
+                
+                let mut display_list = Vec::new();
+                for d in list.drivers {
+                    let mut display_name = d.name.clone();
+                    
+                    // Try to get schema name
+                    let lib_name = if d.library_path.is_empty() {
+                         format!("{}/lib{}.so", manager.config.driver_root, d.name)
+                     } else {
+                         format!("{}/lib{}.so", d.library_path, d.name)
+                     };
+                     
+                     if let Ok(schema_str) = manager.get_driver_schema(&lib_name) {
+                         if let Ok(yaml) = serde_yaml::from_str::<serde_json::Value>(&schema_str) {
+                             if let Some(n) = yaml.get("name").and_then(|v| v.as_str()) {
+                                 display_name = n.to_string();
+                             }
+                         }
+                     }
+
+                     let metadata = manager.get_driver_metadata(&lib_name).ok();
+                     
+                     display_list.push(DisplayDriver {
+                         id: d.id,
+                         name: d.name,
+                         library_path: d.library_path,
+                         state: d.state,
+                         display_name,
+                         metadata,
+                     });
+                }
+                
+                let json = serde_json::json!({ "drivers": display_list }).to_string();
+                send_json_success(json);
+                return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                };
+             },
+             Err(e) => {
+                send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                return HandlerResult {
+                    status: ModuleStatus::Modified,
+                    flow_control: FlowControl::Continue,
+                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+                };
+             }
+         }
+    }
+
+    // Capture Unhandled Methods (e.g., PUT, DELETE) if routed here
+    send_json_error(format!("Method {} not allowed.", method), 405);
+    
+    HandlerResult {
+        status: ModuleStatus::Modified,
+        flow_control: FlowControl::Continue,
+        return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_config(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let context = unsafe { &*(instance_ptr as *mut ModuleContext) };
+    let manager = &context.manager;
+    
+    let json = serde_json::to_string(&manager.config).unwrap_or("{}".to_string());
+    let json_cstring = CString::new(json).unwrap_or_else(|_| CString::new("{}").unwrap());
+    unsafe { alloc_fn(arena, json_cstring.as_ptr()) }
+}
+
+#[cfg(test)]
+mod functional_tests;
+#[cfg(test)]
+mod functional_tests_security;

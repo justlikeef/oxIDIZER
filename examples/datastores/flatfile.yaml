@@ -1,7 +1,0 @@
-uuid: "d4e5f6a7-b8c9-0123-4567-890abcdef012"
-name: "flatfile_datastore"
-description: "A datastore for flat files"
-driver: "flatfile"
-connection_info:
-  path: "./data/flat_data.txt"
-  delimiter: ","

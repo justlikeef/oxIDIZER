@@ -1,0 +1,7 @@
+mimetypes:
+  - url: '.*\.html$'
+    mimetype: "text/html"
+  - url: '.*\.css$'
+    mimetype: "text/css"
+  - url: '.*\.js$'
+    mimetype: "application/javascript"

@@ -1,0 +1,9 @@
+staging_directory: "/var/repos/oxIDIZER/ox_package_manager/staged"
+installers_config: "/var/repos/oxIDIZER/ox_package_manager/conf/installers.yaml"
+manifests_directory: "/var/repos/oxIDIZER/ox_package_manager/staged/installed"
+allowed_extensions:
+  - ".tar.gz"
+  - ".tgz"
+  - ".zip"
+  - ".tar.bz2"
+  - ".tbz2"

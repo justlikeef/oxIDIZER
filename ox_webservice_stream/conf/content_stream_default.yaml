@@ -1,0 +1,18 @@
+modules:
+  - id: "default_theme_stream"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"
+  - id: "default_layout_stream"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
+routes:
+  - url: "^(/css/.*?)$"
+    module_id: default_theme_stream
+    phase: Content
+    priority: 998
+  - url: "^(.*)$"
+    module_id: default_layout_stream
+    phase: Content
+    priority: 999

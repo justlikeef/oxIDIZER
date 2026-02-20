@@ -1,0 +1,14 @@
+[package]
+name = "ox_forms_std_renderers"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_forms = { path = ".." }
+anyhow = "1.0"
+serde_json = "1.0"
+log = "0.4"

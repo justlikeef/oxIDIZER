@@ -1,0 +1,35 @@
+execution_order: []
+log4rs_config: /var/repos/oxIDIZER/conf/log4rs.yaml
+modules:
+- name: ox_webservice_status
+  path: target/debug/libox_webservice_status.so
+  phase: Content
+  priority: 100
+  uris: []
+pipeline:
+  phases:
+  - Content: default
+routes:
+- module_id: content_handler_1
+  phase: Content
+  url: /extra_content_path/
+- module_id: content_handler_1
+  phase: Content
+  url: /another_path/
+- module_id: content_error_handler
+  phase: Content
+  url: /another_error/
+- module_id: content_handler_1
+  phase: Content
+  url: /specific_http_path/
+- module_id: content_handler_1
+  phase: Content
+  url: /specific_https_path/
+servers:
+- bind_address: 0.0.0.0
+  hosts:
+  - name: .*
+    tls_cert_path: /var/repos/oxIDIZER/conf/certs/cert.pem
+    tls_key_path: /var/repos/oxIDIZER/conf/certs/key.pem
+  port: 3443
+  protocol: https

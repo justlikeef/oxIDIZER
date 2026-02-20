@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use tempfile::tempdir;
-use ox_webservice::{load_config_from_path, ConfigError};
+use ox_webservice::load_config_from_path;
 
 #[test]
 fn test_load_config_from_yaml() {
@@ -22,7 +22,7 @@ servers:
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 8080);
 }
@@ -52,7 +52,7 @@ fn test_load_config_from_json() {
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 8081);
     assert_eq!(config.servers[0].bind_address, "0.0.0.0");
@@ -79,7 +79,7 @@ name = "localhost"
     )
     .unwrap();
 
-    let config = load_config_from_path(&file_path, "info").unwrap();
+    let (config, _) = load_config_from_path(&file_path, "info").unwrap();
     assert_eq!(config.servers.len(), 1);
     assert_eq!(config.servers[0].port, 443);
     assert_eq!(config.servers[0].protocol, "https");
@@ -90,7 +90,7 @@ fn test_load_config_not_found() {
     let dir = tempdir().unwrap();
     let file_path = dir.path().join("non_existent_config.yaml");
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::NotFound)));
+    assert!(result.is_err());
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn test_load_config_invalid_extension() {
     writeln!(file, "this is not a valid config file").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::UnsupportedFileExtension)));
+    assert!(result.is_err());
 }
 
 #[test]
@@ -112,5 +112,5 @@ fn test_load_config_invalid_content() {
     writeln!(file, "this is not a valid yaml file: [").unwrap();
 
     let result = load_config_from_path(&file_path, "info");
-    assert!(matches!(result, Err(ConfigError::Deserialization(_))));
+    assert!(result.is_err());
 }

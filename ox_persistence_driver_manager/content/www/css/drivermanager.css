@@ -1,0 +1,146 @@
+@import url("/css/common.css");
+
+@import url("/css/common.css");
+
+/* Compact List Styles */
+.driver-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.driver-row {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.1s ease;
+}
+
+.driver-row:last-child {
+    border-bottom: none;
+}
+
+.driver-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.driver-status {
+    width: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-dot.enabled {
+    background-color: #27ae60;
+    box-shadow: 0 0 5px #27ae60;
+}
+
+.status-dot.disabled {
+    background-color: #e74c3c;
+    box-shadow: 0 0 2px #e74c3c;
+}
+
+.driver-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.driver-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.driver-id {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.driver-actions {
+    margin-left: 1rem;
+}
+
+/* Compact Button */
+.btn-toggle {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 600;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    transition: all 0.1s;
+}
+
+.btn-toggle.enable {
+    background: transparent;
+    border-color: #27ae60;
+    color: #27ae60;
+}
+
+.btn-toggle.enable:hover {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-toggle.disable {
+    background: transparent;
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.btn-toggle.disable:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+
+/* Info Icon */
+.driver-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    vertical-align: middle;
+}
+
+.driver-icon-btn:hover {
+    color: var(--primary);
+}
+
+.btn-info {
+    margin-left: 0.5rem;
+}
+
+.meta-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.meta-table th {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.meta-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}

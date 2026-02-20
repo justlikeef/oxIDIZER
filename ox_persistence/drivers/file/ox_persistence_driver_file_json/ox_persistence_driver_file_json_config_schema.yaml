@@ -1,0 +1,22 @@
+friendly_name: JSON File
+id: "json_datasource_form"
+title: "JSON File Data Source Configuration"
+fields:
+  - name: "path"
+    label: "JSON File Path"
+    data_type: "string"
+    default_value: "data/storage.json"
+    props:
+      placeholder: "data/storage.json"
+    validation:
+      - rule_type: "required"
+styles: "overflow-y: auto; max-height: 70vh;"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"
+  - name: "cancel"
+    label: "Cancel"
+    action_type: "button"
+    props:
+      classes: "btn-light"

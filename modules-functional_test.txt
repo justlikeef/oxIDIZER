@@ -1,9 +1,0 @@
-ox_webservice
-ox_webservice_errorhandler_jinja2
-ox_webservice_forwarded_for
-ox_webservice_redirect
-ox_webservice_restore_ip
-ox_webservice_rewrite
-ox_webservice_status
-ox_webservice_stream
-ox_webservice_template_jinja2

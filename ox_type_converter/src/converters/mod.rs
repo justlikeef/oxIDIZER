@@ -158,10 +158,10 @@ mod tests {
 
     #[test]
     fn test_can_convert_to() {
-        assert!(TypeConverter::can_convert_to("123", &ValueType::Integer));
-        assert!(TypeConverter::can_convert_to("123.45", &ValueType::Float));
-        assert!(TypeConverter::can_convert_to("true", &ValueType::Boolean));
-        assert!(!TypeConverter::can_convert_to("not_a_number", &ValueType::Integer));
+        assert!(TypeConverter::can_convert_to("123", &ValueType::String, &ValueType::Integer));
+        assert!(TypeConverter::can_convert_to("123.45", &ValueType::String, &ValueType::Float));
+        assert!(TypeConverter::can_convert_to("true", &ValueType::String, &ValueType::Boolean));
+        assert!(!TypeConverter::can_convert_to("not_a_number", &ValueType::String, &ValueType::Integer));
     }
 
     #[test]

@@ -20,11 +20,27 @@ PID_FILE=${5:-$DEFAULT_SERVER_PID_FILE}
 
 # Simple log function to replace the sourced one
 log_message() {
-    local level=$1
-    local msg_level=$2
-    local message=$3
-    # Use standard echo for simplicity, roughly mimicking format
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$msg_level] $message"
+    local CURRENT_LEVEL="$1"
+    local MESSAGE_LEVEL="$2"
+    local MESSAGE="$3"
+
+    declare -A LOG_LEVELS
+    LOG_LEVELS[emerg]=0
+    LOG_LEVELS[fatal]=0
+    LOG_LEVELS[alert]=1
+    LOG_LEVELS[crit]=2
+    LOG_LEVELS[error]=3
+    LOG_LEVELS[warn]=4
+    LOG_LEVELS[notice]=5
+    LOG_LEVELS[info]=6
+    LOG_LEVELS[debug]=7
+
+    local CURRENT_LEVEL_NUM=${LOG_LEVELS[$CURRENT_LEVEL]:-0}
+    local MESSAGE_LEVEL_NUM=${LOG_LEVELS[$MESSAGE_LEVEL]:-0}
+
+    if (( MESSAGE_LEVEL_NUM <= CURRENT_LEVEL_NUM )); then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$MESSAGE_LEVEL] $MESSAGE"
+    fi
 }
 
 log_message "$LOG_LEVEL" "notice" "Starting server process..."
@@ -62,6 +78,9 @@ if [ ! -f "$SERVER_BIN" ]; then
     log_message "$LOG_LEVEL" "error" "Server binary not found at $SERVER_BIN. Did you build it?"
     exit 1
 fi
+
+cd "$WORKSPACE_DIR" || exit 1
+log_message "$LOG_LEVEL" "debug" "Changed directory to $WORKSPACE_DIR"
 
 log_message "$LOG_LEVEL" "debug" "Executing: $SERVER_BIN -c \"$CONFIG_FILE\" run > \"$LOG_FILE\" 2>&1 &"
 "$SERVER_BIN" -c "$CONFIG_FILE" run > "$LOG_FILE" 2>&1 &

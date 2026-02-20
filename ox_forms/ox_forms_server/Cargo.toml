@@ -1,0 +1,23 @@
+[package]
+name = "ox_forms_server"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ox_forms = { path = ".." }
+ox_webservice_api = { path = "../../ox_webservice_api" }
+ox_pipeline_plugin = { path = "../../ox_pipeline/ox_pipeline_plugin" }
+ox_fileproc = { path = "../../ox_fileproc" }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+anyhow = "1.0"
+http = "1.0"
+bumpalo = "3.19.0"
+
+[dev-dependencies]
+ox_forms_std_renderers = { path = "../ox_forms_std_renderers" }

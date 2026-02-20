@@ -1,4 +1,13 @@
 mimetypes:
+  # ----------------------------------------------------------------------------
+  # MIME Type Mappings
+  # ----------------------------------------------------------------------------
+  # Maps file name patterns (regex) to MIME types.
+  #
+  # Fields:
+  #   - url: Regex pattern to match against the filename.
+  #   - mimetype: The Content-Type string to set.
+
   - url: ".*[.]html$"
     mimetype: "text/html"
   - url: ".*[.]htm$"
@@ -19,3 +28,9 @@ mimetypes:
     mimetype: "text/html"
   - url: ".*[.]jinja2$"
     mimetype: "text/html"
+  - url: ".*[.]wasm$"
+    mimetype: "application/wasm"
+  - url: ".*[.]ts$"
+    mimetype: "application/typescript"
+  - url: ".*[.]d[.]ts$"
+    mimetype: "application/typescript"

@@ -1,0 +1,45 @@
+# ------------------------------------------------------------------------------
+# Sample Module Configuration
+# ------------------------------------------------------------------------------
+# This file demonstrates a complete configuration entry for a module.
+# It corresponds to the 'ModuleConfig' struct in the ox_webservice API.
+# This entire block represents ONE item in the 'modules' list of ox_webservice.yaml.
+modules:
+  - name: "sample_module_instance" # [Required] logical name of this module instance
+    id: "mod_sample_01"            # [Optional] unique identifier
+    
+
+
+    # routes: (Moved to top level)
+
+
+    # --- Module Parameters (Specific) ---
+    # Arbitrary JSON/YAML passed to the module's initialization function.
+    # The structure depends entirely on the specific module implementation.
+    params:
+      # Example params for 'ox_webservice_stream':
+      content_root: "/var/www/sample"
+      mimetypes_file: "/conf/mimetypes.yaml"
+      on_content_conflict: "overwrite"
+
+    # --- Library Path ---
+    # If specified, loads the module from this absolute or relative path.
+    # If omitted, defaults to "target/debug/lib<name>.so" (Linux) or similar.
+    path: "/usr/lib/ox_webservice/mod_sample.so"
+
+
+
+routes:
+  - url: "^/sample/.*"            # [Required] Regex for Request Path
+    module_id: "mod_sample_01"    # [Required] ID of the module to route to
+    priority: 100                 # [Optional] Routing priority (Lower = earlier)
+    
+    # --- Filtering Examples ---
+    hostname: "example.com"       # [Optional] Regex for Host header
+    protocol: "https"             # [Optional] Exact match for protocol (http/https)
+    headers:
+      User-Agent: ".*Mozilla.*"   # Only match if User-Agent contains Mozilla
+      X-Debug: "true"             # Exact match
+    query:
+      mode: "advanced"            # Match if ?mode=advanced is present
+

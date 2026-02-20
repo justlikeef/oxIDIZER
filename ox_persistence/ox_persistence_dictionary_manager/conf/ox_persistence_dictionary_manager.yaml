@@ -1,0 +1,7 @@
+modules:
+  - id: "dictionary_manager_config"
+    name: "ox_persistence_dictionary_manager"
+    params:
+      driver: "ox_persistence_driver_file_yaml"
+      parameters:
+        location: "/var/repos/oxIDIZER/conf/dictionary.yaml"

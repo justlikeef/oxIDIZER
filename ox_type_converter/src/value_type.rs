@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Serialize, Deserialize};
 
 /// Represents the type of a value stored in the data object
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValueType {
     String,
     Integer,

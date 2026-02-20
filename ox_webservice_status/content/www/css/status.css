@@ -1,0 +1,63 @@
+@import "/css/common.css";
+
+/* Pipeline Routing Table Styles */
+.pipeline-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pipeline-header th {
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    padding: 0.5rem;
+}
+
+.pipeline-phase-row {
+    border-bottom: none;
+}
+
+.pipeline-phase-row td {
+    padding: 0.5rem;
+    vertical-align: top;
+}
+
+.pipeline-config-row {
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.pipeline-config-cell {
+    padding: 0 0.5rem 0.5rem 0.5rem;
+}
+
+.router-config-summary {
+    cursor: pointer;
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.router-config-container {
+    margin-top: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.router-config-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.error-text {
+    color: #ef4444;
+    /* red-500 */
+}
+
+/* General Table/List Styles (reused in other sections) */
+.details-list summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--accent);
+    list-style: none;
+}

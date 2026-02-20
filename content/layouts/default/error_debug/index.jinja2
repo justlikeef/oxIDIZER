@@ -1,21 +1,119 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>{{status_code}} - {{status_text}}</title>
-        <link rel="stylesheet" href="status.css" type="text/css" media="screen">
+        <link rel="stylesheet" href="/css/default.css" type="text/css" media="screen">
     </head>
     <body>
-        <div id="ox_logo" class="ox_logo"><img src="/images/oxWebServicesLogo.png" alt="oxLogo"/></div>
-        <div class="client_error" id="error_header">{{status_code}} - {{status_text}}</div>
-        <div class="client_error" id="module_name">{{ message }}</div>
-        <div id="debug">
-            <div id="debug_header">Debug Information:</div>
-            <div id="debu_info">
-                <div class="debug_field" id="status_code">Status Code: {{status_code}}</div>
-                <div class="debug_field" id="status_text">Status Text: {{status_text}}</div>
-                <div class="debug_field" id="message">Message: {{message}}</div>
-                <div class="debug_field" id="server_context">Server Context: {{server_context}}</div>
-                <div class="debug_field" id="module_name">Module: {{module_name}}</div>
-                <div class="debug_field" id="module_context">Module Context: {{module_context}}</div>
+        <div class="container">
+            <header>
+                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <img src="/images/logo.png" alt="oxIDIZER" style="height: 50px; width: auto;">
+                    <h1 class="text-error" style="margin: 0;">{{status_code}} {{status_text}}</h1>
+                 </div>
+                <p>{{ message }}</p>
+                {% if module_name %}
+                <p><strong>Raised by Module:</strong> <span class="value">{{ module_name }}</span></p>
+                {% endif %}
+            </header>
+
+            <!-- Execution History -->
+            {% if execution_history %}
+            <div class="card">
+                <h2>Pipeline Execution History</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Status</th>
+                            <th>Flow Control</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in execution_history %}
+                        <tr>
+                            <td class="value">{{ record.module_name }}</td>
+                            <td>
+                                {% if record.status == "Unmodified" %}
+                                <span class="badge badge-neutral">{{ record.status }}</span>
+                                {% else %}
+                                <span class="badge badge-accent">{{ record.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.flow_control == "Continue" %}
+                                <span class="badge badge-success">{{ record.flow_control }}</span>
+                                {% elif record.flow_control == "Halt" %}
+                                <span class="badge badge-error">{{ record.flow_control }}</span>
+                                {% elif record.flow_control == "NextPhase" %}
+                                <span class="badge badge-warning">{{ record.flow_control }}</span>
+                                {% else %}
+                                <span class="badge badge-neutral">{{ record.flow_control }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Request Details -->
+            <div class="card">
+                <h2>Request Details</h2>
+                <table class="data-table">
+                    <tbody>
+                        <tr><th>Method</th><td class="value">{{ request_method }}</td></tr>
+                        <tr><th>Path</th><td class="value">{{ request_path }}</td></tr>
+                        <tr><th>Query</th><td class="value">{{ request_query }}</td></tr>
+                        <tr><th>Source IP</th><td class="value">{{ source_ip }}</td></tr>
+                    </tbody>
+                </table>
+
+                <details>
+                    <summary>Request Headers ({{ request_headers | length }})</summary>
+                    <table class="data-table">
+                        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+                        <tbody>
+                            {% for key, value in request_headers %}
+                            <tr>
+                                <td class="value">{{ key }}</td>
+                                <td class="value" style="word-break: break-all;">{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+
+            <!-- Pipeline State & Configs -->
+            <div class="card">
+                <h2>System State</h2>
+                
+                {% if is_modified %}
+                <p><strong>Pipeline Modified:</strong> {{ is_modified }}</p>
+                {% endif %}
+
+                {% if pipeline_routing %}
+                <details>
+                    <summary>Active Pipeline Routing</summary>
+                    <pre>{{ pipeline_routing | json_encode(pretty=true) }}</pre>
+                </details>
+                {% endif %}
+
+                {% if server_configs %}
+                <details>
+                    <summary>Server Configurations</summary>
+                    <pre>{{ server_configs | json_encode(pretty=true) }}</pre>
+                </details>
+                {% endif %}
+                
+                {% if module_context %}
+                <details>
+                    <summary>Module Context</summary>
+                    <pre>{{ module_context | json_encode(pretty=true) }}</pre>
+                </details>
+                {% endif %}
             </div>
         </div>
     </body>

@@ -1,0 +1,11 @@
+modules:
+  - id: "errorhandler_jinja2"
+    name: "ox_webservice_errorhandler_jinja2"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+routes:
+  - url: ".*"
+    status_code: "4??|5??"
+    module_id: "errorhandler_jinja2"
+    phase: ErrorHandling
+    priority: 499

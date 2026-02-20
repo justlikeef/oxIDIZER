@@ -1,0 +1,7 @@
+name: chain_mid
+version: 1.0.0
+package_type: module
+description: Middle module for recursive chain.
+dependencies:
+  - chain_base
+installer_handlers: {}

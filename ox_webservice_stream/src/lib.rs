@@ -2,7 +2,8 @@ use regex::Regex;
 use libc::{c_void, c_char};
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, AllocFn, PipelineState,
+    CoreHostApi, WebServiceApiV1, AllocFn, AllocStrFn, PipelineState,
+    ModuleStatus,    FlowControl, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -17,7 +18,7 @@ mod tests;
 
 const MODULE_NAME: &str = "ox_webservice_stream";
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, serde::Serialize)]
 pub struct MimeTypeMapping {
     url: String,
     mimetype: String,
@@ -46,11 +47,13 @@ pub struct ContentConfig {
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(non_camel_case_types)]
 pub enum ContentConflictAction {
-    Overwrite,
-    Append,
-    Skip,
-    Error,
+    overwrite,
+    append,
+    skip,
+    error,
 }
 
 pub struct OxModule<'a> {
@@ -58,26 +61,32 @@ pub struct OxModule<'a> {
     pub mimetypes: Vec<MimeTypeMapping>,
     pub default_documents: Vec<DocumentConfig>,
     pub content_config: ContentConfig,
-    api: &'a WebServiceApiV1,
+    pub module_id: String,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> OxModule<'a> {
     fn log(&self, level: LogLevel, message: String) {
         if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
+            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
             unsafe {
                 (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
             }
         }
     }
 
-    pub fn new(config: ContentConfig, api: &'a WebServiceApiV1) -> Result<Self> {
+    // Constructor still takes WebServiceApiV1 to support legacy casting in init, 
+    // BUT we will cast it to CoreHostApi immediately or change signature.
+    // Changing signature in `new` is cleaner.
+    pub fn new(config: ContentConfig, api: &'a CoreHostApi, module_id: String) -> Result<Self> {
+        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
+
         if let Ok(c_message) = CString::new(format!(
             "ox_webservice_stream: new: Initializing with content_root: {:?}",
             config.content_root
         )) {
-            let module_name = CString::new(MODULE_NAME).unwrap();
-            unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), c_message.as_ptr()); }
+            let module_name = CString::new(module_id.clone()).unwrap();
+            unsafe { (api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_message.as_ptr()); }
         }
 
         let mimetype_file_name = &config.mimetypes_file;
@@ -85,7 +94,12 @@ impl<'a> OxModule<'a> {
         
         // Use ox_fileproc for mimetypes config
         let mut mimetype_config: MimeTypeConfig = match ox_fileproc::process_file(&mimetype_path, 5) {
-            Ok(value) => match serde_json::from_value(value) {
+            Ok(value) => {
+                 if let Ok(json_str) = serde_json::to_string_pretty(&value) {
+                     use log::debug;
+                     debug!("Fully processed config for {:?}:\n{}", mimetype_path, json_str);
+                 }
+                 match serde_json::from_value(value) {
                 Ok(cfg) => cfg,
                 Err(e) => {
                      if let Ok(c_message) = CString::new(format!(
@@ -96,6 +110,7 @@ impl<'a> OxModule<'a> {
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
                     anyhow::bail!("Failed to deserialize mimetype config: {}", e);
+                }
                 }
             },
             Err(e) => {
@@ -122,16 +137,32 @@ impl<'a> OxModule<'a> {
                         let module_name = CString::new(MODULE_NAME).unwrap();
                         unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
                     }
-                    // Continue, just won't match. Or could fail hard. Let's log error and leave None.
                 }
             }
         }
 
+        let canonical_root = match fs::canonicalize(&config.content_root) {
+            Ok(p) => p,
+            Err(e) => {
+                 if let Ok(c_message) = CString::new(format!(
+                    "ox_webservice_stream: Failed to canonicalize content_root '{:?}': {}",
+                    config.content_root, e
+                )) {
+                    let module_name = CString::new(module_id.clone()).unwrap();
+                    unsafe { (api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_message.as_ptr()); }
+                }
+                // Fallback to provided path if canonicalization fails (e.g. doesn't exist yet but might?)
+                // But resolving requires existence usually.
+                PathBuf::from(config.content_root.clone())
+            }
+        };
+
         Ok(Self {
-            content_root: PathBuf::from(config.content_root.clone()),
+            content_root: canonical_root,
             mimetypes: mimetype_config.mimetypes,
             default_documents: config.default_documents.clone(),
             content_config: config,
+            module_id,
             api,
         })
     }
@@ -139,45 +170,101 @@ impl<'a> OxModule<'a> {
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         if pipeline_state_ptr.is_null() {
             self.log(LogLevel::Error, "ox_webservice_stream: proccess_request called with null pipeline state.".to_string());
-            return HandlerResult::ModifiedJumpToError;
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
         }
 
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
         let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
+        
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
+
 
         // --- Early Conflict Check for Skip ---
-        let existing_body_ptr = unsafe { (self.api.get_response_body)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        let mut existing_body = String::new();
-        if !existing_body_ptr.is_null() {
-            existing_body = unsafe { CStr::from_ptr(existing_body_ptr).to_string_lossy().into_owned() };
-        }
-        
-        let has_existing_content = !existing_body.is_empty();
+        // Check generic state latch "pipeline.modified"
+        let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
+             val.as_str().unwrap_or("false") == "true"
+        } else { false };
 
-        if has_existing_content {
-             match self.content_config.on_content_conflict {
-                 Some(ContentConflictAction::Skip) => {
-                     self.log(LogLevel::Debug, "ox_webservice_stream: Skipping due to existing content (early check).".to_string());
-                     return HandlerResult::UnmodifiedContinue;
+        self.log(LogLevel::Info, format!("ox_webservice_stream: Early conflict check. is_modified={}, action={:?}", is_modified, self.content_config.on_content_conflict));
+
+        if is_modified {
+             match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::skip) {
+                 ContentConflictAction::skip => {
+                     self.log(LogLevel::Info, "ox_webservice_stream: Skipping due to existing content (early check).".to_string());
+                     return HandlerResult {
+                        status: ModuleStatus::Unmodified,
+                        flow_control: FlowControl::Continue,
+                        return_parameters: ReturnParameters {
+                            return_data: std::ptr::null_mut(),
+                        },
+                     };
                  },
-                 Some(ContentConflictAction::Error) => {
+                 ContentConflictAction::error => {
                      self.log(LogLevel::Error, "ox_webservice_stream: Conflict error (early check).".to_string());
-                     unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                     return HandlerResult::ModifiedJumpToError;
+                     let _ = ctx.set("response.status", serde_json::json!(500));
+                      return HandlerResult {
+                         status: ModuleStatus::Modified,
+                         flow_control: FlowControl::Continue, // Return 500 but continue pipeline? Or halt on 500?
+                         return_parameters: ReturnParameters {
+                             return_data: std::ptr::null_mut(),
+                         },
+                      };
                  },
                  _ => {}
              }
         }
 
-        let request_path_ptr = unsafe { (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str) };
-        if request_path_ptr.is_null() {
-             self.log(LogLevel::Error, "ox_webservice_stream: get_request_path returned null.".to_string());
-             unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-             return HandlerResult::ModifiedJumpToError;
-        }
-        let request_path = unsafe { CStr::from_ptr(request_path_ptr).to_str().unwrap_or("/") };
+        // Get Path (Prioritize generic resource, fallback to HTTP path)
+        // Get Path (Prioritize generic resource)
+        let request_path = match ctx.get("request.resource") {
+            Some(v) => v.as_str().unwrap_or("/").to_string(),
+            None => match ctx.get("request.path") {
+                Some(v) => v.as_str().unwrap_or("/").to_string(),
+                None => {
+                     self.log(LogLevel::Error, "ox_webservice_stream: Both request.resource and request.path returned None.".to_string());
+                     let _ = ctx.set("response.status", serde_json::json!(500));
+                      return HandlerResult {
+                         status: ModuleStatus::Modified,
+                         flow_control: FlowControl::Continue,
+                         return_parameters: ReturnParameters {
+                             return_data: std::ptr::null_mut(),
+                         },
+                      };
+                }
+            }
+        };
 
-        if let Some(file_path) = self.resolve_and_find_file(request_path) {
+        // Check for regex matches in module context (Legacy?)
+        // "regex_matches" key relies on Generic State
+        let mut resolved_path = request_path.clone();
+        
+        // Router sets "http.request.path_capture"
+        // Router sets "http.request.path_capture"
+        if let Some(val) = ctx.get("request.capture") {
+             let val_str = val.as_str().unwrap_or("").to_string();
+             self.log(LogLevel::Info, format!("ox_webservice_stream: Found path_capture: '{}'", val_str));
+             resolved_path = val_str;
+        } else if let Some(val) = ctx.get("regex_matches") {
+              if let Some(matches) = val.as_array() {
+                  if let Some(first) = matches.get(0).and_then(|v| v.as_str()) {
+                      resolved_path = first.to_string();
+                  }
+              }
+        } else {
+             self.log(LogLevel::Info, format!("ox_webservice_stream: No path_capture found. request_path: '{}'", request_path));
+        }
+
+        if let Some(file_path) = self.resolve_and_find_file(&resolved_path) {
             let file_name_str = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
             
             // Find first matching regex
@@ -189,87 +276,116 @@ impl<'a> OxModule<'a> {
                 }
             });
 
-            if let Some(mapping) = mimetype_mapping {
-                    
-                    // Late Conflict Check (Optimization: Skip/Error handled early)
-                    if has_existing_content {
-                         // Only Overwrite and Append reach here
-                         match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::Overwrite) {
-                             ContentConflictAction::Skip | ContentConflictAction::Error => {
-                                 // Should have been caught early
-                                 return HandlerResult::UnmodifiedContinue; 
-                             },
-                             _ => {} // Proceed for Overwrite/Append
-                         }
+            // Determine mimetype (explicit or default)
+            let mimetype = if let Some(mapping) = mimetype_mapping {
+                mapping.mimetype.clone()
+            } else {
+                "application/octet-stream".to_string()
+            };
+
+            // Late Conflict Check (Optimization: Skip/Error handled early)
+            if is_modified {
+                    match self.content_config.on_content_conflict.unwrap_or(ContentConflictAction::skip) {
+                        ContentConflictAction::skip | ContentConflictAction::error => {
+                            // Should have been caught early
+                            return HandlerResult {
+                            status: ModuleStatus::Unmodified,
+                            flow_control: FlowControl::Continue,
+                            return_parameters: ReturnParameters {
+                                return_data: std::ptr::null_mut(),
+                            },
+                            }; 
+                        },
+                        _ => {} // Proceed for Overwrite/Append
                     }
+            }
 
-                    match fs::read(&file_path) {
-                        Ok(content) => {
-                             self.log(
-                                LogLevel::Debug,
-                                format!(
-                                    "ox_webservice_stream: Successfully handled request for path: {}",
-                                    request_path
-                                ),
-                            );
-
-                            let mut content_bytes = content;
-                            
-                            // Handle Append
-                            if has_existing_content {
-                                if let Some(ContentConflictAction::Append) = self.content_config.on_content_conflict {
-                                    let mut combined = existing_body.into_bytes();
-                                    combined.extend(content_bytes);
-                                    content_bytes = combined;
-                                }
-                            }
-
-                            unsafe {
-                                let c_content_type_key = CString::new("Content-Type").unwrap();
-                                let c_content_type_value = CString::new(mapping.mimetype.as_str()).unwrap();
-                                (self.api.set_response_header)(
-                                    pipeline_state,
-                                    c_content_type_key.as_ptr(),
-                                    c_content_type_value.as_ptr(),
-                                );
-                                (self.api.set_response_body)(
-                                    pipeline_state,
-                                    content_bytes.as_ptr(),
-                                    content_bytes.len(),
-                                );
-                            }
-                            return HandlerResult::ModifiedContinue;
+            // Verify file existence (again? resolve_and_find check existence)
+            // But we must open it? Host streams it by path. We just need to ensure metadata ok?
+            match fs::metadata(&file_path) {
+                Ok(metadata) => {
+                        if !metadata.is_file() {
+                            let _ = ctx.set("response.status", serde_json::json!(404));
+                            return HandlerResult {
+                                status: ModuleStatus::Modified,
+                                flow_control: FlowControl::Continue, // Or halt?
+                                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+                            };
                         }
-                        Err(e) => {
-                             self.log(
-                                LogLevel::Error,
-                                format!(
-                                    "ox_webservice_stream: Error handling request for path {}: {}",
-                                    request_path, e
-                                ),
-                            );
-                            unsafe { (self.api.set_response_status)(pipeline_state, 500); }
-                            return HandlerResult::ModifiedJumpToError;
+                        
+                        if let Err(e) = fs::File::open(&file_path) {
+                            self.log(LogLevel::Error, format!("ox_webservice_stream: File exists but cannot be opened {}: {}", resolved_path, e));
+                            let _ = ctx.set("response.status", serde_json::json!(500));
+                            return HandlerResult {
+                                status: ModuleStatus::Modified,
+                                flow_control: FlowControl::Continue,
+                                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+                            };
                         }
-                    }
 
+                        self.log(
+                        LogLevel::Info,
+                        format!(
+                            "ox_webservice_stream: Streaming file for path: {}",
+                            resolved_path
+                        ),
+                    );
+
+                    // Set Content-Type (Generic and HTTP)
+                    let _ = ctx.set("response.type", serde_json::Value::String(mimetype.clone()));
+                    let _ = ctx.set("response.status", serde_json::json!(200));
+
+                    // Pass file path to host
+                    // Host takes ownership of the CString pointer
+                    let c_path = CString::new(file_path.to_string_lossy().into_owned()).unwrap();
+                    let return_data = c_path.into_raw() as *mut c_void;
+
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::StreamFile,
+                        return_parameters: ReturnParameters {
+                            return_data,
+                        },
+                    };
+                }
+                Err(e) => {
+                        self.log(
+                        LogLevel::Error,
+                        format!(
+                            "ox_webservice_stream: Error accessing file metadata for path {}: {}",
+                            resolved_path, e
+                        ),
+                    );
+
+                    let _ = ctx.set("response.status", serde_json::json!(500));
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::Continue, 
+                        return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }, 
+                    };
+                }
             }
         } else {
              self.log(
-                LogLevel::Debug,
+                LogLevel::Info,
                 format!(
                     "ox_webservice_stream: File not found for path: {}",
-                    request_path
+                    resolved_path
                 ),
             );
-            unsafe { 
-                (self.api.set_response_status)(pipeline_state, 404);
-                let body = CString::new("404 Not Found").unwrap();
-                (self.api.set_response_body)(pipeline_state, body.as_ptr() as *const u8, body.as_bytes().len());
+            
+            let _ = ctx.set("response.status", serde_json::json!(404));
+            // Generic body?
+            let _ = ctx.set("response.body", serde_json::Value::String("404 Not Found".to_string()));
+
+             HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
             }
         }
-        
-        HandlerResult::ModifiedContinue
     }
 
     fn resolve_and_find_file(&self, request_path: &str) -> Option<PathBuf> {
@@ -307,7 +423,8 @@ impl<'a> OxModule<'a> {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
-    api_ptr: *const WebServiceApiV1,
+    module_id_ptr: *const c_char,
+    api_ptr: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     if api_ptr.is_null() {
         eprintln!("ox_webservice_stream: api_ptr is null in initialize_module");
@@ -315,10 +432,16 @@ pub unsafe extern "C" fn initialize_module(
     }
     let api_instance = unsafe { &*api_ptr };
 
+    let module_id = if !module_id_ptr.is_null() {
+        unsafe { CStr::from_ptr(module_id_ptr).to_string_lossy().to_string() }
+    } else {
+        MODULE_NAME.to_string()
+    };
+    let c_module_id = CString::new(module_id.clone()).unwrap();
+
     if module_params_json_ptr.is_null() {
          let log_msg = CString::new("ox_webservice_stream: module_params_json_ptr is null").unwrap();
-         let module_name = CString::new(MODULE_NAME).unwrap();
-         unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+         unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
          return std::ptr::null_mut();
     }
 
@@ -327,52 +450,50 @@ pub unsafe extern "C" fn initialize_module(
         let params: Value =
             serde_json::from_str(module_params_json).expect("Failed to parse module params JSON");
 
-        let config_file_name = match params.get("config_file").and_then(|v| v.as_str()) {
-            Some(name) => name,
-            None => {
-                let log_msg = CString::new("'config_file' parameter is missing or not a string.").unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                let _ = panic::catch_unwind(|| {
-                    unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                });
-                return std::ptr::null_mut();
-            }
-        };
-
-        let config_path = PathBuf::from(config_file_name);
-        
-        // Use ox_fileproc for module config
-        let config: ContentConfig = match ox_fileproc::process_file(&config_path, 5) {
-            Ok(value) => match serde_json::from_value(value) {
-                Ok(c) => c,
-                Err(e) => {
-                     let log_msg = CString::new(format!("Failed to deserialize ContentConfig: {}", e)).unwrap();
-                     let module_name = CString::new(MODULE_NAME).unwrap();
-                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                     return std::ptr::null_mut();
+        let config: ContentConfig = match params.get("config_file").and_then(|v| v.as_str()) {
+            Some(config_file_name) => {
+                let config_path = PathBuf::from(config_file_name);
+                match ox_fileproc::process_file(&config_path, 5) {
+                    Ok(value) => match serde_json::from_value(value) {
+                        Ok(c) => c,
+                        Err(e) => {
+                             let log_msg = CString::new(format!("Failed to deserialize ContentConfig from {}: {}", config_file_name, e)).unwrap();
+                             unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
+                             return std::ptr::null_mut();
+                        }
+                    },
+                    Err(e) => {
+                         let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
+                         unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
+                         return std::ptr::null_mut();
+                    }
                 }
             },
-            Err(e) => {
-                 let log_msg = CString::new(format!("Failed to process config file '{}': {}", config_file_name, e)).unwrap();
-                 let module_name = CString::new(MODULE_NAME).unwrap();
-                 let _ = panic::catch_unwind(|| {
-                     unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-                 });
-                 return std::ptr::null_mut();
+            None => {
+                // Fallback: Construct ContentConfig from direct params
+                let content_root = params.get("content_root").and_then(|v| v.as_str()).unwrap_or("./www").to_string();
+                let mimetypes_file = params.get("mimetypes_file").and_then(|v| v.as_str()).unwrap_or("conf/mimetypes.yaml").to_string();
+                
+                ContentConfig {
+                    content_root,
+                    mimetypes_file,
+                    default_documents: vec![DocumentConfig { document: "index.html".to_string() }],
+                    on_content_conflict: None,
+                }
             }
         };
 
-        let handler = match OxModule::new(config, api_instance) {
+    // Note: c_module_id is reference to module_id string which is cloned into OxModule?
+    // We pass module_id (String) to new
+    let handler = match OxModule::new(config, api_instance, module_id.clone()) {
             Ok(h) => {
                 let log_msg = CString::new("ox_webservice_stream initialized").unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Info, module_name.as_ptr(), log_msg.as_ptr()); }
+                unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), log_msg.as_ptr()); }
                 h
             },
             Err(e) => {
                 let log_msg = CString::new(format!("Failed to create OxModule: {}", e)).unwrap();
-                let module_name = CString::new(MODULE_NAME).unwrap();
-                unsafe { (api_instance.log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
+                unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
                 return std::ptr::null_mut();
             }
         };
@@ -383,6 +504,7 @@ pub unsafe extern "C" fn initialize_module(
             instance_ptr,
             handler_fn: process_request_c,
             log_callback: api_instance.log_callback,
+            get_config: get_config_c,
         });
 
         Box::into_raw(module_interface)
@@ -397,19 +519,23 @@ pub unsafe extern "C" fn initialize_module(
     }
 }
 
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    log_callback: LogCallback,
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn process_request_c(
+    instance_ptr: *mut c_void, 
+    pipeline_state_ptr: *mut PipelineState, 
+    _log_callback: LogCallback,
     _alloc_fn: AllocFn,
-    _arena: *const c_void, 
+    _arena: *const c_void,
 ) -> HandlerResult {
     // Safety check for handler instance
     if instance_ptr.is_null() {
-        let log_msg = CString::new("ox_webservice_stream: process_request_c called with null instance_ptr").unwrap();
-        let module_name = CString::new(MODULE_NAME).unwrap();
-        unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-        return HandlerResult::ModifiedJumpToError;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
@@ -422,9 +548,44 @@ unsafe extern "C" fn process_request_c(
         Err(e) => {
             let log_msg =
                 CString::new(format!("Panic occurred in process_request_c: {:?}.", e)).unwrap();
+            
+             // We don't have log callback handy if we don't store it or pass it.
+             // But we have _log_callback arg.
             let module_name = CString::new(MODULE_NAME).unwrap();
-            unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-            HandlerResult::ModifiedJumpToError
+             // TODO: We could upgrade Handler to store module_id and log from there?
+             // But process_request_c is the handler_fn.
+             // We can cast instance_ptr to OxModule and get module_id?
+             let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
+             let module_name_actual = CString::new(handler_unsafe.module_id.clone()).unwrap_or(module_name);
+             
+            unsafe { (_log_callback)(LogLevel::Error, module_name_actual.as_ptr(), log_msg.as_ptr()); }
+            
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            }
         }
     }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_config_c(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() { return std::ptr::null_mut(); }
+    let handler = unsafe { &*(instance_ptr as *mut OxModule) };
+    
+    let config_val = serde_json::to_value(&handler.content_config).unwrap_or(Value::Null);
+    
+    let json = serde_json::to_string_pretty(&config_val).unwrap_or("{}".to_string());
+    
+    // Use generic PluginContext for allocation safety
+    // We pass null for state_ptr since we are only allocating
+    let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(handler.api, std::ptr::null_mut(), arena) };
+    ctx.alloc_string(&json)
 }

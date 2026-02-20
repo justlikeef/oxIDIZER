@@ -1,0 +1,11 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_api (Ports: 28060 28061 28062 28063 28064)
+[INFO] ==================================================
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_api:900001-Safety-Miri:PASSED
+[INFO] Running test: 900002-Safety-Fuzz-ModuleConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_api:900002-Safety-Fuzz-ModuleConfig:PASSED
+[INFO] Module ox_webservice_api completed. Tests: 2, Failures: 0
+[INFO] --------------------------------------------------

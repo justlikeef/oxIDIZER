@@ -154,6 +154,7 @@ pub extern "C" fn get_driver_metadata_json() -> *mut c_char {
 
     let metadata = DriverMetadata {
         name: "ox_persistence_gdo_relational".to_string(),
+        friendly_name: Some("GDO Relational Driver".to_string()),
         description: "A driver for managing relationships between GDOs across multiple datastores.".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules,

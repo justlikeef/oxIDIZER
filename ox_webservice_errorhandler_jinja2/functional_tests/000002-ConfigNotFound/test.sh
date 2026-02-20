@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
+# Parameters
+DEFAULT_LOGGING_LEVEL="info"
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
@@ -17,6 +19,10 @@ TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 # Use provided LOGGING_LEVEL or the default
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -32,13 +38,57 @@ fi
 if [ "$MODE" == "isolated" ]; then
   # Define paths for the new parameters
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
-  TEST_WORKSPACE_DIR=$(readlink -f "$TEST_DIR/../../../")
+  TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
+  mkdir -p "$TEST_DIR/conf"
+
+  # Generate helper configs
+  cat <<EOF > "$TEST_DIR/conf/log4rs.yaml"
+appenders:
+  stdout:
+    kind: console
+root:
+  level: debug
+  appenders:
+    - stdout
+EOF
+
+  cat <<EOF > "$TEST_DIR/conf/mimetypes.yaml"
+mimetypes:
+  - mimetype: text/html
+    url: ".*[.]html$"
+EOF
+  cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$TEST_DIR/conf/log4rs.yaml"
+mimetypes_config: "$TEST_DIR/conf/mimetypes.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: $BASE_PORT
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"
+modules:
+  - id: errorhandler
+    name: ox_webservice_errorhandler_jinja2
+    path: "$TEST_WORKSPACE_DIR/target/debug/libox_webservice_errorhandler_jinja2.so"
+    params:
+      config_file: "$TEST_DIR/non_existent.yaml"
+    phase: Error
+    priority: 999
+pipeline:
+  phases:
+    - Error: default
+routes:
+  - url: ".*"
+    module_id: errorhandler
+    phase: Error
+EOF
 
   # Start the server and capture the output
   START_OUTPUT=$("$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
     "debug" \
-    "$TEST_DIR/ox_webservice.yaml" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR")

@@ -1,0 +1,8 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_fileproc (Ports: 28000 28001 28002 28003 28004)
+[INFO] ==================================================
+[INFO] Running test: 500001-Safety-Fuzz-ProcessContent
+[INFO] Result: PASSED
+[RESULT] ox_fileproc:500001-Safety-Fuzz-ProcessContent:PASSED
+[INFO] Module ox_fileproc completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------

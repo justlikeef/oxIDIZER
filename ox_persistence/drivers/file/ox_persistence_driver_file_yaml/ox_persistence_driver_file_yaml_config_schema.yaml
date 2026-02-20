@@ -1,0 +1,15 @@
+friendly_name: YAML File
+id: "yaml_datasource_form"
+title: "YAML File Data Source Configuration"
+fields:
+  - name: "path"
+    label: "YAML File Path"
+    data_type: "string"
+    props:
+      placeholder: "data/storage.yaml"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

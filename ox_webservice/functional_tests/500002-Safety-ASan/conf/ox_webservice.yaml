@@ -1,0 +1,17 @@
+servers:
+  - port: 3000
+    protocol: http
+    bind_address: "127.0.0.1"
+    hosts:
+      - name: localhost
+# Plugin loading disabled due to ASan + Dylib runtime conflict (SEGV <unknown module>)
+# We verify Host safety only.
+# modules:
+#   - name: ox_webservice_status
+#     path: "target/debug/libox_webservice_status.so"
+#     phase: Content
+#     priority: 100
+#     uris:
+#       - path: "/status"
+enable_metrics: true
+log4rs_config: "ox_webservice/conf/log4rs.yaml"

@@ -1,0 +1,24 @@
+[package]
+name = "ox_webservice_forwarded_for-fuzz"
+version = "0.0.0"
+license = "GPL-3.0-only"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ox_webservice_forwarded_for]
+path = ".."
+
+[[bin]]
+name = "fuzz_target_1"
+path = "fuzz_targets/fuzz_target_1.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

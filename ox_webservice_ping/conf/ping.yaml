@@ -1,0 +1,9 @@
+modules:
+  - id: "ping_module"
+    name: "ox_webservice_ping"
+    phase: Content
+
+routes:
+  - url: "^\/ping\/(.*)?$"
+    module_id: "ping_module"
+    priority: 500

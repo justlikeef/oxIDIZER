@@ -1,0 +1,28 @@
+[package]
+name = "ox_callback_manager-fuzz"
+version = "0.0.0"
+license = "GPL-3.0-only"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ox_webservice_api]
+path = ".."
+
+[dependencies.serde_json]
+version = "1.0"
+license = "GPL-3.0-only"
+
+[[bin]]
+name = "module_config_parse"
+path = "fuzz_targets/module_config_parse.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

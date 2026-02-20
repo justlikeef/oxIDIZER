@@ -1,0 +1,27 @@
+[package]
+name = "ox_persistence_driver_db_mssql"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ox_persistence = { path = "../../../" }
+ox_locking = { path = "../../../../ox_locking" }
+ox_persistence_driver_sql = { package = "ox_persistence_driver_db_sql", path = "../ox_persistence_driver_db_sql" }
+
+
+ox_data_object = { path = "../../../../ox_data_object" }
+ox_type_converter = { path = "../../../../ox_type_converter" }
+tiberius = { version = "0.12", features = ["chrono"] } # Placeholder for mssql client
+tokio = { version = "1", features = ["full"] } # For async operations
+tokio-util = { version = "0.7", features = ["compat"] }
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] } # Kept for tiberius/chrono? No, they use their own.
+# serde_json removed
+ox_fileproc = { path = "../../../../ox_fileproc" }
+chrono = { version = "0.4", features = ["serde"] }
+libc = "0.2"
+bumpalo = "3.19.0"

@@ -1,104 +1,84 @@
-pub use ox_webservice_api::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::fs;
+pub use ox_webservice_api::{ModuleConfig, UriMatcher};
+
 pub mod pipeline;
 
-use std::error::Error;
-use std::fmt;
-use std::path::Path;
-use serde::Deserialize;
-use log::{debug, trace, error};
-
-#[derive(Debug)]
-pub enum ConfigError {
-    NotFound,
-    ReadError(std::io::Error),
-    ParseError(String),
-    UnsupportedFileExtension,
-    Deserialization(String),
-    UnsupportedFormat,
-}
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ConfigError::NotFound => write!(f, "Configuration file not found"),
-            ConfigError::ReadError(e) => write!(f, "Error reading configuration file: {}", e),
-            ConfigError::ParseError(e) => write!(f, "Error parsing configuration file: {}", e),
-            ConfigError::UnsupportedFileExtension => write!(f, "Unsupported configuration file extension"),
-            ConfigError::Deserialization(e) => write!(f, "Error deserializing configuration: {}", e),
-            ConfigError::UnsupportedFormat => write!(f, "Unsupported configuration file format"),
-        }
-    }
-}
-
-impl Error for ConfigError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            ConfigError::ReadError(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-use serde::Serialize;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct UrlRoute {
-    #[serde(default)]
-    pub protocol: Option<String>,
-    #[serde(default)]
-    pub hostname: Option<String>,
-    pub url: String,
-    pub module_id: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ServerConfig {
-    #[serde(default)]
-    pub urls: Vec<UrlRoute>,
-    #[serde(default)]
-    pub modules: Vec<ModuleConfig>,
-    pub log4rs_config: String,
-    pub enable_metrics: Option<bool>,
-    pub servers: Vec<ServerDetails>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct HostDetails {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct HostConfig {
     pub name: String,
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServerDetails {
+    #[serde(default = "default_details_id")]
+    pub id: String,
     pub protocol: String,
     pub port: u16,
     pub bind_address: String,
-    pub hosts: Vec<HostDetails>,
+    #[serde(default)]
+    pub hosts: Vec<HostConfig>,
 }
 
-pub fn load_config_from_path(path: &Path, cli_log_level: &str) -> Result<ServerConfig, ConfigError> {
-    debug!("Loading config from: {:?}", path);
-    trace!("File extension: {:?}", path.extension());
+fn default_details_id() -> String {
+    "default".to_string()
+}
 
-    if !path.exists() {
-        error!("Configuration file not found at {:?}", path);
-        return Err(ConfigError::NotFound);
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PipelineConfig {
+    pub phases: Option<Vec<HashMap<String, String>>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UrlRoute {
+    pub protocol: Option<String>,
+    pub hostname: Option<String>,
+    #[serde(alias = "url")]
+    pub url: Option<String>,
+    pub headers: Option<HashMap<String, String>>,
+    pub query: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub priority: u16,
+    pub phase: Option<String>,
+    pub module_id: Option<String>,
+    pub status_code: Option<String>,
+}
+
+
+// Config struct for direct deserialization - ox_fileproc handles merges now
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServerConfig {
+    pub log4rs_config: String,
+    #[serde(default)]
+    pub servers: Vec<ServerDetails>,
+    #[serde(default)]
+    pub modules: Vec<ModuleConfig>,
+    pub pipeline: Option<PipelineConfig>,
+    #[serde(default)]
+    pub routes: Vec<UrlRoute>,
+    #[serde(default)]
+    pub merge: Option<Vec<String>>,
+    #[serde(default)]
+    pub merge_recursive: Option<Vec<String>>,
+    pub enable_metrics: Option<bool>,
+}
+
+pub fn load_config_from_path(path: &Path, _log_level: &str) -> Result<(ServerConfig, String), String> {
+    // Phase 1: Load Main Config using ox_fileproc (handles standard includes/substitutions/merges)
+    let processed_value = ox_fileproc::process_file(path, 10).map_err(|e| format!("ox_fileproc failed to process config {:?}: {}", path, e))?;
     
-    // Use ox_fileproc to process the file (supports include, variables, multi-format)
-    let value = ox_fileproc::process_file(path, 5)
-        .map_err(|e| ConfigError::ReadError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
-
-    let contents = serde_json::to_string_pretty(&value)
-        .map_err(|e| ConfigError::Deserialization(e.to_string()))?;
-
-    if cli_log_level == "trace" {
-        trace!("Processed config content:\n{}", contents);
-    } else if cli_log_level == "debug" {
-        debug!("Processed config content:\n{}", contents);
-    }
-
-    // Deserialize the processed JSON value into ServerConfig
-    serde_json::from_value(value).map_err(|e| ConfigError::Deserialization(e.to_string()))
+    // ox_fileproc returns a merged Value. We just deserialize.
+    // Note: The 'merge' and 'merge_recursive' keys are removed by ox_fileproc upon processing, 
+    // so ServerConfig.merge/merge_recursive will be None (default), which is correct.
+    
+    let config: ServerConfig = serde_json::from_value(processed_value).map_err(|e| format!("Failed to deserialize ServerConfig from processed JSON: {}", e))?;
+    
+    // Re-serialize strictly for the "json" return required by main
+    let config_json = serde_json::to_string(&config).map_err(|e| e.to_string())?;
+    
+    Ok((config, config_json))
 }

@@ -1,0 +1,7 @@
+name: "dummy-driver"
+version: "1.0.0"
+package_type: "persistence_drivers"
+description: "A dummy driver for testing the delegated installer."
+resources:
+  - type: "driver_library"
+    filename: "libdummy_driver.so"

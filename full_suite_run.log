@@ -1,0 +1,428 @@
+Starting Full Functional Test Suite Run...
+==================================================
+Running tests for module: ox_fileproc
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_fileproc (Ports: 28000 28001 28002 28003 28004)
+[INFO] ==================================================
+[INFO] Running test: 500001-Safety-Fuzz-ProcessContent
+[INFO] Result: PASSED
+[RESULT] ox_fileproc:500001-Safety-Fuzz-ProcessContent:PASSED
+[INFO] Module ox_fileproc completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_fileproc PASSED
+
+==================================================
+Running tests for module: ox_messaging_client
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_messaging_client (Ports: 28010 28011 28012 28013 28014)
+[INFO] ==================================================
+[INFO] Running test: 100001-Verification
+[INFO] Result: PASSED
+[RESULT] ox_messaging_client:100001-Verification:PASSED
+[INFO] Module ox_messaging_client completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_messaging_client PASSED
+
+==================================================
+Running tests for module: ox_package_manager
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_package_manager (Ports: 28020 28021 28022 28023 28024)
+[INFO] ==================================================
+[INFO] Running test: 000005-Upload-InvalidExtension
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000005-Upload-InvalidExtension:PASSED
+[INFO] Running test: 000006-Upload-MissingManifest
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000006-Upload-MissingManifest:PASSED
+[INFO] Running test: 000007-Upload-CorruptedArchive
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000007-Upload-CorruptedArchive:PASSED
+[INFO] Running test: 100001-Upload-Zip
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100001-Upload-Zip:PASSED
+[INFO] Running test: 100002-Upload-TarGz
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100002-Upload-TarGz:PASSED
+[INFO] Running test: 100003-Upload-TarBz2
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100003-Upload-TarBz2:PASSED
+[INFO] Running test: 100004-Upload-YamlManifest
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100004-Upload-YamlManifest:PASSED
+[INFO] Running test: 100005-GetStagedList
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100005-GetStagedList:PASSED
+[INFO] Running test: 100006-InstallPackage
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100006-InstallPackage:PASSED
+[INFO] Running test: 200001-Routing
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:200001-Routing:PASSED
+[INFO] Module ox_package_manager completed. Tests: 10, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_package_manager PASSED
+
+==================================================
+Running tests for module: ox_persistence_datasource_manager
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_datasource_manager (Ports: 28030 28031 28032 28033 28034)
+[INFO] ==================================================
+[INFO] Running test: 200001-DataSourceCRUD
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200001-DataSourceCRUD:PASSED
+[INFO] Running test: 200002-ConflictManagement
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200002-ConflictManagement:PASSED
+[INFO] Running test: 200003-RoutingSeparation
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200003-RoutingSeparation:PASSED
+[INFO] Module ox_persistence_datasource_manager completed. Tests: 3, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_persistence_datasource_manager PASSED
+
+==================================================
+Running tests for module: ox_persistence_driver_manager
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_driver_manager (Ports: 28040 28041 28042 28043 28044)
+[INFO] ==================================================
+[INFO] Running test: 100002-Routing
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:100002-Routing:PASSED
+[INFO] Running test: 100003-DriverSchema
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:100003-DriverSchema:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_persistence_driver_manager:900001-Safety-Miri:SKIPPED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900010-Security-PathTraversal
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:900010-Security-PathTraversal:PASSED
+[INFO] Running test: 999999-CrashRepro
+[INFO] Result: PASSED
+[RESULT] ox_persistence_driver_manager:999999-CrashRepro:PASSED
+[INFO] Module ox_persistence_driver_manager completed. Tests: 6, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_persistence_driver_manager PASSED
+
+==================================================
+Running tests for module: ox_webservice
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice (Ports: 28050 28051 28052 28053 28054)
+[INFO] ==================================================
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-ConfigSchemaInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000004-ConfigSchemaInvalid:PASSED
+[INFO] Running test: 000005-IncludeError
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000005-IncludeError:PASSED
+[INFO] Running test: 000010-ConfigHTTPS-InvalidDNS
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000010-ConfigHTTPS-InvalidDNS:PASSED
+[INFO] Running test: 100001-ConfigHTTP
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100001-ConfigHTTP:PASSED
+[INFO] Running test: 100002-ConfigHTTPS
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100002-ConfigHTTPS:PASSED
+[INFO] Running test: 100003-ConfigHTTPS-SNI
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100003-ConfigHTTPS-SNI:PASSED
+[INFO] Running test: 100004-WebSocket
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100004-WebSocket:PASSED
+[INFO] Running test: 500001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500001-Safety-Miri:PASSED
+[INFO] Running test: 500002-Safety-ASan
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500002-Safety-ASan:PASSED
+[INFO] Running test: 500003-Safety-Fuzz-GetRequestHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500003-Safety-Fuzz-GetRequestHeader:PASSED
+[INFO] Running test: 500004-Safety-Fuzz-AllocStr
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500004-Safety-Fuzz-AllocStr:PASSED
+[INFO] Running test: 500005-Safety-Fuzz-GetModuleContext
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500005-Safety-Fuzz-GetModuleContext:PASSED
+[INFO] Running test: 500006-Safety-Fuzz-SetRequestPath
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500006-Safety-Fuzz-SetRequestPath:PASSED
+[INFO] Running test: 500007-Safety-Fuzz-SetRequestHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500007-Safety-Fuzz-SetRequestHeader:PASSED
+[INFO] Running test: 500008-Safety-Fuzz-SetSourceIp
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500008-Safety-Fuzz-SetSourceIp:PASSED
+[INFO] Running test: 500009-Safety-Fuzz-SetResponseHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500009-Safety-Fuzz-SetResponseHeader:PASSED
+[INFO] Running test: 500010-Safety-Fuzz-GetResponseHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500010-Safety-Fuzz-GetResponseHeader:PASSED
+[INFO] Module ox_webservice completed. Tests: 19, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_webservice PASSED
+
+==================================================
+Running tests for module: ox_webservice_api
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_api (Ports: 28060 28061 28062 28063 28064)
+[INFO] ==================================================
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_api:900001-Safety-Miri:PASSED
+[INFO] Running test: 900002-Safety-Fuzz-ModuleConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_api:900002-Safety-Fuzz-ModuleConfig:PASSED
+[INFO] Module ox_webservice_api completed. Tests: 2, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_webservice_api PASSED
+
+==================================================
+Running tests for module: ox_webservice_errorhandler_jinja2
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_errorhandler_jinja2 (Ports: 28070 28071 28072 28073 28074)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:000003-ConfigInvalid:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_webservice_errorhandler_jinja2:900001-Safety-Miri:SKIPPED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 999998-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:999998-NoTemplate:PASSED
+[INFO] Running test: 999999-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_errorhandler_jinja2:999999-CleanConfig:PASSED
+[INFO] Module ox_webservice_errorhandler_jinja2 completed. Tests: 7, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_webservice_errorhandler_jinja2 PASSED
+
+==================================================
+Running tests for module: ox_webservice_forwarded_for
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_forwarded_for (Ports: 28080 28081 28082 28083 28084)
+[INFO] ==================================================
+[INFO] Running test: 500001-Security-Spoofing
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500001-Security-Spoofing:PASSED
+[INFO] Running test: 500002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 500003-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_forwarded_for:500003-Safety-Miri:PASSED
+[INFO] Module ox_webservice_forwarded_for completed. Tests: 3, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_webservice_forwarded_for PASSED
+
+==================================================
+Running tests for module: ox_webservice_ping
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_ping (Ports: 28090 28091 28092 28093 28094)
+[INFO] ==================================================
+[INFO] Running test: 100001-PingTest
+[ERROR] [2026-01-06 23:06:34] [notice] Starting server process...
+[2026-01-06 23:06:34] [info] Server started with PID 1934661. Output redirected to /var/repos/oxIDIZER/ox_webservice_ping/functional_tests/100001-PingTest/logs/ox_webservice.log
+[INFO] Testing Default (HTML)...
+[ERROR] Default HTML test headers failed.
+[INFO] Testing JSON (Accept Header)...
+[INFO] JSON Header test passed.
+[INFO] Testing JSON (Query Param)...
+[INFO] JSON Query test passed.
+[2026-01-06 23:06:36] [notice] Stopping server with PID 1934661...
+[2026-01-06 23:06:36] [info] Server stopped.
+[ERROR] Test FAILED with 1 failures
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_ping:100001-PingTest:FAILED
+[INFO] Running test: 500001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_ping:500001-Safety-Miri:PASSED
+[INFO] Running test: 500002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_ping:500002-Safety-Fuzz-Config:PASSED
+[INFO] Module ox_webservice_ping completed. Tests: 3, Failures: 1
+[INFO] --------------------------------------------------
+Module ox_webservice_ping FAILED (Exit Code: 255)
+
+==================================================
+Running tests for module: ox_webservice_status
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_status (Ports: 28100 28101 28102 28103 28104)
+[INFO] ==================================================
+[INFO] Running test: 000001-Status-Configuration-Negative
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:000001-Status-Configuration-Negative:PASSED
+[INFO] Running test: 100001-Status-StandardOps
+[ERROR] [2026-01-06 23:07:09] [notice] Starting server process...
+[2026-01-06 23:07:09] [info] Server started with PID 1935233. Output redirected to /var/repos/oxIDIZER/ox_webservice_status/functional_tests/100001-Status-StandardOps/logs/ox_webservice.log
+[INFO] 1. Testing fallback HTML...
+[INFO] PASS: HTML returned by default
+[INFO] 2. Testing Accept: application/json...
+[ERROR] FAIL: Content-type not json
+[INFO] 3. Testing ?format=json...
+[ERROR] FAIL: Content-type not json
+[INFO] 4. Testing static asset /status/index.html...
+[INFO] PASS: Explicit static file returned
+[2026-01-06 23:07:15] [notice] Stopping server with PID 1935233...
+[2026-01-06 23:07:15] [info] Server stopped.
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_status:100001-Status-StandardOps:FAILED
+[INFO] Running test: 200001-Safety-Fuzzing
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:200001-Safety-Fuzzing:PASSED
+[INFO] Running test: 200002-Safety-Miri
+[WARN] Result: SKIPPED
+[RESULT] ox_webservice_status:200002-Safety-Miri:SKIPPED
+[INFO] Running test: 200003-Security-InfoLeak
+[INFO] Result: PASSED
+[RESULT] ox_webservice_status:200003-Security-InfoLeak:PASSED
+[INFO] Module ox_webservice_status completed. Tests: 5, Failures: 1
+[INFO] --------------------------------------------------
+Module ox_webservice_status FAILED (Exit Code: 255)
+
+==================================================
+Running tests for module: ox_webservice_stream
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_stream (Ports: 28110 28111 28112 28113 28114)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000004-NoTemplate:PASSED
+[INFO] Running test: 000005-NoHTML
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:000005-NoHTML:PASSED
+[INFO] Running test: 100001-HTMLIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100001-HTMLIndex:PASSED
+[INFO] Running test: 100002-HTMLNotIndex
+[ERROR] [2026-01-06 23:07:54] [notice] Starting server process...
+[2026-01-06 23:07:54] [info] Server started with PID 1936024. Output redirected to /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100002-HTMLNotIndex/logs/ox_webservice.log
+[2026-01-06 23:07:57] [notice] Stopping server with PID 1936024...
+[2026-01-06 23:07:57] [info] Server stopped.
+[ERROR] Did not find expected Streaming/Logging message in log
+[ERROR] Test FAILED
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_stream:100002-HTMLNotIndex:FAILED
+[INFO] Running test: 100003-LoggingTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100003-LoggingTest:PASSED
+[INFO] Running test: 100004-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100004-CleanConfig:PASSED
+[INFO] Running test: 100005-Regression-DefaultConfig-Crash
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:100005-Regression-DefaultConfig-Crash:PASSED
+[INFO] Running test: 500001-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:500001-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_stream:900001-Safety-Miri:PASSED
+[INFO] Running test: 999996-LoggingNotFoundTest
+[ERROR] [2026-01-06 23:09:01] [notice] Starting server process...
+[2026-01-06 23:09:01] [info] Server started with PID 1936594. Output redirected to /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999996-LoggingNotFoundTest/logs/ox_webservice.log
+[2026-01-06 23:09:03] [notice] Stopping server with PID 1936594...
+[2026-01-06 23:09:03] [info] Server stopped.
+[ERROR] Did not find 'File not found' message in log
+[ERROR] Test FAILED
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_stream:999996-LoggingNotFoundTest:FAILED
+[INFO] Module ox_webservice_stream completed. Tests: 13, Failures: 2
+[INFO] --------------------------------------------------
+Module ox_webservice_stream FAILED (Exit Code: 255)
+
+==================================================
+Running tests for module: ox_webservice_template_jinja2
+==================================================
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_template_jinja2 (Ports: 28120 28121 28122 28123 28124)
+[INFO] ==================================================
+[INFO] Running test: 000001-NoConfigProvided
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000001-NoConfigProvided:PASSED
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-NoTemplate
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000004-NoTemplate:PASSED
+[INFO] Running test: 000005-NoHTML
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:000005-NoHTML:PASSED
+[INFO] Running test: 900001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900001-Safety-Miri:PASSED
+[INFO] Running test: 900002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900002-Safety-Fuzz-Config:PASSED
+[INFO] Running test: 900010-Security-SSTI
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:900010-Security-SSTI:PASSED
+[INFO] Running test: 999994-HTMLIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999994-HTMLIndex:PASSED
+[INFO] Running test: 999995-HTMLNotIndex
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999995-HTMLNotIndex:PASSED
+[INFO] Running test: 999996-LoggingNotFoundTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999996-LoggingNotFoundTest:PASSED
+[INFO] Running test: 999997-LoggingTest
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999997-LoggingTest:PASSED
+[INFO] Running test: 999999-CleanConfig
+[INFO] Result: PASSED
+[RESULT] ox_webservice_template_jinja2:999999-CleanConfig:PASSED
+[INFO] Module ox_webservice_template_jinja2 completed. Tests: 13, Failures: 0
+[INFO] --------------------------------------------------
+Module ox_webservice_template_jinja2 PASSED
+
+==================================================
+Full Suite Completed in 697s
+FAILURES DETECTED: 3
+Failed Modules:  ox_webservice_ping ox_webservice_status ox_webservice_stream

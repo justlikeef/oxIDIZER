@@ -1,0 +1,4 @@
+content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/test_content"
+mimetypes_file: /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100004-CleanConfig/conf/mimetypes.yaml
+default_documents:
+- document: index.html

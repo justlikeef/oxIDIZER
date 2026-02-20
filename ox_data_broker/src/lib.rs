@@ -1,4 +1,8 @@
-use ox_webservice_api::{WebServiceApiV1, ModuleInterface, PipelineState, HandlerResult, LogCallback, AllocFn, LogLevel};
+use ox_webservice_api::{
+    WebServiceApiV1, ModuleInterface, PipelineState, HandlerResult,
+    LogCallback, AllocFn, AllocStrFn, LogLevel,
+    ModuleStatus, FlowControl, ReturnParameters,
+};
 use ox_persistence::{OxBuffer, DriverMetadata};
 use libc::{c_char, c_void, c_int, size_t};
 use std::ffi::{CStr, CString};
@@ -109,32 +113,92 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
         let json = serde_json::to_string(&meta_list).unwrap_or_default();
         pipeline_state.response_body = json.into_bytes();
         pipeline_state.status_code = 200;
-        return HandlerResult::ModifiedContinue;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     if request_path == "/drivers/reload" && method == "POST" {
-        // Reload / Load drivers logic
-        // For now, hardcode loading of the flatfile driver from target/debug
+        use ox_fileproc::process_file;
+        use ox_persistence::DriversList;
+
         let mut manager = DRIVER_MANAGER.lock().unwrap();
-        // Assuming running from root
-        let lib_path = "target/debug/libox_persistence_datastore_flatfile.so"; 
-        match LoadedDriver::load(lib_path) {
-            Ok(driver) => {
-                let name = driver.metadata.name.clone();
-                manager.drivers.insert(name.clone(), driver);
-                let msg = format!("Loaded driver: {}", name);
-                log(log_callback, LogLevel::Info, &msg);
-                pipeline_state.status_code = 200;
-                pipeline_state.response_body = msg.into_bytes();
-            },
-            Err(e) => {
-                let msg = format!("Failed to load driver: {}", e);
-                log(log_callback, LogLevel::Error, &msg);
-                pipeline_state.status_code = 500;
-                pipeline_state.response_body = msg.into_bytes();
-            }
+        let drivers_path = Path::new("conf/drivers.yaml"); // Assuming running from root
+        
+        let mut loaded_count = 0;
+        let mut errors = Vec::new();
+
+        if drivers_path.exists() {
+             match process_file(drivers_path, 5) {
+                 Ok(val) => {
+                     // Deserialize
+                     if let Ok(list) = serde_json::from_value::<DriversList>(val) {
+                         for driver_conf in list.drivers {
+                             if driver_conf.state == "enabled" {
+                                 // Determine path: Explicit library_path OR inferred from name
+                                 let dir_path = if !driver_conf.library_path.is_empty() {
+                                     Path::new(&driver_conf.library_path).to_path_buf()
+                                 } else {
+                                     Path::new("target/debug").to_path_buf()
+                                 };
+
+                                 #[cfg(target_os = "windows")]
+                                 let filename = format!("{}.dll", driver_conf.name);
+                                 #[cfg(target_os = "macos")]
+                                 let filename = format!("lib{}.dylib", driver_conf.name);
+                                 #[cfg(target_os = "linux")]
+                                 let filename = format!("lib{}.so", driver_conf.name);
+                                 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+                                 let filename = format!("lib{}.so", driver_conf.name); // Default fallback
+
+                                 let lib_path = dir_path.join(filename);
+                                 let lib_path_str = lib_path.to_string_lossy().to_string();
+
+                                 match LoadedDriver::load(&lib_path_str) {
+                                     Ok(loaded) => {
+                                         let name = loaded.metadata.name.clone();
+                                         manager.drivers.insert(name.clone(), loaded);
+                                         log(log_callback, LogLevel::Info, &format!("Loaded driver: {}", name));
+                                         loaded_count += 1;
+                                     },
+                                     Err(e) => {
+                                         let msg = format!("Failed to load driver '{}' from '{}': {}", driver_conf.name, lib_path_str, e);
+                                         log(log_callback, LogLevel::Error, &msg);
+                                         errors.push(msg);
+                                     }
+                                 }
+                             }
+                         }
+                     } else {
+                         errors.push("Failed to deserialize drivers list".to_string());
+                     }
+                 },
+                 Err(e) => errors.push(format!("Failed to process drivers config file: {}", e))
+             }
+        } else {
+            errors.push("drivers.yaml not found".to_string());
         }
-        return HandlerResult::ModifiedContinue;
+
+        let msg = if errors.is_empty() {
+            format!("Reloaded {} drivers successfully.", loaded_count)
+        } else {
+             format!("Reloaded {} drivers. Errors: {:?}", loaded_count, errors)
+        };
+        
+        pipeline_state.status_code = if errors.is_empty() { 200 } else { 500 };
+        pipeline_state.response_body = msg.into_bytes();
+
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     // Generic Operation Request: /data/{driver_name}/{operation}
@@ -143,7 +207,13 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
         let parts: Vec<&str> = request_path.split('/').collect();
         if parts.len() < 4 {
             pipeline_state.status_code = 400;
-            return HandlerResult::ModifiedContinue;
+            return HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            };
         }
         let driver_name = parts[2];
         let operation = parts[3];
@@ -197,21 +267,43 @@ pub unsafe extern "C" fn broker_handler(_instance_ptr: *mut c_void, pipeline_sta
             pipeline_state.status_code = 404;
             pipeline_state.response_body = format!("Driver {} not found", driver_name).into_bytes();
         }
-        return HandlerResult::ModifiedContinue;
+        return HandlerResult {
+            status: ModuleStatus::Modified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        };
     }
 
     // Default 404
     pipeline_state.status_code = 404;
-    HandlerResult::ModifiedContinue
+    HandlerResult {
+        status: ModuleStatus::Modified,
+        flow_control: FlowControl::Continue,
+        return_parameters: ReturnParameters {
+            return_data: std::ptr::null_mut(),
+        },
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn initialize_module(_module_params_json_ptr: *const c_char, api: *const WebServiceApiV1) -> *mut ModuleInterface {
+pub unsafe extern "C" fn initialize_module(_module_params_json_ptr: *const c_char, _module_id: *const c_char, api: *const WebServiceApiV1) -> *mut ModuleInterface {
     let module_interface = Box::new(ModuleInterface {
         instance_ptr: std::ptr::null_mut(),
         handler_fn: broker_handler,
         log_callback: (*api).log_callback,
+        get_config: get_config_c,
     });
     // On init, we could try to auto-load drivers, but explicit reload endpoint is safer for now.
     Box::into_raw(module_interface)
+}
+
+unsafe extern "C" fn get_config_c(
+    _instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    let json = "null";
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }

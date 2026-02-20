@@ -1,0 +1,21 @@
+id: "api_datasource_form"
+title: "API Data Source Configuration"
+fields:
+  - name: "api_endpoint"
+    label: "API Endpoint"
+    data_type: "string"
+    props:
+      placeholder: "https://api.example.com/v1"
+    validation:
+      - rule_type: "required"
+        message: "API endpoint is required"
+  - name: "api_key"
+    label: "API Key"
+    data_type: "string"
+    props:
+      type: "password"
+      placeholder: "Enter your API key"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

@@ -1,0 +1,6 @@
+name: "circular_dep_b"
+version: "1.0.0"
+package_type: "module"
+description: "Circular dependency B"
+dependencies: 
+  - "circular_dep_a"

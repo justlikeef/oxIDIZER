@@ -1,0 +1,2 @@
+module: package_manager
+persistence_drivers: driver_installer

@@ -1,0 +1,42 @@
+
+# ------------------------------------------------------------------------------
+# ox_webservice Main Configuration
+# ------------------------------------------------------------------------------
+# This file serves as the entry point for the server's configuration.
+# It can include compatible configuration fragments from other files or directories.
+
+# merge: [Path to directory]
+# Specifies a directory containing configuration files (e.g., .yaml) to merge.
+# Keys in these files will be added to the configuration.
+merge:
+  - "/var/repos/oxIDIZER/conf/service/active/"
+  - "/var/repos/oxIDIZER/conf/servers/active/"
+  - "/var/repos/oxIDIZER/conf/modules/active/"
+
+# ------------------------------------------------------------------------------
+# Server Definitions
+# ------------------------------------------------------------------------------
+# Define the listening sockets and virtual hosts.
+# See conf/defaults/servers.yaml for detailed structure.
+#
+# servers:
+#  - id: "default_http"
+#    protocol: "http"       # Options: http, https
+#    port: 8090
+#    bind_address: "127.0.0.1"
+#    hosts:
+#      - name: "example-1.com"
+#      - name: "example-2.com"
+
+# ------------------------------------------------------------------------------
+# Pipeline Configuration
+# ------------------------------------------------------------------------------
+# Define the order of phases for handling requests.
+# See conf/defaults/pipeline.yaml for the default phase order.
+
+# ------------------------------------------------------------------------------
+# Module Configuration
+# ------------------------------------------------------------------------------
+# Modules are typically configured via the 'modules' key in separate files
+# (often loaded via the 'merge' directive), mapping module names to their configs.
+

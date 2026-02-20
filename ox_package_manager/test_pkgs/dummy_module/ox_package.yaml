@@ -1,0 +1,5 @@
+name: "dummy-module"
+version: "1.0.0"
+package_type: "module"
+description: "A dummy module for testing the package manager."
+resources: []

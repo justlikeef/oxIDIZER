@@ -1,0 +1,6 @@
+name: chain_base
+version: 1.0.0
+package_type: module
+description: Base module for recursive chain.
+dependencies: []
+installer_handlers: {}

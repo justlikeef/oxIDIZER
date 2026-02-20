@@ -1,0 +1,5 @@
+data_sources:
+  - id: "test_ds"
+    name: "Test DS"
+    driver_id: "test"
+    config: {}

@@ -1,0 +1,8 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_messaging_client (Ports: 28010 28011 28012 28013 28014)
+[INFO] ==================================================
+[INFO] Running test: 100001-Verification
+[INFO] Result: PASSED
+[RESULT] ox_messaging_client:100001-Verification:PASSED
+[INFO] Module ox_messaging_client completed. Tests: 1, Failures: 0
+[INFO] --------------------------------------------------

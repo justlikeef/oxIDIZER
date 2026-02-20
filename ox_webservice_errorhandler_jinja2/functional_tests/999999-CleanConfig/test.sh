@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
 DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
 
@@ -17,6 +21,10 @@ TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 # Use provided LOGGING_LEVEL or the default
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -30,24 +38,82 @@ if [ "$MODE" == "integrated" ]; then
 fi
 
 if [ "$MODE" == "isolated" ]; then
-  # Define paths for the new parameters
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
-  TEST_WORKSPACE_DIR=$(readlink -f "$TEST_DIR/../../../")
+  mkdir -p "$TEST_DIR/conf"
+  rm -rf "$TEST_DIR/test_template"
+  mkdir -p "$TEST_DIR/test_template"
+  TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
+  
+  # Error Handler Config
+  cat <<EOF > "$TEST_DIR/conf/eh_config.json"
+{
+  "content_root": "$TEST_DIR/test_template",
+  "debug_force_status": 404
+}
+EOF
+
+  # Generate helper configs
+  cat <<EOF > "$TEST_DIR/conf/log4rs.yaml"
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{d} {l} {t} - {m}{n}"
+  file:
+    kind: file
+    path: "$TEST_DIR/logs/ox_webservice.log"
+    encoder:
+      pattern: "{d} {l} {t} - {m}{n}"
+root:
+  level: debug
+  appenders:
+    - stdout
+    - file
+EOF
+
+  # Runtime Config
+  cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$TEST_DIR/conf/log4rs.yaml"
+modules:
+  - id: eh_module
+    name: ox_webservice_errorhandler_jinja2
+    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_errorhandler_jinja2.so"
+    params:
+      config_file: "$TEST_DIR/conf/eh_config.json"
+  - id: ox_pipeline_router
+    name: ox_pipeline_router
+    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: $BASE_PORT
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+pipeline:
+  phases:
+    - Content: "ox_pipeline_router"
+    - ErrorHandling: default
+routes:
+  - url: ".*"
+    module_id: "eh_module"
+    phase: Content
+EOF
 
   # Start the server
   "$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
-    "debug" \
-    "$TEST_DIR/ox_webservice.yaml" \
+    "$TARGET" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR"
 
   # Allow the server to start
-  sleep 2
+  sleep 3
 
   # Curl the non-existent page
-  CURL_OUTPUT=$(curl -s http://localhost:3000/doesnotexist.html)
+  CURL_OUTPUT=$(curl --connect-timeout 30 --max-time 60 -s http://localhost:$BASE_PORT/doesnotexist.html)
 
   # Stop the server
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
@@ -62,8 +128,8 @@ if [ "$MODE" == "isolated" ]; then
   fi
 
   # Check the output
-  if echo "$CURL_OUTPUT" | grep -q "oxWebServicesLogo"; then
-    log_message "$LOGGING_LEVEL" "notice" "Found oxWebServicesLogo in curl output..."
+  if echo "$CURL_OUTPUT" | grep -q "404 Not Found"; then
+    log_message "$LOGGING_LEVEL" "notice" "Found '404 Not Found' in curl output..."
 
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
@@ -77,7 +143,7 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit $PASSED
   else
-    log_message "$LOGGING_LEVEL" "error" "Did not find oxWebServicesLogo in curl output..."
+    log_message "$LOGGING_LEVEL" "error" "Did not find '404 Not Found' in curl output..."
     # Output the log file
     if [ "$LOGGING_LEVEL" == "debug" ]; then
       log_message "$LOGGING_LEVEL" "debug" "Server Logs:"

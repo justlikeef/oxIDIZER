@@ -1,0 +1,21 @@
+[package]
+name = "ox_webservice_ping"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_webservice_api = { path = "../ox_webservice_api" }
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bumpalo = "3.12"
+anyhow = "1.0"
+ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
+
+[dev-dependencies]
+lazy_static = "1.5.0"
+ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }

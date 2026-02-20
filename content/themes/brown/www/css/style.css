@@ -1,0 +1,126 @@
+/* 
+   DataSource Manager - Supplemental Styles
+   Inherits from common.css (Brown Theme)
+*/
+
+/* Form Controls */
+.form-control {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid var(--border);
+    color: var(--text-primary) !important;
+    border-radius: 12px;
+    /* Matches common.css border-radius */
+    padding: 0.75rem;
+    width: 100%;
+    font-family: var(--font-family);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.2);
+    /* Orange glow matches accent */
+}
+
+.form-control option {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+/* Utility & Helper Classes specific to DataSource Manager */
+.header-badge {
+    margin-left: 0.5rem;
+    opacity: 0.8;
+}
+
+.content-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.content-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-top: 1rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.modal-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.grid-col-full {
+    grid-column: 1 / -1;
+}
+
+.text-danger {
+    color: var(--error);
+}
+
+.empty-state-container {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+}
+/* Grid System (Added for ox_forms compatibility) */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-1, .col-2, .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9, .col-10, .col-11, .col-12 {
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-1 { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.col-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.col-3 { flex: 0 0 25%; max-width: 25%; }
+.col-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.col-5 { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.col-6 { flex: 0 0 50%; max-width: 50%; }
+.col-7 { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.col-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.col-9 { flex: 0 0 75%; max-width: 75%; }
+.col-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.col-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.col-12 { flex: 0 0 100%; max-width: 100%; }
+
+/* Form Actions alignment */
+.form-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+.d-flex { display: flex !important; }
+.justify-content-end { justify-content: flex-end !important; }
+.gap-2 { gap: 0.5rem !important; }
+
+/* Fix for cut-off content: remove negative margins from row */
+.row {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Fix for grid layout wrapping: ensure padding is included in width */
+*, *::before, *::after {
+    box-sizing: border-box;
+}

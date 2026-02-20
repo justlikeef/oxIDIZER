@@ -1,0 +1,4 @@
+content_root: "/var/repos/oxIDIZER/ox_pipeline/ox_pipeline_router/functional_tests/100004-PriorityVerification/content/high_priority"
+mimetypes_file: "/var/repos/oxIDIZER/ox_pipeline/ox_pipeline_router/functional_tests/100004-PriorityVerification/conf/mimetypes.yaml"
+default_documents:
+  - document: "index.html"

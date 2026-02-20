@@ -1,0 +1,7 @@
+type: persistence_driver
+driver:
+  id: dummy
+  library: libdummy.so
+  config:
+    name: ox_persistence_driver_dummy
+    state: enabled

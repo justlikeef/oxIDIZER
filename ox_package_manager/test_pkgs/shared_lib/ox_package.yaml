@@ -1,0 +1,6 @@
+name: shared_lib
+version: 1.0.0
+package_type: module
+description: A shared library module.
+dependencies: []
+installer_handlers: {}

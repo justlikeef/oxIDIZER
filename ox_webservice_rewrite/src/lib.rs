@@ -1,6 +1,7 @@
 use ox_webservice_api::{
     HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    WebServiceApiV1, PipelineState, AllocFn
+    CoreHostApi, PipelineState, AllocFn, AllocStrFn,
+    ModuleStatus,    FlowControl, ReturnParameters,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -8,16 +9,17 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic;
 use std::path::PathBuf;
 use regex::Regex;
+use bumpalo::Bump;
 
 const MODULE_NAME: &str = "ox_webservice_rewrite";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RewriteRule {
     pub match_pattern: String,
     pub replace_string: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RewriteConfig {
     pub rules: Vec<RewriteRule>,
 }
@@ -25,11 +27,11 @@ pub struct RewriteConfig {
 pub struct RewriteModule<'a> {
     config: RewriteConfig,
     regexes: Vec<Regex>,
-    api: &'a WebServiceApiV1,
+    api: &'a CoreHostApi,
 }
 
 impl<'a> RewriteModule<'a> {
-    pub fn new(config: RewriteConfig, api: &'a WebServiceApiV1) -> anyhow::Result<Self> {
+    pub fn new(config: RewriteConfig, api: &'a CoreHostApi) -> anyhow::Result<Self> {
         let module_name = CString::new(MODULE_NAME).unwrap();
         let message = CString::new("ox_webservice_rewrite: Initializing...").unwrap();
         unsafe { (api.log_callback)(LogLevel::Debug, module_name.as_ptr(), message.as_ptr()); }
@@ -48,40 +50,63 @@ impl<'a> RewriteModule<'a> {
 
     pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
         let pipeline_state = unsafe { &mut *pipeline_state_ptr };
+        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
 
-        unsafe {
-            let arena_ptr = &pipeline_state.arena as *const bumpalo::Bump as *const c_void;
-            let c_str_path = (self.api.get_request_path)(pipeline_state, arena_ptr, self.api.alloc_str);
-            let path = CStr::from_ptr(c_str_path).to_string_lossy();
+        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
+            self.api, 
+            pipeline_state_ptr as *mut c_void, 
+            arena_ptr
+        ) };
 
-            for (i, regex) in self.regexes.iter().enumerate() {
-                if regex.is_match(&path) {
-                    let rule = &self.config.rules[i];
-                    let replacement = regex.replace(&path, rule.replace_string.as_str());
-                    let new_path = replacement.to_string();
+        let mut path_str = "/".to_string();
+        if let Some(path_val) = ctx.get("request.resource") {
+            path_str = path_val.as_str().unwrap_or("/").to_string();
+        } else if let Some(path_val) = ctx.get("request.path") {
+            // Fallback
+             path_str = path_val.as_str().unwrap_or("/").to_string();
+        }
 
-                    if path != new_path {
-                        let module_name = CString::new(MODULE_NAME).unwrap();
-                        let message = CString::new(format!("Rewrite match found. Rewriting path from '{}' to '{}'", path, new_path)).unwrap();
-                        (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr());
+        let path = path_str.as_str();
 
-                        let c_new_path = CString::new(new_path).unwrap();
-                        (self.api.set_request_path)(pipeline_state, c_new_path.as_ptr());
-                        
-                        return HandlerResult::ModifiedContinue;
-                    }
+        for (i, regex) in self.regexes.iter().enumerate() {
+            if regex.is_match(path) {
+                let rule = &self.config.rules[i];
+                let replacement = regex.replace(path, rule.replace_string.as_str());
+                let new_path = replacement.to_string();
+
+                if path != new_path {
+                    let module_name = CString::new(MODULE_NAME).unwrap();
+                    let message = CString::new(format!("Rewrite match found. Rewriting path from '{}' to '{}'", path, new_path)).unwrap();
+                    unsafe { (self.api.log_callback)(LogLevel::Info, module_name.as_ptr(), message.as_ptr()); }
+
+                    let _ = ctx.set("request.resource", serde_json::Value::String(new_path));
+                    
+                    return HandlerResult {
+                        status: ModuleStatus::Modified,
+                        flow_control: FlowControl::Continue,
+                        return_parameters: ReturnParameters {
+                            return_data: std::ptr::null_mut(),
+                        },
+                    };
                 }
             }
         }
 
-        HandlerResult::UnmodifiedContinue
+        HandlerResult {
+            status: ModuleStatus::Unmodified,
+            flow_control: FlowControl::Continue,
+            return_parameters: ReturnParameters {
+                return_data: std::ptr::null_mut(),
+            },
+        }
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn initialize_module(
     module_params_json_ptr: *const c_char,
-    api: *const WebServiceApiV1,
+    _module_id: *const c_char,
+    api: *const CoreHostApi,
 ) -> *mut ModuleInterface {
     let result = panic::catch_unwind(|| {
         let api_instance = unsafe { &*api };
@@ -135,6 +160,7 @@ pub unsafe extern "C" fn initialize_module(
             instance_ptr,
             handler_fn: process_request_c,
             log_callback: api_instance.log_callback,
+            get_config: get_config_c,
         });
 
         Box::into_raw(module_interface)
@@ -169,9 +195,27 @@ unsafe extern "C" fn process_request_c(
             let c_log_msg = CString::new(log_msg).unwrap();
             let module_name = CString::new(MODULE_NAME).unwrap();
             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), c_log_msg.as_ptr()); } 
-            HandlerResult::ModifiedJumpToError
+            HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Halt,
+                return_parameters: ReturnParameters {
+                    return_data: std::ptr::null_mut(),
+                },
+            }
         }
     }
+}
+
+unsafe extern "C" fn get_config_c(
+    instance_ptr: *mut c_void,
+    arena: *const c_void,
+    alloc_fn: AllocStrFn,
+) -> *mut c_char {
+    if instance_ptr.is_null() { return std::ptr::null_mut(); }
+    let handler = unsafe { &*(instance_ptr as *mut RewriteModule) };
+    
+    let json = serde_json::to_string_pretty(&handler.config).unwrap_or("{}".to_string());
+    alloc_fn(arena, CString::new(json).unwrap().as_ptr())
 }
 
 #[cfg(test)]

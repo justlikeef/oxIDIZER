@@ -1,10 +1,11 @@
 [package]
 name = "ox_webservice_status"
 version = "0.1.0"
+license = "GPL-3.0-only"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ox_webservice_api = { path = "../ox_webservice_api" }
@@ -14,9 +15,12 @@ serde_json = "1.0"
 sysinfo = "0.30"
 anyhow = "1.0"
 bumpalo = "3.12"
+ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
 ox_fileproc = { path = "../ox_fileproc" }
 
 [dev-dependencies]
+ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }
 tempfile = "3.8"
 axum = { version = "0.7" }
-ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }
+lazy_static = "1.5.0"
+serde_json = "1.0"

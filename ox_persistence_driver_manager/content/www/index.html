@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OxIDIZER - Drivers</title>
+    <!-- CSS path updated based on recent user config -->
+    <link rel="stylesheet" href="css/drivermanager.css">
+    <script src="/js/common.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Driver Manager</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
+                </div>
+                <div class="header-status-area">
+                    <div id="status-badge" class="status-badge">ONLINE</div>
+                </div>
+            </div>
+        </header>
+        <div id="error-banner"
+            style="display:none; background: #e74c3c; color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
+        </div>
+
+        <div class="driver-list" id="driver-list">
+            <div style="color: #666; padding: 1rem;">Loading drivers...</div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/drivermanager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalStatus('status-badge');
+        });
+    </script>
+</body>
+
+</html>

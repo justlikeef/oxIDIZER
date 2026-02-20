@@ -1,0 +1,11 @@
+{
+    "name": "ox_persistence",
+    "version": "0.1.0",
+    "description": "Core persistence layer",
+    "package_type": "module",
+    "resources": [],
+    "filename": "ox_persistence.tar.gz",
+    "size": 0,
+    "dependencies": [],
+    "installer_handlers": {}
+}

@@ -1,0 +1,17 @@
+[
+    {
+        "id": "server_test_form",
+        "title": "Server Test Form",
+        "theme": "test-theme",
+        "fields": [
+            {
+                "name": "test_field",
+                "label": "Test Field Label",
+                "data_type": "string",
+                "default_value": "My Default Value",
+                "validation": []
+            }
+        ],
+        "actions": []
+    }
+]

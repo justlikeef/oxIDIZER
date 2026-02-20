@@ -1,0 +1,14 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_persistence_datasource_manager (Ports: 28030 28031 28032 28033 28034)
+[INFO] ==================================================
+[INFO] Running test: 200001-DataSourceCRUD
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200001-DataSourceCRUD:PASSED
+[INFO] Running test: 200002-ConflictManagement
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200002-ConflictManagement:PASSED
+[INFO] Running test: 200003-RoutingSeparation
+[INFO] Result: PASSED
+[RESULT] ox_persistence_datasource_manager:200003-RoutingSeparation:PASSED
+[INFO] Module ox_persistence_datasource_manager completed. Tests: 3, Failures: 0
+[INFO] --------------------------------------------------

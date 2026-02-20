@@ -1,0 +1,24 @@
+[package]
+name = "ox_callback_manager-fuzz"
+version = "0.0.0"
+license = "GPL-3.0-only"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ox_fileproc]
+path = ".."
+
+[[bin]]
+name = "process_file_content"
+path = "fuzz_targets/process_file_content.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

@@ -1,0 +1,24 @@
+[
+    {
+        "id": "server_test_form",
+        "title": "Functional Test Form",
+        "style": "test-theme",
+        "fields": [
+            {
+                "name": "test_field",
+                "label": "Test Field Label",
+                "data_type": "string",
+                "component": "text-input",
+                "plugins": [],
+                "validation": [],
+                "dependencies": [],
+                "props": null,
+                "classes": null,
+                "styles": null
+            }
+        ],
+        "layout": null,
+        "actions": [],
+        "data_source_binding": null
+    }
+]

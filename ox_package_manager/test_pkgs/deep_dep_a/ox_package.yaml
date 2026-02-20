@@ -1,0 +1,6 @@
+name: "deep_dep_a"
+version: "1.0.0"
+package_type: "module"
+description: "Deep dependency A"
+dependencies: 
+  - "deep_dep_b"

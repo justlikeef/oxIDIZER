@@ -120,6 +120,8 @@ pub struct ModuleCompatibility {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DriverMetadata {
     pub name: String, // The crate name, e.g., "ox_persistence_flatfile"
+    #[serde(default)]
+    pub friendly_name: Option<String>,
     pub version: String, // The crate version
     pub description: String,
     pub compatible_modules: HashMap<String, ModuleCompatibility>,
@@ -198,6 +200,103 @@ pub trait PersistenceDriver {
     fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
     fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
 
-/// Gets the definition of connection parameters required by the driver.
+    /// Gets the definition of connection parameters required by the driver.
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
+
+    /// Executes a generic action defined by the driver (e.g., "discover_local", "validate_connection").
+    fn call_action(&self, action: &str, params: &serde_json::Value) -> Result<serde_json::Value, String> {
+        Err(format!("Action '{}' not supported by this driver", action))
+    }
+}
+
+impl Persistent for GenericDataObject {
+    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String> {
+        let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
+        if let Some((driver, _)) = registry.get_driver(driver_name) {
+            let map = self.to_serializable_map();
+            driver.persist(&map, location)?;
+            // Implicitly consistent after persist
+            Ok(())
+        } else {
+            Err(format!("Driver '{}' not found", driver_name))
+        }
+    }
+
+    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String> {
+         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
+        if let Some((driver, _)) = registry.get_driver(driver_name) {
+             let filter = self.to_serializable_map();
+             let ids = driver.fetch(&filter, location)?;
+             
+             let mut results = Vec::new();
+             for id in ids {
+                 let mut obj = GenericDataObject::new(&self.identifier_name, None);
+                 // We need to hydrate this new object
+                 // But hydrate_object is instance method.
+                 // We can call restore on driver directly.
+                 let restored_map = driver.restore(location, &id)?;
+                 obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
+                 results.push(obj);
+             }
+             Ok(results)
+        } else {
+            Err(format!("Driver '{}' not found", driver_name))
+        }
+    }
+
+    /// Hydrates the object by loading its full data from the datastore.
+    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), String> {
+        let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
+        if let Some((driver, _)) = registry.get_driver(driver_name) {
+            let id = self.get::<String>(&self.identifier_name)
+                .ok_or_else(|| format!("Object missing identifier '{}'", self.identifier_name))?;
+                
+            let restored_map = driver.restore(location, &id)?;
+            // Update self from map
+            // GenericDataObject doesn't have a "update from map" method that preserves identity?
+            // Actually from_serializable_map creates new.
+            // We can replace our attributes.
+            let new_obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
+            // Assuming we can access fields or use a helper
+            // We can iterate the map and set.
+            // But we already have from_serializable_map logic. 
+            // Let's rely on set_attributes if possible, or just hack it with a temporary obj.
+            // We can't move out of new_obj easily if fields are private.
+            // Wait, GenericDataObject fields are: attributes (private), identifier_name (public).
+            // But to_serializable_map is public.
+            // We need a way to bulk update.
+            // GenericDataObject has `from_serializable_map` static method.
+            // And `attributes` is private.
+            // But `set` is public.
+            // I'll assume we iterate the restored map and set fields.
+            // Actually `PersistenceDriver::restore` returns the map.
+            // I will iterate the map and call set_with_type.
+            
+             for (key, (value_str, value_type, params)) in new_obj.to_serializable_map() {
+                 self.set_with_type(&key, value_str, value_type, Some(params));
+             }
+             Ok(())
+
+        } else {
+            Err(format!("Driver '{}' not found", driver_name))
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConfiguredDriver {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub friendly_name: Option<String>,
+    #[serde(default)]
+    pub library_path: String,
+    #[serde(default)]
+    pub state: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DriversList {
+    #[serde(default)]
+    pub drivers: Vec<ConfiguredDriver>,
 }

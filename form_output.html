@@ -1,0 +1,20 @@
+<form id="mysql_main" method="post" style="overflow-y: auto; max-height: 70vh;"><input type="hidden" id="driver" name="driver" value="ox_persistence_driver_db_mysql" /><div class="form-group"><label>Configuration Method</label><div class="radio-group"><div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="config_method" id="config_method_0" value="mylogin">
+                    <label class="form-check-label" for="config_method_0">Use mylogin File</label>
+                </div><div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="config_method" id="config_method_1" value="manual" checked>
+                    <label class="form-check-label" for="config_method_1">Specified Parameters</label>
+                </div></div></div><div class="conditional-form" data-condition="config_method == 'manual'"><div class="form-group"><label for="host">Host</label><input type="text" id="host" name="host" value="127.0.0.1" class="form-control" /></div><div class="form-group"><label for="port">Port</label><input type="number" id="port" name="port" value="3306" class="form-control" /></div><div class="form-group"><label for="user">Username</label><input type="text" id="user" name="user" value="" class="form-control" /></div><div class="form-group"><label for="password">Password</label><input type="password" id="password" name="password" value="" class="form-control" /></div><div class="form-group"><label for="dbname">Database Name</label><input type="text" id="dbname" name="dbname" value="" class="form-control" /></div></div><div class="conditional-form" data-condition="config_method == 'mylogin'"><div class="form-group"><label for="mylogin_path">MySQL Login Path</label><input type="text" id="mylogin_path" name="mylogin_path" value="" class="form-control" placeholder="client" /></div><div class="form-group"><label for="dbname">Database Name</label><input type="text" id="dbname" name="dbname" value="" class="form-control" /></div></div><div class="form-actions"><button type="submit" name="submit" class="btn btn-primary">Save Data Source</button><button type="button" name="cancel" class="btn btn-secondary btn-light">Cancel</button></div>
+<script type="module">
+    import init, { attach_listeners } from '/ox_forms_client/ox_forms_client.js';
+    async function run() {
+        await init();
+        try {
+            attach_listeners('mysql_main');
+        } catch (e) {
+            console.error("Failed to attach listeners for form mysql_main", e);
+        }
+    }
+    run();
+</script>
+</form>

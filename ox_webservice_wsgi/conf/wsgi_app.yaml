@@ -1,0 +1,3 @@
+python_path: "/var/repos/oxIDIZER/ox_webservice_wsgi"
+module: "test_app"
+callable: "application"

@@ -1,0 +1,7 @@
+name: chain_top
+version: 1.0.0
+package_type: module
+description: Top module for recursive chain.
+dependencies:
+  - chain_mid
+installer_handlers: {}

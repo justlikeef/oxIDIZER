@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::initialize_module;
-    use ox_webservice_api::{HandlerResult, LogLevel};
+    use ox_webservice_api::{HandlerResult, LogLevel, ModuleStatus, FlowControl, ReturnParameters};
     use ox_webservice_test_utils::{create_mock_api, ModuleLoader, mock_log, mock_alloc_raw};
     use std::io::Write;
     use tempfile::Builder;
@@ -13,7 +13,7 @@ mod tests {
         let mut mimetypes_file = Builder::new().suffix(".yaml").tempfile().unwrap();
         writeln!(
             mimetypes_file,
-            "mimetypes:\n  - extension: html\n    mimetype: text/html\n    handler: template"
+            "mimetypes:\n  - extension: html\n    mimetype: text/html\n    handler: template\n    url: \".*\\\\.html$\""
         )
         .unwrap();
 
@@ -37,7 +37,7 @@ mod tests {
             config_file.path().to_str().unwrap()
         );
 
-        let mut loader = ModuleLoader::load(initialize_module, &params_json, &api).expect("Module load failed");
+        let mut loader = ModuleLoader::load(initialize_module, &params_json, "template_module", &api).expect("Module load failed");
         assert!(!loader.interface_ptr.is_null(), "Module initialization failed");
 
         // --- Test 1: Happy Path ---
@@ -52,8 +52,12 @@ mod tests {
 
             let result = loader.process_request(&mut ps, mock_log, mock_alloc_raw);
 
-            assert_eq!(result, HandlerResult::ModifiedContinue);
-            assert_eq!(ps.response_body, b"Hello Jinja");
+            assert_eq!(result, HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+            });
+            assert_eq!(ps.response_body, b"Hello Jinja\n");
             let content_type = ps.response_headers.get("Content-Type").unwrap();
             assert_eq!(content_type, "text/html");
         }
@@ -85,12 +89,17 @@ mod tests {
 
             // Should NOT serve the file. It might return UnmodifiedContinue (not found/ignored) or ModifiedJumpToError.
             // Based on logic: resolve_and_find_file checks canonical path vs content root.
-            assert_eq!(result, HandlerResult::ModifiedContinue); // It returns ModifiedContinue if not found/processed (default fallback in logic is ModifiedContinue at the end of function)
+            assert_eq!(result, HandlerResult {
+                status: ModuleStatus::Modified,
+                flow_control: FlowControl::Continue,
+                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
+            }); // It returns ModifiedContinue if not found/processed (default fallback in logic is ModifiedContinue at the end of function)
             
             // Wait, looking at the code: 
             // if resolve_and_find_file returns None, it drops to end and returns HandlerResult::ModifiedContinue 
             // BUT response body would be empty/untouched.
-            assert!(ps.response_body.is_empty(), "Pathtraversal should not yield content");
+            assert_eq!(ps.status_code, 404, "Pathtraversal should return 404");
+            assert_eq!(ps.response_body, b"404 Not Found");
         }
         
         // --- Test 3: Null Pipeline Spec check ---
@@ -114,7 +123,7 @@ mod tests {
              let api_ptr = &api as *const ox_webservice_api::WebServiceApiV1;
              let c_params = std::ffi::CString::new(params_json).unwrap();
              unsafe {
-                 let res = initialize_module(c_params.as_ptr(), api_ptr);
+                 let res = initialize_module(c_params.as_ptr(), std::ptr::null(), api_ptr);
                  assert!(res.is_null(), "Should fail on missing config file");
              }
         }
@@ -125,7 +134,7 @@ mod tests {
              let api_ptr = &api as *const ox_webservice_api::WebServiceApiV1;
              let c_params = std::ffi::CString::new(params_json).unwrap();
              unsafe {
-                 let res = initialize_module(c_params.as_ptr(), api_ptr);
+                 let res = initialize_module(c_params.as_ptr(), std::ptr::null(), api_ptr);
                  assert!(res.is_null(), "Should fail on bad json");
              }
         }

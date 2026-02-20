@@ -1,0 +1,8 @@
+{
+    "name": "dependency_library",
+    "version": "1.0.0",
+    "description": "A required dependency for test",
+    "package_type": "module",
+    "dependencies": [],
+    "resources": []
+}

@@ -1,0 +1,14 @@
+modules:
+  - id: "forwarded_for"
+    name: "ox_webservice_forwarded_for"
+  - id: "restore_ip"
+    name: "ox_webservice_restore_ip"
+routes:
+  - url: ".*"
+    module_id: "forwarded_for"
+    priority: 100
+    phase: PreEarlyRequest
+  - url: ".*"
+    module_id: "restore_ip"
+    priority: 100
+    phase: PostLateRequest

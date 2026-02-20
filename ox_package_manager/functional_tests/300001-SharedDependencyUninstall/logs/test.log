@@ -1,0 +1,5545 @@
+2026-01-09 23:29:11 - Starting Test 300001: SharedDependencyUninstall
+2026-01-09 23:29:11 - Uploading packages...
+2026-01-09 23:29:11 - Uploading shared_lib.tar.gz...
+2026-01-09 23:29:11 - Uploaded shared_lib successfully.
+2026-01-09 23:29:11 - Uploading app_one.tar.gz...
+2026-01-09 23:29:11 - Uploaded app_one successfully.
+2026-01-09 23:29:11 - Uploading app_two.tar.gz...
+2026-01-09 23:29:11 - Uploaded app_two successfully.
+2026-01-09 23:29:11 - Installing shared_lib.tar.gz...
+2026-01-09 23:29:11 - Installed shared_lib.tar.gz successfully.
+2026-01-09 23:29:11 - Installing app_one.tar.gz...
+2026-01-09 23:29:11 - Failed to install app_one.tar.gz: 
+2026-01-09 23:31:17 - Starting Test 300001: SharedDependencyUninstall
+2026-01-09 23:31:17 - Uploading packages...
+2026-01-09 23:31:17 - Uploading shared_lib.tar.gz...
+2026-01-09 23:31:17 - Uploaded shared_lib successfully.
+2026-01-09 23:31:17 - Uploading app_one.tar.gz...
+2026-01-09 23:31:17 - Uploaded app_one successfully.
+2026-01-09 23:31:17 - Uploading app_two.tar.gz...
+2026-01-09 23:31:17 - Uploaded app_two successfully.
+2026-01-09 23:31:17 - Installing shared_lib.tar.gz...
+2026-01-09 23:31:17 - Installed shared_lib.tar.gz successfully.
+2026-01-09 23:31:17 - Installing app_one.tar.gz...
+2026-01-09 23:31:17 - Installed app_one.tar.gz successfully.
+2026-01-09 23:31:17 - Installing app_two.tar.gz...
+2026-01-09 23:31:17 - Installed app_two.tar.gz successfully.
+2026-01-09 23:31:18 - All packages installed successfully.
+2026-01-09 23:31:18 - Attempting to uninstall app_one (Leaf node)...
+2026-01-09 23:31:18 - Failed to uninstall app_one: <!DOCTYPE html>
+<html>
+    <head>
+        <title>404 - Not Found</title>
+        <link rel="stylesheet" href="/css/default.css" type="text/css" media="screen">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <img src="/images/logo.png" alt="oxIDIZER" style="height: 50px; width: auto;">
+                    <h1 class="text-error" style="margin: 0;">404 Not Found</h1>
+                 </div>
+                <p>An error occurred.</p>
+                
+                <p><strong>Raised by Module:</strong> <span class="value">"Content"_Router</span></p>
+                
+            </header>
+
+            <!-- Execution History -->
+            
+            <div class="card">
+                <h2>Pipeline Execution History</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Status</th>
+                            <th>Flow Control</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        <tr>
+                            <td class="value">forwarded_for</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreEarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"EarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostEarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAuthentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Authentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAuthentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAuthorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Authorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAuthorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreContent"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">package_manager</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">package_manager_stream</td>
+                            <td>
+                                
+                                <span class="badge badge-accent">Modified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">default_layout_stream</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Content"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-accent">Modified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostContent"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAccounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Accounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAccounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreErrorHandling"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+
+            <!-- Request Details -->
+            <div class="card">
+                <h2>Request Details</h2>
+                <table class="data-table">
+                    <tbody>
+                        <tr><th>Method</th><td class="value">create</td></tr>
+                        <tr><th>Path</th><td class="value">/packages/uninstall</td></tr>
+                        <tr><th>Query</th><td class="value"></td></tr>
+                        <tr><th>Source IP</th><td class="value">127.0.0.1:58005</td></tr>
+                    </tbody>
+                </table>
+
+                <details>
+                    <summary>Request Headers (5)</summary>
+                    <table class="data-table">
+                        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td class="value">accept</td>
+                                <td class="value" style="word-break: break-all;">*/*</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">content-length</td>
+                                <td class="value" style="word-break: break-all;">22</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">content-type</td>
+                                <td class="value" style="word-break: break-all;">application/json</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">host</td>
+                                <td class="value" style="word-break: break-all;">127.0.0.1:3000</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">user-agent</td>
+                                <td class="value" style="word-break: break-all;">curl/8.5.0</td>
+                            </tr>
+                            
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+
+            <!-- Pipeline State & Configs -->
+            <div class="card">
+                <h2>System State</h2>
+                
+                
+                <p><strong>Pipeline Modified:</strong> true</p>
+                
+
+                
+                <details>
+                    <summary>Active Pipeline Routing</summary>
+                    <pre>[
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 952,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PreEarlyRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "forwarded_for",
+          "priority": 100
+        }
+      ]
+    },
+    "phase": "PreEarlyRequest",
+    "router_instance": "\"PreEarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "EarlyRequest",
+    "router_instance": "\"EarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostEarlyRequest",
+    "router_instance": "\"PostEarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAuthentication",
+    "router_instance": "\"PreAuthentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Authentication",
+    "router_instance": "\"Authentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAuthentication",
+    "router_instance": "\"PostAuthentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAuthorization",
+    "router_instance": "\"PreAuthorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Authorization",
+    "router_instance": "\"Authorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAuthorization",
+    "router_instance": "\"PostAuthorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreContent",
+    "router_instance": "\"PreContent\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 7,
+          "matcher": {
+            "headers": {
+              "Method": "POST"
+            },
+            "hostname": null,
+            "path": "^/packages/upload",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 27,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/(list|install|uninstall)(/.*)?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/wasm/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream_wasm",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 57,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "stream_status",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/ping/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "ping_module",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*[.]jinja[2]?$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_template_jinja2",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 14,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(/(css|js)/.*?)$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_theme_stream",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 917,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(.*)$",
+            "phase": "Content",
+            "priority": 999,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_layout_stream",
+          "priority": 999
+        }
+      ]
+    },
+    "phase": "Content",
+    "router_instance": "\"Content\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostContent",
+    "router_instance": "\"PostContent\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAccounting",
+    "router_instance": "\"PreAccounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Accounting",
+    "router_instance": "\"Accounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAccounting",
+    "router_instance": "\"PostAccounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreErrorHandling",
+    "router_instance": "\"PreErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 952,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "ErrorHandling",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": "4??|5??"
+          },
+          "module_id": "errorhandler_jinja2",
+          "priority": 499
+        }
+      ]
+    },
+    "phase": "ErrorHandling",
+    "router_instance": "\"ErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostErrorHandling",
+    "router_instance": "\"PostErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreLateRequest",
+    "router_instance": "\"PreLateRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "LateRequest",
+    "router_instance": "\"LateRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 951,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PostLateRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "restore_ip",
+          "priority": 100
+        }
+      ]
+    },
+    "phase": "PostLateRequest",
+    "router_instance": "\"PostLateRequest\"_Router"
+  }
+]</pre>
+                </details>
+                
+
+                
+                <details>
+                    <summary>Server Configurations</summary>
+                    <pre>[
+  {
+    "config": {
+      "enable_metrics": null,
+      "log4rs_config": "/var/repos/oxIDIZER/conf/log4rs.yaml",
+      "merge": null,
+      "merge_recursive": null,
+      "modules": [
+        {
+          "headers": null,
+          "id": "default_template_jinja2",
+          "name": "ox_webservice_template_jinja2",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "default_theme_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "default_layout_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "messaging_mqtt",
+          "name": "ox_messaging_mqtt",
+          "params": {},
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "package_manager",
+          "name": "ox_package_manager",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "package_manager_stream",
+          "name": "ox_webservice_stream",
+          "on_content_conflict": "skip",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "data_source_manager",
+          "name": "ox_persistence_datasource_manager",
+          "params": {
+            "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+            "on_content_conflict": "skip"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "data_source_manager_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager",
+          "name": "ox_persistence_driver_manager",
+          "params": {
+            "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager_stream_wasm",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "ox_pipeline_router",
+          "name": "ox_pipeline_router",
+          "params": {},
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "errorhandler_jinja2",
+          "name": "ox_webservice_errorhandler_jinja2",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "status_module",
+          "name": "ox_webservice_status",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "stream_status",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "ping_module",
+          "name": "ox_webservice_ping",
+          "params": null,
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "forwarded_for",
+          "name": "ox_webservice_forwarded_for",
+          "params": null,
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "restore_ip",
+          "name": "ox_webservice_restore_ip",
+          "params": null,
+          "path": null,
+          "query": null,
+          "routes": null
+        }
+      ],
+      "pipeline": {
+        "phases": [
+          {
+            "PreEarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "EarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "PostEarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "PreAuthentication": "ox_pipeline_router"
+          },
+          {
+            "Authentication": "ox_pipeline_router"
+          },
+          {
+            "PostAuthentication": "ox_pipeline_router"
+          },
+          {
+            "PreAuthorization": "ox_pipeline_router"
+          },
+          {
+            "Authorization": "ox_pipeline_router"
+          },
+          {
+            "PostAuthorization": "ox_pipeline_router"
+          },
+          {
+            "PreContent": "ox_pipeline_router"
+          },
+          {
+            "Content": "ox_pipeline_router"
+          },
+          {
+            "PostContent": "ox_pipeline_router"
+          },
+          {
+            "PreAccounting": "ox_pipeline_router"
+          },
+          {
+            "Accounting": "ox_pipeline_router"
+          },
+          {
+            "PostAccounting": "ox_pipeline_router"
+          },
+          {
+            "PreErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "ErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "PostErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "PreLateRequest": "ox_pipeline_router"
+          },
+          {
+            "LateRequest": "ox_pipeline_router"
+          },
+          {
+            "PostLateRequest": "ox_pipeline_router"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_template_jinja2",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*[.]jinja[2]?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_theme_stream",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^(/(css|js)/.*?)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_layout_stream",
+          "phase": "Content",
+          "priority": 999,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^(.*)$"
+        },
+        {
+          "headers": {
+            "Method": "POST"
+          },
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/upload"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/(list|install|uninstall)(/.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/(subscribe|unsubscribe)/?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager_stream",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/?(.*)$"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "data_source_manager",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "data_source_manager",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "data_source_manager_stream",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_installer",
+          "phase": "Content",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/subscribe$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_installer",
+          "phase": "Content",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/install$"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "driver_manager",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager_stream_wasm",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/wasm/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager_stream",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "errorhandler_jinja2",
+          "phase": "ErrorHandling",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": "4??|5??",
+          "url": ".*"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "status_module",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "status_module",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "stream_status",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "ping_module",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/ping/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "forwarded_for",
+          "phase": "PreEarlyRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "restore_ip",
+          "phase": "PostLateRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*"
+        }
+      ],
+      "servers": [
+        {
+          "bind_address": "0.0.0.0",
+          "hosts": [
+            {
+              "name": "localhost",
+              "tls_cert_path": null,
+              "tls_key_path": null
+            }
+          ],
+          "id": "default_http",
+          "port": 3000,
+          "protocol": "http"
+        }
+      ]
+    },
+    "name": "ox_webservice (Host)"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 952,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PreEarlyRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "forwarded_for",
+          "priority": 100
+        }
+      ]
+    },
+    "name": "\"PreEarlyRequest\"_Router",
+    "stage": "PreEarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"EarlyRequest\"_Router",
+    "stage": "EarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostEarlyRequest\"_Router",
+    "stage": "PostEarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAuthentication\"_Router",
+    "stage": "PreAuthentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Authentication\"_Router",
+    "stage": "Authentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAuthentication\"_Router",
+    "stage": "PostAuthentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAuthorization\"_Router",
+    "stage": "PreAuthorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Authorization\"_Router",
+    "stage": "Authorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAuthorization\"_Router",
+    "stage": "PostAuthorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreContent\"_Router",
+    "stage": "PreContent"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 7,
+          "matcher": {
+            "headers": {
+              "Method": "POST"
+            },
+            "hostname": null,
+            "path": "^/packages/upload",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 27,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/(list|install|uninstall)(/.*)?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/wasm/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream_wasm",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 57,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "stream_status",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/ping/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "ping_module",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*[.]jinja[2]?$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_template_jinja2",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 14,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(/(css|js)/.*?)$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_theme_stream",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 917,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(.*)$",
+            "phase": "Content",
+            "priority": 999,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_layout_stream",
+          "priority": 999
+        }
+      ]
+    },
+    "name": "\"Content\"_Router",
+    "stage": "Content"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostContent\"_Router",
+    "stage": "PostContent"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAccounting\"_Router",
+    "stage": "PreAccounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Accounting\"_Router",
+    "stage": "Accounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAccounting\"_Router",
+    "stage": "PostAccounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreErrorHandling\"_Router",
+    "stage": "PreErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 952,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "ErrorHandling",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": "4??|5??"
+          },
+          "module_id": "errorhandler_jinja2",
+          "priority": 499
+        }
+      ]
+    },
+    "name": "\"ErrorHandling\"_Router",
+    "stage": "ErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostErrorHandling\"_Router",
+    "stage": "PostErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreLateRequest\"_Router",
+    "stage": "PreLateRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"LateRequest\"_Router",
+    "stage": "LateRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 951,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PostLateRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "restore_ip",
+          "priority": 100
+        }
+      ]
+    },
+    "name": "\"PostLateRequest\"_Router",
+    "stage": "PostLateRequest"
+  },
+  {
+    "config": {
+      "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+      "headers": null,
+      "id": "data_source_manager",
+      "name": "ox_persistence_datasource_manager",
+      "on_content_conflict": "Skip",
+      "params": {
+        "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+        "on_content_conflict": "skip"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "data_source_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/content/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "data_source_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "data_source_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/layouts/default/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "default_layout_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^(.*)$",
+          "phase": "Content",
+          "priority": 999,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_layout_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content",
+      "default_documents": [
+        {
+          "document": "index.html"
+        },
+        {
+          "document": "index.jinja2"
+        }
+      ],
+      "headers": null,
+      "id": "default_template_jinja2",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_template_jinja2",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*[.]jinja[2]?$",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_template_jinja2",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/themes/brown/www/",
+      "default_documents": [],
+      "headers": null,
+      "id": "default_theme_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^(/(css|js)/.*?)$",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_theme_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "driver_root": "/var/repos/oxIDIZER/conf/drivers",
+      "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml",
+      "headers": null,
+      "id": "driver_manager",
+      "name": "ox_persistence_driver_manager",
+      "on_content_conflict": null,
+      "params": {
+        "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_driver_manager/content/www",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "driver_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "driver_manager_stream_wasm",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/wasm/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager_stream_wasm",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/layouts/default/error_debug",
+      "debug_force_status": null,
+      "headers": null,
+      "id": "errorhandler_jinja2",
+      "name": "ox_webservice_errorhandler_jinja2",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "ErrorHandling",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": "4??|5??"
+        }
+      ]
+    },
+    "name": "errorhandler_jinja2",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "forwarded_for",
+      "name": "ox_webservice_forwarded_for",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "PreEarlyRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "forwarded_for",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "messaging_mqtt",
+      "name": "ox_messaging_mqtt",
+      "params": {},
+      "path": null,
+      "query": null,
+      "routes": null
+    },
+    "name": "messaging_mqtt",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "ox_pipeline_router",
+      "name": "ox_pipeline_router",
+      "params": {},
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "ox_pipeline_router",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "package_manager",
+      "name": "ox_package_manager",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Method": "POST"
+          },
+          "hostname": null,
+          "path": "^/packages/upload",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/(list|install|uninstall)(/.*)?$",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "package_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_package_manager/content/www",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "package_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/?(.*)$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "package_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "ping_module",
+      "name": "ox_webservice_ping",
+      "params": null,
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/ping/(.*)?$",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "ping_module",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "restore_ip",
+      "name": "ox_webservice_restore_ip",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "PostLateRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "restore_ip",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml",
+      "headers": null,
+      "id": "status_module",
+      "name": "ox_webservice_status",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "status_module",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_webservice_status/content/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "stream_status",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "stream_status",
+    "stage": "Auxiliary"
+  }
+]</pre>
+                </details>
+                
+                
+                
+            </div>
+        </div>
+    </body>
+</html>
+2026-01-09 23:31:52 - Starting Test 300001: SharedDependencyUninstall
+2026-01-09 23:31:52 - Uploading packages...
+2026-01-09 23:31:52 - Uploading shared_lib.tar.gz...
+2026-01-09 23:31:52 - Uploaded shared_lib successfully.
+2026-01-09 23:31:52 - Uploading app_one.tar.gz...
+2026-01-09 23:31:52 - Uploaded app_one successfully.
+2026-01-09 23:31:52 - Uploading app_two.tar.gz...
+2026-01-09 23:31:52 - Uploaded app_two successfully.
+2026-01-09 23:31:52 - Installing shared_lib.tar.gz...
+2026-01-09 23:31:52 - Installed shared_lib.tar.gz successfully.
+2026-01-09 23:31:52 - Installing app_one.tar.gz...
+2026-01-09 23:31:52 - Installed app_one.tar.gz successfully.
+2026-01-09 23:31:52 - Installing app_two.tar.gz...
+2026-01-09 23:31:52 - Installed app_two.tar.gz successfully.
+2026-01-09 23:31:52 - All packages installed successfully.
+2026-01-09 23:31:52 - Attempting to uninstall app_one (Leaf node)...
+2026-01-09 23:31:52 - Failed to uninstall app_one: <!DOCTYPE html>
+<html>
+    <head>
+        <title>404 - Not Found</title>
+        <link rel="stylesheet" href="/css/default.css" type="text/css" media="screen">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <img src="/images/logo.png" alt="oxIDIZER" style="height: 50px; width: auto;">
+                    <h1 class="text-error" style="margin: 0;">404 Not Found</h1>
+                 </div>
+                <p>An error occurred.</p>
+                
+                <p><strong>Raised by Module:</strong> <span class="value">"Content"_Router</span></p>
+                
+            </header>
+
+            <!-- Execution History -->
+            
+            <div class="card">
+                <h2>Pipeline Execution History</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Status</th>
+                            <th>Flow Control</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        <tr>
+                            <td class="value">forwarded_for</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreEarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"EarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostEarlyRequest"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAuthentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Authentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAuthentication"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAuthorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Authorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAuthorization"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreContent"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">package_manager</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">package_manager_stream</td>
+                            <td>
+                                
+                                <span class="badge badge-accent">Modified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">default_layout_stream</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Content"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-accent">Modified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostContent"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreAccounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"Accounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PostAccounting"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="value">"PreErrorHandling"_Router</td>
+                            <td>
+                                
+                                <span class="badge badge-neutral">Unmodified</span>
+                                
+                            </td>
+                            <td>
+                                
+                                <span class="badge badge-success">Continue</span>
+                                
+                            </td>
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+
+            <!-- Request Details -->
+            <div class="card">
+                <h2>Request Details</h2>
+                <table class="data-table">
+                    <tbody>
+                        <tr><th>Method</th><td class="value">create</td></tr>
+                        <tr><th>Path</th><td class="value">/packages/uninstall</td></tr>
+                        <tr><th>Query</th><td class="value"></td></tr>
+                        <tr><th>Source IP</th><td class="value">127.0.0.1:60201</td></tr>
+                    </tbody>
+                </table>
+
+                <details>
+                    <summary>Request Headers (5)</summary>
+                    <table class="data-table">
+                        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td class="value">accept</td>
+                                <td class="value" style="word-break: break-all;">*/*</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">content-length</td>
+                                <td class="value" style="word-break: break-all;">22</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">content-type</td>
+                                <td class="value" style="word-break: break-all;">application/json</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">host</td>
+                                <td class="value" style="word-break: break-all;">127.0.0.1:3000</td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="value">user-agent</td>
+                                <td class="value" style="word-break: break-all;">curl/8.5.0</td>
+                            </tr>
+                            
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+
+            <!-- Pipeline State & Configs -->
+            <div class="card">
+                <h2>System State</h2>
+                
+                
+                <p><strong>Pipeline Modified:</strong> true</p>
+                
+
+                
+                <details>
+                    <summary>Active Pipeline Routing</summary>
+                    <pre>[
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 986,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PreEarlyRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "forwarded_for",
+          "priority": 100
+        }
+      ]
+    },
+    "phase": "PreEarlyRequest",
+    "router_instance": "\"PreEarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "EarlyRequest",
+    "router_instance": "\"EarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostEarlyRequest",
+    "router_instance": "\"PostEarlyRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAuthentication",
+    "router_instance": "\"PreAuthentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Authentication",
+    "router_instance": "\"Authentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAuthentication",
+    "router_instance": "\"PostAuthentication\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAuthorization",
+    "router_instance": "\"PreAuthorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Authorization",
+    "router_instance": "\"Authorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAuthorization",
+    "router_instance": "\"PostAuthorization\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreContent",
+    "router_instance": "\"PreContent\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 10,
+          "matcher": {
+            "headers": {
+              "Method": "POST"
+            },
+            "hostname": null,
+            "path": "^/packages/upload",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 34,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/(list|install|uninstall)(/.*)?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/wasm/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream_wasm",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 67,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "stream_status",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/ping/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "ping_module",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*[.]jinja[2]?$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_template_jinja2",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 14,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(/(css|js)/.*?)$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_theme_stream",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 951,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(.*)$",
+            "phase": "Content",
+            "priority": 999,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_layout_stream",
+          "priority": 999
+        }
+      ]
+    },
+    "phase": "Content",
+    "router_instance": "\"Content\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostContent",
+    "router_instance": "\"PostContent\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreAccounting",
+    "router_instance": "\"PreAccounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "Accounting",
+    "router_instance": "\"Accounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostAccounting",
+    "router_instance": "\"PostAccounting\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreErrorHandling",
+    "router_instance": "\"PreErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 986,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "ErrorHandling",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": "4??|5??"
+          },
+          "module_id": "errorhandler_jinja2",
+          "priority": 499
+        }
+      ]
+    },
+    "phase": "ErrorHandling",
+    "router_instance": "\"ErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PostErrorHandling",
+    "router_instance": "\"PostErrorHandling\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "PreLateRequest",
+    "router_instance": "\"PreLateRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "phase": "LateRequest",
+    "router_instance": "\"LateRequest\"_Router"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 985,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PostLateRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "restore_ip",
+          "priority": 100
+        }
+      ]
+    },
+    "phase": "PostLateRequest",
+    "router_instance": "\"PostLateRequest\"_Router"
+  }
+]</pre>
+                </details>
+                
+
+                
+                <details>
+                    <summary>Server Configurations</summary>
+                    <pre>[
+  {
+    "config": {
+      "enable_metrics": null,
+      "log4rs_config": "/var/repos/oxIDIZER/conf/log4rs.yaml",
+      "merge": null,
+      "merge_recursive": null,
+      "modules": [
+        {
+          "headers": null,
+          "id": "default_template_jinja2",
+          "name": "ox_webservice_template_jinja2",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "default_theme_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "default_layout_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "messaging_mqtt",
+          "name": "ox_messaging_mqtt",
+          "params": {},
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "package_manager",
+          "name": "ox_package_manager",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "package_manager_stream",
+          "name": "ox_webservice_stream",
+          "on_content_conflict": "skip",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "data_source_manager",
+          "name": "ox_persistence_datasource_manager",
+          "params": {
+            "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+            "on_content_conflict": "skip"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "data_source_manager_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager",
+          "name": "ox_persistence_driver_manager",
+          "params": {
+            "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager_stream",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "driver_manager_stream_wasm",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"
+          },
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "ox_pipeline_router",
+          "name": "ox_pipeline_router",
+          "params": {},
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "errorhandler_jinja2",
+          "name": "ox_webservice_errorhandler_jinja2",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "status_module",
+          "name": "ox_webservice_status",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "stream_status",
+          "name": "ox_webservice_stream",
+          "params": {
+            "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+          },
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "ping_module",
+          "name": "ox_webservice_ping",
+          "params": null,
+          "path": null,
+          "phase": "Content",
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "forwarded_for",
+          "name": "ox_webservice_forwarded_for",
+          "params": null,
+          "path": null,
+          "query": null,
+          "routes": null
+        },
+        {
+          "headers": null,
+          "id": "restore_ip",
+          "name": "ox_webservice_restore_ip",
+          "params": null,
+          "path": null,
+          "query": null,
+          "routes": null
+        }
+      ],
+      "pipeline": {
+        "phases": [
+          {
+            "PreEarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "EarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "PostEarlyRequest": "ox_pipeline_router"
+          },
+          {
+            "PreAuthentication": "ox_pipeline_router"
+          },
+          {
+            "Authentication": "ox_pipeline_router"
+          },
+          {
+            "PostAuthentication": "ox_pipeline_router"
+          },
+          {
+            "PreAuthorization": "ox_pipeline_router"
+          },
+          {
+            "Authorization": "ox_pipeline_router"
+          },
+          {
+            "PostAuthorization": "ox_pipeline_router"
+          },
+          {
+            "PreContent": "ox_pipeline_router"
+          },
+          {
+            "Content": "ox_pipeline_router"
+          },
+          {
+            "PostContent": "ox_pipeline_router"
+          },
+          {
+            "PreAccounting": "ox_pipeline_router"
+          },
+          {
+            "Accounting": "ox_pipeline_router"
+          },
+          {
+            "PostAccounting": "ox_pipeline_router"
+          },
+          {
+            "PreErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "ErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "PostErrorHandling": "ox_pipeline_router"
+          },
+          {
+            "PreLateRequest": "ox_pipeline_router"
+          },
+          {
+            "LateRequest": "ox_pipeline_router"
+          },
+          {
+            "PostLateRequest": "ox_pipeline_router"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_template_jinja2",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*[.]jinja[2]?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_theme_stream",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^(/(css|js)/.*?)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "default_layout_stream",
+          "phase": "Content",
+          "priority": 999,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^(.*)$"
+        },
+        {
+          "headers": {
+            "Method": "POST"
+          },
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/upload"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/(list|install|uninstall)(/.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/(subscribe|unsubscribe)/?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "package_manager_stream",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/?(.*)$"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "data_source_manager",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "data_source_manager",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "data_source_manager_stream",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/data_sources/?(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_installer",
+          "phase": "Content",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/subscribe$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_installer",
+          "phase": "Content",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/packages/installer/install$"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "driver_manager",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager_stream_wasm",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/wasm/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "driver_manager_stream",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/drivers/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "errorhandler_jinja2",
+          "phase": "ErrorHandling",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": "4??|5??",
+          "url": ".*"
+        },
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "module_id": "status_module",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "status_module",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "stream_status",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/status/?(.*)$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "ping_module",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": "^/ping/(.*)?$"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "forwarded_for",
+          "phase": "PreEarlyRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*"
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "module_id": "restore_ip",
+          "phase": "PostLateRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null,
+          "url": ".*"
+        }
+      ],
+      "servers": [
+        {
+          "bind_address": "0.0.0.0",
+          "hosts": [
+            {
+              "name": "localhost",
+              "tls_cert_path": null,
+              "tls_key_path": null
+            }
+          ],
+          "id": "default_http",
+          "port": 3000,
+          "protocol": "http"
+        }
+      ]
+    },
+    "name": "ox_webservice (Host)"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 986,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PreEarlyRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "forwarded_for",
+          "priority": 100
+        }
+      ]
+    },
+    "name": "\"PreEarlyRequest\"_Router",
+    "stage": "PreEarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"EarlyRequest\"_Router",
+    "stage": "EarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostEarlyRequest\"_Router",
+    "stage": "PostEarlyRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAuthentication\"_Router",
+    "stage": "PreAuthentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Authentication\"_Router",
+    "stage": "Authentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAuthentication\"_Router",
+    "stage": "PostAuthentication"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAuthorization\"_Router",
+    "stage": "PreAuthorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Authorization\"_Router",
+    "stage": "Authorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAuthorization\"_Router",
+    "stage": "PostAuthorization"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreContent\"_Router",
+    "stage": "PreContent"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 10,
+          "matcher": {
+            "headers": {
+              "Method": "POST"
+            },
+            "hostname": null,
+            "path": "^/packages/upload",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 34,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/(list|install|uninstall)(/.*)?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+            "phase": "Content",
+            "priority": 450,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager",
+          "priority": 450
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "data_source_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "driver_manager",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/wasm/(.*)?$",
+            "phase": null,
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream_wasm",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": {
+              "Accept": "application/json"
+            },
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 499,
+            "protocol": null,
+            "query": {
+              "format": "json"
+            },
+            "status_code": null
+          },
+          "module_id": "status_module",
+          "priority": 499
+        },
+        {
+          "dispatch_count": 67,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/packages/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "package_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/data_sources/?(.*)?$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "data_source_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/drivers/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "driver_manager_stream",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/status/?(.*)$",
+            "phase": "Content",
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "stream_status",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^/ping/(.*)?$",
+            "phase": null,
+            "priority": 500,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "ping_module",
+          "priority": 500
+        },
+        {
+          "dispatch_count": 0,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*[.]jinja[2]?$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_template_jinja2",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 14,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(/(css|js)/.*?)$",
+            "phase": "Content",
+            "priority": 998,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_theme_stream",
+          "priority": 998
+        },
+        {
+          "dispatch_count": 951,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": "^(.*)$",
+            "phase": "Content",
+            "priority": 999,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "default_layout_stream",
+          "priority": 999
+        }
+      ]
+    },
+    "name": "\"Content\"_Router",
+    "stage": "Content"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostContent\"_Router",
+    "stage": "PostContent"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreAccounting\"_Router",
+    "stage": "PreAccounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"Accounting\"_Router",
+    "stage": "Accounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostAccounting\"_Router",
+    "stage": "PostAccounting"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreErrorHandling\"_Router",
+    "stage": "PreErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 986,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "ErrorHandling",
+            "priority": 499,
+            "protocol": null,
+            "query": null,
+            "status_code": "4??|5??"
+          },
+          "module_id": "errorhandler_jinja2",
+          "priority": 499
+        }
+      ]
+    },
+    "name": "\"ErrorHandling\"_Router",
+    "stage": "ErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PostErrorHandling\"_Router",
+    "stage": "PostErrorHandling"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"PreLateRequest\"_Router",
+    "stage": "PreLateRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "\"LateRequest\"_Router",
+    "stage": "LateRequest"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": null,
+      "name": "",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "dispatch_count": 985,
+          "matcher": {
+            "headers": null,
+            "hostname": null,
+            "path": ".*",
+            "phase": "PostLateRequest",
+            "priority": 100,
+            "protocol": null,
+            "query": null,
+            "status_code": null
+          },
+          "module_id": "restore_ip",
+          "priority": 100
+        }
+      ]
+    },
+    "name": "\"PostLateRequest\"_Router",
+    "stage": "PostLateRequest"
+  },
+  {
+    "config": {
+      "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+      "headers": null,
+      "id": "data_source_manager",
+      "name": "ox_persistence_datasource_manager",
+      "on_content_conflict": "Skip",
+      "params": {
+        "data_sources_dir": "/var/repos/oxIDIZER/ox_persistence/conf/datasources",
+        "on_content_conflict": "skip"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "data_source_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/content/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "data_source_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_datasource_manager/conf/ox_persistence_datasource_manager_stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/data_sources/?(.*)?$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "data_source_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/layouts/default/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "default_layout_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/layout.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^(.*)$",
+          "phase": "Content",
+          "priority": 999,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_layout_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content",
+      "default_documents": [
+        {
+          "document": "index.html"
+        },
+        {
+          "document": "index.jinja2"
+        }
+      ],
+      "headers": null,
+      "id": "default_template_jinja2",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_template_jinja2",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_template_jinja2/conf/ox_webservice_template_jinja2_default.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*[.]jinja[2]?$",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_template_jinja2",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/themes/brown/www/",
+      "default_documents": [],
+      "headers": null,
+      "id": "default_theme_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_stream/conf/theme.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^(/(css|js)/.*?)$",
+          "phase": "Content",
+          "priority": 998,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "default_theme_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "driver_root": "/var/repos/oxIDIZER/conf/drivers",
+      "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml",
+      "headers": null,
+      "id": "driver_manager",
+      "name": "ox_persistence_driver_manager",
+      "on_content_conflict": null,
+      "params": {
+        "drivers_file": "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_driver_manager/content/www",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "driver_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/(.*)?$",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "driver_manager_stream_wasm",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_persistence_driver_manager/conf/ox_persistence_driver_manager_stream_wasm.yaml"
+      },
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/drivers/wasm/(.*)?$",
+          "phase": null,
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "driver_manager_stream_wasm",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/content/layouts/default/error_debug",
+      "debug_force_status": null,
+      "headers": null,
+      "id": "errorhandler_jinja2",
+      "name": "ox_webservice_errorhandler_jinja2",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "ErrorHandling",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": "4??|5??"
+        }
+      ]
+    },
+    "name": "errorhandler_jinja2",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "forwarded_for",
+      "name": "ox_webservice_forwarded_for",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "PreEarlyRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "forwarded_for",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "messaging_mqtt",
+      "name": "ox_messaging_mqtt",
+      "params": {},
+      "path": null,
+      "query": null,
+      "routes": null
+    },
+    "name": "messaging_mqtt",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "ox_pipeline_router",
+      "name": "ox_pipeline_router",
+      "params": {},
+      "path": null,
+      "query": null,
+      "routes": []
+    },
+    "name": "ox_pipeline_router",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "package_manager",
+      "name": "ox_package_manager",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Method": "POST"
+          },
+          "hostname": null,
+          "path": "^/packages/upload",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/(list|install|uninstall)(/.*)?$",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/installer/(subscribe|unsubscribe)/?$",
+          "phase": "Content",
+          "priority": 450,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "package_manager",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_package_manager/content/www",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "package_manager_stream",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_package_manager/conf/stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/packages/?(.*)$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "package_manager_stream",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "ping_module",
+      "name": "ox_webservice_ping",
+      "params": null,
+      "path": null,
+      "phase": "Content",
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/ping/(.*)?$",
+          "phase": null,
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "ping_module",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "headers": null,
+      "id": "restore_ip",
+      "name": "ox_webservice_restore_ip",
+      "params": null,
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": ".*",
+          "phase": "PostLateRequest",
+          "priority": 100,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "restore_ip",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml",
+      "headers": null,
+      "id": "status_module",
+      "name": "ox_webservice_status",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": {
+            "Accept": "application/json"
+          },
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        },
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 499,
+          "protocol": null,
+          "query": {
+            "format": "json"
+          },
+          "status_code": null
+        }
+      ]
+    },
+    "name": "status_module",
+    "stage": "Auxiliary"
+  },
+  {
+    "config": {
+      "content_root": "/var/repos/oxIDIZER/ox_webservice_status/content/www/",
+      "default_documents": [
+        {
+          "document": "index.html"
+        }
+      ],
+      "headers": null,
+      "id": "stream_status",
+      "mimetypes_file": "/var/repos/oxIDIZER/conf/mimetypes.yaml",
+      "name": "ox_webservice_stream",
+      "on_content_conflict": "skip",
+      "params": {
+        "config_file": "/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+      },
+      "path": null,
+      "query": null,
+      "routes": [
+        {
+          "headers": null,
+          "hostname": null,
+          "path": "^/status/?(.*)$",
+          "phase": "Content",
+          "priority": 500,
+          "protocol": null,
+          "query": null,
+          "status_code": null
+        }
+      ]
+    },
+    "name": "stream_status",
+    "stage": "Auxiliary"
+  }
+]</pre>
+                </details>
+                
+                
+                
+            </div>
+        </div>
+    </body>
+</html>
+2026-01-09 23:32:42 - Starting Test 300001: SharedDependencyUninstall
+2026-01-09 23:32:42 - Uploading packages...
+2026-01-09 23:32:42 - Uploading shared_lib.tar.gz...
+2026-01-09 23:32:43 - Uploaded shared_lib successfully.
+2026-01-09 23:32:43 - Uploading app_one.tar.gz...
+2026-01-09 23:32:43 - Uploaded app_one successfully.
+2026-01-09 23:32:43 - Uploading app_two.tar.gz...
+2026-01-09 23:32:43 - Uploaded app_two successfully.
+2026-01-09 23:32:43 - Installing shared_lib.tar.gz...
+2026-01-09 23:32:43 - Installed shared_lib.tar.gz successfully.
+2026-01-09 23:32:43 - Installing app_one.tar.gz...
+2026-01-09 23:32:43 - Installed app_one.tar.gz successfully.
+2026-01-09 23:32:43 - Installing app_two.tar.gz...
+2026-01-09 23:32:43 - Installed app_two.tar.gz successfully.
+2026-01-09 23:32:43 - All packages installed successfully.
+2026-01-09 23:32:43 - Attempting to uninstall app_one (Leaf node)...
+2026-01-09 23:32:43 - Uninstalled app_one successfully.
+2026-01-09 23:32:43 - Verified app_one is gone.
+2026-01-09 23:32:43 - Simulating recursive uninstall: Removing app_two first...
+2026-01-09 23:32:43 - Uninstalled app_two successfully.
+2026-01-09 23:32:43 - Now removing shared_lib...
+2026-01-09 23:32:43 - Uninstalled shared_lib successfully.
+2026-01-09 23:32:43 - Test Passed: Clean uninstall sequence.

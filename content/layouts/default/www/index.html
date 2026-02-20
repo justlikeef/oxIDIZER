@@ -1,11 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>ox_content</title>
-    <link rel="icon" href="/images/favico.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>oxIDIZER | Default Layout</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/common.js"></script>
 </head>
+
 <body>
-    <img src="/images/oxWebServicesLogo.png" alt="oxWebServices Logo">
-    <p><b>It Works!!!</b></p>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-area">
+                    <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                    <h1>Dashboard</h1>
+                    <span class="badge badge-neutral" style="margin-left: 0.5rem; opacity: 0.8;">HTML-JS</span>
+                </div>
+                <div class="header-status-area">
+                    <div class="status-badge" id="status-badge">ONLINE</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="card hero-card">
+            <h2>It Works!</h2>
+            <p>This is the default page for the oxIDIZER server.</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">Powered by ox_webservice</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Documentation</h3>
+                <p class="label">Check the docs/ folder for more info.</p>
+            </div>
+            <div class="card">
+                <h3>Status</h3>
+                <p class="label"><a href="/status/" style="color: var(--accent);">Check System Status</a></p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalStatus('status-badge');
+        });
+    </script>
 </body>
+
 </html>

@@ -1,6 +1,7 @@
 [package]
 name = "ox_data_broker"
 version = "0.1.0"
+license = "GPL-3.0-only"
 edition = "2021"
 
 [lib]
@@ -27,17 +28,11 @@ serde-xml-rs = "0.6"
 notify = "6.0"
 
 ox_persistence = { path = "../ox_persistence" }
-ox_persistence_api = { path = "../ox_persistence/drivers/ox_persistence_api" }
-ox_persistence_driver_flatfile = { path = "../ox_persistence/drivers/ox_persistence_driver_flatfile" }
-ox_persistence_driver_json = { path = "../ox_persistence/drivers/ox_persistence_driver_json" }
-ox_persistence_driver_mssql = { path = "../ox_persistence/drivers/ox_persistence_driver_mssql" }
-ox_persistence_driver_mysql = { path = "../ox_persistence/drivers/ox_persistence_driver_mysql" }
-ox_persistence_driver_postgresql = { path = "../ox_persistence/drivers/ox_persistence_driver_postgresql" }
-ox_persistence_driver_xml = { path = "../ox_persistence/drivers/ox_persistence_driver_xml" }
-ox_persistence_driver_yaml = { path = "../ox_persistence/drivers/ox_persistence_driver_yaml" }
+ox_persistence_api = { path = "../ox_persistence/ox_persistence_api" }
 ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 
 ox_webservice_api = { path = "../ox_webservice_api" }
+ox_fileproc = { path = "../ox_fileproc" }
 bumpalo = "3.19.0"
 

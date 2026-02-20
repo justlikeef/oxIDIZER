@@ -1,63 +1,53 @@
 
 use crate::initialize_module;
-use ox_webservice_api::{HandlerResult, LogLevel};
-use ox_webservice_test_utils::{create_mock_api, ModuleLoader, mock_log, mock_alloc_raw};
-use std::ffi::CString;
+use ox_webservice_api::{
+    PipelineState, HandlerResult, WebServiceApiV1, ModuleInterface, ModuleStatus, FlowControl, ReturnParameters,
+};
+use ox_webservice_test_utils::{create_mock_api, ModuleLoader};
 
 #[test]
-fn test_status_html_basic() {
+fn test_status_json_accept() {
     let api = create_mock_api();
-    // Status module usually doesn't need config, but expects "config_file" param maybe?
-    // The code handles null/empty config gracefully.
     let params_json = "{}";
-    
-    let loader = ModuleLoader::load(initialize_module, params_json, &api).expect("Failed to load status module");
-    
+    let module_id = "test_status";
+
+    let loader = ModuleLoader::load(initialize_module, params_json, module_id, &api).expect("Failed to load status module");
     let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
     
-    let result = loader.process_request(&mut ps, mock_log, mock_alloc_raw);
+    // Set Accept header
+    ps.request_headers.insert("Accept", "application/json".parse().unwrap());
     
-    assert_eq!(result, HandlerResult::ModifiedContinue);
-    assert!(ps.response_body.len() > 0);
-    
-    // Check Content-Type
-    let ct = ps.response_headers.get("Content-Type").unwrap();
-    assert_eq!(ct, "text/html");
-    
-    // Check content contains basic info
+    let result = loader.process_request(&mut ps, api.log_callback, api.alloc_raw);
+
+    assert_eq!(result.status, ModuleStatus::Modified);
+    assert_eq!(result.flow_control, FlowControl::Continue);
+
     let body_str = String::from_utf8_lossy(&ps.response_body);
-    assert!(body_str.contains("System Status"));
-    assert!(body_str.contains("Uptime:"));
+    assert!(body_str.starts_with("{"));
+    assert!(body_str.contains("\"uptime\":"));
+    
+    // Check Content-Type header
+    assert_eq!(ps.response_headers.get("Content-Type").unwrap(), "application/json");
 }
 
 #[test]
-fn test_status_json_format() {
+#[cfg_attr(miri, ignore)]
+fn test_status_json_query() {
     let api = create_mock_api();
     let params_json = "{}";
-    let loader = ModuleLoader::load(initialize_module, params_json, &api).expect("Failed to load status module");
-    
-    // 1. Via Query Param
-    {
-        let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
-        // create_stub_pipeline_state mocks APIs, but we need to ensure get_request_query returns "format=json"
-        // Wait, ModuleLoader mocks call to API, and create_mock_api uses mock_get_str for get_request_query.
-        // mock_get_str in test_utils currently returns null!
-        // We need to customize the mock behavior if we want to test specific API returns, 
-        // OR we can rely on the fact that `ox_webservice_test_utils` mocks might not be flexible enough yet 
-        // without modification.
-        
-        // However, `create_stub_pipeline_state` creates a PipelineState struct.
-        // The *module* calls `api.get_request_query`.
-        // The `mock_get_str` implementation in `test_utils` returns null/empty?
-        // Let's check `ox_webservice_test_utils/src/lib.rs`.
-    }
-}
+    let module_id = "test_status";
 
-// Re-evaluating test strategy: 
-// The centralized check is great, but specific return values from Host API (like query params) need to be mocked.
-// `ox_webservice_test_utils` currently has static mocks.
-// To test JSON output properly, we'd need to mock `get_request_query` to return "format=json".
-// For now, let's verify HTML path works, possibly verify JSON if I can hack the mock or if the specific mock supports it.
-// The `mock_get_str` in `test_utils` returns NULL.
-// So we can't easily test query/header driven logic without upgrading `test_utils`.
-// I will stick to the basic HTML test which relies on defaults.
+    let loader = ModuleLoader::load(initialize_module, params_json, module_id, &api).expect("Failed to load status module");
+    let mut ps = ox_webservice_test_utils::create_stub_pipeline_state();
+    
+    // Set Query
+    ps.request_query = "format=json".to_string();
+    
+    let result = loader.process_request(&mut ps, api.log_callback, api.alloc_raw);
+
+    assert_eq!(result.status, ModuleStatus::Modified);
+    assert_eq!(result.flow_control, FlowControl::Continue);
+
+    let body_str = String::from_utf8_lossy(&ps.response_body);
+    assert!(body_str.starts_with("{"));
+}

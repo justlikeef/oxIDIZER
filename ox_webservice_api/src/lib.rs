@@ -1,4 +1,4 @@
-use libc::{c_char, c_void};
+use std::ffi::{c_char, c_void, CString};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -6,6 +6,12 @@ use std::sync::{Arc, RwLock};
 use axum::http::HeaderMap;
 use std::net::SocketAddr;
 use bumpalo::Bump;
+
+// Re-export generic types from ox_pipeline_plugin
+pub use ox_pipeline_plugin::{
+    LogLevel, FlowControl, ModuleStatus, ReturnParameters, HandlerResult,
+    LogCallback, AllocStrFn, AllocFn, GetStateFn, SetStateFn, GetConfigFn, CoreHostApi
+};
 
 // --- Pipeline State ---
 // This struct is owned by the host (ox_webservice) and contains all request-specific data.
@@ -23,12 +29,50 @@ pub struct PipelineState {
     pub response_headers: HeaderMap,
     pub response_body: Vec<u8>,
     pub module_context: ModuleContext,
+    pub pipeline_ptr: *const c_void,
+    // New Fields
+    pub flags: std::collections::HashSet<String>,
+    pub execution_history: Vec<ModuleExecutionRecord>,
+    // Route Capture (for path rewriting)
+    pub route_capture: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ModuleExecutionRecord {
+    pub module_name: String,
+    pub status: ModuleStatus,
+    pub flow_control: FlowControl,
+    #[serde(skip)]
+    #[serde(default = "std::ptr::null_mut")]
+    pub return_data: *mut c_void, 
+}
+
+unsafe impl Send for ModuleExecutionRecord {}
+unsafe impl Sync for ModuleExecutionRecord {}
+
+unsafe impl Send for PipelineState {}
+unsafe impl Sync for PipelineState {}
+
+impl PipelineState {
+    pub fn add_flag(&mut self, flag: &str) {
+        self.flags.insert(flag.to_string());
+    }
+
+    pub fn remove_flag(&mut self, flag: &str) {
+        self.flags.remove(flag);
+    }
+
+    pub fn has_flag(&self, flag: &str) -> bool {
+        self.flags.contains(flag)
+    }
 }
 
 // Define the C-compatible function signature for handlers
 pub type WebServiceHandler = unsafe extern "C" fn(
     instance_ptr: *mut c_void, 
     pipeline_state_ptr: *mut PipelineState, 
+    // We pass CoreHostApi instead of full V1 in the new system?
+    // Maintaining signature for now but types are from ox_plugin
     log_callback: LogCallback,
     alloc_fn: AllocFn,
     arena: *const c_void,
@@ -39,83 +83,70 @@ pub struct ModuleInterface {
     pub instance_ptr: *mut c_void,
     pub handler_fn: WebServiceHandler,
     pub log_callback: LogCallback,
+    pub get_config: GetConfigFn,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LogLevel {
-    Error = 1,
-    Warn = 2,
-    Info = 3,
-    Debug = 4,
-    Trace = 5,
+// Log implementation...
+struct ModuleLogger {
+    callback: LogCallback,
+    module_name: CString,
 }
 
-impl From<LogLevel> for log::Level {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Trace => log::Level::Trace,
+impl log::Log for ModuleLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Trace
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            if let Ok(c_msg) = CString::new(format!("{}", record.args())) {
+                let level = match record.level() {
+                    log::Level::Error => LogLevel::Error,
+                    log::Level::Warn => LogLevel::Warn,
+                    log::Level::Info => LogLevel::Info,
+                    log::Level::Debug => LogLevel::Debug,
+                    log::Level::Trace => LogLevel::Trace,
+                };
+                unsafe {
+                    (self.callback)(level, self.module_name.as_ptr(), c_msg.as_ptr());
+                }
+            }
         }
     }
+
+    fn flush(&self) {}
 }
 
-pub type LogCallback = unsafe extern "C" fn(level: LogLevel, module: *const c_char, message: *const c_char);
-
-
+pub fn init_logging(callback: LogCallback, module_name: &str) -> std::result::Result<(), log::SetLoggerError> {
+    let logger = Box::new(ModuleLogger {
+        callback,
+        module_name: CString::new(module_name).unwrap(),
+    });
+    log::set_boxed_logger(logger)?;
+    log::set_max_level(log::LevelFilter::Trace);
+    Ok(())
+}
 
 
 // Define the shared Module Context type
 pub type ModuleContext = Arc<RwLock<HashMap<String, Value>>>;
 
-pub type AllocStrFn = unsafe extern "C" fn(arena: *const c_void, s: *const c_char) -> *mut c_char;
-pub type AllocFn = unsafe extern "C" fn(arena: *mut c_void, size: usize, align: usize) -> *mut c_void;
 
-#[repr(C)]
-pub struct WebServiceApiV1 {
-    pub log_callback: LogCallback,
-    pub alloc_str: AllocStrFn,
-    pub alloc_raw: AllocFn,
-    
-    // Module Context
-    pub get_module_context_value: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub set_module_context_value: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value_json: *const c_char),
+// We will keep WebServiceApiV1 but usage should migrate to CoreHostApi
+// For partial compatibility, we ensure CoreHostApi is a prefix or we just don't use WebServiceApiV1 in new modules.
 
-    // Request Getters
-    pub get_request_method: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_path: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_query: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_headers: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_request_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_source_ip: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
+// WebServiceApiV1 is now fully generic.
+pub type WebServiceApiV1 = CoreHostApi;
 
-    // Request Setters
-    pub set_request_path: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, path: *const c_char),
-    pub set_request_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value: *const c_char),
-    pub set_source_ip: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, ip: *const c_char),
-
-    // Response Getters
-    pub get_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState) -> u16,
-    pub get_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-    pub get_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-
-    // Response Setters
-    pub set_response_status: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, status_code: u16),
-    pub set_response_header: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, key: *const c_char, value: *const c_char),
-    pub set_response_body: unsafe extern "C" fn(pipeline_state_ptr: *mut PipelineState, body: *const u8, body_len: usize),
-
-    // Server Metrics
-    pub get_server_metrics: unsafe extern "C" fn(arena: *const c_void, alloc_fn: AllocStrFn) -> *mut c_char,
-}
-
+// Module Initialization now takes CoreHostApi
 pub type InitializeModuleFn = unsafe extern "C" fn(
     module_params_json_ptr: *const c_char,
-    api: *const WebServiceApiV1
+    module_id: *const c_char,
+    api: *const CoreHostApi
 ) -> *mut ModuleInterface;
+
+// Config structs (UriMatcher, ModuleConfig, Phase etc.)
+// Phase is specific to this host logic, so it stays here.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UriMatcher {
@@ -123,7 +154,18 @@ pub struct UriMatcher {
     pub protocol: Option<String>,
     #[serde(default)]
     pub hostname: Option<String>,
+    #[serde(alias = "url")]
     pub path: String,
+    #[serde(default)]
+    pub headers: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub query: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub priority: u16,
+    #[serde(default)]
+    pub phase: Option<String>,
+    #[serde(default)]
+    pub status_code: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -131,18 +173,18 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub id: Option<String>,
     pub name: String,
+    #[serde(default, alias = "uris")]
+    pub routes: Option<Vec<UriMatcher>>,
     #[serde(default)]
-    pub params: Option<Value>,
+    pub headers: Option<HashMap<String, String>>,
     #[serde(default)]
-    pub uris: Option<Vec<UriMatcher>>,
+    pub query: Option<HashMap<String, String>>,
     #[serde(default)]
     pub path: Option<String>,
     #[serde(default)]
-    pub error_path: Option<String>,
-    #[serde(default = "default_phase")]
-    pub phase: Phase,
-    #[serde(default)]
-    pub priority: u16,
+    pub params: Option<Value>,
+    #[serde(flatten)]
+    pub extra_params: HashMap<String, Value>,
 }
 
 impl Default for ModuleConfig {
@@ -150,54 +192,16 @@ impl Default for ModuleConfig {
         ModuleConfig {
             id: None,
             name: String::new(),
-            params: None,
-            uris: None,
+            routes: None,
+            headers: None,
+            query: None,
             path: None,
-            error_path: None,
-            phase: default_phase(),
-            priority: 0,
+            params: None,
+            extra_params: HashMap::new(),
         }
     }
 }
 
-fn default_phase() -> Phase {
-    Phase::Content
-}
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Phase {
-    PreEarlyRequest,
-    EarlyRequest,
-    PostEarlyRequest,
-    PreAuthentication,
-    Authentication,
-    PostAuthentication,
-    PreAuthorization,
-    Authorization,
-    PostAuthorization,
-    PreContent,
-    Content,
-    PostContent,
-    PreAccounting,
-    Accounting,
-    PostAccounting,
-    PreErrorHandling,
-    ErrorHandling,
-    PostErrorHandling,
-    PreLateRequest,
-    LateRequest,
-    PostLateRequest,
-}
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HandlerResult {
-    UnmodifiedContinue,
-    ModifiedContinue,
-    UnmodifiedNextPhase,
-    ModifiedNextPhase,
-    UnmodifiedJumpToError,
-    ModifiedJumpToError,
-    HaltProcessing,
-}
+

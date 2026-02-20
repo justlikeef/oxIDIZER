@@ -1,0 +1,23 @@
+[package]
+name = "ox_persistence_driver_db_mysql"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_persistence = { path = "../../../" }
+ox_locking = { path = "../../../../ox_locking" }
+ox_persistence_driver_sql = { package = "ox_persistence_driver_db_sql", path = "../ox_persistence_driver_db_sql" }
+
+
+ox_data_object = { path = "../../../../ox_data_object" }
+ox_type_converter = { path = "../../../../ox_type_converter" }
+ox_fileproc = { path = "../../../../ox_fileproc" }
+mysql = "25.0.0"
+myloginrs = "0.1.0"
+chrono = { version = "0.4", features = ["serde"] }
+libc = "0.2"
+bumpalo = "3.19.0"

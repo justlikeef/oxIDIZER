@@ -1,0 +1,15 @@
+friendly_name: SQLite
+id: "sqlite_datasource_form"
+title: "SQLite Data Source Configuration"
+fields:
+  - name: "path"
+    label: "Database File Path"
+    data_type: "string"
+    props:
+      placeholder: "data/my_database.sqlite"
+    validation:
+      - rule_type: "required"
+actions:
+  - name: "submit"
+    label: "Save Data Source"
+    action_type: "submit"

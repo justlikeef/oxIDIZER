@@ -1,0 +1,16 @@
+2026-01-09T22:13:39.477073579-05:00 INFO ox_webservice - log4rs initialized successfully from file.
+2026-01-09T22:13:39.477264727-05:00 DEBUG ox_webservice - Fully processed config for "/var/repos/oxIDIZER/ox_package_manager/functional_tests/100006-InstallPackage/conf/ox_webservice.runtime.yaml":
+{"log4rs_config":"/var/repos/oxIDIZER/conf/log4rs.yaml","servers":[{"id":"default_http","protocol":"http","port":3000,"bind_address":"0.0.0.0","hosts":[{"name":"localhost","tls_cert_path":null,"tls_key_path":null}]}],"modules":[{"id":"package_manager","name":"ox_package_manager","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_package_manager.so","params":null,"staging_directory":"/var/repos/oxIDIZER/ox_package_manager/functional_tests/100006-InstallPackage/staging"},{"id":"ox_pipeline_router","name":"ox_pipeline_router","routes":null,"headers":null,"query":null,"path":"/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so","params":null}],"pipeline":{"phases":[{"Content":"ox_pipeline_router"}]},"routes":[{"protocol":null,"hostname":null,"url":"^/packages/(upload|list|install)/?","headers":null,"query":null,"priority":450,"phase":"Content","module_id":"package_manager","status_code":null}],"merge":null,"merge_recursive":null,"enable_metrics":null}
+2026-01-09T22:13:39.477287741-05:00 INFO ox_webservice - Starting ox_webservice...
+2026-01-09T22:13:39.477448497-05:00 INFO ox_webservice::pipeline - Injected 1 extra URI routes into module 'package_manager'
+2026-01-09T22:13:39.477467930-05:00 INFO ox_webservice::pipeline - Loading module 'package_manager' from "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+2026-01-09T22:13:39.482321098-05:00 INFO ox_webservice::pipeline - Loading module 'ox_pipeline_router' from "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-09T22:13:39.489044776-05:00 INFO ox_webservice::pipeline - Module 'ox_pipeline_router' produces no routes and has no phase. It will strictly be available for manual dispatch.
+2026-01-09T22:13:39.489720785-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-09T22:13:39.489812739-05:00 INFO ox_webservice::pipeline - Using custom path for router 'ox_pipeline_router': "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
+2026-01-09T22:13:39.489867922-05:00 INFO ox_webservice::pipeline - Initializing router for phase "Content" with 1 routes
+2026-01-09T22:13:39.499308587-05:00 INFO ox_webservice - Listening on 0.0.0.0:3000
+
+thread 'tokio-runtime-worker' (2525060) panicked at ox_webservice/src/main.rs:318:51:
+called `Result::unwrap()` on an `Err` value: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

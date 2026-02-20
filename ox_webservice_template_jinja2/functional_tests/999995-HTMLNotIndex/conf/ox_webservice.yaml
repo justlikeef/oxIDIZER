@@ -1,0 +1,22 @@
+log4rs_config: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/log4rs.yaml
+modules:
+- id: test_module_0
+  name: ox_webservice_template_jinja2
+  params:
+    config_file: /var/repos/oxIDIZER/ox_webservice_template_jinja2/functional_tests/999995-HTMLNotIndex/conf/ox_content.yaml
+  phase: Content
+  priority: 999
+  routes: null
+pipeline:
+  phases:
+  - Content: ox_pipeline_router
+routes:
+- module_id: test_module_0
+  phase: Content
+  url: .*
+servers:
+- bind_address: 0.0.0.0
+  hosts:
+  - name: .*
+  port: 3000
+  protocol: http

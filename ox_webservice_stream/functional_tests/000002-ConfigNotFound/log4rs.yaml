@@ -1,61 +1,7 @@
-# log4rs.yaml
-refresh_rate: 30 seconds
-
 appenders:
-  # An appender that writes to the console
   stdout:
     kind: console
-
-  # An appender that writes to a file
-  file:
-    kind: file
-    path: "test_log.log"
-    encoder:
-      pattern: "{d} {l} {t} - {m}{n}"
-
 root:
-  level: info
+  level: debug
   appenders:
     - stdout
-    - file
-
-loggers:
-  # Set the log level for ox_webservice to debug
-  ox_webservice:
-    level: debug
-    appenders:
-      - stdout
-      - file
-    additive: false # Do not send to root
-
-  # Set the log level for ox_webservice_errorhandler_jinja2 to debug
-  ox_webservice_errorhandler_jinja2:
-    level: debug
-    appenders:
-      - stdout
-      - file
-    additive: false
-
-  # Set the log level for ox_webservice_stream to debug
-  ox_webservice_stream:
-    level: debug
-    appenders:
-      - stdout
-      - file
-    additive: false
-
-  # Set the log level for ox_server_info to debug
-  ox_server_info:
-    level: debug
-    appenders:
-      - stdout
-      - file
-    additive: false
-
-  # Set the log level for ox_webservice_template_jinja2 to debug
-  ox_webservice_template_jinja2:
-    level: debug
-    appenders:
-      - stdout
-      - file
-    additive: false

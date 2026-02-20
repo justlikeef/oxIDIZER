@@ -1,0 +1,35 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_package_manager (Ports: 28020 28021 28022 28023 28024)
+[INFO] ==================================================
+[INFO] Running test: 000005-Upload-InvalidExtension
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000005-Upload-InvalidExtension:PASSED
+[INFO] Running test: 000006-Upload-MissingManifest
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000006-Upload-MissingManifest:PASSED
+[INFO] Running test: 000007-Upload-CorruptedArchive
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:000007-Upload-CorruptedArchive:PASSED
+[INFO] Running test: 100001-Upload-Zip
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100001-Upload-Zip:PASSED
+[INFO] Running test: 100002-Upload-TarGz
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100002-Upload-TarGz:PASSED
+[INFO] Running test: 100003-Upload-TarBz2
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100003-Upload-TarBz2:PASSED
+[INFO] Running test: 100004-Upload-YamlManifest
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100004-Upload-YamlManifest:PASSED
+[INFO] Running test: 100005-GetStagedList
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100005-GetStagedList:PASSED
+[INFO] Running test: 100006-InstallPackage
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:100006-InstallPackage:PASSED
+[INFO] Running test: 200001-Routing
+[INFO] Result: PASSED
+[RESULT] ox_package_manager:200001-Routing:PASSED
+[INFO] Module ox_package_manager completed. Tests: 10, Failures: 0
+[INFO] --------------------------------------------------

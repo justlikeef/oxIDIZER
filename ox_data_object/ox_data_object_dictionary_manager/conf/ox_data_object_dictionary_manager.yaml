@@ -1,0 +1,10 @@
+modules:
+  - id: "dictionary_manager_admin"
+    name: "ox_data_object_dictionary_manager"
+    params: {}
+
+routes:
+  - url: "^/admin/dictionary/bootstrap$"
+    module_id: "dictionary_manager_admin"
+    priority: 100
+    phase: Content

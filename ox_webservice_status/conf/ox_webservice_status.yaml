@@ -1,0 +1,26 @@
+modules:
+  - id: "status_module"
+    name: "ox_webservice_status"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_status/conf/status.yaml"
+  - id: "stream_status"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "/var/repos/oxIDIZER/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+routes:
+  - url: "^/status/?(.*)$"
+    headers:
+      Accept: "application/json"
+    module_id: "status_module"
+    phase: Content
+    priority: 499
+  - url: "^/status/?(.*)$"
+    query:
+      format: "json"
+    module_id: "status_module"
+    phase: Content
+    priority: 499
+  - url: "^/status/?(.*)$"
+    module_id: "stream_status"
+    phase: Content
+    priority: 500

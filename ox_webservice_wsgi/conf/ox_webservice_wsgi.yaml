@@ -1,0 +1,15 @@
+modules:
+  - id: "wsgi_app_demo"
+    name: "ox_webservice_wsgi"
+    phase: Content
+    params:
+      # Refers to the config file in the same directory (or absolute path)
+      # Since the module is loaded, relative paths might be relative to the binary or config loading context.
+      # safely typically we use valid paths.
+      # If executed from root, "ox_webservice_wsgi/conf/wsgi_app.yaml" works.
+      config_file: "ox_webservice_wsgi/conf/wsgi_app.yaml"
+      
+routes:
+  - url: "/wsgi/(.*)"
+    match_type: "regex"
+    module_id: "wsgi_app_demo"

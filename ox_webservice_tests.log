@@ -1,0 +1,62 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice (Ports: 28050 28051 28052 28053 28054)
+[INFO] ==================================================
+[INFO] Running test: 000002-ConfigNotFound
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000002-ConfigNotFound:PASSED
+[INFO] Running test: 000003-ConfigInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000003-ConfigInvalid:PASSED
+[INFO] Running test: 000004-ConfigSchemaInvalid
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000004-ConfigSchemaInvalid:PASSED
+[INFO] Running test: 000005-IncludeError
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000005-IncludeError:PASSED
+[INFO] Running test: 000010-ConfigHTTPS-InvalidDNS
+[INFO] Result: PASSED
+[RESULT] ox_webservice:000010-ConfigHTTPS-InvalidDNS:PASSED
+[INFO] Running test: 100001-ConfigHTTP
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100001-ConfigHTTP:PASSED
+[INFO] Running test: 100002-ConfigHTTPS
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100002-ConfigHTTPS:PASSED
+[INFO] Running test: 100003-ConfigHTTPS-SNI
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100003-ConfigHTTPS-SNI:PASSED
+[INFO] Running test: 100004-WebSocket
+[INFO] Result: PASSED
+[RESULT] ox_webservice:100004-WebSocket:PASSED
+[INFO] Running test: 500001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500001-Safety-Miri:PASSED
+[INFO] Running test: 500002-Safety-ASan
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500002-Safety-ASan:PASSED
+[INFO] Running test: 500003-Safety-Fuzz-GetRequestHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500003-Safety-Fuzz-GetRequestHeader:PASSED
+[INFO] Running test: 500004-Safety-Fuzz-AllocStr
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500004-Safety-Fuzz-AllocStr:PASSED
+[INFO] Running test: 500005-Safety-Fuzz-GetModuleContext
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500005-Safety-Fuzz-GetModuleContext:PASSED
+[INFO] Running test: 500006-Safety-Fuzz-SetRequestPath
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500006-Safety-Fuzz-SetRequestPath:PASSED
+[INFO] Running test: 500007-Safety-Fuzz-SetRequestHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500007-Safety-Fuzz-SetRequestHeader:PASSED
+[INFO] Running test: 500008-Safety-Fuzz-SetSourceIp
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500008-Safety-Fuzz-SetSourceIp:PASSED
+[INFO] Running test: 500009-Safety-Fuzz-SetResponseHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500009-Safety-Fuzz-SetResponseHeader:PASSED
+[INFO] Running test: 500010-Safety-Fuzz-GetResponseHeader
+[INFO] Result: PASSED
+[RESULT] ox_webservice:500010-Safety-Fuzz-GetResponseHeader:PASSED
+[INFO] Module ox_webservice completed. Tests: 19, Failures: 0
+[INFO] --------------------------------------------------

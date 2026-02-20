@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # Exit codes
-PASSED=1
+PASSED=0
 FAILED=255
-SKIPPED=0
+SKIPPED=77
 
+# Parameters
+DEFAULT_LOGGING_LEVEL="info"
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
@@ -17,6 +19,10 @@ TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
 MODE=${3:-$DEFAULT_MODE}
 # Use provided LOGGING_LEVEL or the default
 LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -32,7 +38,26 @@ fi
 if [ "$MODE" == "isolated" ]; then
   # Define paths for the new parameters
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
-  TEST_WORKSPACE_DIR=$(readlink -f "$TEST_DIR/../../../")
+  TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
+
+  # Generate helper configs
+  cat <<EOF > "$TEST_DIR/conf/log4rs.yaml"
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{d} {l} {t} - {m}{n}"
+  file:
+    kind: file
+    path: "$TEST_DIR/logs/ox_webservice.log"
+    encoder:
+      pattern: "{d} {l} {t} - {m}{n}"
+root:
+  level: debug
+  appenders:
+    - stdout
+    - file
+EOF
 
   # Start the server and capture the output
   START_OUTPUT=$("$SCRIPTS_DIR/start_server.sh" \
@@ -73,7 +98,7 @@ if [ "$MODE" == "isolated" ]; then
     log_message "$LOGGING_LEVEL" "notice" "Server process with PID $SERVER_PID is not running (as expected)."
 
     # Check for correct error message in the log file
-    if grep -q "Failed to load configuration: Configuration file not found" "$TEST_DIR/logs/ox_webservice.log"; then
+    if grep -q "Failed to load configuration.*Failed to canonicalize path" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found expected configuration file not found error in log."
     else
         log_message "$LOGGING_LEVEL" "error" "Did not find expected configuration file not found error in log."

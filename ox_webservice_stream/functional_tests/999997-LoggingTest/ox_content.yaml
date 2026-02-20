@@ -1,4 +1,0 @@
-content_root: "/var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest"
-mimetypes_file: /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/999997-LoggingTest/mimetypes.yaml
-default_documents:
-- document: index.html

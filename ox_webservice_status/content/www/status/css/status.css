@@ -1,0 +1,139 @@
+@import "/css/common.css";
+
+/* Pipeline Routing Table Styles */
+.pipeline-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pipeline-header th {
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    padding: 0.5rem;
+}
+
+.pipeline-phase-row {
+    border-bottom: none;
+}
+
+.pipeline-phase-row td {
+    padding: 0.5rem;
+    vertical-align: top;
+}
+
+.pipeline-config-row {
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.pipeline-config-cell {
+    padding: 0 0.5rem 0.5rem 0.5rem;
+}
+
+.router-config-summary {
+    cursor: pointer;
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.router-config-container {
+    margin-top: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.router-config-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.error-text {
+    color: #ef4444;
+    /* red-500 */
+}
+
+/* General Table/List Styles (reused in other sections) */
+.details-list summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--accent);
+    list-style: none;
+}
+
+/* Status Badge Styles */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    background-color: #000;
+    /* Black background for all */
+    border: 1px solid transparent;
+    /* Base border */
+    transition: all 0.3s ease;
+}
+
+.status-ok {
+    color: #27ae60;
+    /* Green text */
+    border-color: #27ae60;
+    /* Green border */
+}
+
+.status-warn {
+    color: #f1c40f;
+    /* Yellow text */
+    border-color: #f1c40f;
+    /* Yellow border */
+}
+
+.status-error {
+    color: #e74c3c;
+    /* Red text */
+    border-color: #e74c3c;
+    /* Red border */
+}
+
+/* Auto Refresh Controls */
+.header-status-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.controls-area {
+    /* margin-top: 1rem; Removed as it's now grouped */
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    font-size: 0.8rem;
+    /* Slightly smaller to fit better */
+    color: var(--text-secondary);
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+#refresh-interval {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border, #444);
+    color: var(--text-primary, white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    width: 60px;
+    text-align: center;
+}
+
+input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent);
+}

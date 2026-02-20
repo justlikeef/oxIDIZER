@@ -1,0 +1,25 @@
+[INFO] ==================================================
+[INFO] STARTING MODULE: ox_webservice_ping (Ports: 28090 28091 28092 28093 28094)
+[INFO] ==================================================
+[INFO] Running test: 100001-PingTest
+[ERROR] [2026-01-06 23:06:34] [notice] Starting server process...
+[2026-01-06 23:06:34] [info] Server started with PID 1934661. Output redirected to /var/repos/oxIDIZER/ox_webservice_ping/functional_tests/100001-PingTest/logs/ox_webservice.log
+[INFO] Testing Default (HTML)...
+[ERROR] Default HTML test headers failed.
+[INFO] Testing JSON (Accept Header)...
+[INFO] JSON Header test passed.
+[INFO] Testing JSON (Query Param)...
+[INFO] JSON Query test passed.
+[2026-01-06 23:06:36] [notice] Stopping server with PID 1934661...
+[2026-01-06 23:06:36] [info] Server stopped.
+[ERROR] Test FAILED with 1 failures
+[ERROR] Result: FAILED (Exit: 255)
+[RESULT] ox_webservice_ping:100001-PingTest:FAILED
+[INFO] Running test: 500001-Safety-Miri
+[INFO] Result: PASSED
+[RESULT] ox_webservice_ping:500001-Safety-Miri:PASSED
+[INFO] Running test: 500002-Safety-Fuzz-Config
+[INFO] Result: PASSED
+[RESULT] ox_webservice_ping:500002-Safety-Fuzz-Config:PASSED
+[INFO] Module ox_webservice_ping completed. Tests: 3, Failures: 1
+[INFO] --------------------------------------------------

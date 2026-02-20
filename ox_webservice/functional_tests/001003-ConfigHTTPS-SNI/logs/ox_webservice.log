@@ -1,4 +1,0 @@
-2025-12-14T12:22:04.878369659-05:00 INFO ox_webservice - log4rs initialized successfully.
-2025-12-14T12:22:04.878535437-05:00 INFO ox_webservice - Starting ox_webservice...
-2025-12-14T12:22:04.878810846-05:00 INFO ox_webservice - Listening on 0.0.0.0:3443
-2025-12-14T12:22:04.882489982-05:00 ERROR ox_webservice - Failed to add SNI for host .*: General("Bad DNS name")
