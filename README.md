@@ -1,5 +1,7 @@
 # oxIDIZER
 
+![oxIDIZER Logo](images/oxIDIZER_logo.png)
+
 **oxIDIZER** is a powerful collection of modular Rust libraries designed to work together or independently. It provides a robust foundation for building data-driven applications, web services, and automated file processing systems.
 
 ## Project Vision
