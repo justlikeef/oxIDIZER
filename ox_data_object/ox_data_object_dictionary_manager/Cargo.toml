@@ -19,4 +19,4 @@ ox_persistence_dictionary_manager = { path = "../../ox_persistence/ox_persistenc
 ox_type_converter = { path = "../../ox_type_converter" }
 ox_persistence = { path = "../../ox_persistence" }
 ox_webservice_api = { path = "../../ox_webservice_api" }
-ox_pipeline_plugin = { path = "../../ox_pipeline/ox_pipeline_plugin" }
+ox_workflow_abi = { path = "../../ox_workflow_abi" }

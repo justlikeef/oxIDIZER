@@ -1,45 +1,58 @@
 [workspace]
 resolver = "2"
 members = [
-   "ox_webservice_vary_header",
-    "ox_callback_manager",
+    # ox_workflow engine (migrated from oxWorkflow repo)
+    "ox_workflow_abi",
+    "ox_workflow_core",
+    "ox_workflow_config",
+    "ox_workflow_executor",
+    "ox_workflow_storage",
+    "ox_workflow_api",
+    "ox_workflow_scheduler",
 
-    "ox_data_broker",
-    "ox_data_object",
-    "ox_data_object/ox_data_object_manager", "ox_fileproc",
-    "ox_locking",
-    "ox_persistence_driver_manager/ox_persistence_driver_manager_wasm",
-    "ox_persistence_gdo_relational",
-    "ox_persistence/ox_persistence_api",
-    "ox_persistence/ox_persistence_dictionary_manager",
-    "ox_data_object/ox_data_object_dictionary_manager",
-    "ox_persistence/drivers/file/ox_persistence_driver_file_delimited",
-    "ox_persistence/drivers/file/ox_persistence_driver_file_json",
-    "ox_persistence/drivers/file/ox_persistence_driver_file_xml",
-    "ox_persistence/drivers/file/ox_persistence_driver_file_yaml",
-    "ox_persistence/drivers/db/ox_persistence_driver_db_mssql",
-    "ox_persistence/drivers/db/ox_persistence_driver_db_mysql",
-    "ox_persistence/drivers/db/ox_persistence_driver_db_postgres",
-    "ox_persistence/drivers/db/ox_persistence_driver_db_sql",
-    "ox_persistence/drivers/db/ox_persistence_driver_db_sqlite",
-    "ox_persistence_driver_manager",
-    "ox_persistence_driver_installer",
-    "ox_persistence_datasource_manager",
+    # Event bus & messaging
+    "ox_event_bus",
+    "ox_messaging_client",
+    "ox_messaging_mqtt",
+
+    # Core utilities
+    "ox_fileproc",
     "ox_type_converter",
+
+    # Webservice host and API
     "ox_webservice",
     "ox_webservice_api",
-    "ox_webservice_errorhandler_jinja2",
-    "ox_webservice_errorhandler_json",
-    "ox_webservice_stream",
-    "ox_webservice_template_jinja2",
+    "ox_webservice_router",
+    "ox_webservice_test_utils",
+
+    # Plugins - auth/security
+    "ox_auth_ip",
     "ox_webservice_forwarded_for",
     "ox_webservice_restore_ip",
+
+    # Plugins - error handling
+    "ox_webservice_errorhandler_jinja2",
+    "ox_webservice_errorhandler_json",
+
+    # Plugins - routing/rewriting
     "ox_webservice_redirect",
     "ox_webservice_rewrite",
+
+    # Plugins - content serving
+    "ox_webservice_stream",
+    "ox_webservice_template_jinja2",
+
+    # Plugins - response manipulation
+    "ox_webservice_ping",
     "ox_webservice_status",
-    "ox_webservice_test_utils",
-    "ox_webservice_ping", "ox_pipeline", "ox_pipeline/ox_pipeline_plugin", "ox_pipeline/ox_pipeline_router",
-    "ox_package_manager", "ox_forms", "ox_forms/ox_forms_std_renderers", "ox_forms/ox_forms_server", "ox_forms/ox_forms_client", "ox_forms/ox_forms_api",
-    "ox_event_bus", "ox_messaging_client/ox_messaging_mqtt", "ox_event_bus/ox_event_bus_mqtt", "ox_messaging_client", "ox_auth_ip",
+    "ox_webservice_vary_header",
     "ox_webservice_wsgi",
+
+    # Data / persistence
+    "ox_data_broker",
+    "ox_persistence",
+    "ox_persistence_datasource_manager",
+    "ox_persistence_driver_installer",
+    "ox_persistence_driver_manager",
+    "ox_package_manager",
 ]

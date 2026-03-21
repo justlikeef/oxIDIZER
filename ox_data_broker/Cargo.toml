@@ -34,5 +34,4 @@ ox_locking = { path = "../ox_locking" }
 
 ox_webservice_api = { path = "../ox_webservice_api" }
 ox_fileproc = { path = "../ox_fileproc" }
-bumpalo = "3.19.0"
 

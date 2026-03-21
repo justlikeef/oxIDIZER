@@ -1,24 +1,22 @@
-use ox_webservice_api::{
-    HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    CoreHostApi, PipelineState, AllocFn, AllocStrFn,
-    ModuleStatus, FlowControl, ReturnParameters,
+use ox_workflow_abi::{
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ffi::{c_char, c_void, CStr, CString};
-use std::path::PathBuf;
-use std::panic;
-use std::sync::Arc;
 
 const MODULE_NAME: &str = "ox_webservice_errorhandler_json";
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
-#[serde(rename_all = "lowercase")] // "append", "replace", "ignore"
+#[serde(rename_all = "lowercase")]
 pub enum Action {
     Append,
     Replace,
     Ignore,
 }
+
+fn default_on_success() -> Action { Action::Ignore }
+fn default_on_error() -> Action { Action::Append }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -28,158 +26,108 @@ pub struct Config {
     pub on_error: Action,
 }
 
-fn default_on_success() -> Action { Action::Ignore }
-fn default_on_error() -> Action { Action::Append }
-
-pub struct OxModule<'a> {
+pub struct ModuleContext {
     config: Config,
-    api: &'a CoreHostApi,
+    api: CoreHostApi,
 }
 
-impl<'a> OxModule<'a> {
-    pub fn new(config: Config, api: &'a CoreHostApi) -> anyhow::Result<Self> {
-        let _ = ox_webservice_api::init_logging(api.log_callback, MODULE_NAME);
-        Ok(Self { config, api })
-    }
-
-    pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
-        let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-        
-        // Use logic based on status code
-        let status = pipeline_state.status_code;
-        let is_error = status >= 400;
-        
-        let action = if is_error { self.config.on_error } else { self.config.on_success };
-
-        if action == Action::Ignore {
-             return HandlerResult {
-                status: ModuleStatus::Unmodified,
-                flow_control: FlowControl::Continue,
-                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-            };
-        }
-
-        let mut context_map = serde_json::Map::new();
-        context_map.insert("status".to_string(), serde_json::json!(status));
-        
-        // Get status text
-        let status_text = axum::http::StatusCode::from_u16(status)
-            .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
-            .canonical_reason()
-            .unwrap_or("Unknown Error");
-        context_map.insert("message".to_string(), Value::String(status_text.to_string()));
-
-        // If error, try to get more info (like from existing body if it's JSON?)
-        // Or just wrap the existing body?
-        // Logic:
-        // Replace: New JSON body overwrites everything.
-        // Append: New JSON body includes "original_body" field? Or merges?
-        // User asked to "append successful http status to the existing body"
-        
-        // Let's assume the goal is to envelope the response.
-        
-        let mut final_json = context_map;
-
-        if action == Action::Append {
-            // Read existing body
-            let existing_body_str = String::from_utf8_lossy(&pipeline_state.response_body);
-            // Try parse as JSON
-            if let Ok(existing_json) = serde_json::from_str::<Value>(&existing_body_str) {
-                if let Some(obj) = existing_json.as_object() {
-                    for (k, v) in obj {
-                         final_json.insert(k.clone(), v.clone());
-                    }
-                } else {
-                     final_json.insert("data".to_string(), existing_json);
-                }
-            } else {
-                 // Text content
-                 if !existing_body_str.is_empty() {
-                     final_json.insert("content".to_string(), Value::String(existing_body_str.to_string()));
-                 }
-            }
-        }
-
-        // Set Content-Type
-        pipeline_state.response_headers.insert(
-            axum::http::header::CONTENT_TYPE, 
-            axum::http::HeaderValue::from_static("application/json")
-        );
-
-        // Serialize and set body
-        if let Ok(json_bytes) = serde_json::to_vec(&final_json) {
-            pipeline_state.response_body = json_bytes;
-            
-            // Set flag
-            pipeline_state.add_flag("error_handled");
-            
-            HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::Continue,
-                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-            }
-        } else {
-            // Failed to serialize? Should not happen.
-            HandlerResult {
-                status: ModuleStatus::Unmodified,
-                flow_control: FlowControl::Continue,
-                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-            }
-        }
-    }
+fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
+    let c_key = CString::new(key).unwrap();
+    let res_ptr = (api.get_field)(task_ctx, c_key.as_ptr());
+    if res_ptr.is_null() { return String::new(); }
+    unsafe { CStr::from_ptr(res_ptr).to_string_lossy().into_owned() }
 }
 
-// Boilerplate C-API
+fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
+    let c_key = CString::new(key).unwrap();
+    let c_val = CString::new(value).unwrap();
+    (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initialize_module(
-    module_params_json_ptr: *const c_char,
-    _module_id: *const c_char,
-    api: *const CoreHostApi,
-) -> *mut ModuleInterface {
-    let result = panic::catch_unwind(|| {
-        let api_instance = unsafe { &*api };
-        let module_params_json = unsafe { CStr::from_ptr(module_params_json_ptr).to_str().unwrap() };
-        let params: Value = serde_json::from_str(module_params_json).unwrap_or(Value::Null);
+pub unsafe extern "C" fn ox_plugin_init(
+    plugin_config_ctx: *const c_char,
+    api_ptr: *const CoreHostApi,
+    _abi_version: u32,
+) -> *mut c_void {
+    if api_ptr.is_null() { return std::ptr::null_mut(); }
+    let api = unsafe { *api_ptr };
 
-        // Parse config from params directly or load file?
-        // Usually params has "config_file".
-        // For simplicity reusing params as config if no file, or creating default.
-        let config: Config = serde_json::from_value(params.clone()).unwrap_or(Config {
-            on_success: Action::Ignore,
-            on_error: Action::Append,
-        });
+    let params_str = if !plugin_config_ctx.is_null() {
+        unsafe { CStr::from_ptr(plugin_config_ctx).to_string_lossy().to_string() }
+    } else { "{}".to_string() };
 
-        let handler = OxModule::new(config, api_instance).unwrap();
-        let instance_ptr = Box::into_raw(Box::new(handler)) as *mut c_void;
-
-        let interface = Box::new(ModuleInterface {
-            instance_ptr,
-            handler_fn: process_request_c,
-            log_callback: api_instance.log_callback,
-            get_config: get_config_c,
-        });
-        Box::into_raw(interface)
+    let params: Value = serde_json::from_str(&params_str).unwrap_or(Value::Null);
+    let config: Config = serde_json::from_value(params).unwrap_or(Config {
+        on_success: Action::Ignore,
+        on_error: Action::Append,
     });
-    match result { Ok(ptr) => ptr, Err(_) => std::ptr::null_mut() }
+
+    if let Ok(c) = CString::new(format!("{} initialized", MODULE_NAME)) {
+        (api.log)(std::ptr::null_mut(), OX_LOG_INFO, c.as_ptr());
+    }
+
+    let ctx = Box::new(ModuleContext { config, api });
+    Box::into_raw(ctx) as *mut c_void
 }
 
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    _log: LogCallback,
-    _alloc: AllocFn,
-    _arena: *const c_void,
-) -> HandlerResult {
-    let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-    handler.process_request(pipeline_state_ptr)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_process(
+    plugin_config_ctx: *mut c_void,
+    task_ctx: *mut c_void,
+) -> FlowControl {
+    if plugin_config_ctx.is_null() {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+    let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
+    let api = &context.api;
+
+    let status_str = get_field(api, task_ctx, "response.status");
+    let status: u16 = status_str.parse().unwrap_or(200);
+    let is_error = status >= 400;
+
+    let action = if is_error { context.config.on_error } else { context.config.on_success };
+    if action == Action::Ignore {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+
+    let status_text = axum::http::StatusCode::from_u16(status)
+        .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+        .canonical_reason().unwrap_or("Unknown Error");
+
+    let mut final_json = serde_json::Map::new();
+    final_json.insert("status".to_string(), serde_json::json!(status));
+    final_json.insert("message".to_string(), Value::String(status_text.to_string()));
+
+    if action == Action::Append {
+        let existing_body = get_field(api, task_ctx, "response.body");
+        if let Ok(existing_val) = serde_json::from_str::<Value>(&existing_body) {
+            if let Some(obj) = existing_val.as_object() {
+                for (k, v) in obj { final_json.insert(k.clone(), v.clone()); }
+            } else if !existing_body.is_empty() {
+                final_json.insert("data".to_string(), existing_val);
+            }
+        } else if !existing_body.is_empty() {
+            final_json.insert("content".to_string(), Value::String(existing_body));
+        }
+    }
+
+    set_field(api, task_ctx, "response.header.Content-Type", "application/json");
+    let serialized = serde_json::to_string(&final_json).unwrap_or("{}".to_string());
+    set_field(api, task_ctx, "response.body", &serialized);
+
+    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
 }
 
-unsafe extern "C" fn get_config_c(
-    instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-    let json = serde_json::to_string(&handler.config).unwrap_or("{}".to_string());
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_error(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) {}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
+    if !plugin_config_ctx.is_null() {
+        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+    }
 }

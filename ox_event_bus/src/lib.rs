@@ -13,6 +13,13 @@ pub struct EventMessage {
     pub reply_to: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueueConfig {
+    pub priority_levels: u8,
+    pub max_messages: usize,
+    pub max_throughput_per_sec: Option<u32>,
+}
+
 #[derive(Debug)]
 pub enum BusError {
     ConnectionError(String),
@@ -36,4 +43,9 @@ pub trait EventBus: Send + Sync {
     async fn request(&self, topic: &str, payload: &[u8], timeout: Duration) -> Result<EventMessage, BusError>;
     async fn subscribe(&self, topic: &str) -> Result<std::pin::Pin<Box<dyn Stream<Item = EventMessage> + Send>>, BusError>;
     async fn reply(&self, original: &EventMessage, payload: &[u8]) -> Result<(), BusError>;
+
+    // Queue API Extensions
+    async fn create_queue(&self, name: &str, config: QueueConfig) -> Result<String, BusError>;
+    async fn publish_to_queue(&self, queue_id: &str, priority: u8, payload: &[u8]) -> Result<(), BusError>;
+    async fn subscribe_to_queue(&self, queue_id: &str) -> Result<std::pin::Pin<Box<dyn Stream<Item = EventMessage> + Send>>, BusError>;
 }

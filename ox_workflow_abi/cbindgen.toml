@@ -1,0 +1,4 @@
+language = "C"
+
+[export]
+include = ["FlowControl", "CoreHostApi", "OxPluginInitFn", "OxPluginProcessFn", "OxPluginErrorFn", "OxPluginDestroyFn"]

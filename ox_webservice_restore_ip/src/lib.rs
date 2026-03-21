@@ -1,174 +1,78 @@
 use libc::{c_void, c_char};
-use ox_webservice_api::{
-    HandlerResult, LogCallback, LogLevel, ModuleInterface,
-    CoreHostApi, AllocFn, AllocStrFn, PipelineState,
-    ModuleStatus, FlowControl, ReturnParameters,
+use ox_workflow_abi::{
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_DEBUG,
 };
 use std::ffi::{CStr, CString};
-use std::panic;
-use anyhow::Result;
-use bumpalo::Bump;
 
 const MODULE_NAME: &str = "ox_webservice_restore_ip";
 
-pub struct OxModule<'a> {
-    api: &'a CoreHostApi,
-    module_id: String,
+pub struct ModuleContext {
+    api: CoreHostApi,
 }
 
-impl<'a> OxModule<'a> {
-    fn log(&self, level: LogLevel, message: String) {
-        if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
-            unsafe {
-                (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
-            }
-        }
-    }
+fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
+    let c_key = CString::new(key).unwrap();
+    let res_ptr = (api.get_field)(task_ctx, c_key.as_ptr());
+    if res_ptr.is_null() { return String::new(); }
+    unsafe { CStr::from_ptr(res_ptr).to_string_lossy().into_owned() }
+}
 
-    pub fn new(api: &'a CoreHostApi, module_id: String) -> Result<Self> {
-        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
-        Ok(Self { api, module_id })
-    }
+fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
+    let c_key = CString::new(key).unwrap();
+    let c_val = CString::new(value).unwrap();
+    (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
 
-    pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
-        if pipeline_state_ptr.is_null() {
-            self.log(LogLevel::Error, "Pipeline state is null".to_string());
-            return HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
-                return_parameters: ReturnParameters {
-                    return_data: std::ptr::null_mut(),
-                },
-            };
-        }
-
-        let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
-
-        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
-            self.api, 
-            pipeline_state_ptr as *mut c_void, 
-            arena_ptr
-        ) };
-
-        // 1. Retrieve "original_source_ip" from module context
-        if let Some(val) = ctx.get("original_source_ip") {
-             if let Some(ip_str) = val.as_str() {
-                 let _ = ctx.set("request.source_ip", serde_json::Value::String(ip_str.to_string()));
-                 self.log(LogLevel::Info, format!("Restored Source IP to {}", ip_str));
-
-                 return HandlerResult {
-                    status: ModuleStatus::Unmodified,
-                    flow_control: FlowControl::Continue,
-                    return_parameters: ReturnParameters {
-                        return_data: std::ptr::null_mut(),
-                    },
-                };
-             } else {
-                 self.log(LogLevel::Warn, format!("Found 'original_source_ip' but it is not a string. Value: {:?}", val));
-             }
-        } else {
-             self.log(LogLevel::Debug, "No 'original_source_ip' found in module context. Skipping restore.".to_string());
-        }
-
-        HandlerResult {
-            status: ModuleStatus::Unmodified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters {
-                return_data: std::ptr::null_mut(),
-            },
-        }
-    }
+fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
+    if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initialize_module(
-    _module_params_json_ptr: *const c_char,
-    module_id_ptr: *const c_char,
+pub unsafe extern "C" fn ox_plugin_init(
+    _plugin_config_ctx: *const c_char,
     api_ptr: *const CoreHostApi,
-) -> *mut ModuleInterface {
-    if api_ptr.is_null() {
-        return std::ptr::null_mut();
+    _abi_version: u32,
+) -> *mut c_void {
+    if api_ptr.is_null() { return std::ptr::null_mut(); }
+    let api = unsafe { *api_ptr };
+    if let Ok(c) = CString::new(format!("{} initialized", MODULE_NAME)) {
+        (api.log)(std::ptr::null_mut(), OX_LOG_INFO, c.as_ptr());
     }
-    let api_instance = unsafe { &*api_ptr };
+    let ctx = Box::new(ModuleContext { api });
+    Box::into_raw(ctx) as *mut c_void
+}
 
-    let module_id = if !module_id_ptr.is_null() {
-        unsafe { CStr::from_ptr(module_id_ptr).to_string_lossy().to_string() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_process(
+    plugin_config_ctx: *mut c_void,
+    task_ctx: *mut c_void,
+) -> FlowControl {
+    if plugin_config_ctx.is_null() {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+    let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
+    let api = &context.api;
+
+    let original_ip = get_field(api, task_ctx, "original_source_ip");
+    if !original_ip.is_empty() {
+        set_field(api, task_ctx, "request.source_ip", &original_ip);
+        log(api, task_ctx, OX_LOG_INFO, &format!("Restored source IP to {}", original_ip));
     } else {
-        MODULE_NAME.to_string()
-    };
-    let c_module_id = CString::new(module_id.clone()).unwrap();
-
-    let glue = match OxModule::new(api_instance, module_id) {
-        Ok(g) => g,
-        Err(e) => {
-             let log_msg = CString::new(format!("Failed to initialize: {}", e)).unwrap();
-             unsafe { (api_instance.log_callback)(LogLevel::Error, c_module_id.as_ptr(), log_msg.as_ptr()); }
-             return std::ptr::null_mut();
-        }
-    };
-    
-    let log_msg = CString::new("ox_webservice_restore_ip initialized").unwrap();
-    unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), log_msg.as_ptr()); }
-
-    let instance_ptr = Box::into_raw(Box::new(glue)) as *mut c_void;
-
-    Box::into_raw(Box::new(ModuleInterface {
-        instance_ptr,
-        handler_fn: process_request_c,
-        log_callback: api_instance.log_callback,
-        get_config: get_config_c,
-    }))
-}
-
-unsafe extern "C" fn get_config_c(
-    _instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    let json = "null";
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
-}
-
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    log_callback: LogCallback,
-    _alloc_fn: AllocFn,
-    _arena: *const c_void, 
-) -> HandlerResult {
-    if instance_ptr.is_null() {
-        return HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl::Halt,
-            return_parameters: ReturnParameters {
-                return_data: std::ptr::null_mut(),
-            },
-        };
+        log(api, task_ctx, OX_LOG_DEBUG, "No original_source_ip to restore");
     }
 
-    let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-        handler.process_request(pipeline_state_ptr)
-    }));
+    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
+}
 
-     match result {
-        Ok(r) => r,
-        Err(e) => {
-             let log_msg = CString::new(format!("Panic in ox_webservice_restore_ip: {:?}", e)).unwrap();
-             
-             let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
-             let module_name = CString::new(handler_unsafe.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
-             
-             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-             HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::Halt,
-                return_parameters: ReturnParameters {
-                    return_data: std::ptr::null_mut(),
-                },
-             }
-        }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_error(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) {}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
+    if !plugin_config_ctx.is_null() {
+        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
     }
 }

@@ -36,19 +36,20 @@ tokio-rustls = "0.26.4"
 rustls = "0.23.35"
 aws-lc-rs = "1.15.1"
 rustls-pemfile = "2.1.2"
-
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+uuid = { version = "1.7", features = ["v4"] }
 
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
 ox_webservice_api = { path = "../ox_webservice_api" }
-ox_pipeline = { path = "../ox_pipeline" }
-ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
+ox_workflow_abi = { path = "../ox_workflow_abi" }
+ox_workflow_core = { path = "../ox_workflow_core" }
+ox_workflow_executor = { path = "../ox_workflow_executor" }
 ox_fileproc = { path = "../ox_fileproc" }
-ox_forms_api = { path = "../ox_forms/ox_forms_api" }
 
 sysinfo = "0.30"
 regex = "1.10"
-bumpalo = "3.19.0"
 tokio-util = { version = "0.7.17", features = ["io"] }
 mime_guess = "2.0.5"
 url = "2.5.0"
@@ -56,6 +57,3 @@ tempfile = "3.23.0"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "cargo", "rustc", "si"] }
-
-
-[dev-dependencies]

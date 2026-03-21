@@ -1,8 +1,9 @@
 use std::ffi::{CStr, CString};
-use libc::{c_char, c_void};
+use std::ffi::{c_char, c_void};
 use anyhow::{Result, Context};
-use ox_webservice_api::AllocStrFn;
 use std::path::PathBuf;
+
+type AllocStrFn = unsafe extern "C" fn(*const c_void, *const c_char) -> *mut c_char;
 
 // Shared allocator that just delegates to system malloc via CString cloning
 unsafe extern "C" fn malloc_allocator(_arena: *const c_void, s: *const c_char) -> *mut c_char {

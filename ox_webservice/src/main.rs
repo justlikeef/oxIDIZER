@@ -1,35 +1,30 @@
-
 use std::io::BufReader;
-
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use tokio::net::TcpListener;
+
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use rustls::server::{ClientHello, ResolvesServerCert, ResolvesServerCertUsingSni};
 use rustls::sign::CertifiedKey;
 use rustls::server::ServerConfig as RustlsServerConfig;
-use axum_server::tls_rustls::RustlsConfig;
 use log::{info, error, LevelFilter};
-use log4rs::config::{Appender, Config as LogConfig, Root};
-use log4rs::append::console::ConsoleAppender;
-use log4rs::encode::pattern::PatternEncoder;
-
+use clap::{Parser, Subcommand};
+use tower::Service;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::service::TowerToHyperService;
 use axum::{
     body::Body,
     http::Request,
     extract::ConnectInfo,
     Router,
 };
-use clap::{Parser, Subcommand};
-
-
+use log4rs::config::{Appender, Config as LogConfig, Root};
+use log4rs::append::console::ConsoleAppender;
+use log4rs::encode::pattern::PatternEncoder;
+use tokio::task::JoinSet;
 
 use ox_webservice::{ServerConfig, load_config_from_path, pipeline::Pipeline};
-
-
-// Structs moved to lib.rs, removed from here.
 
 #[derive(Debug)]
 struct CustomCertResolver {
@@ -39,11 +34,9 @@ struct CustomCertResolver {
 
 impl ResolvesServerCert for CustomCertResolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
-        // First, try to resolve using the SNI-based resolver
         if let Some(cert) = self.sni_resolver.resolve(client_hello) {
             return Some(cert);
         }
-        // If no specific certificate was found, return the default one
         self.default_cert.clone()
     }
 }
@@ -60,11 +53,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Checks the configuration file for errors
     Configcheck,
-    /// Runs the server
     Run,
-    /// Runs the server (background/daemon - implementation currently same as Run)
     DaemonRun,
 }
 
@@ -73,7 +63,6 @@ async fn main() {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let cli = Cli::parse();
 
-    // 1. Initialize Default Logger (Stderr) to catch early errors
     let stderr = ConsoleAppender::builder()
         .target(log4rs::append::console::Target::Stderr)
         .encoder(Box::new(PatternEncoder::new("{d} {l} - {m}{n}")))
@@ -86,7 +75,6 @@ async fn main() {
 
     let server_config_path = Path::new(&cli.config);
     
-    // Initial config load
     let (server_config, config_json) = match load_config_from_path(server_config_path, "info") {
         Ok(result) => result,
         Err(e) => {
@@ -95,19 +83,14 @@ async fn main() {
         }
     };
 
-    // Initialize logging from file (Reconfigure)
     match log4rs::config::load_config_file(&server_config.log4rs_config, Default::default()) {
         Ok(config) => {
             log_handle.set_config(config);
             info!("log4rs initialized successfully from file.");
-            // NOW we can log the processed config content to the file
-            use log::debug;
-            debug!("Fully processed config for {:?}:\n{}", server_config_path, config_json);
+            log::debug!("Fully processed config for {:?}:\n{}", server_config_path, config_json);
         },
         Err(e) => {
             eprintln!("Failed to load log4rs config from {}: {}. Continuing with default logger.", server_config.log4rs_config, e);
-            // Optionally exit? The original code exited.
-            // If log config fails, maybe we should crash?
              std::process::exit(1);
         }
     }
@@ -127,7 +110,6 @@ async fn main() {
             }
         },
         Commands::Run | Commands::DaemonRun => {
-             // Basic daemon-run handling (identical to Run for now, just main loop)
              info!("Starting ox_webservice...");
              start_server(server_config, server_config_path.to_path_buf(), config_json).await;
         }
@@ -147,7 +129,6 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
     let pipeline_holder_clone = pipeline_holder.clone();
     let config_path_clone = config_path.clone();
 
-    // Signal handler for SIGHUP (Reload)
     tokio::spawn(async move {
         let mut sighup = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup()).unwrap();
         loop {
@@ -174,8 +155,6 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
         }
     });
 
-
-    // Start servers
     let mut task_handles = Vec::new();
 
     for server_details in initial_config.servers {
@@ -191,14 +170,12 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                 let protocol_clone = protocol.clone();
                 move |ws: axum::extract::WebSocketUpgrade, axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<SocketAddr>, axum::extract::Path(path): axum::extract::Path<String>| async move {
                     let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
-                    // If host is https, use WSS for the websocket protocol identifier
                     let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
                     ws.on_upgrade(move |socket| async move {
                         pipeline_arc.handle_socket(socket, addr, path, ws_protocol).await;
                     })
                 }
             }))
-
             .route("/", axum::routing::any({
                 let pipeline_holder_server = pipeline_holder_server.clone();
                 let protocol_clone = protocol.clone();
@@ -206,91 +183,46 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                     let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
-                    
-
                     async move {
                          pipeline_arc.execute_request(connect_info, req, protocol_clone).await
                     }
                 }
             }))
-            .route("/*path", axum::routing::any(move |req: Request<Body>| {
-            let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
-            let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
-            let protocol_clone = protocol.clone();
-            
-            async move {
-                 pipeline_arc.execute_request(connect_info, req, protocol_clone).await
-            }
-        }))
+            .route("/*path", axum::routing::any({
+                let pipeline_holder_server = pipeline_holder_server.clone();
+                let protocol_clone = protocol.clone();
+                move |req: Request<Body>| {
+                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                    let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
+                    let protocol_clone = protocol_clone.clone();
+                    async move {
+                         pipeline_arc.execute_request(connect_info, req, protocol_clone).await
+                    }
+                }
+            }))
             .layer(tower_http::catch_panic::CatchPanicLayer::new());
-
 
         let addr: SocketAddr = format!("{}:{}", bind_address, port).parse().expect("Invalid bind address");
         info!("Listening on {}", addr);
 
         if server_details.protocol == "https" {
-             // TLS Setup logic from original main.rs
              let mut cert_resolver = ResolvesServerCertUsingSni::new();
              let mut default_cert = None;
 
              for (i, host) in servers.iter().enumerate() {
                  if let (Some(cert_path), Some(key_path)) = (&host.tls_cert_path, &host.tls_key_path) {
-                      let cert_content = match std::fs::read(cert_path) {
-                          Ok(c) => c,
-                          Err(e) => {
-                              error!("Failed to read cert file {}: {}", cert_path, e);
-                              continue;
-                          }
-                      };
-                      let key_content = match std::fs::read(key_path) {
-                          Ok(c) => c,
-                          Err(e) => {
-                              error!("Failed to read key file {}: {}", key_path, e);
-                              continue;
-                          }
-                      };
+                      let cert_content = std::fs::read(cert_path).unwrap();
+                      let key_content = std::fs::read(key_path).unwrap();
                       
                       let certs_parsed_res: Result<Vec<CertificateDer<'static>>, _> = certs(&mut BufReader::new(&cert_content[..])).collect();
-                      let certs_parsed = match certs_parsed_res {
-                          Ok(c) => c,
-                          Err(e) => {
-                               error!("Failed to parse certificates from {}: {}", cert_path, e);
-                               continue;
-                          }
-                      };
-
-                      let key_parsed_res = pkcs8_private_keys(&mut BufReader::new(&key_content[..])).next();
-                      let key_parsed = match key_parsed_res {
-                          Some(Ok(k)) => k,
-                          Some(Err(e)) => {
-                              error!("Failed to parse private key from {}: {}", key_path, e);
-                              continue;
-                          },
-                          None => {
-                              error!("No private keys found in {}", key_path);
-                              continue;
-                          }
-                      };
-
+                      let certs_parsed = certs_parsed_res.unwrap();
+                      let key_parsed = pkcs8_private_keys(&mut BufReader::new(&key_content[..])).next().unwrap().unwrap();
                       let key_der: PrivateKeyDer<'static> = key_parsed.into();
-                      
-                      let signing_key = match rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der) {
-                          Ok(k) => k,
-                          Err(e) => {
-                              error!("Failed to create signing key from {}: {:?}", key_path, e);
-                              continue;
-                          }
-                      };
-                      
+                      let signing_key = rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der).unwrap();
                       let certified_key = CertifiedKey::new(certs_parsed, signing_key);
 
-                      if i == 0 {
-                          default_cert = Some(Arc::new(certified_key.clone()));
-                      }
-                      if let Err(e) = cert_resolver.add(&host.name, certified_key) {
-                          error!("Failed to add SNI for host {}: {:?}", host.name, e);
-                          continue;
-                      }
+                      if i == 0 { default_cert = Some(Arc::new(certified_key.clone())); }
+                      let _ = cert_resolver.add(&host.name, certified_key);
                  }
              }
 
@@ -304,25 +236,91 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                 .with_cert_resolver(resolver);
              tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
-             let rustls_config = RustlsConfig::from_config(Arc::new(tls_config));
+             let rustls_config = Arc::new(tls_config);
+             let tls_acceptor = tokio_rustls::TlsAcceptor::from(rustls_config);
 
              task_handles.push(tokio::spawn(async move {
-                axum_server::bind_rustls(addr, rustls_config)
-                    .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-                    .await
-                    .unwrap();
+                 let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+                 let mut join_set = JoinSet::new();
+
+                 loop {
+                     tokio::select! {
+                         accept_result = listener.accept() => {
+                             let (socket, remote_addr) = match accept_result {
+                                 Ok(res) => res,
+                                 Err(e) => {
+                                     error!("Accept error: {}", e);
+                                     continue;
+                                 }
+                             };
+
+                             // IP Filtering Placeholder:
+                             // let ip = remote_addr.ip();
+                             // if !allowed_ip(ip) { continue; }
+
+                             let tls_acceptor_clone = tls_acceptor.clone();
+                             let mut svc = app.clone().into_make_service_with_connect_info::<SocketAddr>();
+
+                             join_set.spawn(async move {
+                                 let tls_stream = match tls_acceptor_clone.accept(socket).await {
+                                     Ok(s) => s,
+                                     Err(e) => {
+                                         error!("TLS error: {}", e);
+                                         return;
+                                     }
+                                 };
+
+                                 // Call MakeService to get the HTTP service for this connection
+                                 let ready_svc = svc.call(remote_addr).await.unwrap();
+                                 let hyper_svc = TowerToHyperService::new(ready_svc);
+                                 let io = TokioIo::new(tls_stream);
+                                 let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                                     .serve_connection_with_upgrades(io, hyper_svc)
+                                     .await;
+                             });
+                         }
+                         Some(_) = join_set.join_next() => {}
+                     }
+                 }
              }));
         } else {
             task_handles.push(tokio::spawn(async move {
-                axum::serve(
-                    TcpListener::bind(addr).await.unwrap(),
-                    app.into_make_service_with_connect_info::<SocketAddr>()
-                ).await.unwrap();
+                 let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+                 let mut join_set = JoinSet::new();
+
+                 loop {
+                     tokio::select! {
+                         accept_result = listener.accept() => {
+                             let (socket, remote_addr) = match accept_result {
+                                 Ok(res) => res,
+                                 Err(e) => {
+                                     error!("Accept error: {}", e);
+                                     continue;
+                                 }
+                             };
+
+                             // IP Filtering Placeholder:
+                             // let ip = remote_addr.ip();
+                             // if !allowed_ip(ip) { continue; }
+
+                             let mut svc = app.clone().into_make_service_with_connect_info::<SocketAddr>();
+
+                             join_set.spawn(async move {
+                                 let ready_svc = svc.call(remote_addr).await.unwrap();
+                                 let hyper_svc = TowerToHyperService::new(ready_svc);
+                                 let io = TokioIo::new(socket);
+                                 let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                                     .serve_connection_with_upgrades(io, hyper_svc)
+                                     .await;
+                             });
+                         }
+                         Some(_) = join_set.join_next() => {}
+                     }
+                 }
             }));
         }
     }
     
-    // Wait for all servers (they basically run forever)
     for handle in task_handles {
         let _ = handle.await;
     }

@@ -1,15 +1,11 @@
-use libc::{c_char, c_void};
-use ox_webservice_api::{
-    AllocFn, AllocStrFn, HandlerResult, LogCallback, LogLevel, ModuleInterface, PipelineState, 
-    ModuleStatus, FlowControl, ReturnParameters,
-    CoreHostApi
-};
-// Use ox_plugin directly? ox_webservice_api re-exports it.
-use serde::Serialize;
 use std::ffi::{CStr, CString};
-use std::panic;
-use std::ptr;
-use bumpalo::Bump;
+use libc::{c_char, c_void};
+use serde::Serialize;
+use std::sync::Arc;
+
+use ox_workflow_abi::{
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR
+};
 
 const MODULE_NAME: &str = "ox_webservice_ping";
 
@@ -18,180 +14,105 @@ struct PingResponse {
     response: String,
 }
 
-pub struct OxModule {
-    api: &'static CoreHostApi,
+pub struct ModuleContext {
+    api: CoreHostApi,
     module_id: String,
 }
 
-impl OxModule {
-    pub fn new(api: &'static CoreHostApi, module_id: String) -> Self {
-        let _ = ox_webservice_api::init_logging(api.log_callback, &module_id);
-        Self { api, module_id }
+fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
+    let c_key = CString::new(key).unwrap();
+    let res_ptr = (api.get_field)(task_ctx, c_key.as_ptr());
+    if res_ptr.is_null() {
+        return String::new();
     }
+    unsafe { CStr::from_ptr(res_ptr).to_string_lossy().into_owned() }
+}
 
-    fn log(&self, level: LogLevel, message: String) {
-        if let Ok(c_message) = CString::new(message) {
-            let module_name = CString::new(self.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
-            unsafe {
-                (self.api.log_callback)(level, module_name.as_ptr(), c_message.as_ptr());
-            }
-        }
-    }
+fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
+    let c_key = CString::new(key).unwrap();
+    let c_val = CString::new(value).unwrap();
+    (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
 
-    pub fn process_request(&self, pipeline_state_ptr: *mut PipelineState) -> HandlerResult {
-        if pipeline_state_ptr.is_null() {
-            self.log(LogLevel::Error, "Pipeline state is null".to_string());
-             return HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::Continue,
-                return_parameters: ReturnParameters {
-                    return_data: std::ptr::null_mut(),
-                },
-             };
-        }
-
-        let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-        let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
-
-        // Initialize PluginContext (Generic)
-        // state_ptr is treated as *mut c_void by PluginContext/CoreHostApi
-        let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
-            self.api, 
-            pipeline_state_ptr as *mut c_void, 
-            arena_ptr
-        ) };
-
-        // Content Negotiation
-        let verb = ctx.get("request.verb").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or("get".to_string());
-        let default_format = if verb == "stream" { "json" } else { "html" };
-        let format = ctx.get("request.format").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or(default_format.to_string());
-
-        let (body_content, content_type) = if format == "html" {
-            ("<html><body><h1>response: pong</h1></body></html>".to_string(), "text/html")
-        } else {
-            let response = PingResponse {
-                response: "pong".to_string(),
-            };
-            (serde_json::to_string(&response).unwrap_or(r#"{"response":"pong"}"#.to_string()), "application/json")
-        };
-
-        self.log(LogLevel::Info, format!("Handling ping request (format: {})", format));
-
-        // Set Generic Keys (Transport Agnostic)
-        let _ = ctx.set("response.body", serde_json::Value::String(body_content));
-        let _ = ctx.set("response.status", serde_json::json!(200));
-        let _ = ctx.set("response.type", serde_json::Value::String(content_type.to_string()));
-
-        // Set HTTP specific keys (Legacy/Fallback)
-        // Removed as pipeline no longer supports them and they are redundant
-        // let _ = ctx.set("http.response.body", serde_json::Value::String(body_content));
-        // let _ = ctx.set("http.response.status", serde_json::json!(200));
-        // let _ = ctx.set("http.response.header.Content-Type", serde_json::Value::String(content_type.to_string()));
-
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters {
-                return_data: std::ptr::null_mut(),
-            },
-        }
+fn log_msg(api: &CoreHostApi, task_ctx: *mut c_void, level: i32, msg: &str) {
+    if let Ok(c_msg) = CString::new(msg) {
+        (api.log)(task_ctx, level, c_msg.as_ptr());
     }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initialize_module(
-    _module_params_json_ptr: *const c_char,
-    module_id_ptr: *const c_char,
-    api_ptr: *const CoreHostApi, // Generic API
-) -> *mut ModuleInterface {
+pub unsafe extern "C" fn ox_plugin_init(
+    _plugin_config_ctx: *const c_char,
+    api_ptr: *const CoreHostApi,
+    _abi_version: u32,
+) -> *mut c_void {
     if api_ptr.is_null() {
-        return ptr::null_mut();
+        return std::ptr::null_mut();
     }
-    let api_instance = unsafe { &*api_ptr };
-    
-    let module_id = if !module_id_ptr.is_null() {
-        CStr::from_ptr(module_id_ptr).to_string_lossy().to_string()
-    } else {
-        MODULE_NAME.to_string()
-    };
-    let c_module_id = CString::new(module_id.clone()).unwrap();
+    let api = unsafe { *api_ptr };
 
-    // Log initialization
-    if let Ok(c_message) = CString::new("ox_webservice_ping initialized") {
-        unsafe { (api_instance.log_callback)(LogLevel::Info, c_module_id.as_ptr(), c_message.as_ptr()); }
-    }
-
-    let result = panic::catch_unwind(|| {
-        // Safe as CoreHostApi has static lifetime for lifetime of module
-        let module = OxModule::new(std::mem::transmute(api_instance), module_id);
-        let instance_ptr = Box::into_raw(Box::new(module)) as *mut c_void;
-
-        let module_interface = Box::new(ModuleInterface {
-            instance_ptr,
-            handler_fn: process_request_c,
-            log_callback: api_instance.log_callback,
-            get_config: get_config_c,
-        });
-
-        Box::into_raw(module_interface)
+    let ctx = Box::new(ModuleContext {
+        api,
+        module_id: MODULE_NAME.to_string(),
     });
 
-    match result {
-        Ok(ptr) => ptr,
-        Err(_) => ptr::null_mut(),
+    if let Ok(c_msg) = CString::new("ox_webservice_ping initialized") {
+        (api.log)(std::ptr::null_mut(), OX_LOG_INFO, c_msg.as_ptr());
     }
+
+    Box::into_raw(ctx) as *mut c_void
 }
 
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    log_callback: LogCallback,
-    _alloc_fn: AllocFn,
-    _arena: *const c_void,
-) -> HandlerResult {
-    if instance_ptr.is_null() {
-        return HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters {
-                return_data: std::ptr::null_mut(),
-            },
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_process(
+    plugin_config_ctx: *mut c_void,
+    task_ctx: *mut c_void,
+) -> FlowControl {
+    if plugin_config_ctx.is_null() {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+    let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
+    let api = &context.api;
+
+    let verb = {
+        let v = get_field(api, task_ctx, "request.verb");
+        if v.is_empty() { "get".to_string() } else { v }
+    };
+
+    let default_format = if verb == "stream" { "json" } else { "html" };
+    let format = {
+        let f = get_field(api, task_ctx, "request.format");
+        if f.is_empty() { default_format.to_string() } else { f }
+    };
+
+    let (body_content, content_type) = if format == "html" {
+        ("<html><body><h1>response: pong</h1></body></html>".to_string(), "text/html")
+    } else {
+        let response = PingResponse {
+            response: "pong".to_string(),
         };
-    }
+        (serde_json::to_string(&response).unwrap_or(r#"{"response":"pong"}"#.to_string()), "application/json")
+    };
 
-    let result = panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-        handler.process_request(pipeline_state_ptr)
-    }));
+    log_msg(api, task_ctx, OX_LOG_INFO, &format!("Handling ping request (format: {})", format));
 
-    match result {
-        Ok(handler_result) => handler_result,
-        Err(e) => {
-             let log_msg = CString::new(format!("Panic in ox_webservice_ping: {:?}", e)).unwrap();
-             
-             let handler_unsafe = unsafe { &*(instance_ptr as *mut OxModule) };
-             let module_name = CString::new(handler_unsafe.module_id.clone()).unwrap_or(CString::new(MODULE_NAME).unwrap());
-             
-             unsafe { (log_callback)(LogLevel::Error, module_name.as_ptr(), log_msg.as_ptr()); }
-            HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl::Continue,
-                return_parameters: ReturnParameters {
-                    return_data: std::ptr::null_mut(),
-                },
-            }
-        }
-    }
+    set_field(api, task_ctx, "response.body", &body_content);
+    set_field(api, task_ctx, "response.status", "200");
+    set_field(api, task_ctx, "response.header.Content-Type", content_type);
+
+    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
 }
 
-unsafe extern "C" fn get_config_c(
-    _instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    let json = "null";
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_error(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) {
 }
 
-#[cfg(test)]
-mod tests;
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
+    if !plugin_config_ctx.is_null() {
+        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+    }
+}

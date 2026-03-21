@@ -1,0 +1,23 @@
+[package]
+name = "ox_workflow_scheduler"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+ox_workflow_core = { path = "../ox_workflow_core" }
+ox_workflow_config = { path = "../ox_workflow_config" }
+ox_workflow_storage = { path = "../ox_workflow_storage" }
+ox_workflow_executor = { path = "../ox_workflow_executor" }
+ox_event_bus = { path = "../ox_event_bus" }
+ox_workflow_abi = { path = "../ox_workflow_abi" }
+tokio = { version = "1.0", features = ["full", "sync", "time"] }
+uuid = { version = "1.10", features = ["v4"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+thiserror = "2.0"
+async-trait = "0.1"
+futures = "0.3"

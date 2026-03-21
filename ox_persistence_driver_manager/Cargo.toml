@@ -17,12 +17,10 @@ libc = "0.2"
 walkdir = "2.4"
 regex = "1.10"
 
-ox_webservice_api = { path = "../ox_webservice_api" }
-ox_pipeline_plugin = { path = "../ox_pipeline/ox_pipeline_plugin" }
+ox_workflow_abi = { path = "../ox_workflow_abi" }
 ox_fileproc = { path = "../ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
 lazy_static = "1.4"
-bumpalo = "3.16"
 
 [dev-dependencies]
 ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package ox_workflow;
+
+import "google/protobuf/any.proto";
+
+message TaskState {
+  // Plugin-defined task state fields
+  // Using map<string, Any> to allow dynamic, heterogeneous state
+  // populated by arbitrary plugins.
+  map<string, google.protobuf.Any> fields = 1;
+}

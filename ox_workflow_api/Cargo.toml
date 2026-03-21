@@ -1,0 +1,14 @@
+[package]
+name = "ox_workflow_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ox_workflow_core = { path = "../ox_workflow_core" }
+ox_workflow_storage = { path = "../ox_workflow_storage" }
+ox_event_bus = { path = "../ox_event_bus" }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+axum = { version = "0.7", features = ["macros"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
