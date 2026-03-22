@@ -1,0 +1,14 @@
+## ox_cc_report_plugin configuration example
+## Copy to /etc/ox_cc/report_plugin.yaml and adjust.
+
+# Shared SQLite database — SAME path as manifest_plugin.yaml.
+db_path: "/var/lib/ox_cc/manifest_instance.db"
+
+# SQLCipher encryption key — must match manifest_plugin.yaml (shared file).
+# Store securely (e.g. vault, systemd credential). Do not commit to SCM.
+db_encryption_key: "<strong-random-passphrase>"
+
+# Rate limits.
+rate_limits:
+  # Maximum reports accepted from a single client per minute.
+  reports_per_client_per_minute: 60

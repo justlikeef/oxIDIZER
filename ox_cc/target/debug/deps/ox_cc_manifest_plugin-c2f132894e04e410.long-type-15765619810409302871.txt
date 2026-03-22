@@ -1,0 +1,1 @@
+MappedRows<'_, {closure@crates/ox_cc_manifest_plugin/src/handlers.rs:120:40: 120:45}>: Default

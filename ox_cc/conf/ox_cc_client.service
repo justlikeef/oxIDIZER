@@ -1,0 +1,46 @@
+[Unit]
+Description=ox_cc secure configuration client
+Documentation=https://github.com/your-org/ox_c_c_client
+After=network-online.target
+Wants=network-online.target
+# Ensure the client starts after any local key provisioning service
+After=ox-cc-provision.service
+
+[Service]
+Type=simple
+User=ox_cc
+Group=ox_cc
+
+# Configuration file path
+Environment=RUST_LOG=info
+ExecStart=/usr/local/bin/ox_cc_client --config /etc/ox_cc/client.yaml
+
+# Restart policy: retry on failure with exponential backoff up to 5 minutes
+Restart=on-failure
+RestartSec=10
+RestartMaxDelay=300
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Allow writing manifest files and the state DB only
+ReadWritePaths=/var/lib/ox_cc /var/lib/arcnition/manifest
+
+# Key files are readable only by ox_cc group
+ReadOnlyPaths=/etc/ox_cc
+
+[Install]
+WantedBy=multi-user.target

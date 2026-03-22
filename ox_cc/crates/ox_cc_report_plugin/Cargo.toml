@@ -1,0 +1,27 @@
+[package]
+name    = "ox_cc_report_plugin"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_cc_common = { path = "../ox_cc_common" }
+ox_workflow_abi = { path = "/var/repos/oxIDIZER/ox_workflow_abi" }
+
+serde      = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+uuid       = { workspace = true }
+chrono     = { workspace = true }
+rusqlite   = { workspace = true }
+anyhow     = { workspace = true }
+thiserror  = { workspace = true }
+log        = { workspace = true }
+lru = "0.16.3"
+
+[dev-dependencies]
+tempfile = "3"
+ox_cc_manifest_plugin = { path = "../ox_cc_manifest_plugin" }

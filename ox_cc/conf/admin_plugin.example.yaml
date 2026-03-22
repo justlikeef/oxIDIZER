@@ -1,0 +1,21 @@
+## ox_cc_admin_plugin configuration example
+## Copy to /etc/ox_cc/admin_plugin.yaml and adjust.
+
+# Admin SQLite database. Mode 600, owner: ox_cc_admin.
+db_path: "/var/lib/ox_cc/admin.db"
+
+# SQLCipher encryption key for admin.db.
+# Store securely (e.g. vault, systemd credential). Do not commit to SCM.
+db_encryption_key: "<strong-random-passphrase>"
+
+# URL of the Broker instance.
+broker_url: "https://broker.internal"
+
+# URL of the Manifest instance.
+manifest_instance_url: "https://manifest.example.com"
+
+# mTLS credentials for outbound calls (admin role cert).
+tls:
+  client_cert: "/etc/ox_cc/admin.crt"
+  client_key:  "/etc/ox_cc/admin.key"
+  ca_cert:     "/etc/ox_cc/broker_ca.crt"
