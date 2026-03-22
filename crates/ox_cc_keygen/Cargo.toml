@@ -1,0 +1,17 @@
+[package]
+name    = "ox_cc_keygen"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[[bin]]
+name = "ox_cc_keygen"
+path = "src/main.rs"
+
+[dependencies]
+ed25519-dalek = { workspace = true }
+x25519-dalek  = { workspace = true }
+rand          = { workspace = true }
+base64        = { workspace = true }
+clap          = { workspace = true }
+anyhow        = { workspace = true }

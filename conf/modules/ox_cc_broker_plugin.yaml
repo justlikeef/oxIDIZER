@@ -1,0 +1,32 @@
+## ox_webservice module configuration for the Broker instance.
+## Place in the broker ox_webservice's conf/modules/active/ directory.
+
+modules:
+  - id: "ox_cc_broker"
+    name: "ox_cc_broker_plugin"
+    config_file: "/etc/ox_cc/broker_plugin.yaml"
+
+routes:
+  - url: "^/broker/healthz$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/request$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/pending(/.*)?$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/approved(/.*)?$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/enroll$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/clients$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/sessions(/.*)?$"
+    module_id: "ox_cc_broker"
+
+  - url: "^/broker/audit$"
+    module_id: "ox_cc_broker"

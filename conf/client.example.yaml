@@ -1,0 +1,44 @@
+## ox_cc_client configuration example
+## Copy to /etc/ox_cc/client.yaml and adjust.
+
+# Hostname or identifier for this client. Must match enrollment record.
+client_id: "hostname.example.com"
+
+# URL of the Manifest instance.
+manifest_url: "https://manifest.example.com"
+
+# mTLS credentials. client_key must be mode 440, group ox_cc.
+tls:
+  client_cert: "/etc/ox_cc/client.crt"
+  client_key:  "/etc/ox_cc/client.key"
+  ca_cert:     "/etc/ox_cc/server_ca.crt"
+
+# SQLite state database.
+db_path: "/var/lib/ox_cc/client.db"
+
+# SQLCipher encryption key for client.db.
+# Store securely (e.g. vault, systemd credential). Do not commit to SCM.
+db_encryption_key: "<strong-random-passphrase>"
+
+# Poll interval in seconds.
+poll_interval_secs: 300
+
+# Maximum allowed manifest validity window (expires_at - issued_at).
+max_manifest_window_secs: 7776000  # 90 days
+
+# Directory containing trusted broker Ed25519 verifying key files.
+# Each .pub file must contain exactly 32 raw bytes.
+# Multiple files are supported for key rotation (all are tried; first match wins).
+broker_signing_pubkeys_dir: "/etc/ox_cc/broker_pubkeys"
+
+# Client X25519 encryption private key (base64url, no padding).
+# Generate with ox_cc_keygen. Mode 400, owner: ox_cc.
+client_enc_privkey_b64: "<base64url-32-bytes>"
+
+# Map of consumer name → directory where manifest.json is written.
+# The consuming agent must have read access to this directory.
+consumer_dirs:
+  arcnition: "/var/lib/arcnition/manifest"
+
+# URL to POST progress/applied notifications to.
+report_url: "https://manifest.example.com/cc/report/hostname.example.com"

@@ -1,0 +1,39 @@
+## ox_cc_broker_plugin configuration example
+## Copy to /etc/ox_cc/broker_plugin.yaml and adjust.
+
+# SQLite broker database. Mode 600, owner: ox_cc_broker.
+db_path: "/var/lib/ox_cc/broker.db"
+
+# SQLCipher encryption key for broker.db.
+# Store securely (e.g. vault, systemd credential). Do not commit to SCM.
+db_encryption_key: "<strong-random-passphrase>"
+
+# Broker Ed25519 signing key (32 raw bytes). Mode 400, owner: ox_cc_broker.
+signing_key_path: "/etc/ox_cc/broker_signing.key"
+
+# Broker X25519 encryption key (32 raw bytes). Mode 400, owner: ox_cc_broker.
+enc_key_path: "/etc/ox_cc/broker_enc.key"
+
+# Cipher for payload encryption.
+# One of: aes256gcm (default), chacha20poly1305 (for ARM / no AES-NI).
+cipher: "aes256gcm"
+
+# Pending template TTL in seconds. Templates not approved within this
+# window are auto-expired.
+pending_ttl_secs: 86400  # 24 hours
+
+# Maximum allowed manifest validity window.
+max_manifest_window_secs: 7776000  # 90 days
+
+# Directory for encrypted payload files. MUST be on an encrypted-at-rest
+# filesystem. Only filenames (not absolute paths) are stored in the DB.
+payload_dir: "/var/lib/ox_cc/broker_payloads"
+
+# Per-consumer payload policy allowlists.
+# Only top-level payload keys listed here are permitted.
+# Clients are enrolled via POST /broker/clients (not listed here).
+policy:
+  arcnition:
+    allowed_payload_keys:
+      - "pypeline"
+      - "env"
