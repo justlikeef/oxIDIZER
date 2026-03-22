@@ -8,7 +8,7 @@
 
 ## Problem Statement
 
-The current workspace root contains 57+ crate directories mixed with configuration, logs, build artifacts, and documentation. Related crate families are grouped inconsistently — some are nested (e.g., `ox_forms/`), some are flat at root (e.g., all `ox_webservice_*` plugins), and `ox_cc/` uses its own subdirectory convention. Root-level log files, PID files, and AI working files pollute the repository. One empty directory (`ox_pipeline/`) and a duplicate crate (`ox_messaging_mqtt` exists both at root and nested inside `ox_messaging_client/`) add further confusion. Additionally, 42 artifact files (logs, PIDs) are tracked in git.
+The current workspace root contains 57+ crate directories mixed with configuration, logs, build artifacts, and documentation. Related crate families are grouped inconsistently — some are nested (e.g., `ox_forms/`), some are flat at root (e.g., all `ox_webservice_*` plugins), and `ox_cc/` uses its own subdirectory convention. Root-level log files, PID files, and AI working files pollute the repository. One empty directory (`ox_pipeline/`) exists along with a stale test artifact directory at `ox_messaging_client/ox_messaging_mqtt/` (contains only `functional_tests/`, not a crate). Additionally, 42 artifact files (logs, PIDs) are tracked in git, and four `ox_cc` plugin crates contain machine-specific absolute paths.
 
 ---
 
@@ -18,7 +18,7 @@ The current workspace root contains 57+ crate directories mixed with configurati
 - Establish seven domains: `webservice`, `messaging`, `workflow`, `forms`, `cc`, `data`, `util`
 - Clean root of all artifacts, logs, and temp files; remove all 42 tracked artifact files from git
 - Resolve `ox_cc/` by dissolving it into `crates/cc/` (it is not a sub-workspace — its crates are referenced directly by the root `Cargo.toml`)
-- Remove the duplicate `ox_messaging_mqtt` nested inside `ox_messaging_client/`
+- Delete the stale `ox_messaging_client/ox_messaging_mqtt/` test artifact directory (not a crate)
 - Delete the empty `ox_pipeline/` directory
 - Promote 9 currently non-workspace-member crates to full workspace members (see below)
 - Update `.gitignore` to prevent artifact recurrence
@@ -230,9 +230,11 @@ Non-crate contents of `ox_cc/` and their disposition:
 | `.claude/settings.json` | Review and merge relevant settings into root `.claude/settings.json`, then delete |
 | `target/` | Delete (build artifact, not tracked) |
 
-### Hardcoded `../../oxIDIZER/` Paths in Workflow Crates
+### Hardcoded Paths Requiring Fixes
 
-Three workflow crates contain a broken ancestor-traversal path that currently works by accident from the root but must be fixed as part of their migration:
+**`../../oxIDIZER/` relative paths (three workflow crates):**
+
+Three workflow crates contain a broken ancestor-traversal path that currently works by accident from the root but must be fixed as part of their migration in step 2:
 
 - `ox_workflow_config/Cargo.toml`: `ox_fileproc = { path = "../../oxIDIZER/ox_fileproc" }`
 - `ox_workflow_core/Cargo.toml`: `ox_fileproc = { path = "../../oxIDIZER/ox_fileproc" }`
@@ -240,9 +242,22 @@ Three workflow crates contain a broken ancestor-traversal path that currently wo
 
 After migration these must become `path = "../../util/ox_fileproc"` (relative from `crates/workflow/<crate>/`).
 
-### Duplicate ox_messaging_mqtt
+**Machine-absolute paths in four `ox_cc` plugin crates:**
 
-`ox_messaging_mqtt` exists both at the workspace root and nested inside `ox_messaging_client/ox_messaging_mqtt/`. The root-level copy is the canonical workspace member. The nested copy inside `ox_messaging_client/` is deleted during the messaging migration step.
+Four `ox_cc` plugin crates contain machine-specific absolute paths that will break after `ox_workflow_abi` is moved in step 2. These must be fixed as part of step 7 (cc migration):
+
+- `ox_cc/crates/ox_cc_broker_plugin/Cargo.toml`
+- `ox_cc/crates/ox_cc_admin_plugin/Cargo.toml`
+- `ox_cc/crates/ox_cc_manifest_plugin/Cargo.toml`
+- `ox_cc/crates/ox_cc_report_plugin/Cargo.toml`
+
+All four contain: `ox_workflow_abi = { path = "/var/repos/oxIDIZER/ox_workflow_abi" }`
+
+After migration this must become `path = "../../workflow/ox_workflow_abi"` (relative from `crates/cc/<crate>/`).
+
+### ox_messaging_client/ox_messaging_mqtt/ Directory
+
+`ox_messaging_client/ox_messaging_mqtt/` is **not** a crate. It contains only a `functional_tests/` subdirectory with no `Cargo.toml`. It is a stale test artifact directory. It should be deleted during the messaging migration step (step 3). The root-level `ox_messaging_mqtt/` is the sole canonical crate and moves to `crates/messaging/ox_messaging_mqtt/`.
 
 ### ox_forms Dual Role
 
@@ -270,12 +285,12 @@ The order respects the actual cross-domain dependency graph. Steps run sequentia
 | Step | Domain | Key cross-domain path deps to update | Build Verification |
 |------|--------|--------------------------------------|--------------------|
 | 1 | `util` | `ox_package_manager` → `ox_webservice_api` (still at root), `ox_workflow_abi` (still at root) | `cargo build -p ox_fileproc -p ox_callback_manager -p ox_package_manager` |
-| 2 | `workflow` | Fix hardcoded `../../oxIDIZER/ox_fileproc` → `../../util/ox_fileproc`; `ox_workflow_scheduler` → `ox_event_bus` (still at root) | `cargo build -p ox_workflow_abi -p ox_workflow_core -p ox_workflow_scheduler` |
-| 3 | `messaging` | Remove `ox_messaging_client/ox_messaging_mqtt/` duplicate; update `ox_workflow_scheduler` path to `../../messaging/ox_event_bus` | `cargo build -p ox_event_bus -p ox_messaging_client -p ox_messaging_mqtt` |
-| 4 | `webservice` | Update `ox_package_manager` path to `../../webservice/ox_webservice_api`; `ox_workflow_abi` path in `ox_package_manager` to `../../workflow/ox_workflow_abi` | `cargo build -p ox_webservice -p ox_webservice_api -p ox_auth_ip` |
+| 2 | `workflow` | Fix hardcoded `../../oxIDIZER/ox_fileproc` → `../../util/ox_fileproc` in 3 crates; `ox_workflow_scheduler` and `ox_workflow_api` → `ox_event_bus` (still at root) | `cargo build -p ox_workflow_abi -p ox_workflow_core -p ox_workflow_scheduler` |
+| 3 | `messaging` | Delete `ox_messaging_client/ox_messaging_mqtt/` stale directory; update `ox_workflow_scheduler` and `ox_workflow_api` paths to `../../messaging/ox_event_bus` | `cargo build -p ox_event_bus -p ox_messaging_client -p ox_messaging_mqtt` |
+| 4 | `webservice` | All 17 webservice crates that reference `ox_workflow_abi` or `ox_fileproc` must update those paths to `../../workflow/ox_workflow_abi` and `../../util/ox_fileproc`. Update `ox_package_manager` path to `../../webservice/ox_webservice_api` and `../../workflow/ox_workflow_abi` | `cargo build -p ox_webservice -p ox_webservice_api -p ox_auth_ip` |
 | 5 | `forms` | Extract `ox_forms_api/`, `ox_forms_client/`, `ox_forms_server/`, `ox_forms_std_renderers/` from inside `ox_forms/` to `crates/forms/`; promote all 5 to workspace members | `cargo build -p ox_forms -p ox_forms_server -p ox_forms_client` |
 | 6 | `data` | `ox_data_broker` → `ox_webservice_api` now at `../../webservice/`; `ox_persistence_datasource_manager` → `ox_forms_api` now at `../../forms/` | `cargo build -p ox_data_object -p ox_persistence -p ox_persistence_datasource_manager` |
-| 7 | `cc` | Move 8 crates from `ox_cc/crates/` to `crates/cc/`; move non-crate `ox_cc/` contents per Special Cases table | `cargo build -p ox_cc_common -p ox_cc_broker_plugin -p ox_cc_client` |
+| 7 | `cc` | Move 8 crates from `ox_cc/crates/` to `crates/cc/`; move non-crate `ox_cc/` contents per Special Cases table; fix absolute `path = "/var/repos/oxIDIZER/ox_workflow_abi"` in 4 plugin crates → `../../workflow/ox_workflow_abi` | `cargo build -p ox_cc_common -p ox_cc_broker_plugin -p ox_cc_client` |
 | 8 | Rename `functional_tests/` → `tests/`; merge `ox_cc/docs/superpowers/` into `docs/superpowers/` | No path deps affected; `cargo build` expected to remain passing from Step 7 unchanged. Flag any test harness scripts that reference `functional_tests/` by path | — |
 | 9 | Delete `ox_pipeline/`; delete and untrack all 42 artifact files; update `.gitignore` | — | `cargo build` (full workspace) |
 
@@ -288,7 +303,7 @@ The order respects the actual cross-domain dependency graph. Steps run sequentia
 Run `git rm --cached` for all of these, then delete them from disk:
 
 **Root-level:**
-`build_error.log`, `full_suite_run.log`, `ox_data_source_test.log`, `ox_driver_manager_test.log`, `ox_fileproc_tests.log`, `ox_messaging_client_tests.log`, `ox_package_manager_tests.log`, `ox_persistence_datasource_manager_tests.log`, `ox_persistence_driver_manager_tests.log`, `ox_persistence_test.log`, `ox_webservice.log`, `ox_webservice.pid`, `ox_webservice_api_tests.log`, `ox_webservice_errorhandler_jinja2_tests.log`, `ox_webservice_forwarded_for_tests.log`, `ox_webservice_ping_tests.log`, `ox_webservice_status_tests.log`, `ox_webservice_stream_tests.log`, `ox_webservice_template_jinja2_tests.log`, `ox_webservice_tests.log`, `repro_crash.log`, `server.log`
+`build_error.log`, `full_suite_run.log`, `ox_data_source_test.log`, `ox_driver_manager_test.log`, `ox_fileproc_tests.log`, `ox_messaging_client_tests.log`, `ox_package_manager_tests.log`, `ox_persistence_datasource_manager_tests.log`, `ox_persistence_driver_manager_tests.log`, `ox_persistence_test.log`, `ox_webservice.log`, `ox_webservice.pid`, `ox_webservice_api_tests.log`, `ox_webservice_errorhandler_jinja2_tests.log`, `ox_webservice_forwarded_for_tests.log`, `ox_webservice_ping_tests.log`, `ox_webservice_status_tests.log`, `ox_webservice_stream_tests.log`, `ox_webservice_template_jinja2_tests.log`, `ox_webservice_tests.log`, `repro_crash.log`, `server.log`, `server_output.log`, `test_log.log`
 
 **`logs/` directory (delete entire directory):**
 `logs/ox_webservice.log`, `logs/startup.log`
@@ -305,7 +320,7 @@ All `logs/ox_webservice.log`, `logs/test.log`, `start_script.log`, and `ox_webse
 |------|-------------|
 | `ai_info.md`, `ai_information.txt`, `ai_tests.txt` | Delete |
 | `all_modules.txt`, `failing_modules.txt`, `modules-functional_tests.txt`, `single_module.txt`, `test_modules.txt`, `test_single_module.txt` | Delete |
-| `form_output.html`, `repro_crash.sh`, `server_output.log`, `test_log.log` | Delete |
+| `form_output.html`, `repro_crash.sh` | Delete |
 | `log4rs.yaml` | Delete (duplicate of `conf/log4rs.yaml`) |
 | `IMPLEMENT_OX_WORKFLOW.md` | Move to `docs/` |
 | `ProcessingPhases.md` | Move to `docs/` |
@@ -333,7 +348,7 @@ target/
 3. Root contains only: `Cargo.toml`, `Cargo.lock`, `LICENSE`, `README.md`, `TODO.md`, `crates/`, `conf/`, `content/`, `docs/`, `scripts/`, `tests/`, `sample_projects/`, `.github/`, `.gitignore`, `images/`, `logo/`, `pkg/`, `test_assets/`, `test_plugins/`
 4. No `*.log`, `*.pid`, or build artifact files tracked in git
 5. `ox_pipeline/` directory is deleted
-6. Duplicate `ox_messaging_mqtt` nested inside `ox_messaging_client/` is removed
+6. Stale `ox_messaging_client/ox_messaging_mqtt/` directory is deleted
 7. All 9 previously non-member crates are listed as workspace members in `Cargo.toml`
 8. `ox_cc/` directory is fully dissolved (crates in `crates/cc/`, docs/conf/scripts redistributed)
-9. No `../../oxIDIZER/` hardcoded paths remain in any `Cargo.toml`
+9. No hardcoded absolute paths or `../../oxIDIZER/` paths remain in any `Cargo.toml`
