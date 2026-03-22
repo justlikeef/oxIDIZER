@@ -55,4 +55,14 @@ members = [
     "ox_persistence_driver_installer",
     "ox_persistence_driver_manager",
     "ox_package_manager",
+
+    # ox_cc - client configuration management
+    "ox_cc/crates/ox_cc_common",
+    "ox_cc/crates/ox_cc_broker_plugin",
+    "ox_cc/crates/ox_cc_manifest_plugin",
+    "ox_cc/crates/ox_cc_report_plugin",
+    "ox_cc/crates/ox_cc_admin_plugin",
+    "ox_cc/crates/ox_cc_client",
+    "ox_cc/crates/ox_cc_keygen",
+    "ox_cc/crates/ox_cc_executor",
 ]

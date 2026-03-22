@@ -11,16 +11,16 @@ crate-type = ["cdylib", "rlib"]
 ox_workflow_abi = { path = "/var/repos/oxIDIZER/ox_workflow_abi" }
 ox_cc_common = { path = "../ox_cc_common" }
 
-serde      = { workspace = true }
-serde_json = { workspace = true }
-serde_yaml = { workspace = true }
-uuid       = { workspace = true }
-chrono     = { workspace = true }
-rusqlite   = { workspace = true }
-reqwest    = { workspace = true }
-anyhow     = { workspace = true }
-thiserror  = { workspace = true }
-log        = { workspace = true }
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+uuid       = { version = "1", features = ["v4", "serde"] }
+chrono     = { version = "0.4", features = ["serde"] }
+rusqlite   = { version = "0.31", features = ["bundled-sqlcipher"] }
+reqwest    = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "blocking"] }
+anyhow     = "1"
+thiserror  = "1"
+log        = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
