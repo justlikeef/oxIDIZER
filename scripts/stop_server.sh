@@ -17,7 +17,7 @@ WORKSPACE_DIR=${3:-$DEFAULT_DERIVED_WORKSPACE_DIR} # Allow override, else use de
 
 # Source the logging function
 # Source the logging function
-# source "$WORKSPACE_DIR/functional_tests/common/log_function.sh"
+# source "$WORKSPACE_DIR/tests/common/log_function.sh"
 
 log_message() {
     local CURRENT_LEVEL="$1"

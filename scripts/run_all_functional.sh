@@ -3,7 +3,7 @@ set -e
 
 REPO_ROOT="/var/repos/oxIDIZER"
 SCRIPTS_DIR="$REPO_ROOT/scripts"
-COMMON_TESTS_DIR="$REPO_ROOT/functional_tests/common"
+COMMON_TESTS_DIR="$REPO_ROOT/tests/common"
 FULL_LOG_FILE="$REPO_ROOT/full_suite_run.log"
 
 echo "Starting Full Functional Test Suite Run..." > "$FULL_LOG_FILE"
@@ -13,8 +13,8 @@ BASE_PORT=28000
 FAILURES=0
 FAILED_MODULES=""
 
-# Find all modules with functional_tests, excluding the root functional_tests dir
-MODULE_PATHS=$(find "$REPO_ROOT" -maxdepth 2 -name "functional_tests" -type d | sort | grep -v "$REPO_ROOT/functional_tests$")
+# Find all modules with tests, excluding the root tests dir
+MODULE_PATHS=$(find "$REPO_ROOT" -maxdepth 2 -name "tests" -type d | sort | grep -v "$REPO_ROOT/tests$")
 
 for TEST_DIR in $MODULE_PATHS; do
     MODULE_PATH=$(dirname "$TEST_DIR")

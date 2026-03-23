@@ -43,7 +43,7 @@ fi
 log_to_file "INFO" "=================================================="
 
 MODULE_DIR="./$MODULE_NAME"
-FUNCTIONAL_TESTS_DIR="$MODULE_DIR/functional_tests"
+FUNCTIONAL_TESTS_DIR="$MODULE_DIR/tests"
 
 if [ ! -d "$MODULE_DIR" ]; then
     log_to_file "WARN" "Module directory '$MODULE_DIR' not found. Skipping."
@@ -51,7 +51,7 @@ if [ ! -d "$MODULE_DIR" ]; then
 fi
 
 if [ ! -d "$FUNCTIONAL_TESTS_DIR" ]; then
-    log_to_file "WARN" "'functional_tests' directory not found. Skipping."
+    log_to_file "WARN" "'tests' directory not found. Skipping."
     exit 0
 fi
 
@@ -70,7 +70,7 @@ if [ -n "$SPECIFIC_TESTS" ]; then
     done
 else
     # Find all test.sh files
-    TEST_FILES=$(find "$FUNCTIONAL_TESTS_DIR" -type f -name "test.sh" -not -path "*/functional_tests/common/*" | sort)
+    TEST_FILES=$(find "$FUNCTIONAL_TESTS_DIR" -type f -name "test.sh" -not -path "*/tests/common/*" | sort)
 fi
 
 if [ -z "$TEST_FILES" ]; then
