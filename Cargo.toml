@@ -52,6 +52,13 @@ members = [
     "crates/webservice/ox_webservice_vary_header",
     "crates/webservice/ox_webservice_wsgi",
 
+    # forms
+    "crates/forms/ox_forms",
+    "crates/forms/ox_forms_api",
+    "crates/forms/ox_forms_client",
+    "crates/forms/ox_forms_server",
+    "crates/forms/ox_forms_std_renderers",
+
     # Data / persistence
     "ox_data_broker",
     "ox_persistence",

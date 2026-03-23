@@ -20,4 +20,4 @@ ox_webservice_api = { path = "../crates/webservice/ox_webservice_api" }
 ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../crates/util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
-ox_forms_api = { version = "0.1.0", path = "../ox_forms/ox_forms_api" }
+ox_forms_api = { version = "0.1.0", path = "../crates/forms/ox_forms_api" }

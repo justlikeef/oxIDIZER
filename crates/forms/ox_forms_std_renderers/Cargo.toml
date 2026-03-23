@@ -8,7 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ox_forms = { path = ".." }
+ox_forms = { path = "../ox_forms" }
 anyhow = "1.0"
 serde_json = "1.0"
 log = "0.4"
