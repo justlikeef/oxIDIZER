@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ox_webservice_api = { path = "../../../ox_webservice_api" }
-ox_workflow_abi = { path = "../../../ox_workflow_abi" }
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"

@@ -17,7 +17,7 @@ libc = "0.2"
 walkdir = "2.4"
 regex = "1.10"
 
-ox_workflow_abi = { path = "../ox_workflow_abi" }
+ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../crates/util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
 lazy_static = "1.4"

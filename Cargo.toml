@@ -1,14 +1,14 @@
 [workspace]
 resolver = "2"
 members = [
-    # ox_workflow engine (migrated from oxWorkflow repo)
-    "ox_workflow_abi",
-    "ox_workflow_core",
-    "ox_workflow_config",
-    "ox_workflow_executor",
-    "ox_workflow_storage",
-    "ox_workflow_api",
-    "ox_workflow_scheduler",
+    # workflow
+    "crates/workflow/ox_workflow_abi",
+    "crates/workflow/ox_workflow_core",
+    "crates/workflow/ox_workflow_config",
+    "crates/workflow/ox_workflow_executor",
+    "crates/workflow/ox_workflow_storage",
+    "crates/workflow/ox_workflow_api",
+    "crates/workflow/ox_workflow_scheduler",
 
     # Event bus & messaging
     "ox_event_bus",

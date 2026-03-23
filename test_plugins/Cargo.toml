@@ -7,4 +7,4 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-ox_workflow_abi = { path = "../ox_workflow_abi" }
+ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }

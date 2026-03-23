@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 ox_event_bus = { path = "../ox_event_bus" }
 ox_event_bus_mqtt = { path = "../ox_event_bus/ox_event_bus_mqtt" }
-ox_workflow_config = { path = "../ox_workflow_config" }
+ox_workflow_config = { path = "../crates/workflow/ox_workflow_config" }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 uuid = { version = "1.10", features = ["v4"] }

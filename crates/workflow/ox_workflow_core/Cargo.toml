@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 ox_workflow_abi = { path = "../ox_workflow_abi" }
 ox_workflow_config = { path = "../ox_workflow_config" }
-ox_fileproc = { path = "../../oxIDIZER/crates/util/ox_fileproc" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
 prost = "0.13"
 prost-types = "0.13"
 serde = { version = "1.0", features = ["derive"] }

@@ -17,7 +17,7 @@ libloading = "0.8"
 anyhow = "1.0"
 
 ox_webservice_api = { path = "../ox_webservice_api" }
-ox_workflow_abi = { path = "../ox_workflow_abi" }
+ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../crates/util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
 ox_forms_api = { version = "0.1.0", path = "../ox_forms/ox_forms_api" }

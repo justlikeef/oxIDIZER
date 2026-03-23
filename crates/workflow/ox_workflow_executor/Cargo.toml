@@ -15,4 +15,4 @@ serde_json = "1.0"
 thiserror = "2.0"
 uuid = { version = "1.10", features = ["v4"] }
 tokio = { version = "1.0", features = ["full"] }
-ox_fileproc = { path = "../../oxIDIZER/crates/util/ox_fileproc" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
