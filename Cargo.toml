@@ -11,9 +11,9 @@ members = [
     "crates/workflow/ox_workflow_scheduler",
 
     # Event bus & messaging
-    "ox_event_bus",
-    "ox_messaging_client",
-    "ox_messaging_mqtt",
+    "crates/messaging/ox_event_bus",
+    "crates/messaging/ox_messaging_client",
+    "crates/messaging/ox_messaging_mqtt",
 
     # Core utilities
     "ox_type_converter",
