@@ -15,9 +15,6 @@ members = [
     "crates/messaging/ox_messaging_client",
     "crates/messaging/ox_messaging_mqtt",
 
-    # Core utilities
-    "ox_type_converter",
-
     # util
     "crates/util/ox_callback_manager",
     "crates/util/ox_fileproc",
@@ -59,12 +56,16 @@ members = [
     "crates/forms/ox_forms_server",
     "crates/forms/ox_forms_std_renderers",
 
-    # Data / persistence
-    "ox_data_broker",
-    "ox_persistence",
-    "ox_persistence_datasource_manager",
-    "ox_persistence_driver_installer",
-    "ox_persistence_driver_manager",
+    # data
+    "crates/data/ox_data_object",
+    "crates/data/ox_data_broker",
+    "crates/data/ox_locking",
+    "crates/data/ox_type_converter",
+    "crates/data/ox_persistence",
+    "crates/data/ox_persistence_datasource_manager",
+    "crates/data/ox_persistence_driver_installer",
+    "crates/data/ox_persistence_driver_manager",
+    "crates/data/ox_persistence_gdo_relational",
 
     # ox_cc - client configuration management
     "ox_cc/crates/ox_cc_common",
