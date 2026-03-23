@@ -15,7 +15,7 @@ modules:
   - id: package_manager
     name: ox_package_manager
     params:
-      config_file: /var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml
+      config_file: /var/repos/oxIDIZER/crates/util/ox_package_manager/conf/manager.yaml
 routes:
   - url: "^/packages/upload"
     # Missing module_id
