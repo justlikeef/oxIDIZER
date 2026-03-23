@@ -46,7 +46,7 @@ ox_webservice_api = { path = "../ox_webservice_api" }
 ox_workflow_abi = { path = "../ox_workflow_abi" }
 ox_workflow_core = { path = "../ox_workflow_core" }
 ox_workflow_executor = { path = "../ox_workflow_executor" }
-ox_fileproc = { path = "../ox_fileproc" }
+ox_fileproc = { path = "../crates/util/ox_fileproc" }
 
 sysinfo = "0.30"
 regex = "1.10"

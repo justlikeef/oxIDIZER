@@ -21,7 +21,7 @@ tokio-util = { version = "0.7", features = ["compat"] }
 futures = "0.3"
 serde = { version = "1.0", features = ["derive"] } # Kept for tiberius/chrono? No, they use their own.
 # serde_json removed
-ox_fileproc = { path = "../../../../ox_fileproc" }
+ox_fileproc = { path = "../../../../crates/util/ox_fileproc" }
 chrono = { version = "0.4", features = ["serde"] }
 libc = "0.2"
 bumpalo = "3.19.0"

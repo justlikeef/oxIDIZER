@@ -14,7 +14,7 @@ serde_json = "1.0"
 libc = "0.2"
 ox_webservice_api = { path = "../ox_webservice_api" }
 ox_workflow_abi = { path = "../ox_workflow_abi" }
-ox_fileproc = { path = "../ox_fileproc" }
+ox_fileproc = { path = "../crates/util/ox_fileproc" }
 axum = "0.7"
 log = "0.4"
 tera = "1.19"

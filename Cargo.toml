@@ -16,8 +16,12 @@ members = [
     "ox_messaging_mqtt",
 
     # Core utilities
-    "ox_fileproc",
     "ox_type_converter",
+
+    # util
+    "crates/util/ox_callback_manager",
+    "crates/util/ox_fileproc",
+    "crates/util/ox_package_manager",
 
     # Webservice host and API
     "ox_webservice",
@@ -54,7 +58,6 @@ members = [
     "ox_persistence_datasource_manager",
     "ox_persistence_driver_installer",
     "ox_persistence_driver_manager",
-    "ox_package_manager",
 
     # ox_cc - client configuration management
     "ox_cc/crates/ox_cc_common",
