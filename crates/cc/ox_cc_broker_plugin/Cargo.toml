@@ -1,5 +1,5 @@
 [package]
-name    = "ox_cc_report_plugin"
+name    = "ox_cc_broker_plugin"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
@@ -8,8 +8,18 @@ license = "GPL-3.0-only"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_cc_common = { path = "../ox_cc_common" }
-ox_workflow_abi = { path = "/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi" }
+
+ed25519-dalek    = { version = "2", features = ["zeroize"] }
+x25519-dalek     = { version = "2", features = ["zeroize", "static_secrets"] }
+aes-gcm          = "0.10"
+chacha20poly1305 = "0.10"
+hkdf             = "0.12"
+sha2             = "0.10"
+rand             = "0.8"
+zeroize          = { version = "1", features = ["derive"] }
+base64           = "0.22"
 
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -20,8 +30,5 @@ rusqlite   = { version = "0.31", features = ["bundled-sqlcipher"] }
 anyhow     = "1"
 thiserror  = "1"
 log        = "0.4"
-lru = "0.16.3"
-
 [dev-dependencies]
 tempfile = "3"
-ox_cc_manifest_plugin = { path = "../ox_cc_manifest_plugin" }

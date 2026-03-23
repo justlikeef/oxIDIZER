@@ -67,13 +67,13 @@ members = [
     "crates/data/ox_persistence_driver_manager",
     "crates/data/ox_persistence_gdo_relational",
 
-    # ox_cc - client configuration management
-    "ox_cc/crates/ox_cc_common",
-    "ox_cc/crates/ox_cc_broker_plugin",
-    "ox_cc/crates/ox_cc_manifest_plugin",
-    "ox_cc/crates/ox_cc_report_plugin",
-    "ox_cc/crates/ox_cc_admin_plugin",
-    "ox_cc/crates/ox_cc_client",
-    "ox_cc/crates/ox_cc_keygen",
-    "ox_cc/crates/ox_cc_executor",
+    # cc
+    "crates/cc/ox_cc_common",
+    "crates/cc/ox_cc_broker_plugin",
+    "crates/cc/ox_cc_manifest_plugin",
+    "crates/cc/ox_cc_report_plugin",
+    "crates/cc/ox_cc_admin_plugin",
+    "crates/cc/ox_cc_client",
+    "crates/cc/ox_cc_keygen",
+    "crates/cc/ox_cc_executor",
 ]
