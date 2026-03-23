@@ -1,4 +1,4 @@
-content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www"
+content_root: "/var/repos/oxIDIZER/crates/util/ox_package_manager/content/www"
 default_documents:
   - document: index.html
 mimetypes_file: /var/repos/oxIDIZER/conf/mimetypes.yaml

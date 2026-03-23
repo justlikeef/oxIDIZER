@@ -1,4 +1,4 @@
-log4rs_config: /var/repos/oxIDIZER/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml
 # Minimal modules and pipeline for server start
 modules:
   - name: ox_webservice_status

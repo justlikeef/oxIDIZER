@@ -4,7 +4,7 @@
 # This module serves static files from a specified content root.
 
 # content_root: Absolute path to the directory containing static assets.
-content_root: "/var/repos/oxIDIZER/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
+content_root: "/var/repos/oxIDIZER/crates/data/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
 
 # mimetypes_file: Path to the mapping file for file extensions to MIME types.
 mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"

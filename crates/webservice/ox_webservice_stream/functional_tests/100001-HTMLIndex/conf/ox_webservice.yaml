@@ -1,9 +1,9 @@
-log4rs_config: /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/log4rs.yaml
 modules:
 - id: test_content
   name: ox_webservice_stream
   params:
-    config_file: /var/repos/oxIDIZER/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_content.yaml
+    config_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/functional_tests/100001-HTMLIndex/conf/ox_content.yaml
   phase: Content
   priority: 999
   routes: null

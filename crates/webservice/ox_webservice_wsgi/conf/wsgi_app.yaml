@@ -1,3 +1,3 @@
-python_path: "/var/repos/oxIDIZER/ox_webservice_wsgi"
+python_path: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_wsgi"
 module: "test_app"
 callable: "application"

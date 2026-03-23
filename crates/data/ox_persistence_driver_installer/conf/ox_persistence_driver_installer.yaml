@@ -1,7 +1,7 @@
 id: driver_installer
 name: ox_persistence_driver_installer
 params:
-  drivers_file: "/var/repos/oxIDIZER/ox_persistence/conf/drivers.yaml"
+  drivers_file: "/var/repos/oxIDIZER/crates/data/ox_persistence/conf/drivers.yaml"
   driver_root: "/var/repos/oxIDIZER/conf/drivers"
 routes:
   - url: "^/packages/installer/(subscribe)$"

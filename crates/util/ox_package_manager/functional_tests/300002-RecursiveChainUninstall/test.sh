@@ -4,8 +4,8 @@
 TEST_ID="300002"
 TEST_NAME="RecursiveChainUninstall"
 SERVER_URL="http://127.0.0.1:3000"
-PKGS_DIR="/var/repos/oxIDIZER/ox_package_manager/test_pkgs"
-LOG_DIR="/var/repos/oxIDIZER/ox_package_manager/functional_tests/${TEST_ID}-${TEST_NAME}/logs"
+PKGS_DIR="/var/repos/oxIDIZER/crates/util/ox_package_manager/test_pkgs"
+LOG_DIR="/var/repos/oxIDIZER/crates/util/ox_package_manager/functional_tests/${TEST_ID}-${TEST_NAME}/logs"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"

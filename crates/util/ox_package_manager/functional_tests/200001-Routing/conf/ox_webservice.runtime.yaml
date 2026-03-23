@@ -4,12 +4,12 @@ modules:
     name: ox_package_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
     params:
-      config_file: "/var/repos/oxIDIZER/ox_package_manager/conf/manager.yaml"
+      config_file: "/var/repos/oxIDIZER/crates/util/ox_package_manager/conf/manager.yaml"
   - id: package_manager_stream
     name: ox_webservice_stream
     path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
     params:
-      content_root: "/var/repos/oxIDIZER/ox_package_manager/content/www/"
+      content_root: "/var/repos/oxIDIZER/crates/util/ox_package_manager/content/www/"
     on_content_conflict: skip
   - id: ox_pipeline_router
     name: ox_pipeline_router

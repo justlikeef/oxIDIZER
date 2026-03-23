@@ -9,7 +9,7 @@ modules:
     path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
     phase: "Manual"
     params:
-      data_sources_dir: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/datastores"
+      data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/datastores"
       on_content_conflict: "skip"
 
   - id: "data_source_manager_stream"
@@ -17,7 +17,7 @@ modules:
     path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
     phase: "Manual"
     params:
-      config_file: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/stream.yaml"
+      config_file: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/stream.yaml"
 
   - id: "ox_pipeline_router"
     name: "ox_pipeline_router"
@@ -52,4 +52,4 @@ servers:
     port: 3215
     bind_address: "127.0.0.1"
 
-log4rs_config: "/var/repos/oxIDIZER/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/log4rs.yaml"
+log4rs_config: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/log4rs.yaml"

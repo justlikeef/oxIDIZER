@@ -1,5 +1,5 @@
 execution_order: []
-log4rs_config: /var/repos/oxIDIZER/ox_webservice/functional_tests/100002-ConfigHTTPS/conf/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100002-ConfigHTTPS/conf/log4rs.yaml
 modules:
 - name: ox_webservice_status
   path: target/debug/libox_webservice_status.so
@@ -29,7 +29,7 @@ servers:
 - bind_address: 0.0.0.0
   hosts:
   - name: .*
-    tls_cert_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100002-ConfigHTTPS/cert.pem
-    tls_key_path: /var/repos/oxIDIZER/ox_webservice/functional_tests/100002-ConfigHTTPS/key.pem
+    tls_cert_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100002-ConfigHTTPS/cert.pem
+    tls_key_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100002-ConfigHTTPS/key.pem
   port: 3443
   protocol: https

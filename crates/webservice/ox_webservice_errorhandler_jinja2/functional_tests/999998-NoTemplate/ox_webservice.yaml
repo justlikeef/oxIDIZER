@@ -1,9 +1,9 @@
-log4rs_config: /var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/conf/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/conf/log4rs.yaml
 modules:
 - id: test_module_0
   name: ox_webservice_errorhandler_jinja2
   params:
-    config_file: /var/repos/oxIDIZER/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/conf/ox_webservice_errorhandler_jinja2.yaml
+    config_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/functional_tests/999998-NoTemplate/conf/ox_webservice_errorhandler_jinja2.yaml
   phase: ErrorHandling
   priority: 999
   routes: null
