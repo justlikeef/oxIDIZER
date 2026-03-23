@@ -1,5 +1,5 @@
 [package]
-name = "ox_webservice_ping"
+name = "ox_webservice_status"
 version = "0.1.0"
 license = "GPL-3.0-only"
 edition = "2021"
@@ -9,13 +9,17 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ox_webservice_api = { path = "../ox_webservice_api" }
-ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
 libc = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sysinfo = "0.30"
 anyhow = "1.0"
-log = "0.4"
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
 
 [dev-dependencies]
-lazy_static = "1.5.0"
 ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }
+tempfile = "3.8"
+axum = { version = "0.7" }
+lazy_static = "1.5.0"
+serde_json = "1.0"

@@ -32,6 +32,6 @@ ox_persistence_api = { path = "../ox_persistence/ox_persistence_api" }
 ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 
-ox_webservice_api = { path = "../ox_webservice_api" }
+ox_webservice_api = { path = "../crates/webservice/ox_webservice_api" }
 ox_fileproc = { path = "../crates/util/ox_fileproc" }
 

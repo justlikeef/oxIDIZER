@@ -43,10 +43,10 @@ uuid = { version = "1.7", features = ["v4"] }
 libc = "0.2"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading"] }
 ox_webservice_api = { path = "../ox_webservice_api" }
-ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
-ox_workflow_core = { path = "../crates/workflow/ox_workflow_core" }
-ox_workflow_executor = { path = "../crates/workflow/ox_workflow_executor" }
-ox_fileproc = { path = "../crates/util/ox_fileproc" }
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
+ox_workflow_core = { path = "../../workflow/ox_workflow_core" }
+ox_workflow_executor = { path = "../../workflow/ox_workflow_executor" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
 
 sysinfo = "0.30"
 regex = "1.10"

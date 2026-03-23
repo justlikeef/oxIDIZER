@@ -18,5 +18,5 @@ ox_data_object_manager = { path = "../ox_data_object_manager" }
 ox_persistence_dictionary_manager = { path = "../../ox_persistence/ox_persistence_dictionary_manager" }
 ox_type_converter = { path = "../../ox_type_converter" }
 ox_persistence = { path = "../../ox_persistence" }
-ox_webservice_api = { path = "../../ox_webservice_api" }
+ox_webservice_api = { path = "../../crates/webservice/ox_webservice_api" }
 ox_workflow_abi = { path = "../../crates/workflow/ox_workflow_abi" }

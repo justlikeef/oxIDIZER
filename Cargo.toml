@@ -24,33 +24,33 @@ members = [
     "crates/util/ox_package_manager",
 
     # Webservice host and API
-    "ox_webservice",
-    "ox_webservice_api",
-    "ox_webservice_router",
-    "ox_webservice_test_utils",
+    "crates/webservice/ox_webservice",
+    "crates/webservice/ox_webservice_api",
+    "crates/webservice/ox_webservice_router",
+    "crates/webservice/ox_webservice_test_utils",
 
     # Plugins - auth/security
-    "ox_auth_ip",
-    "ox_webservice_forwarded_for",
-    "ox_webservice_restore_ip",
+    "crates/webservice/ox_auth_ip",
+    "crates/webservice/ox_webservice_forwarded_for",
+    "crates/webservice/ox_webservice_restore_ip",
 
     # Plugins - error handling
-    "ox_webservice_errorhandler_jinja2",
-    "ox_webservice_errorhandler_json",
+    "crates/webservice/ox_webservice_errorhandler_jinja2",
+    "crates/webservice/ox_webservice_errorhandler_json",
 
     # Plugins - routing/rewriting
-    "ox_webservice_redirect",
-    "ox_webservice_rewrite",
+    "crates/webservice/ox_webservice_redirect",
+    "crates/webservice/ox_webservice_rewrite",
 
     # Plugins - content serving
-    "ox_webservice_stream",
-    "ox_webservice_template_jinja2",
+    "crates/webservice/ox_webservice_stream",
+    "crates/webservice/ox_webservice_template_jinja2",
 
     # Plugins - response manipulation
-    "ox_webservice_ping",
-    "ox_webservice_status",
-    "ox_webservice_vary_header",
-    "ox_webservice_wsgi",
+    "crates/webservice/ox_webservice_ping",
+    "crates/webservice/ox_webservice_status",
+    "crates/webservice/ox_webservice_vary_header",
+    "crates/webservice/ox_webservice_wsgi",
 
     # Data / persistence
     "ox_data_broker",

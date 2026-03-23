@@ -16,7 +16,7 @@ lazy_static = "1.4"
 libloading = "0.8"
 anyhow = "1.0"
 
-ox_webservice_api = { path = "../ox_webservice_api" }
+ox_webservice_api = { path = "../crates/webservice/ox_webservice_api" }
 ox_workflow_abi = { path = "../crates/workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../crates/util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }

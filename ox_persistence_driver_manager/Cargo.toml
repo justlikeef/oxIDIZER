@@ -23,5 +23,5 @@ ox_persistence = { path = "../ox_persistence" }
 lazy_static = "1.4"
 
 [dev-dependencies]
-ox_webservice_test_utils = { path = "../ox_webservice_test_utils" }
-ox_webservice_api = { path = "../ox_webservice_api" }
+ox_webservice_test_utils = { path = "../crates/webservice/ox_webservice_test_utils" }
+ox_webservice_api = { path = "../crates/webservice/ox_webservice_api" }
