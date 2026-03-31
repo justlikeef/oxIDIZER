@@ -6,7 +6,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -24,7 +24,7 @@ TEST_DIR=$(dirname "$(readlink -f "$0")")
 LOGS_DIR="$TEST_DIR/logs"
 
 # Verify we are in repo root or adjust path to crate
-CRATE_DIR="ox_webservice_stream"
+CRATE_DIR="crates/webservice/ox_webservice_stream"
 
 if [ "$MODE" == "integrated" ]; then
   log_message "$LOGGING_LEVEL" "info" "Skipping test in integrated mode."

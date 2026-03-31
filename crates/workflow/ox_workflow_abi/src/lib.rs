@@ -1,7 +1,7 @@
 use libc::{c_char, c_void};
 
 /// Current ABI version for the workflow engine and plugins
-pub const OX_WORKFLOW_ABI_VERSION: u32 = 2;
+pub const OX_WORKFLOW_ABI_VERSION: u32 = 3;
 
 /// Flow control code: Continue to the next plugin or stage.
 pub const FLOW_CONTROL_CONTINUE: u8 = 0;
@@ -51,6 +51,11 @@ pub struct FlowControl {
 pub struct CoreHostApi {
     pub get_field: extern "C" fn(task_ctx: *mut c_void, key: *const c_char) -> *const c_char,
     pub set_field: extern "C" fn(task_ctx: *mut c_void, key: *const c_char, value: *const c_char),
+    /// Read a binary (Bytes) field. Returns null pointer and sets len_out=0 if not found.
+    /// The returned pointer is valid until the next API call on this task.
+    pub get_field_bytes: extern "C" fn(task_ctx: *mut c_void, key: *const c_char, len_out: *mut usize) -> *const u8,
+    /// Write a binary (Bytes) field. Copies `len` bytes from `value`.
+    pub set_field_bytes: extern "C" fn(task_ctx: *mut c_void, key: *const c_char, value: *const u8, len: usize),
     pub get_metadata: extern "C" fn(task_ctx: *mut c_void, key: *const c_char) -> *const c_char,
     pub insert_into_flow: extern "C" fn(task_ctx: *mut c_void, flow_name: *const c_char) -> bool,
     pub pause_task: extern "C" fn(task_ctx: *mut c_void, signal_key: *const c_char),

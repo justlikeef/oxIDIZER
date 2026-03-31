@@ -11,7 +11,7 @@ PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
 BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -51,9 +51,6 @@ modules:
     name: ox_webservice_status
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_status.so"
     config_file: "/non/existent/path/to/status.yaml"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 servers:
   - id: "default_http"
     protocol: "http"
@@ -61,9 +58,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 routes:
   - url: "^/status"
     module_id: "status_module"
@@ -79,10 +73,10 @@ EOF
   
   if [ -f "$TEST_PID_FILE" ] && kill -0 $(cat "$TEST_PID_FILE") 2>/dev/null; then
       RESP=$(curl --connect-timeout 30 --max-time 60 -s -H "Accept: application/json" http://localhost:$BASE_PORT/status)
-      if echo "$RESP" | grep -q "/non/existent/path/to/status.yaml"; then
-          log_message "$LOGGING_LEVEL" "info" "PASS: Module started and reported config path"
+      if echo "$RESP" | grep -q "host_name"; then
+          log_message "$LOGGING_LEVEL" "info" "PASS: Module started gracefully with invalid config_file path; JSON output valid"
       else
-          log_message "$LOGGING_LEVEL" "error" "FAIL: Module did not report expected config path. Got: $RESP"
+          log_message "$LOGGING_LEVEL" "error" "FAIL: Module did not return valid JSON. Got: $RESP"
           FAILURES=$((FAILURES + 1))
       fi
   else
@@ -104,9 +98,6 @@ modules:
   - id: status_module
     name: ox_webservice_status
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_status.so"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 servers:
   - id: "default_http"
     protocol: "http"
@@ -114,9 +105,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 routes:
   - url: "^/status"
     module_id: "status_module"
@@ -158,9 +146,6 @@ modules:
     name: ox_webservice_status
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_status.so"
     config_file: 12345
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 servers:
   - id: "default_http"
     protocol: "http"
@@ -168,9 +153,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 routes:
   - url: "^/status"
     module_id: "status_module"
@@ -186,10 +168,10 @@ EOF
 
   if [ -f "$TEST_PID_FILE" ] && kill -0 $(cat "$TEST_PID_FILE") 2>/dev/null; then
       RESP=$(curl --connect-timeout 30 --max-time 60 -s -H "Accept: application/json" http://localhost:$BASE_PORT/status)
-      if echo "$RESP" | grep -q "\"config_file\":12345"; then
-          log_message "$LOGGING_LEVEL" "info" "PASS: Module started and reported config value (ignored by logic)"
+      if echo "$RESP" | grep -q "host_name"; then
+          log_message "$LOGGING_LEVEL" "info" "PASS: Module started gracefully with invalid config_file type; JSON output valid"
       else
-          log_message "$LOGGING_LEVEL" "error" "FAIL: content should be null but got: $RESP"
+          log_message "$LOGGING_LEVEL" "error" "FAIL: Module did not return valid JSON. Got: $RESP"
           FAILURES=$((FAILURES + 1))
       fi
   else

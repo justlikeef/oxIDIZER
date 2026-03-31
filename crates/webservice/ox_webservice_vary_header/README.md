@@ -18,7 +18,7 @@ This module inspects outgoing responses during the `LateRequest` phase. If the r
 
 ## Configuration
 
-This module requires no specific parameters but must be enabled in the pipeline configuration.
+This module requires no specific parameters but must be enabled in the workflow configuration.
 
 **File:** `conf/modules/active/ox_webservice_vary_header.yaml`
 

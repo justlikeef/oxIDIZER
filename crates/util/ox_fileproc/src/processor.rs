@@ -227,12 +227,9 @@ pub fn parse_content(content: &str, extension: &str) -> Result<Value> {
                         // Found root element start. Stop scanning.
                         break;
                     }
-                    // If it's not a start char (e.g. <1 or < ), it's technically malformed XML 
-                    // but not a DTD injection vector. We continue scanning to be safe 
-                    // in case the real DOCTYPE is hiding later?
-                    // Or we stop? 
-                    // If we continue, we might find a malicious DOCTYPE later.
-                    // So we continue.
+                    // If it's not a start char (e.g. <1, </, < ), it's malformed XML
+                    // but not a DTD injection vector. Break and let quick_xml reject it.
+                    break;
                 } else {
                      break; // EOF
                 }
@@ -242,6 +239,9 @@ pub fn parse_content(content: &str, extension: &str) -> Result<Value> {
         },
         "json5" => json5::from_str(content).map_err(Into::into),
         "kdl" => {
+            if content.contains('\0') {
+                return Err(anyhow!("KDL content contains null bytes"));
+            }
             let doc: kdl::KdlDocument = content.parse()?;
             kdl_to_json_value(&doc)
         },
@@ -314,7 +314,7 @@ fn load_recursive_inner(input: ConfigInput, parent_vars: &HashMap<String, String
     // 3. Process Includes
     let base_path = input.path().unwrap_or(Path::new("."));
     process_includes(&mut value, base_path, &current_vars, visited, current_depth, processor)
-        .with_context(|| format!("Error processing includes in config"))?;
+        .with_context(|| format!("Error processing includes in file"))?;
 
     // 4. Final Security Check (Unresolved Tokens)
     // Ensure no placeholders remain in the verified output.

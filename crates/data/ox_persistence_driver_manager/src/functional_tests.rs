@@ -115,62 +115,59 @@ mod tests {
 
     #[test]
     fn test_api_endpoints() {
-         use ox_webservice_api::{CoreHostApi, ModuleInterface, PipelineState};
-         use ox_webservice_test_utils::{create_mock_api, create_stub_pipeline_state};
-         use std::sync::{Arc, Mutex};
-         
-         // Setup
-         let temp_dir = std::env::temp_dir().join("ox_test_api");
-         if temp_dir.exists() { fs::remove_dir_all(&temp_dir).unwrap(); }
-         fs::create_dir_all(&temp_dir).unwrap();
-         fs::create_dir_all(temp_dir.join("db")).unwrap();
-         fs::write(temp_dir.join("db/test.so"), "").unwrap();
-         
-         let drivers_yaml = temp_dir.join("drivers.yaml");
-         fs::write(&drivers_yaml, "drivers: []").unwrap();
+        use ox_webservice_test_utils::{create_mock_api, create_task_state, drop_task_state, set_mock_field, get_mock_field};
+        use std::sync::Arc;
 
-          let config = DriverManagerConfig {
+        // Setup
+        let temp_dir = std::env::temp_dir().join("ox_test_api");
+        if temp_dir.exists() { fs::remove_dir_all(&temp_dir).unwrap(); }
+        fs::create_dir_all(&temp_dir).unwrap();
+        fs::create_dir_all(temp_dir.join("db")).unwrap();
+        fs::write(temp_dir.join("db/test.so"), "").unwrap();
+
+        let drivers_yaml = temp_dir.join("drivers.yaml");
+        fs::write(&drivers_yaml, "drivers: []").unwrap();
+
+        let config = DriverManagerConfig {
             drivers_file: drivers_yaml.to_str().unwrap().to_string(),
             driver_root: temp_dir.to_str().unwrap().to_string(),
             on_content_conflict: None,
         };
-        
-        // Construct Context manually since we can't easily use initialize_module from within test without raw pointer gymnastics
-        let api = Box::leak(Box::new(create_mock_api())); // Leak for static lifetime
+
+        let api = create_mock_api();
         let manager = Arc::new(DriverManager::new(config));
-        
+
         let context = crate::ModuleContext {
             manager: manager.clone(),
-            api: api,
+            api,
             module_id: "test_driver_manager".to_string(),
         };
-        
-        // We need to cast it to c_void
-        let context_box = Box::new(context);
-        let instance_ptr = Box::into_raw(context_box) as *mut libc::c_void;
-        
-        // 1. Test GET /drivers/available
-        let mut ps = create_stub_pipeline_state();
-        ps.request_path = "/drivers/available".to_string();
-        ps.request_method = "GET".to_string();
-        
-        let result = unsafe { crate::process_request(instance_ptr, &mut ps as *mut _, api.log_callback, api.alloc_raw, std::ptr::null()) };
-        
-        assert_eq!(result.status, ox_webservice_api::ModuleStatus::Modified);
-        let body = String::from_utf8_lossy(&ps.response_body);
-        assert!(body.contains("db/test.so"));
-        
-        // 2. Test GET /drivers (empty list initially)
-        let mut ps2 = create_stub_pipeline_state();
-        ps2.request_path = "/drivers".to_string();
-        ps2.request_method = "GET".to_string();
-        
-        let result2 = unsafe { crate::process_request(instance_ptr, &mut ps2 as *mut _, api.log_callback, api.alloc_raw, std::ptr::null()) };
-         assert_eq!(result2.status, ox_webservice_api::ModuleStatus::Modified);
-        let body2 = String::from_utf8_lossy(&ps2.response_body);
-        assert!(body2.contains("[]") || body2.contains("drivers\":[]"));
 
-        // Cleanup: reconstruct box to drop
+        let instance_ptr = Box::into_raw(Box::new(context)) as *mut libc::c_void;
+
+        // 1. Test GET /drivers/available
+        let task_ctx = create_task_state();
+        set_mock_field(task_ctx, "request.path", "/drivers/available");
+        set_mock_field(task_ctx, "request.method", "GET");
+
+        unsafe { crate::ox_plugin_process(instance_ptr, task_ctx) };
+
+        let body = get_mock_field(task_ctx, "response.body").unwrap_or_default();
+        assert!(body.contains("db/test.so"), "available drivers should list db/test.so");
+        unsafe { drop_task_state(task_ctx); }
+
+        // 2. Test GET /drivers (empty list initially)
+        let task_ctx2 = create_task_state();
+        set_mock_field(task_ctx2, "request.path", "/drivers");
+        set_mock_field(task_ctx2, "request.method", "GET");
+
+        unsafe { crate::ox_plugin_process(instance_ptr, task_ctx2) };
+
+        let body2 = get_mock_field(task_ctx2, "response.body").unwrap_or_default();
+        assert!(body2.contains("[]") || body2.contains("drivers\":[]"), "driver list should be empty");
+        unsafe { drop_task_state(task_ctx2); }
+
+        // Cleanup
         unsafe { let _ = Box::from_raw(instance_ptr as *mut crate::ModuleContext); }
     }
 }

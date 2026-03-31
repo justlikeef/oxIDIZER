@@ -1,6 +1,6 @@
 use crate::registry::TypeRegistry;
 use crate::schema::{FormDefinition, LayoutDefinition, LayoutItem, FieldDefinition};
-use crate::traits::{RenderContext, FormRenderer};
+use crate::traits::RenderContext;
 use anyhow::{Result, Context};
 use std::collections::HashMap;
 

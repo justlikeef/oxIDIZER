@@ -109,7 +109,7 @@ pub unsafe extern "C" fn ox_plugin_process(
             set_field(api, task_ctx, "response.header.Content-Type", "text/html");
             set_field(api, task_ctx, "response.body", &html_content);
             set_field(api, task_ctx, "response.status", "301");
-            return FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() }; // Halt the pipeline
+            return FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() }; // Halt the flow
         }
     }
 

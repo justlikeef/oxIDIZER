@@ -9,7 +9,6 @@ use serde_json::Value;
 use std::ffi::{CStr, CString};
 use std::fs;
 use std::path::PathBuf;
-use anyhow::Result;
 
 mod tests;
 
@@ -122,9 +121,9 @@ pub unsafe extern "C" fn ox_plugin_init(
         Some(cfg_file) => match ox_fileproc::process_file(&PathBuf::from(cfg_file), 5) {
             Ok(v) => match serde_json::from_value(v) {
                 Ok(c) => c,
-                Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to parse config: {}", e)); return std::ptr::null_mut(); }
+                Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to process config file: {}", e)); return std::ptr::null_mut(); }
             },
-            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to read config: {}", e)); return std::ptr::null_mut(); }
+            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to process config file: {}", e)); return std::ptr::null_mut(); }
         },
         None => {
             let content_root = params.get("content_root").and_then(|v| v.as_str()).unwrap_or("./www").to_string();
@@ -204,8 +203,11 @@ pub unsafe extern "C" fn ox_plugin_process(
 
         match fs::metadata(&file_path) {
             Ok(metadata) if metadata.is_file() => {
-                log(api, task_ctx, OX_LOG_INFO, &format!("Streaming file: {:?}", file_path));
+                log(api, task_ctx, OX_LOG_INFO, &format!("{}: Streaming file for path: {:?}", MODULE_NAME, file_path));
                 set_field(api, task_ctx, "response.header.Content-Type", &mimetype);
+                if mimetype.starts_with("text/html") || mimetype == "application/javascript" || mimetype == "text/css" {
+                    set_field(api, task_ctx, "response.header.Cache-Control", "no-cache, no-store, must-revalidate");
+                }
                 set_field(api, task_ctx, "response.status", "200");
 
                 let c_path = CString::new(file_path.to_string_lossy().into_owned()).unwrap();
@@ -222,7 +224,7 @@ pub unsafe extern "C" fn ox_plugin_process(
             }
         }
     } else {
-        log(api, task_ctx, OX_LOG_WARN, &format!("File not found: {}", request_path));
+        log(api, task_ctx, OX_LOG_WARN, &format!("{}: File not found for path: {}", MODULE_NAME, request_path));
         set_field(api, task_ctx, "response.status", "404");
         set_field(api, task_ctx, "response.body", "404 Not Found");
     }
@@ -239,6 +241,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

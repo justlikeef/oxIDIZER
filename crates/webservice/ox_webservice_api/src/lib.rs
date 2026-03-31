@@ -47,6 +47,8 @@ pub struct ModuleConfig {
     #[serde(default)]
     pub path: Option<String>,
     #[serde(default)]
+    pub phase: Option<String>,
+    #[serde(default)]
     pub params: Option<Value>,
     #[serde(flatten)]
     pub extra_params: HashMap<String, Value>,
@@ -61,6 +63,7 @@ impl Default for ModuleConfig {
             headers: None,
             query: None,
             path: None,
+            phase: None,
             params: None,
             extra_params: HashMap::new(),
         }

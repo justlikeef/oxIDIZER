@@ -4,7 +4,6 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
-use std::sync::Arc;
 use libc::{c_char, c_void};
 use std::ffi::CStr;
 use ox_fileproc::serde_json;

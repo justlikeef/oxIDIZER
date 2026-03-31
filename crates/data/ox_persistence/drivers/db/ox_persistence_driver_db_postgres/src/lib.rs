@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use ox_type_converter::ValueType;
 use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
-use std::sync::Arc;
 use chrono;
 use ox_fileproc::serde_json;
 
@@ -194,7 +193,7 @@ impl PersistenceDriver for PostgresPersistenceDriver {
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         Ok(vec!["default".to_string()])
     }
     

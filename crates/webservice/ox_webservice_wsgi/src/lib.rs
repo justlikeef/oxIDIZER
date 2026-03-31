@@ -1,31 +1,34 @@
 use std::ffi::{c_char, c_void, CStr, CString};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, OX_LOG_INFO, OX_LOG_ERROR, OX_LOG_DEBUG,
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, OX_LOG_INFO, OX_LOG_ERROR,
 };
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyBytes, PyModule};
+use pyo3::types::{PyDict, PyBytes, PyModule};
 
 const MODULE_NAME: &str = "ox_webservice_wsgi";
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone, prost::Message)]
 struct Config {
+    #[prost(string, tag = "1")]
     config_file: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Clone, prost::Message)]
 struct AppConfig {
+    #[prost(string, tag = "1")]
     python_path: String,
+    #[prost(string, tag = "2")]
     module: String,
     #[serde(default = "default_callable")]
+    #[prost(string, tag = "3")]
     callable: String,
 }
 
 fn default_callable() -> String { "application".to_string() }
 
 struct WsgiContext {
+    #[allow(dead_code)]
     config: AppConfig,
     app: PyObject,
     api: CoreHostApi,
@@ -42,6 +45,21 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
     let c_key = CString::new(key).unwrap();
     let c_val = CString::new(value).unwrap();
     (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
+#[allow(dead_code)]
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+#[allow(dead_code)]
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {

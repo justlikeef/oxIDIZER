@@ -35,9 +35,6 @@ modules:
     name: ox_package_manager
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_package_manager.so"
     staging_directory: "$TEST_DIR/staging"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 
 servers:
   - id: "default_http"
@@ -47,14 +44,18 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
 
 routes:
   - url: "^/packages/(upload|list|install)/?"
     module_id: "package_manager"
-    phase: Content
     priority: 450
 EOF
 

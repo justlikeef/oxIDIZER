@@ -5,18 +5,38 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::ffi::{CString, CStr};
 use libc::{c_char, c_void};
-use ox_webservice_api::{
-    ModuleInterface, PipelineState, HandlerResult,
-    LogCallback, AllocFn, AllocStrFn,
-    ModuleStatus, FlowControl, ReturnParameters, LogLevel, CoreHostApi,
+use ox_workflow_abi::{
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE,
+    OX_LOG_INFO, OX_LOG_ERROR,
 };
 use lazy_static::lazy_static;
-use bumpalo::Bump;
+use prost::Message;
 
+use ox_persistence::DriversList;
 
-use ox_persistence::{ConfiguredDriver, DriversList};
+use ox_fileproc::process_file;
 
-use ox_fileproc::{process_file, RawFile};
+/// Prost-compatible mirror of DataSource for binary encoding.
+/// The `config` field (serde_json::Value) is serialised to JSON and stored in `config_json`.
+#[derive(Clone, PartialEq, prost::Message)]
+pub struct DataSourceProto {
+    #[prost(string, tag = "1")]
+    pub id: String,
+    #[prost(string, tag = "2")]
+    pub name: String,
+    #[prost(string, tag = "3")]
+    pub driver_id: String,
+    /// JSON-encoded representation of the driver config map.
+    #[prost(string, tag = "4")]
+    pub config_json: String,
+}
+
+/// Prost-compatible list wrapper.
+#[derive(Clone, PartialEq, prost::Message)]
+pub struct DataSourcesListProto {
+    #[prost(message, repeated, tag = "1")]
+    pub data_sources: Vec<DataSourceProto>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DataSource {
@@ -255,39 +275,62 @@ impl DataSourceManager {
 
 pub struct ModuleContext {
     manager: Arc<DataSourceManager>,
-    api: &'static CoreHostApi,
-    module_id: String,
+    api: CoreHostApi,
 }
 
 lazy_static! {
     static ref DATA_SOURCE_MANAGER_INSTANCE: Mutex<Option<Arc<DataSourceManager>>> = Mutex::new(None);
 }
 
+fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
+    let c_key = CString::new(key).unwrap();
+    let p = (api.get_field)(task_ctx, c_key.as_ptr());
+    if p.is_null() { return String::new(); }
+    unsafe { CStr::from_ptr(p).to_string_lossy().into_owned() }
+}
+
+fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
+    let c_key = CString::new(key).unwrap();
+    let c_val = CString::new(value).unwrap();
+    (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 {
+        return None;
+    }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
+
+fn log_msg(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
+    if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
+}
+
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initialize_module(
-    module_params_json_ptr: *const c_char,
-    module_id: *const c_char,
+pub unsafe extern "C" fn ox_plugin_init(
+    plugin_config_ctx: *const c_char,
     api_ptr: *const CoreHostApi,
-) -> *mut ModuleInterface {
+    _abi_version: u32,
+) -> *mut c_void {
     if api_ptr.is_null() {
         return std::ptr::null_mut();
     }
-    let api = unsafe { &*api_ptr };
+    let api = unsafe { *api_ptr };
 
-    let module_id_str = if !module_id.is_null() {
-        unsafe { CStr::from_ptr(module_id).to_string_lossy().to_string() }
-    } else {
-        "ox_persistence_datasource_manager".to_string()
-    };
-
-    let _ = ox_webservice_api::init_logging(api.log_callback, &module_id_str);
-
-    let params_str = if !module_params_json_ptr.is_null() {
-        unsafe { CStr::from_ptr(module_params_json_ptr).to_string_lossy().to_string() }
+    let params_str = if !plugin_config_ctx.is_null() {
+        unsafe { CStr::from_ptr(plugin_config_ctx).to_string_lossy().to_string() }
     } else {
         "{}".to_string()
     };
-    
+
     let params: serde_json::Value = serde_json::from_str(&params_str).unwrap_or(serde_json::Value::Null);
 
     let data_sources_dir = params.get("data_sources_dir")
@@ -322,159 +365,128 @@ pub unsafe extern "C" fn initialize_module(
     };
 
     let manager = Arc::new(DataSourceManager::new(config));
-    
     *DATA_SOURCE_MANAGER_INSTANCE.lock().unwrap() = Some(manager.clone());
 
-    let ctx = Box::new(ModuleContext {
-        manager,
-        api,
-        module_id: module_id_str,
-    });
-
-    let interface = Box::new(ModuleInterface {
-        instance_ptr: Box::into_raw(ctx) as *mut c_void,
-        handler_fn: process_request,
-        log_callback: api.log_callback,
-        get_config: get_config,
-    });
-
-    Box::into_raw(interface)
+    let ctx = Box::new(ModuleContext { manager, api });
+    Box::into_raw(ctx) as *mut c_void
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn process_request(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    _log_callback: LogCallback,
-    _alloc_fn: AllocFn,
-    _arena: *const c_void,
-) -> HandlerResult {
-    if instance_ptr.is_null() {
-        return HandlerResult {
-            status: ModuleStatus::Unmodified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-        };
+pub unsafe extern "C" fn ox_plugin_process(
+    plugin_config_ctx: *mut c_void,
+    task_ctx: *mut c_void,
+) -> FlowControl {
+    if plugin_config_ctx.is_null() {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
-    let context = unsafe { &*(instance_ptr as *mut ModuleContext) };
-    let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-    let arena_ptr = &pipeline_state.arena as *const Bump as *const c_void;
-
-    let ctx = unsafe { ox_pipeline_plugin::PipelineContext::new(
-        context.api, 
-        pipeline_state_ptr as *mut c_void, 
-        arena_ptr
-    ) };
+    let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
+    let api = &context.api;
 
     // --- Conflict Management ---
-    let is_modified = if let Some(val) = ctx.get("pipeline.modified") {
-         val.as_str().unwrap_or("false") == "true"
-    } else { false };
+    let is_modified = get_field(api, task_ctx, "flow.modified") == "true";
 
     if is_modified {
-         let action = context.manager.config.on_content_conflict.unwrap_or(ContentConflictAction::Skip);
-         if let Ok(c_msg) = CString::new(format!("Conflict check: is_modified=true, action={:?}", action)) {
-              let module_name = CString::new(context.module_id.clone()).unwrap_or(CString::new("ox_persistence_datasource_manager").unwrap());
-              unsafe { (context.api.log_callback)(LogLevel::Info, module_name.as_ptr(), c_msg.as_ptr()); }
-         }
+        let action = context.manager.config.on_content_conflict.unwrap_or(ContentConflictAction::Skip);
+        log_msg(api, task_ctx, OX_LOG_INFO, &format!("Conflict check: is_modified=true, action={:?}", action));
 
-         match action {
-             ContentConflictAction::Skip => {
-                 return HandlerResult {
-                    status: ModuleStatus::Unmodified,
-                    flow_control: FlowControl::Continue,
-                    return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-                 };
-             },
-             ContentConflictAction::Error => {
-                 let _ = ctx.set("response.status", serde_json::json!(500));
-                 let _ = ctx.set("response.body", serde_json::json!("Conflict: Pipeline content already modified"));
-                 return HandlerResult {
-                     status: ModuleStatus::Modified,
-                     flow_control: FlowControl::Continue,
-                     return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-                 };
-             },
-             _ => {} // overwrite/append: proceed as normal
-         }
+        match action {
+            ContentConflictAction::Skip => {
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            },
+            ContentConflictAction::Error => {
+                set_field(api, task_ctx, "response.status", "500");
+                set_field(api, task_ctx, "response.body", "Conflict: Flow content already modified");
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            },
+            _ => {}
+        }
     }
 
     // --- Path Resolution ---
-    // User Requirement: Module should not know about /data_sources section.
-    // We prioritize 'request.capture' which the Router sets to the relative path.
-    
-    let (path_str, using_capture) = match ctx.get("request.capture") {
-        Some(v) => (v.as_str().unwrap_or("").to_string(), true),
-        None => {
-            // Fallback to full path if Router didn't run or capture didn't match.
-            // In this case, we might still be receiving the full path.
-            let full = match ctx.get("request.resource") {
-                Some(v) => v.as_str().unwrap_or("/").to_string(),
-                None => match ctx.get("request.path") {
-                    Some(v) => v.as_str().unwrap_or("/").to_string(),
-                    None => "/".to_string()
-                }
-            };
-            (full, false)
-        }
+    let capture = get_field(api, task_ctx, "request.capture");
+    let (path_str, using_capture) = if !capture.is_empty() {
+        (capture, true)
+    } else {
+        let resource = get_field(api, task_ctx, "request.resource");
+        let full = if !resource.is_empty() {
+            resource
+        } else {
+            let p = get_field(api, task_ctx, "request.path");
+            if !p.is_empty() { p } else { "/".to_string() }
+        };
+        (full, false)
     };
-    
-    // Normalize path: Remove leading/trailing slashes for easier matching of IDs
-    let clean_path = path_str.trim_matches('/');
 
-    let method = match ctx.get("request.verb") {
-        Some(v) => v.as_str().unwrap_or("get").to_string(),
-        None => match ctx.get("request.method") {
-            Some(v) => v.as_str().unwrap_or("GET").to_string().to_lowercase(),
-            None => "get".to_string()
+    let clean_path = path_str.trim_matches('/').to_string();
+
+    let method = {
+        let verb = get_field(api, task_ctx, "request.verb");
+        if !verb.is_empty() {
+            verb
+        } else {
+            let m = get_field(api, task_ctx, "request.method");
+            if !m.is_empty() { m.to_lowercase() } else { "get".to_string() }
         }
     };
 
-    let send_json_error = |error_msg: String, status_code: i32| {
+    let send_json_error = move |error_msg: String, status_code: i32| {
         let json_error = serde_json::json!({ "error": error_msg });
-        let _ = ctx.set("response.body", serde_json::Value::String(json_error.to_string()));
-        let _ = ctx.set("response.status", serde_json::json!(status_code));
-        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+        set_field(api, task_ctx, "response.body", &json_error.to_string());
+        set_field(api, task_ctx, "response.status", &status_code.to_string());
+        set_field(api, task_ctx, "response.header.Content-Type", "application/json");
     };
 
-    let send_json_success = |body: String| {
-        let _ = ctx.set("response.body", serde_json::Value::String(body));
-        let _ = ctx.set("response.status", serde_json::json!(200));
-        let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("application/json".to_string()));
+    let send_json_success = move |body: String| {
+        set_field(api, task_ctx, "response.body", &body);
+        set_field(api, task_ctx, "response.status", "200");
+        set_field(api, task_ctx, "response.header.Content-Type", "application/json");
     };
 
     // --- Routing Logic ---
 
     // 1. List Data Sources
-    // MATCH: clean_path is empty (root)
-    // Legacy fallback: full path is "/data_sources"
     let is_root = clean_path.is_empty() || (!using_capture && clean_path == "data_sources");
 
     if method == "get" && is_root {
         match context.manager.load_data_sources() {
-            Ok(list) => send_json_success(serde_json::to_string(&list).unwrap_or_default()),
+            Ok(list) => {
+                // Encode domain data as protobuf and store in binary task-state field.
+                let proto_list = DataSourcesListProto {
+                    data_sources: list.data_sources.iter().map(|ds| DataSourceProto {
+                        id: ds.id.clone(),
+                        name: ds.name.clone(),
+                        driver_id: ds.driver_id.clone(),
+                        config_json: serde_json::to_string(&ds.config).unwrap_or_default(),
+                    }).collect(),
+                };
+                let mut proto_bytes = Vec::new();
+                if proto_list.encode(&mut proto_bytes).is_ok() {
+                    set_field_bytes_data(api, task_ctx, "data.datasources_proto", &proto_bytes);
+                }
+                // HTTP response body stays as JSON for compatibility.
+                send_json_success(serde_json::to_string(&list).unwrap_or_default());
+            },
             Err(e) => send_json_error(e, 500),
         }
-        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
 
     // 2. Add Data Source
-    // MATCH: clean_path is empty (root)
-    if method == "create" && is_root {
-        let body = match ctx.get("request.payload") {
-            Some(v) => v.as_str().unwrap_or("{}").to_string(),
-            None => {
-                match ctx.get("request.body_path") {
-                    Some(path_val) => {
-                        let path_str = path_val.as_str().unwrap_or("");
-                        if !path_str.is_empty() {
-                            std::fs::read_to_string(path_str).unwrap_or_else(|_| "{}".to_string())
-                        } else { "{}".to_string() }
-                    },
-                    None => {
-                        send_json_error("Missing body".to_string(), 400);
-                        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-                    }
+    if (method == "create" || method == "post") && is_root {
+        let body = {
+            let payload = get_field(api, task_ctx, "request.payload");
+            let body_field = get_field(api, task_ctx, "request.body");
+            if !payload.is_empty() {
+                payload
+            } else if !body_field.is_empty() {
+                body_field
+            } else {
+                let body_path = get_field(api, task_ctx, "request.body_path");
+                if !body_path.is_empty() {
+                    std::fs::read_to_string(&body_path).unwrap_or_else(|_| "{}".to_string())
+                } else {
+                    send_json_error("Missing body".to_string(), 400);
+                    return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
                 }
             }
         };
@@ -487,140 +499,131 @@ pub unsafe extern "C" fn process_request(
             },
             Err(e) => send_json_error(format!("Invalid JSON: {}", e), 400),
         }
-        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
 
     // 3. Delete Data Source
-    // MATCH: clean_path is NOT empty (it is the ID)
-    // Legacy fallback: path starts with "data_sources/"
     if method == "delete" {
-        let id_opt = if using_capture {
-             if !clean_path.is_empty() { Some(clean_path) } else { None }
+        let id_opt: Option<&str> = if using_capture {
+            if !clean_path.is_empty() { Some(&clean_path) } else { None }
         } else {
-             if path_str.starts_with("/data_sources/") {
-                 Some(path_str.trim_start_matches("/data_sources/").trim_matches('/'))
-             } else { None }
+            if path_str.starts_with("/data_sources/") {
+                Some(path_str.trim_start_matches("/data_sources/").trim_matches('/'))
+            } else { None }
         };
 
         if let Some(id) = id_opt {
-             match context.manager.remove_data_source(id) {
+            match context.manager.remove_data_source(id) {
                 Ok(_) => send_json_success(serde_json::json!({"status": "deleted"}).to_string()),
                 Err(e) => send_json_error(e, 500),
             }
-            return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
     }
-    
-    // 3.5. Execute Action (POST /datasources/action/<driver_id>/<action_name> or /datasources/list_datasets/<driver_id>)
+
+    // 3.5. Execute Action
     if method == "post" && (path_str.contains("/action/") || path_str.contains("/list_datasets/")) {
-         // Need to parse path segments better
-         let parts: Vec<&str> = clean_path.split('/').collect();
-         
-         // Route: action/<driver_id>/<action_name>
-         if parts.len() >= 3 && parts[0] == "action" {
-             let driver_id = parts[1];
-             let action_name = parts[2];
-             let body = match ctx.get("request.payload") {
-                Some(v) => v.as_str().unwrap_or("{}").to_string(),
-                None => match ctx.get("request.body_path") {
-                    Some(val) => std::fs::read_to_string(val.as_str().unwrap_or("")).unwrap_or("{}".to_string()),
-                    None => "{}".to_string()
+        let parts: Vec<&str> = clean_path.split('/').collect();
+
+        if parts.len() >= 3 && parts[0] == "action" {
+            let driver_id = parts[1];
+            let action_name = parts[2];
+            let body = {
+                let payload = get_field(api, task_ctx, "request.payload");
+                if !payload.is_empty() { payload } else {
+                    let p = get_field(api, task_ctx, "request.body_path");
+                    if !p.is_empty() { std::fs::read_to_string(&p).unwrap_or("{}".to_string()) } else { "{}".to_string() }
                 }
-             };
-             let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
-             
-             match context.manager.execute_driver_action(driver_id, action_name, &params) {
-                 Ok(val) => send_json_success(val.to_string()),
-                 Err(e) => send_json_error(e, 500),
-             }
-             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-         }
-         
-         // Route: list_datasets/<driver_id>
-         if parts.len() >= 2 && parts[0] == "list_datasets" {
-             let driver_id = parts[1];
-             let body = match ctx.get("request.payload") {
-                Some(v) => v.as_str().unwrap_or("{}").to_string(),
-                None => match ctx.get("request.body_path") {
-                     Some(val) => std::fs::read_to_string(val.as_str().unwrap_or("")).unwrap_or("{}".to_string()),
-                     None => "{}".to_string()
+            };
+            let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
+
+            match context.manager.execute_driver_action(driver_id, action_name, &params) {
+                Ok(val) => send_json_success(val.to_string()),
+                Err(e) => send_json_error(e, 500),
+            }
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+        }
+
+        if parts.len() >= 2 && parts[0] == "list_datasets" {
+            let driver_id = parts[1];
+            let body = {
+                let payload = get_field(api, task_ctx, "request.payload");
+                if !payload.is_empty() { payload } else {
+                    let p = get_field(api, task_ctx, "request.body_path");
+                    if !p.is_empty() { std::fs::read_to_string(&p).unwrap_or("{}".to_string()) } else { "{}".to_string() }
                 }
-             };
-             let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
-             
-             match context.manager.list_driver_datasets(driver_id, &params) {
-                 Ok(val) => send_json_success(serde_json::json!(val).to_string()),
-                 Err(e) => send_json_error(e, 500),
-             }
-             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-         }
+            };
+            let params: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({}));
+
+            match context.manager.list_driver_datasets(driver_id, &params) {
+                Ok(val) => send_json_success(serde_json::json!(val).to_string()),
+                Err(e) => send_json_error(e, 500),
+            }
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+        }
     }
 
     // 4. Render Creation Form
-    // Path: /data_sources/new/form
     if method == "get" && (clean_path == "new/form" || path_str.ends_with("/data_sources/new/form")) {
-        let driver_id = ctx.get("request.query.driver")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
-        
-        let ds_id = ctx.get("request.query.id")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
+        let driver_id = get_field(api, task_ctx, "request.query.driver");
+
+        let ds_id = {
+            let id = get_field(api, task_ctx, "request.query.id");
+            if !id.is_empty() { Some(id) } else { None }
+        };
 
         let mut existing_ds: Option<DataSource> = None;
         let mut driver_id_to_use = driver_id.clone();
-        
-        // If ID provided, load existing DS to get driver_id and values
+
         if let Some(ref id) = ds_id {
-             match context.manager.get_data_source(id) {
-                 Ok(Some(ds)) => {
-                     driver_id_to_use = ds.driver_id.clone();
-                     existing_ds = Some(ds);
-                 },
-                 Ok(None) => {
-                      send_json_error(format!("Data source '{}' not found", id), 404);
-                      return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-                 },
-                 Err(e) => {
-                      send_json_error(format!("Error loading data source: {}", e), 500);
-                      return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-                 }
-             }
+            match context.manager.get_data_source(id) {
+                Ok(Some(ds)) => {
+                    driver_id_to_use = ds.driver_id.clone();
+                    existing_ds = Some(ds);
+                },
+                Ok(None) => {
+                    send_json_error(format!("Data source '{}' not found", id), 404);
+                    return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+                },
+                Err(e) => {
+                    send_json_error(format!("Error loading data source: {}", e), 500);
+                    return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+                }
+            }
         }
 
         if driver_id_to_use.is_empty() {
-             send_json_error("Missing 'driver' query parameter and no 'id' provided for lookup.".to_string(), 400);
-             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+            send_json_error("Missing 'driver' query parameter and no 'id' provided for lookup.".to_string(), 400);
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
 
-        // Load Drivers Config to find library
         let drivers_list = match context.manager.load_configured_drivers() {
-             Ok(l) => l,
-             Err(e) => {
-                  send_json_error(format!("Failed to load drivers config: {}", e), 500);
-                  return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-             }
+            Ok(l) => l,
+            Err(e) => {
+                send_json_error(format!("Failed to load drivers config: {}", e), 500);
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            }
         };
 
         let driver_opt = drivers_list.drivers.iter().find(|d| d.id == driver_id_to_use);
         if driver_opt.is_none() {
-             send_json_error(format!("Driver '{}' not found in configuration.", driver_id_to_use), 404);
-             return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+            send_json_error(format!("Driver '{}' not found in configuration.", driver_id_to_use), 404);
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
         let driver_conf = driver_opt.unwrap();
-        
+
         let lib_path = if !driver_conf.library_path.is_empty() {
-             format!("{}/lib{}.so", driver_conf.library_path, driver_conf.name)
+            format!("{}/lib{}.so", driver_conf.library_path, driver_conf.name)
         } else {
-             format!("{}/lib{}.so", context.manager.config.driver_root, driver_conf.name)
+            format!("{}/lib{}.so", context.manager.config.driver_root, driver_conf.name)
         };
 
-        // Load Schema
         let schema_yaml = match context.manager.get_driver_schema(&lib_path) {
-             Ok(s) => s,
-             Err(e) => {
-                  send_json_error(format!("Failed to load schema from driver: {}", e), 500);
-                  return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
-             }
+            Ok(s) => s,
+            Err(e) => {
+                send_json_error(format!("Failed to load schema from driver: {}", e), 500);
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            }
         };
 
         let mut props: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
@@ -632,50 +635,42 @@ pub unsafe extern "C" fn process_request(
             }
         }
 
-        // Parse Form Definition or Module Schema (Transcode to JSON for API)
         let yaml_val: serde_yaml::Value = serde_yaml::from_str(&schema_yaml)
             .map_err(|e| format!("YAML Parse Error: {}", e))
             .unwrap_or(serde_yaml::Value::Null);
-            
+
         let json_val = serde_json::to_value(yaml_val).unwrap_or(serde_json::Value::Null);
         let form_def_json = serde_json::to_string(&json_val).unwrap_or("{}".to_string());
 
         let render_res = ox_forms_api::render_form(&form_def_json, &serde_json::Value::Object(props.into_iter().collect()));
 
-
         match render_res {
             Ok(html) => {
-                let _ = ctx.set("response.body", serde_json::Value::String(html));
-                let _ = ctx.set("response.status", serde_json::json!(200));
-                let _ = ctx.set("response.header.Content-Type", serde_json::Value::String("text/html".to_string()));
+                set_field(api, task_ctx, "response.body", &html);
+                set_field(api, task_ctx, "response.status", "200");
+                set_field(api, task_ctx, "response.header.Content-Type", "text/html");
             },
             Err(e) => {
                 let err_msg = format!("Form Render Error: {}", e);
-                if let Ok(c_msg) = std::ffi::CString::new(err_msg.clone()) {
-                    let module_name = std::ffi::CString::new(context.module_id.clone()).unwrap_or(std::ffi::CString::new("ox_persistence_datasource_manager").unwrap());
-                    unsafe { (context.api.log_callback)(LogLevel::Error, module_name.as_ptr(), c_msg.as_ptr()); }
-                }
+                log_msg(api, task_ctx, OX_LOG_ERROR, &err_msg);
                 send_json_error(err_msg, 500);
             },
         }
-        return HandlerResult { status: ModuleStatus::Modified, flow_control: FlowControl::Continue, return_parameters: ReturnParameters { return_data: std::ptr::null_mut() } };
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
 
-    HandlerResult {
-        status: ModuleStatus::Unmodified,
-        flow_control: FlowControl::Continue,
-        return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-    }
+    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_config(
-    instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    if instance_ptr.is_null() { return std::ptr::null_mut(); }
-    let context = unsafe { &*(instance_ptr as *mut ModuleContext) };
-    let json = serde_json::to_string(&context.manager.config).unwrap_or("{}".to_string());
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+pub unsafe extern "C" fn ox_plugin_error(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) {}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
+    if !plugin_config_ctx.is_null() {
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
+    }
 }

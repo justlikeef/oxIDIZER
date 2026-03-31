@@ -1,116 +1,146 @@
 #!/bin/bash
 
-# Configuration
-TEST_ID="300001"
-TEST_NAME="SharedDependencyUninstall"
-SERVER_URL="http://127.0.0.1:3000"
-PKGS_DIR="/var/repos/oxIDIZER/crates/util/ox_package_manager/test_pkgs"
-LOG_DIR="/var/repos/oxIDIZER/crates/util/ox_package_manager/functional_tests/${TEST_ID}-${TEST_NAME}/logs"
+SCRIPTS_DIR=$1
+TEST_LIBS_DIR=$2
+MODE=$3
+LOGGING_LEVEL=$4
+TARGET=${5:-"debug"}
+PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
+read -r -a PORTS <<< "$PORTS_STR"
+BASE_PORT=${PORTS[0]}
 
-# Ensure log directory exists
-mkdir -p "$LOG_DIR"
-LOG_FILE="${LOG_DIR}/test.log"
+source "$TEST_LIBS_DIR/log_function.sh"
+TEST_DIR=$(dirname "$(readlink -f "$0")")
+WORKSPACE_DIR="/var/repos/oxIDIZER"
+PKGS_DIR="$WORKSPACE_DIR/crates/util/ox_package_manager/test_pkgs"
 
-# Function to log messages
-log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
-}
+if [ "$MODE" == "integrated" ]; then
+    log_message "$LOGGING_LEVEL" "info" "Skipping in integrated mode"
+    exit 77
+fi
 
-# Function to check if a package is installed
+log_message "$LOGGING_LEVEL" "info" "Starting Test: 300001-SharedDependencyUninstall"
+
+TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
+LOG_FILE="$TEST_DIR/logs/ox_webservice.log"
+STAGING_DIR="$TEST_DIR/staging"
+mkdir -p "$TEST_DIR/logs" "$TEST_DIR/conf" "$STAGING_DIR"
+
+cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
+
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    path: "$WORKSPACE_DIR/target/$TARGET/libox_package_manager.so"
+    staging_directory: "$STAGING_DIR"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: $BASE_PORT
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/packages/(upload|list|install|uninstall)/?"
+    module_id: "package_manager"
+    priority: 450
+    headers:
+      Method: POST
+  - url: "^/packages/(list)/?"
+    module_id: "package_manager"
+    priority: 450
+EOF
+
+SERVER_URL="http://127.0.0.1:$BASE_PORT"
+
+"$SCRIPTS_DIR/start_server.sh" "$LOGGING_LEVEL" "$TARGET" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
+    "$LOG_FILE" "$TEST_PID_FILE" "$WORKSPACE_DIR"
+sleep 5
+
+if [ ! -f "$TEST_PID_FILE" ] || ! kill -0 "$(cat "$TEST_PID_FILE")" 2>/dev/null; then
+    log_message "$LOGGING_LEVEL" "error" "Server failed to start"
+    cat "$LOG_FILE" 2>/dev/null || true
+    exit 1
+fi
+
+FAILURES=0
+
 is_installed() {
-    local pkg_name=$1
-    curl -s "${SERVER_URL}/packages/list/installed" | grep -q "$pkg_name"
-    return $?
+    curl -s "${SERVER_URL}/packages/list/installed" | grep -q "$1"
 }
 
-log "Starting Test ${TEST_ID}: ${TEST_NAME}"
-
-# 1. Upload Packages
-log "Uploading packages..."
+# 1. Upload packages
 for pkg in shared_lib app_one app_two; do
-    log "Uploading $pkg.tar.gz..."
+    log_message "$LOGGING_LEVEL" "info" "Uploading $pkg.tar.gz..."
     response=$(curl -s -X POST -F "package=@${PKGS_DIR}/${pkg}.tar.gz" "${SERVER_URL}/packages/upload/")
-    if echo "$response" | grep -q "\"result\":\"success\""; then
-        log "Uploaded $pkg successfully."
+    if echo "$response" | grep -q '"result":"success"'; then
+        log_message "$LOGGING_LEVEL" "info" "Uploaded $pkg"
     else
-        log "Failed to upload $pkg: $response"
-        exit 1
+        log_message "$LOGGING_LEVEL" "error" "Failed to upload $pkg: $response"
+        FAILURES=$((FAILURES + 1))
     fi
 done
 
-# 2. Install Packages
-# Install shared lib first, then apps
+# 2. Install packages
 for pkg in shared_lib.tar.gz app_one.tar.gz app_two.tar.gz; do
-    log "Installing $pkg..."
-    response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"filename\": \"$pkg\"}" "${SERVER_URL}/packages/install/")
-    if echo "$response" | grep -q "\"result\":\"success\""; then
-        log "Installed $pkg successfully."
+    log_message "$LOGGING_LEVEL" "info" "Installing $pkg..."
+    response=$(curl -s -X POST -H "Content-Type: application/json" \
+        -d "{\"filename\": \"$pkg\"}" "${SERVER_URL}/packages/install/")
+    if echo "$response" | grep -q '"result":"success"'; then
+        log_message "$LOGGING_LEVEL" "info" "Installed $pkg"
     else
-        log "Failed to install $pkg: $response"
-        exit 1
+        log_message "$LOGGING_LEVEL" "error" "Failed to install $pkg: $response"
+        FAILURES=$((FAILURES + 1))
     fi
 done
 
-# Verify installation
-if is_installed "shared_lib" && is_installed "app_one" && is_installed "app_two"; then
-    log "All packages installed successfully."
-else
-    log "Installation verification failed."
+if [ $FAILURES -gt 0 ]; then
+    log_message "$LOGGING_LEVEL" "error" "Setup failed"
+    "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$WORKSPACE_DIR" || true
     exit 1
 fi
 
-# 3. Uninstall Sequence Test
-# We are testing backend capability here. The backend does NOT currently enforce blocking uninstalls 
-# based on dependencies, so we expect this to SUCCEED.
-# The FRONTEND is responsible for the warning/blocking logic for the user.
-# This test verifies that the backend operations required for the recursive uninstall (deleting dependants first) works.
+# 3. Uninstall sequence: leaf first, then shared dep
+for pkg in app_one app_two shared_lib; do
+    log_message "$LOGGING_LEVEL" "info" "Uninstalling $pkg..."
+    response=$(curl -s -X POST -H "Content-Type: application/json" \
+        -d "{\"package\": \"$pkg\"}" "${SERVER_URL}/packages/uninstall")
+    if echo "$response" | grep -q '"result":"success"'; then
+        log_message "$LOGGING_LEVEL" "info" "Uninstalled $pkg"
+    else
+        log_message "$LOGGING_LEVEL" "error" "Failed to uninstall $pkg: $response"
+        FAILURES=$((FAILURES + 1))
+    fi
+done
 
-# Scenario: Uninstall app_one (Leaf node) -> Should succeed
-log "Attempting to uninstall app_one (Leaf node)..."
-response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"package\": \"app_one\"}" "${SERVER_URL}/packages/uninstall")
+# Verify all removed
+for pkg in shared_lib app_one app_two; do
+    if is_installed "$pkg"; then
+        log_message "$LOGGING_LEVEL" "error" "$pkg still installed!"
+        FAILURES=$((FAILURES + 1))
+    fi
+done
 
-if echo "$response" | grep -q "\"result\":\"success\""; then
-    log "Uninstalled app_one successfully."
-else
-    log "Failed to uninstall app_one: $response"
-    exit 1
-fi
+"$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$WORKSPACE_DIR" || true
 
-if is_installed "app_one"; then
-    log "Error: app_one is still installed!"
-    exit 1
-else
-    log "Verified app_one is gone."
-fi
-
-# Scenario: Uninstall shared_lib (Dependency of app_two) recursively from a script perspective
-# The frontend would typically uninstall app_two first. Let's simulate that sequence.
-log "Simulating recursive uninstall: Removing app_two first..."
-response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"package\": \"app_two\"}" "${SERVER_URL}/packages/uninstall")
-
-if echo "$response" | grep -q "\"result\":\"success\""; then
-    log "Uninstalled app_two successfully."
-else
-    log "Failed to uninstall app_two: $response"
-    exit 1
-fi
-
-log "Now removing shared_lib..."
-response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"package\": \"shared_lib\"}" "${SERVER_URL}/packages/uninstall")
-
-if echo "$response" | grep -q "\"result\":\"success\""; then
-    log "Uninstalled shared_lib successfully."
-else
-    log "Failed to uninstall shared_lib: $response"
-    exit 1
-fi
-
-# Final Verification
-if ! is_installed "shared_lib" && ! is_installed "app_one" && ! is_installed "app_two"; then
-    log "Test Passed: Clean uninstall sequence."
-    # Cleanup logs on success only if configured (keeping for now)
+if [ $FAILURES -eq 0 ]; then
+    rm -rf "$TEST_DIR/conf" "$TEST_DIR/logs" "$TEST_PID_FILE" "$STAGING_DIR"
+    log_message "$LOGGING_LEVEL" "info" "Test PASSED"
     exit 0
 else
-    log "Test Failed: Some packages remain."
+    log_message "$LOGGING_LEVEL" "error" "Test FAILED with $FAILURES failures"
     exit 1
 fi

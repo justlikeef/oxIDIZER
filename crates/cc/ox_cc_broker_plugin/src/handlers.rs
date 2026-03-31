@@ -2,7 +2,7 @@
 ///
 /// All handlers receive a shared DB reference and return a HandlerResponse
 /// (status code + JSON body string). The dispatcher in lib.rs writes these
-/// into the pipeline state.
+/// into the flow state.
 ///
 /// mTLS role enforcement is noted at each endpoint but not yet implemented —
 /// it requires ox_webservice mTLS support (see Open Questions in DESIGN.md).

@@ -1,0 +1,21 @@
+log4rs_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/systems_tests/000003-ConfigInvalid/conf/log4rs.yaml"
+mimetypes_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/systems_tests/000003-ConfigInvalid/conf/mimetypes.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: 3046
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"
+modules:
+  - id: errorhandler
+    name: ox_webservice_errorhandler_jinja2
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_errorhandler_jinja2.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/systems_tests/000003-ConfigInvalid/invalid_module_config.yaml"
+    phase: Error
+    priority: 999
+routes:
+  - url: ".*"
+    module_id: errorhandler
+    phase: Error

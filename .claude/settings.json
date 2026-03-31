@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"the following\\\\|run \\\\`cargo\")",
+      "Read(//var/repos/oxIDIZER/**)",
+      "Bash(cargo clean:*)",
+      "Bash(find /var/repos/oxIDIZER -type f \\\\\\(-name *.mk -o -name Makefile -o -name *.json -o -name *.cfg -o -name *.conf \\\\\\) ! -path */target/* -type f)",
+      "Bash(/dev/null -n)",
+      "Bash(grep -r functional_tests /var/repos/oxIDIZER --include=*.py --include=*.rs --include=*.txt --include=*.md)",
+      "Bash(grep -r functional_tests /var/repos/oxIDIZER --include=*.sh)",
+      "Bash(grep -r modules-functional_tests /var/repos/oxIDIZER --include=*.md --include=*.txt 2)",
+      "Bash(find /var/repos/oxIDIZER -type d -name tests ! -path */target/*)",
+      "Bash(xargs sed:*)",
+      "Bash(grep -r functional_tests /var/repos/oxIDIZER --include=*.sh --include=*.json --include=*.yaml --include=*.yml -l)",
+      "Bash(grep -r functional_tests /var/repos/oxIDIZER --include=*.md --include=*.txt --include=*.rs -l)",
+      "Bash(ls /var/repos/oxIDIZER/tests/common/ ls /var/repos/oxIDIZER/*_tests.log)",
+      "Bash(ls /var/repos/oxIDIZER/*_tests.log 2)",
+      "Bash(/dev/null echo:*)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(ls /var/repos/oxIDIZER/target/debug/*.so)",
+      "Bash(head -10 grep -r \"webservice_router\\\\|pipeline_router\" /var/repos/oxIDIZER/scripts/)",
+      "Bash(head -20 cat /var/repos/oxIDIZER/conf/modules/active/*.yaml)",
+      "Bash(for d:*)",
+      "Bash(echo \"=== $d ===\")",
+      "Read(//var/repos/oxIDIZER/conf/modules/active/$d/**)",
+      "Bash(head -20 echo \"---\" grep -rn \"plugin_config_ctx\\\\|ox_module_init\\\\|fn init\" /var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/lib.rs)",
+      "Read(//var/repos/**)",
+      "Read(//var/repos/oxIDIZER/conf/modules/active/=== 3. active/**)",
+      "Read(//var/repos/oxIDIZER/conf/modules/active/**)",
+      "Bash(bash scripts/run_module_tests.sh crates/webservice/ox_webservice_ping \"29000 29001 29002 29003 29004\" scripts tests/common isolated info debug /tmp/ping_test.log)",
+      "Bash(echo \"EXIT: $?\")",
+      "Read(//tmp/**)",
+      "Bash(grep -rl \"ox_pipeline_router\\\\|pipeline_router\" /var/repos/oxIDIZER/crates --include=*.yaml --include=*.sh)",
+      "Bash"
+    ],
+    "ask": [
+      "Bash(rm)"
+    ]
+  }
+}

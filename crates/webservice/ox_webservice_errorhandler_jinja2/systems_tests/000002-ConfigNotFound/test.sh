@@ -10,7 +10,7 @@ DEFAULT_LOGGING_LEVEL="info"
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -75,9 +75,6 @@ modules:
       config_file: "$TEST_DIR/non_existent.yaml"
     phase: Error
     priority: 999
-pipeline:
-  phases:
-    - Error: default
 routes:
   - url: ".*"
     module_id: errorhandler

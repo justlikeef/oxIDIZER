@@ -10,9 +10,9 @@ DEFAULT_LOGGING_LEVEL="info"
 TARGET=${5:-"debug"}
 PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
-BASE_PORT=3201
+BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -24,7 +24,7 @@ LOGGING_LEVEL=${4:-$DEFAULT_LOGGING_LEVEL}
 TARGET=${5:-"debug"}
 PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
-BASE_PORT=3201
+BASE_PORT=${PORTS[0]}
 
 # Source the logging function
 source "$TEST_LIBS_DIR/log_function.sh"
@@ -51,9 +51,6 @@ modules:
   - id: ping_module
     name: ox_webservice_ping
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_ping.so"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 
 servers:
   - id: "default_http"
@@ -62,10 +59,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 
 routes:
   - url: "^/ping"

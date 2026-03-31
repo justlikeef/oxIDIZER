@@ -117,6 +117,7 @@ impl WorkflowStorage {
                 history: Vec::new(),
                 error_callback: None,
                 ffi_arena: Vec::new(),
+                ffi_bytes_arena: Vec::new(),
                 api_call_counts: std::collections::HashMap::new(),
                 api_limits: std::collections::HashMap::new(),
             }))
@@ -226,6 +227,7 @@ impl WorkflowStorage {
                 history: Vec::new(),
                 error_callback: None,
                 ffi_arena: Vec::new(),
+                ffi_bytes_arena: Vec::new(),
                 api_call_counts: std::collections::HashMap::new(),
                 api_limits: std::collections::HashMap::new(),
             });

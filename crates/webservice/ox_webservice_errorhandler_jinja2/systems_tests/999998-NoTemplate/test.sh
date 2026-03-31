@@ -12,7 +12,7 @@ PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
 BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -77,9 +77,6 @@ modules:
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_errorhandler_jinja2.so"
     params:
       config_file: "$TEST_DIR/conf/eh_config.json"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 servers:
   - id: "default_http"
     protocol: "http"
@@ -87,10 +84,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
-    - ErrorHandling: default
 routes:
   - url: ".*"
     module_id: "eh_module"

@@ -8,7 +8,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -78,9 +78,6 @@ modules:
       config_file: "$TEST_DIR/invalid_module_config.yaml"
     phase: Content
     priority: 999
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 routes:
   - url: ".*"
     module_id: test_module_0

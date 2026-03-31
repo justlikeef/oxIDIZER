@@ -1,48 +1,25 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
 use std::ffi::{CStr, CString, c_void};
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
-use std::ptr;
-use ox_webservice::pipeline::{get_module_context_value_c, alloc_str_c};
-use ox_webservice_api::{PipelineState, ModuleContext};
-use bumpalo::Bump;
-use axum::http::HeaderMap;
-use serde_json::Value;
+use ox_workflow_core::{Task, state::FieldValue};
+use ox_workflow_executor::create_host_api;
 
 fuzz_target!(|data: &[u8]| {
-    let mut state = PipelineState {
-        arena: Bump::new(),
-        protocol: "HTTP/1.1".to_string(),
-        request_method: "GET".to_string(),
-        request_path: "/test".to_string(),
-        request_query: "".to_string(),
-        request_headers: HeaderMap::new(),
-        request_body: Vec::new(),
-        source_ip: "127.0.0.1:8080".parse().unwrap(),
-        status_code: 200,
-        response_headers: HeaderMap::new(),
-        response_body: Vec::new(),
-        module_context: Arc::new(RwLock::new(HashMap::new())),
-        pipeline_ptr: std::ptr::null(),
-        flags: std::collections::HashSet::new(),
-        execution_history: Vec::new(),
-        route_capture: None,
-    };
-    // Pre-populate context to allow successful lookups
-    state.module_context.write().unwrap().insert("test_key".to_string(), Value::String("found".to_string()));
+    let api = create_host_api();
+    let mut task = Task::new(1);
 
-    let arena = Bump::new();
-    let arena_ptr = &arena as *const Bump as *const c_void;
+    {
+        let mut state = task.state.write();
+        state.fields.insert("module.context.test_key".to_string(), FieldValue::String("found".to_string()));
+        state.fields.insert("request.path".to_string(), FieldValue::String("/test".to_string()));
+    }
+
+    let task_ptr = &mut task as *mut Task as *mut c_void;
 
     if let Ok(c_key) = CString::new(data) {
-        unsafe {
-            let key_ptr = c_key.as_ptr();
-            let state_ptr = &mut state as *mut PipelineState;
-            let result_ptr = get_module_context_value_c(state_ptr, key_ptr, arena_ptr, alloc_str_c);
-            if !result_ptr.is_null() {
-                let _ = CStr::from_ptr(result_ptr);
-            }
+        let result_ptr = (api.get_field)(task_ptr, c_key.as_ptr());
+        if !result_ptr.is_null() {
+            unsafe { let _ = CStr::from_ptr(result_ptr); }
         }
     }
 });

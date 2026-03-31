@@ -1,6 +1,4 @@
 
-use std::collections::HashMap;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SqlDialect {
     Mysql,

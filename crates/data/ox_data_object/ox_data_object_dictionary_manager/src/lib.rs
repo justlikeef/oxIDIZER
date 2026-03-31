@@ -1,17 +1,12 @@
 use ox_data_object_manager::{
-    DataDictionary, DataObjectDefinition, DataStoreContainer, QueryNode
+    DataDictionary, DataObjectDefinition, DataStoreContainer
 };
 use ox_persistence_dictionary_manager::get_dictionary_config;
 use std::collections::HashMap;
 use anyhow::Result;
-use std::ffi::{CString, CStr};
 use libc::{c_char, c_void};
-use ox_webservice_api::{
-    ModuleInterface, PipelineState, HandlerResult,
-    LogCallback, AllocFn, AllocStrFn,
-    ModuleStatus, FlowControl, ReturnParameters, CoreHostApi,
-};
-use lazy_static::lazy_static;
+use std::ffi::{CStr, CString};
+use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE};
 
 pub struct BootstrapService;
 
@@ -21,7 +16,7 @@ impl BootstrapService {
          let config = get_dictionary_config()
             .ok_or_else(|| anyhow::anyhow!("Dictionary configuration not set"))?;
 
-        let meta_container = DataStoreContainer {
+        let _meta_container = DataStoreContainer {
             id: "ox_definitions".to_string(),
             datasource_id: "dictionary_source".to_string(),
             name: config.parameters.get("container_name").cloned().unwrap_or("ox_definitions".to_string()),
@@ -58,85 +53,73 @@ impl BootstrapService {
     }
 }
 
-// --- Module Interface Implementation ---
+// --- Plugin Interface Implementation ---
+
+#[allow(dead_code)]
+fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
+    let c_key = CString::new(key).unwrap();
+    let ptr = (api.get_field)(task_ctx, c_key.as_ptr());
+    if ptr.is_null() { return String::new(); }
+    unsafe { CStr::from_ptr(ptr).to_string_lossy().into_owned() }
+}
+
+#[allow(dead_code)]
+fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
+    let c_key = CString::new(key).unwrap();
+    let c_val = CString::new(value).unwrap();
+    (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
+#[allow(dead_code)]
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+#[allow(dead_code)]
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
 
 struct ModuleContext {
-    api: &'static CoreHostApi,
-    module_id: String,
+    #[allow(dead_code)]
+    api: CoreHostApi,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initialize_module(
-    _module_params_json_ptr: *const c_char,
-    module_id: *const c_char,
+pub unsafe extern "C" fn ox_plugin_init(
+    _plugin_config_ctx: *const c_char,
     api_ptr: *const CoreHostApi,
-) -> *mut ModuleInterface {
+    _abi_version: u32,
+) -> *mut c_void {
     if api_ptr.is_null() { return std::ptr::null_mut(); }
-    let api = unsafe { &*api_ptr };
-    
-    let module_id_str = if !module_id.is_null() {
-        unsafe { CStr::from_ptr(module_id).to_string_lossy().to_string() }
-    } else {
-        "ox_data_object_dictionary_manager".to_string()
-    };
-    
-    let ctx = Box::new(ModuleContext {
-        api,
-        module_id: module_id_str,
-    });
-
-    let interface = Box::new(ModuleInterface {
-        instance_ptr: Box::into_raw(ctx) as *mut c_void,
-        handler_fn: process_request,
-        log_callback: unsafe { (*api_ptr).log_callback },
-        get_config: get_config,
-    });
-
-    Box::into_raw(interface)
+    let api = unsafe { *api_ptr };
+    let ctx = Box::new(ModuleContext { api });
+    Box::into_raw(ctx) as *mut c_void
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn process_request(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    _log_callback: LogCallback,
-    alloc_fn: AllocFn,
-    arena: *const c_void,
-) -> HandlerResult {
-    if instance_ptr.is_null() {
-         return HandlerResult {
-            status: ModuleStatus::Unmodified,
-            flow_control: FlowControl::Continue,
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-        };
-    }
-    
-    // Use PipelineContext helper if available, or manual raw pointer access.
-    // For brevity, using raw access or creating context wrapper.
-    let _context = unsafe { &*(instance_ptr as *mut ModuleContext) };
-    let pipeline_state = unsafe { &mut *pipeline_state_ptr };
-    
-    // Check path for /bootstrap command
-    // "request.path" or capture.
-    // Simplifying: If request contains "bootstrap" in payload or query, do it.
-    // Or check if capture == "bootstrap"
-    
-    // Just a placeholder implementation to acknowledge functionality
-    // Real implementation would parse path.
-    
-    HandlerResult {
-        status: ModuleStatus::Unmodified,
-        flow_control: FlowControl::Continue,
-        return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-    }
+pub unsafe extern "C" fn ox_plugin_process(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) -> FlowControl {
+    // Placeholder: bootstrap logic not yet implemented
+    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_config(
-    _instance_ptr: *mut c_void,
-    arena: *const c_void,
-    alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    let json = "{}".to_string();
-    unsafe { alloc_fn(arena, CString::new(json).unwrap().as_ptr()) }
+pub unsafe extern "C" fn ox_plugin_error(
+    _plugin_config_ctx: *mut c_void,
+    _task_ctx: *mut c_void,
+) {}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
+    if !plugin_config_ctx.is_null() {
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
+    }
 }

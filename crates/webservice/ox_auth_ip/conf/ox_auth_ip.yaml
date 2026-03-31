@@ -3,7 +3,7 @@ modules:
     name: "ox_auth_ip"
     phase: PreContent
     params:
-      config_file: "/opt/repos/oxIDIZER/ox_auth_ip/conf/ip_rules.yaml"
+      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_auth_ip/conf/ip_rules.yaml"
 routes:
   - url: ".*"
     module_id: "ip_auth"

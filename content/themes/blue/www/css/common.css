@@ -123,6 +123,11 @@ h4 {
     border-color: #e74c3c;
 }
 
+.status-unknown {
+    color: #6b7280;
+    border-color: #6b7280;
+}
+
 .header-status-area {
     display: flex;
     flex-direction: column;

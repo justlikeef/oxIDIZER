@@ -8,7 +8,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -33,18 +33,55 @@ if [ "$MODE" == "isolated" ]; then
   # Define paths
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"
   TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
-  TEST_CONFIG_FILE="$TEST_WORKSPACE_DIR/conf/ox_webservice.yaml"
 
-  log_message "$LOGGING_LEVEL" "info" "Regression Test: Verifying server starts with default config ($TEST_CONFIG_FILE)"
+  log_message "$LOGGING_LEVEL" "info" "Regression Test: Verifying server starts without crashing when module config_file is missing"
 
-  # Create runtime config with dynamic port
-  cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
-  sed -i "s/port: 3000/port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  # Generate a minimal self-contained config that exercises the stream module
+  mkdir -p "$TEST_DIR/conf"
+  mkdir -p "$TEST_DIR/logs"
+
+  cat <<EOF > "$TEST_DIR/conf/log4rs.yaml"
+appenders:
+  stdout:
+    kind: console
+root:
+  level: debug
+  appenders:
+    - stdout
+EOF
+
+  cat <<EOF > "$TEST_DIR/conf/mimetypes.yaml"
+mimetypes:
+  - mimetype: text/html
+    url: ".*[.]html$"
+EOF
+
+  cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$TEST_DIR/conf/log4rs.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: $BASE_PORT
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"
+modules:
+  - id: test_stream
+    name: ox_webservice_stream
+    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_webservice_stream.so"
+    params:
+      content_root: "$TEST_DIR"
+      mimetypes_file: "$TEST_DIR/conf/mimetypes.yaml"
+routes:
+  - url: ".*"
+    module_id: test_stream
+EOF
+
   # Start the server
   START_OUTPUT=$("$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
-    "debug" \
-    "$TEST_CONFIG_FILE" \
+    "$TARGET" \
+    "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR")

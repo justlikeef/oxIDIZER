@@ -3,7 +3,7 @@ set -e
 
 # Parameters
 SCRIPT_DIR=$1
-TEST_LIBS_DIR=${2:-"functional_tests/common"}
+TEST_LIBS_DIR=${2:-"systems_tests/common"}
 MODE=$3
 LOGGING_LEVEL=${4:-"info"}
 TARGET=${5:-"debug"}
@@ -27,9 +27,9 @@ mkdir -p "$LOGS_DIR"
 log_message "$LOGGING_LEVEL" "info" "Running OWASP Path Traversal Check..."
 log_message "$LOGGING_LEVEL" "debug" "Output redirecting to: $LOG_FILE"
 
-pushd ox_persistence_driver_manager > /dev/null
+pushd crates/data/ox_persistence_driver_manager > /dev/null
 
-if cargo +nightly test --lib functional_tests_security -q > "$LOG_FILE" 2>&1; then
+if cargo +nightly test --lib systems_tests_security -q > "$LOG_FILE" 2>&1; then
     log_message "$LOGGING_LEVEL" "info" "Security Check PASSED"
 else
     log_message "$LOGGING_LEVEL" "error" "Security Check FAILED. Output:"

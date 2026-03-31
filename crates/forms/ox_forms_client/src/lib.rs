@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, Element, HtmlInputElement, HtmlElement, HtmlSelectElement, Event};
-use serde_json::Value;
+use web_sys::{Element, HtmlInputElement, Event};
 
 #[wasm_bindgen]
 pub fn init_client() {

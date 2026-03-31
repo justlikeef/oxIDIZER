@@ -1,14 +1,12 @@
-log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100001-ConfigHTTP/conf/log4rs.yaml
-# Minimal modules and pipeline for server start
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100001-ConfigHTTP/conf/log4rs.yaml
+# Minimal modules and workflow for server start
 modules:
   - name: ox_webservice_status
     path: "target/debug/libox_webservice_status.so"
     phase: Content
     priority: 100
     uris: []
-pipeline:
-  phases:
-    - Content: default
+merge: "base.yaml"
 servers:
 - protocol: http
   port: 3000

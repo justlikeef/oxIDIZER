@@ -3,7 +3,7 @@ set -e
 
 # Parameters
 SCRIPT_DIR=$1
-TEST_LIBS_DIR=${2:-"functional_tests/common"}
+TEST_LIBS_DIR=${2:-"systems_tests/common"}
 MODE=$3
 LOGGING_LEVEL=${4:-"info"}
 TARGET=${5:-"debug"}
@@ -22,4 +22,4 @@ fi
 source "$TEST_LIBS_DIR/log_function.sh"
 source "$TEST_LIBS_DIR/safety_utils.sh"
 
-run_miri_test "ox_webservice_stream" "$LOGGING_LEVEL" "$LOGS_DIR"
+run_miri_test "crates/webservice/ox_webservice_stream" "$LOGGING_LEVEL" "$LOGS_DIR"

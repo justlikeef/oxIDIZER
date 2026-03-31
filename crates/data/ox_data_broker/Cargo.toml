@@ -33,5 +33,7 @@ ox_persistence_gdo_relational = { path = "../ox_persistence_gdo_relational" }
 ox_locking = { path = "../ox_locking" }
 
 ox_webservice_api = { path = "../../webservice/ox_webservice_api" }
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../../util/ox_fileproc" }
+prost = "0.13"
 

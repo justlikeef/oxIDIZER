@@ -39,7 +39,7 @@ PORT_START=$DEFAULT_PORT_START
 PORT_END=$DEFAULT_PORT_END
 
 # Use getopt to parse arguments
-TEMP=$(getopt -o f:s:t:m:l:h --long file:,scripts-dir:,test-libs-dir:,mode:,log-level:,help,port-start:,port-end:,build -n 'run_functional_tests.sh' -- "$@")
+TEMP=$(getopt -o f:s:t:m:l:h --long file:,scripts-dir:,test-libs-dir:,mode:,log-level:,help,port-start:,port-end:,build -n 'run_systems_tests.sh' -- "$@")
 
 if [ $? != 0 ]; then
     log_message "$LOGGING_LEVEL" "error" "Terminating..."
@@ -118,7 +118,7 @@ if [ $SLOTS -lt 1 ]; then
     exit 1
 fi
 
-log_message "$LOGGING_LEVEL" "info" "Running functional tests with the following configuration:"
+log_message "$LOGGING_LEVEL" "info" "Running systems tests with the following configuration:"
 log_message "$LOGGING_LEVEL" "info" "Parallel Slots: $SLOTS (Range: $PORT_START-$PORT_END)"
 log_message "$LOGGING_LEVEL" "info" "Running Mode: $RUNNING_MODE"
 

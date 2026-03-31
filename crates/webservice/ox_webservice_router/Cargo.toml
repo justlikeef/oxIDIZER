@@ -4,6 +4,9 @@ version = "0.1.0"
 license = "GPL-3.0-only"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 ox_webservice_api = { path = "../ox_webservice_api" }
 serde = { version = "1.0", features = ["derive"] }

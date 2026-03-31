@@ -1,55 +1,45 @@
-pipeline:
-  phases:
-    # Router module is implicitly part of pipeline but needs to be in modules list for loading
-    - Content: "ox_pipeline_router"
+log4rs_config: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200003-RoutingSeparation/conf/log4rs.yaml"
 
 modules:
-  - id: "data_source_manager"
-    name: "ox_persistence_datasource_manager"
+  - id: data_source_manager
+    name: ox_persistence_datasource_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
-    phase: "Manual"
-    params:
-      data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/datastores"
-      on_content_conflict: "skip"
+    data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200003-RoutingSeparation/conf/datastores"
+    on_content_conflict: "skip"
 
-  - id: "data_source_manager_stream"
-    name: "ox_webservice_stream"
+  - id: data_source_manager_stream
+    name: ox_webservice_stream
     path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
-    phase: "Manual"
-    params:
-      config_file: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/stream.yaml"
-
-  - id: "ox_pipeline_router"
-    name: "ox_pipeline_router"
-    path: "/var/repos/oxIDIZER/target/debug/libox_pipeline_router.so"
-    params:
-      routes:
-
-
-        - matcher:
-             path: "^/data_sources/?(.*)?$"
-             headers:
-               Accept: "application/json"
-          module_id: "data_source_manager"
-          priority: 499
-
-        - matcher:
-             path: "^/data_sources/?(.*)?$"
-             query:
-               format: "json"
-          module_id: "data_source_manager"
-          priority: 499
-
-        # Content Routes (Fallback Priority)
-        - matcher:
-            path: "^/data_sources/?(.*)?$"
-          module_id: "data_source_manager_stream"
-          priority: 500
+    config_file: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200003-RoutingSeparation/conf/stream.yaml"
 
 servers:
-  - id: "default"
+  - id: "default_http"
     protocol: "http"
-    port: 3215
+    port: 3000
     bind_address: "127.0.0.1"
+    hosts:
+      - name: "localhost"
 
-log4rs_config: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/functional_tests/200003-RoutingSeparation/conf/log4rs.yaml"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/data_sources/?(.*)?$"
+    headers:
+      Accept: "application/json"
+    module_id: "data_source_manager"
+    priority: 499
+  - url: "^/data_sources/?(.*)?$"
+    query:
+      format: "json"
+    module_id: "data_source_manager"
+    priority: 499
+  - url: "^/data_sources/?(.*)?$"
+    module_id: "data_source_manager_stream"
+    priority: 500

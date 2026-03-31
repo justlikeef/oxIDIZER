@@ -12,7 +12,7 @@ function run_fuzz_test() {
     log_message "$LOG_LEVEL" "info" "Running Fuzzer: $FUZZ_TARGET (this may take a while)..."
     log_message "$LOG_LEVEL" "debug" "Fuzzing output redirecting to: $LOG_FILE"
     
-    local CMD="cargo +nightly -q fuzz run $FUZZ_TARGET -- -max_total_time=15"
+    local CMD="cargo +nightly -q fuzz run $FUZZ_TARGET -- -runs=2000 -timeout=5"
     
     # We use a pipe to capture output for log file AND potentially display it if debug.
     # But pipe swallows exit code unless we use PIPESTATUS.

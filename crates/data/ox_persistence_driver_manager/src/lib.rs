@@ -1,17 +1,15 @@
-use std::fs;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use std::sync::Arc;
+
 use std::ffi::{c_char, c_void, CStr, CString};
 use ox_workflow_abi::{
     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR, OX_LOG_DEBUG,
 };
-use lazy_static::lazy_static;
 use serde_json::Value;
 use ox_fileproc::{process_file, RawFile};
-use ox_persistence::{ConfiguredDriver, DriversList};
+use ox_persistence::DriversList;
 
 const MODULE_NAME: &str = "ox_persistence_driver_manager";
 
@@ -26,6 +24,17 @@ pub struct DriverManagerConfig {
     pub driver_root: String,
     #[serde(default)]
     pub on_content_conflict: Option<ContentConflictAction>,
+}
+
+/// Proto-compatible mirror of DriverManagerConfig (conflict action serialized as string)
+#[derive(prost::Message, Clone)]
+pub struct DriverManagerConfigProto {
+    #[prost(string, tag = "1")]
+    pub drivers_file: String,
+    #[prost(string, tag = "2")]
+    pub driver_root: String,
+    #[prost(string, optional, tag = "3")]
+    pub on_content_conflict: Option<String>,
 }
 
 pub struct DriverManager {
@@ -122,6 +131,19 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
 
 fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
+}
+
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 fn json_response(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &str) {
@@ -230,7 +252,16 @@ pub unsafe extern "C" fn ox_plugin_process(
     if method == "get" {
         match manager.load_configured_drivers() {
             Ok(list) => {
-                let json = serde_json::json!({"drivers": list.drivers}).to_string();
+                let query_str = get_field(api, task_ctx, "request.query");
+                let state_filter: Option<String> = query_str.split('&')
+                    .find(|p| p.starts_with("state="))
+                    .map(|p| p["state=".len()..].to_string());
+                let drivers = if let Some(ref state) = state_filter {
+                    list.drivers.into_iter().filter(|d| &d.state == state).collect()
+                } else {
+                    list.drivers
+                };
+                let json = serde_json::json!({"drivers": drivers}).to_string();
                 json_response(api, task_ctx, 200, &json);
             }
             Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string()),
@@ -251,6 +282,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

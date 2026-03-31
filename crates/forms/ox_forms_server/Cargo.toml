@@ -9,14 +9,12 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ox_forms = { path = "../ox_forms" }
-ox_webservice_api = { path = "../../webservice/ox_webservice_api" }
 ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../../util/ox_fileproc" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
-anyhow = "1.0"
-http = "1.0"
+libc = "0.2"
+prost = "0.13"
 
 [dev-dependencies]
 ox_forms_std_renderers = { path = "../ox_forms_std_renderers" }

@@ -1,6 +1,5 @@
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter};
- // Added for DriverMetadata serialization
-use std::collections::HashMap;
+use ox_type_converter::HashMap;
 
 mod sql_builder;
 pub use sql_builder::*;
@@ -11,36 +10,36 @@ pub struct SqlPersistenceDriver;
 impl PersistenceDriver for SqlPersistenceDriver {
     fn persist(
         &self,
-        serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
-        location: &str,
+        _serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>,
+        _location: &str,
     ) -> Result<(), String> {
         Err("Not implemented".to_string())
     }
 
     fn restore(
         &self,
-        location: &str,
-        id: &str,
+        _location: &str,
+        _id: &str,
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
         Err("Not implemented".to_string())
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+    fn fetch(&self, _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<Vec<String>, String> {
         Err("Not implemented".to_string())
     }
 
-    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+    fn notify_lock_status_change(&self, _lock_status: &str, _gdo_id: &str) {
         // Not implemented
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
         Err("Not implemented".to_string())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         Err("Not implemented".to_string())
     }
-    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
         Err("Not implemented".to_string())
     }
 

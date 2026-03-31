@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ox_type_converter::registry::{CONVERSION_REGISTRY, ConversionRegistry};
+    use ox_type_converter::registry::CONVERSION_REGISTRY;
     use std::collections::HashMap;
 
     #[test]

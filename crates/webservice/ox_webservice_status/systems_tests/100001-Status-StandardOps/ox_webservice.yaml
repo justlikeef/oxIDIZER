@@ -23,14 +23,11 @@ modules:
 - id: stream_status
   name: ox_webservice_stream
   params:
-    config_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_status/functional_tests/100001-Status-StandardOps/conf/stream_status.yaml
+    config_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_status/systems_tests/100001-Status-StandardOps/conf/stream_status.yaml
   phase: Content
   priority: 100
   routes:
   - path: /status(|\/.*)(\?.*)?$
-pipeline:
-  phases:
-  - Content: ox_pipeline_router
 routes:
 - module_id: status_module
   phase: Content

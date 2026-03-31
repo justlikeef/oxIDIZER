@@ -1,62 +1,26 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
 use std::ffi::{CStr, CString, c_void};
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
-use std::ptr;
-use ox_webservice::pipeline::{get_state_c, alloc_str_c};
-use ox_webservice_api::PipelineState;
-use bumpalo::Bump;
-use axum::http::HeaderMap;
+use ox_workflow_core::{Task, state::FieldValue};
+use ox_workflow_executor::create_host_api;
 
 fuzz_target!(|data: &[u8]| {
-    // Create valid PipelineState
-    let mut headers = HeaderMap::new();
-    headers.insert("Content-Type", "application/json".parse().unwrap());
-    
-    let state = PipelineState {
-        arena: Bump::new(),
-        protocol: "HTTP/1.1".to_string(),
-        request_method: "GET".to_string(),
-        request_path: "/test".to_string(),
-        request_query: "".to_string(),
-        request_headers: headers,
-        request_body: Vec::new(),
-        source_ip: "127.0.0.1:8080".parse().unwrap(),
-        status_code: 200,
-        response_headers: HeaderMap::new(),
-        response_body: Vec::new(),
-        module_context: Arc::new(RwLock::new(HashMap::new())),
-        pipeline_ptr: std::ptr::null(),
-        flags: std::collections::HashSet::new(),
-        execution_history: Vec::new(),
-        route_capture: None,
-    };
-    
-    // We need a stable pointer to state, but PipelineState is moved? 
-    // Wait, state is local.
-    // Convert state to *mut PipelineState (which matches *mut c_void expected by get_state_c with internal cast)
-    let state_ptr = &state as *const PipelineState as *mut c_void;
+    let api = create_host_api();
+    let mut task = Task::new(1);
 
-    // Prepare Arena for allocator
-    let arena = Bump::new();
-    let arena_ptr = &arena as *const Bump as *const c_void;
+    {
+        let mut state = task.state.write();
+        state.fields.insert("request.header.content-type".to_string(), FieldValue::String("application/json".to_string()));
+        state.fields.insert("request.path".to_string(), FieldValue::String("/test".to_string()));
+        state.fields.insert("request.method".to_string(), FieldValue::String("GET".to_string()));
+    }
 
-    // Convert fuzzed data to CString for the key
+    let task_ptr = &mut task as *mut Task as *mut c_void;
+
     if let Ok(c_key) = CString::new(data) {
-        unsafe {
-            let key_ptr = c_key.as_ptr();
-            
-            // Call the FFI function
-            // get_state_c(instance, key, arena, alloc)
-            let result_ptr = get_state_c(state_ptr, key_ptr, arena_ptr, alloc_str_c);
-            
-            if !result_ptr.is_null() {
-                // If it returned something (found), we can verify it if we expect a match.
-                // But for fuzzing, we just ensure it doesn't crash.
-                // We should check if it's a valid C string if not null.
-                let _ = CStr::from_ptr(result_ptr);
-            }
+        let result_ptr = (api.get_field)(task_ptr, c_key.as_ptr());
+        if !result_ptr.is_null() {
+            unsafe { let _ = CStr::from_ptr(result_ptr); }
         }
     }
 });

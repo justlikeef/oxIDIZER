@@ -1,6 +1,6 @@
 use libc::{c_void, c_char};
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_DEBUG,
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO,
 };
 use std::ffi::{CStr, CString};
 
@@ -25,6 +25,19 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
 
 fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
+}
+
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 #[unsafe(no_mangle)]
@@ -81,6 +94,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

@@ -88,14 +88,42 @@ impl StageRunner {
                 }
                 FLOW_CONTROL_SKIP => {
                     if !fc.payload.is_null() {
+                        // SKIP(target): jump to the named plugin and run ONLY it, then end stage.
                         let target_name = unsafe { CStr::from_ptr(fc.payload) }.to_string_lossy();
                         if let Some(idx) = self.plugins.iter().position(|p| p.name == target_name) {
-                            i = if idx > i { idx } else { i + 1 };
+                            if idx > i {
+                                // Run the target plugin, then break out of the stage loop.
+                                let target_plugin = &self.plugins[idx];
+                                let task_ptr = task as *mut Task as *mut c_void;
+                                task.metadata.insert("current_plugin_index".to_string(), idx.to_string());
+                                let (target_fc, target_is_panic) = match std::panic::catch_unwind(
+                                    std::panic::AssertUnwindSafe(|| target_plugin.plugin.process(target_plugin.ctx, task_ptr))
+                                ) {
+                                    Ok(fc) => (fc, false),
+                                    Err(_) => (FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() }, true),
+                                };
+                                let target_error_msg = if target_is_panic { Some("Plugin panicked".to_string()) } else { None };
+                                task.history.push(HistoryRecord {
+                                    stage_name: self.name.clone(),
+                                    plugin_name: Some(target_plugin.name.clone()),
+                                    status: if target_fc.code == FLOW_CONTROL_ERROR { "Error".to_string() } else { "Completed".to_string() },
+                                    message: target_error_msg,
+                                });
+                                if target_fc.code == FLOW_CONTROL_ERROR {
+                                    let task_ptr2 = task as *mut Task as *mut c_void;
+                                    target_plugin.plugin.error(target_plugin.ctx, task_ptr2);
+                                    return target_fc;
+                                }
+                                last_fc = target_fc;
+                            }
+                            // Stage ends after the skip-target plugin (whether jumped to or already at i).
+                            break;
                         } else {
                             i += 1;
                         }
                     } else {
-                        i += 1;
+                        // SKIP(null): end the stage immediately without running further plugins.
+                        break;
                     }
                 }
                 _ => {
@@ -122,6 +150,8 @@ impl FlowRunner {
             payload: std::ptr::null(),
         };
 
+        task.metadata.insert("flow_name".to_string(), self.flow_name.clone());
+
         while current_stage_idx < self.stages.len() {
             task.metadata.insert(
                 "current_stage".to_string(),
@@ -132,7 +162,8 @@ impl FlowRunner {
             last_fc = stage.run(task, api);
 
             match last_fc.code {
-                FLOW_CONTROL_CONTINUE => {
+                FLOW_CONTROL_CONTINUE | FLOW_CONTROL_SKIP => {
+                    // SKIP from a stage means "stage done, proceed to next stage".
                     current_stage_idx += 1;
                 }
                 FLOW_CONTROL_YIELD => {
@@ -142,14 +173,18 @@ impl FlowRunner {
                 }
                 FLOW_CONTROL_JUMP => {
                     if !last_fc.payload.is_null() {
+                        // JUMP(target): run exactly the named stage, then stop the pipeline.
+                        // Stages between current and target (and after target) are not executed.
                         let target_name = unsafe { CStr::from_ptr(last_fc.payload) }.to_string_lossy();
                         if let Some(idx) = self.stages.iter().position(|s| s.name == target_name) {
-                            current_stage_idx = idx;
+                            let target_stage = &self.stages[idx];
+                            task.metadata.insert("current_stage".to_string(), target_stage.name.clone());
+                            last_fc = target_stage.run(task, api);
                         } else {
                             last_fc.code = FLOW_CONTROL_ERROR;
                             if let Some(cb) = &task.error_callback { cb(); }
-                            return last_fc;
                         }
+                        return last_fc;
                     } else {
                         current_stage_idx += 1;
                     }
@@ -213,6 +248,34 @@ pub fn create_host_api() -> CoreHostApi {
 
         let mut state = task.state.write();
         state.fields.insert(key_str, ox_workflow_core::state::FieldValue::String(val_str));
+    }
+
+    extern "C" fn get_field_bytes_impl(task_ctx: *mut c_void, key: *const c_char, len_out: *mut usize) -> *const u8 {
+        let task = unsafe { &mut *(task_ctx as *mut Task) };
+        let key_str = unsafe { CStr::from_ptr(key) }.to_string_lossy().to_string();
+
+        let state = task.state.read();
+        if let Some(ox_workflow_core::state::FieldValue::Bytes(bytes)) = state.fields.get(&key_str) {
+            let len = bytes.len();
+            // Allocate a copy on the heap and track it in the bytes arena
+            let boxed = bytes.clone().into_boxed_slice();
+            let ptr = boxed.as_ptr();
+            drop(state);
+            unsafe { *len_out = len; }
+            task.ffi_bytes_arena.push(boxed);
+            return ptr;
+        }
+        drop(state);
+        unsafe { *len_out = 0; }
+        std::ptr::null()
+    }
+
+    extern "C" fn set_field_bytes_impl(task_ctx: *mut c_void, key: *const c_char, value: *const u8, len: usize) {
+        let task = unsafe { &mut *(task_ctx as *mut Task) };
+        let key_str = unsafe { CStr::from_ptr(key) }.to_string_lossy().to_string();
+        let bytes = unsafe { std::slice::from_raw_parts(value, len) }.to_vec();
+        let mut state = task.state.write();
+        state.fields.insert(key_str, ox_workflow_core::state::FieldValue::Bytes(bytes));
     }
 
     extern "C" fn get_metadata_impl(task_ctx: *mut c_void, key: *const c_char) -> *const c_char {
@@ -290,8 +353,8 @@ pub fn create_host_api() -> CoreHostApi {
         } else {
             let task = unsafe { &*(task_ctx as *const Task) };
             let task_id = &task.id;
-            let flow = task.metadata.get("flow.name").map(|s| s.as_str()).unwrap_or("-");
-            let stage = task.metadata.get("stage.name").map(|s| s.as_str()).unwrap_or("-");
+            let flow = task.metadata.get("flow_name").map(|s| s.as_str()).unwrap_or("-");
+            let stage = task.metadata.get("current_stage").map(|s| s.as_str()).unwrap_or("-");
             enriched = format!("[task:{task_id} flow:{flow} stage:{stage}] {msg}");
             enriched.as_str()
         };
@@ -356,6 +419,8 @@ pub fn create_host_api() -> CoreHostApi {
     CoreHostApi {
         get_field: get_field_impl,
         set_field: set_field_impl,
+        get_field_bytes: get_field_bytes_impl,
+        set_field_bytes: set_field_bytes_impl,
         get_metadata: get_metadata_impl,
         insert_into_flow: insert_into_flow_impl,
         pause_task: pause_task_impl,
@@ -491,8 +556,8 @@ impl FlowManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ox_workflow_core::{Task, TaskFlags};
-    use ox_workflow_abi::{FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, FLOW_CONTROL_ERROR};
+    use ox_workflow_core::Task;
+    use ox_workflow_abi::FLOW_CONTROL_END;
 
     fn make_api() -> CoreHostApi {
         create_host_api()

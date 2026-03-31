@@ -1,4 +1,4 @@
-content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/functional_tests/100003-LoggingTest"
-mimetypes_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/functional_tests/100003-LoggingTest/conf/mimetypes.yaml
+content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100003-LoggingTest"
+mimetypes_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100003-LoggingTest/conf/mimetypes.yaml
 default_documents:
 - document: index.html

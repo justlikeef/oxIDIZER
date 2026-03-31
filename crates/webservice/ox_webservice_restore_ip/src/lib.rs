@@ -73,6 +73,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

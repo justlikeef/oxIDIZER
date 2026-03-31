@@ -1,5 +1,5 @@
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR, OX_LOG_DEBUG,
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR,
 };
 use serde::Deserialize;
 use serde_json::Value;

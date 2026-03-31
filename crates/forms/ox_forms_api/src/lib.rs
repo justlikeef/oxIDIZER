@@ -7,7 +7,7 @@ type AllocStrFn = unsafe extern "C" fn(*const c_void, *const c_char) -> *mut c_c
 
 // Shared allocator that just delegates to system malloc via CString cloning
 unsafe extern "C" fn malloc_allocator(_arena: *const c_void, s: *const c_char) -> *mut c_char {
-    let c_str = CStr::from_ptr(s);
+    let c_str = unsafe { CStr::from_ptr(s) };
     // Duplicate the string onto the heap managed by us (libs)
     let owned = CString::new(c_str.to_bytes()).unwrap();
     owned.into_raw()

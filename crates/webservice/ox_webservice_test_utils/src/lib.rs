@@ -1,10 +1,8 @@
 use std::ffi::{c_char, c_void, CStr, CString};
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 use std::collections::HashMap;
 use std::ptr;
-use axum::http::HeaderMap;
-use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE};
-use serde_json::Value;
+use ox_workflow_abi::{CoreHostApi, FlowControl};
 
 // ────────────────────────────────────────────────────────────────────────────
 // Simple in-memory state store used by mock functions
@@ -47,7 +45,7 @@ pub extern "C" fn mock_set_field(task_ctx: *mut c_void, key: *const c_char, valu
     lock.fields.insert(key_str, val_str);
 }
 
-pub extern "C" fn mock_get_metadata(task_ctx: *mut c_void, key: *const c_char) -> *const c_char {
+pub extern "C" fn mock_get_metadata(_task_ctx: *mut c_void, _key: *const c_char) -> *const c_char {
     ptr::null()
 }
 
@@ -62,12 +60,19 @@ pub extern "C" fn mock_set_flag(_task_ctx: *mut c_void, _flag: *const c_char, _s
 pub extern "C" fn mock_set_flags(_task_ctx: *mut c_void, _flags: *const *const c_char, _scope: u8) {}
 pub extern "C" fn mock_has_flag(_task_ctx: *mut c_void, _flag: *const c_char, _scope: u8) -> bool { false }
 pub extern "C" fn mock_clear_flag(_task_ctx: *mut c_void, _flag: *const c_char, _scope: u8) {}
+pub extern "C" fn mock_get_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, len_out: *mut usize) -> *const u8 {
+    unsafe { *len_out = 0; }
+    std::ptr::null()
+}
+pub extern "C" fn mock_set_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, _value: *const u8, _len: usize) {}
 
 /// Create a `CoreHostApi` pointing to mock functions.
 pub fn create_mock_api() -> CoreHostApi {
     CoreHostApi {
         get_field: mock_get_field,
         set_field: mock_set_field,
+        get_field_bytes: mock_get_field_bytes,
+        set_field_bytes: mock_set_field_bytes,
         get_metadata: mock_get_metadata,
         insert_into_flow: mock_insert_into_flow,
         pause_task: mock_pause_task,
@@ -88,7 +93,7 @@ pub fn create_task_state() -> *mut c_void {
 
 pub unsafe fn drop_task_state(ptr: *mut c_void) {
     if !ptr.is_null() {
-        let _ = Box::from_raw(ptr as *mut RwLock<MockTaskState>);
+        let _ = unsafe { Box::from_raw(ptr as *mut RwLock<MockTaskState>) };
     }
 }
 

@@ -8,7 +8,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -34,9 +34,32 @@ if [ "$MODE" == "isolated" ]; then
   STAGING_DIR="/tmp/ox_test_staging_$$"
 
   # Dynamic Config Generation
-  cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
-  sed -i "s/port: 3000/port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
-  sed -i "s/dependency_port: 3000/dependency_port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  mkdir -p "$TEST_DIR/conf"
+  cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
+merge: "base.yaml"
+
+modules:
+  - id: package_manager
+    name: ox_package_manager
+    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_package_manager.so"
+    staging_directory: "$STAGING_DIR"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: $BASE_PORT
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+routes:
+  - url: "^/packages/(upload)/?"
+    module_id: "package_manager"
+    priority: 450
+    headers:
+      Method: POST
+EOF
   # End Dynamic Config
 
   "$SCRIPTS_DIR/start_server.sh" \

@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use ox_type_converter::ValueType;
 use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
-use std::sync::Arc;
-use reqwest::blocking; // Added for reqwest blocking client
 use serde_json; // Added for parsing config JSON
 
 pub struct OxPersistenceApiDriver {

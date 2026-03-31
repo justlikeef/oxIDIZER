@@ -22,30 +22,40 @@
 //!   DELETE /broker/sessions/{id}
 //!   GET    /broker/audit
 
-use std::ffi::{c_char, c_void, CStr, CString};
+#![cfg_attr(test, allow(unused_imports, dead_code))]
+
+use std::ffi::{c_void, CStr, CString};
+#[cfg(not(test))]
+use std::ffi::c_char;
+#[cfg(not(test))]
 use std::panic;
 
 use ox_workflow_abi::{
     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_ERROR, OX_LOG_INFO,
-    OX_WORKFLOW_ABI_VERSION,
 };
+#[cfg(not(test))]
+use ox_workflow_abi::OX_WORKFLOW_ABI_VERSION;
 
 use crate::config::BrokerPluginConfig;
 use crate::db::BrokerDb;
 use crate::handlers;
 
 /// Persistent plugin state (no DB connection — opened per request for thread safety).
+#[cfg(not(test))]
 struct PluginState {
     api: CoreHostApi,
     config: BrokerPluginConfig,
 }
 
 // All fields are Send+Sync; DB opened per-request, so no !Send types held.
+#[cfg(not(test))]
 unsafe impl Send for PluginState {}
+#[cfg(not(test))]
 unsafe impl Sync for PluginState {}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+#[cfg(not(test))]
 fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
     let Ok(c_key) = CString::new(key) else { return String::new() };
     let ptr = (api.get_field)(task_ctx, c_key.as_ptr());
@@ -55,18 +65,38 @@ fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
     unsafe { CStr::from_ptr(ptr).to_string_lossy().into_owned() }
 }
 
+#[cfg(not(test))]
 fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
     if let (Ok(c_key), Ok(c_val)) = (CString::new(key), CString::new(value)) {
         (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
     }
 }
 
+#[cfg(not(test))]
+#[allow(dead_code)]
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+#[cfg(not(test))]
+#[allow(dead_code)]
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
+
+#[cfg(not(test))]
 fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c_msg) = CString::new(msg) {
         (api.log)(task_ctx, level, c_msg.as_ptr());
     }
 }
 
+#[cfg(not(test))]
 fn respond(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &str) {
     set_field(api, task_ctx, "response.status", &status.to_string());
     set_field(api, task_ctx, "response.body", body);
@@ -163,6 +193,7 @@ pub extern "C" fn ox_plugin_destroy(plugin_ctx: *mut c_void) {
 
 // ── dispatcher ───────────────────────────────────────────────────────────────
 
+#[cfg(not(test))]
 fn dispatch(state: &PluginState, task_ctx: *mut c_void) -> FlowControl {
     let api = &state.api;
     let cont = FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };

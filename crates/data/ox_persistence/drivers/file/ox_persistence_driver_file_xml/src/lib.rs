@@ -2,7 +2,6 @@ use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMeta
 use std::collections::HashMap;
 use std::ffi::{CString, CStr};
 use libc::{c_char, c_void};
-use std::sync::Arc;
 use ox_type_converter::ValueType;
 use ox_fileproc::serde_json;
 
@@ -123,7 +122,7 @@ impl PersistenceDriver for XmlPersistenceDriver {
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         Ok(vec!["default".to_string()])
     }
     

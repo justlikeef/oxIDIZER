@@ -5,9 +5,16 @@ servers:
   - id: "default_http"        # Unique identifier for this server instance
     protocol: "http"          # Protocol: "http" or "https"
     port: 3000                # TCP Port to listen on
-    bind_address: "0.0.0.0"   # Network interface to bind to (0.0.0.0 = all interfaces)
+    bind_address: "0.0.0.0"   # IPv4 all interfaces (required for WSL2 localhost relay)
     hosts:
       - name: "localhost"     # Hostname matching (e.g., Host header)
+
+  - id: "default_http_ipv6"   # IPv6 loopback — ::1 only, avoids conflict with 0.0.0.0 under bindv6only=0
+    protocol: "http"
+    port: 3000
+    bind_address: "::1"
+    hosts:
+      - name: "localhost"
 
   # ----------------------------------------------------------------------------
   # HTTPS Server Example

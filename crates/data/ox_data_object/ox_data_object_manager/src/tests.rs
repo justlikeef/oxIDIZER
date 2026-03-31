@@ -121,8 +121,8 @@ mod tests {
         let driver1 = Arc::new(MockDriver { data: user_data });
         let driver2 = Arc::new(MockDriver { data: profile_data });
 
-        let meta1 = DriverMetadata { name: "mock_users".to_string(), version: "0.1.0".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
-        let meta2 = DriverMetadata { name: "mock_profiles".to_string(), version: "0.1.0".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
+        let meta1 = DriverMetadata { name: "mock_users".to_string(), friendly_name: Some("Mock Users".to_string()), version: "0.1.0".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
+        let meta2 = DriverMetadata { name: "mock_profiles".to_string(), friendly_name: Some("Mock Profiles".to_string()), version: "0.1.0".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
 
         register_persistence_driver(driver1, meta1);
         register_persistence_driver(driver2, meta2);
@@ -234,7 +234,7 @@ mod tests {
         mock_data.insert("100".to_string(), row);
         
         let driver = Arc::new(MockDriver { data: mock_data });
-        let meta = DriverMetadata { name: "mock_load_source".to_string(), version: "1".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
+        let meta = DriverMetadata { name: "mock_load_source".to_string(), friendly_name: Some("Mock Load Source".to_string()), version: "1".to_string(), description: "".to_string(), compatible_modules: HashMap::new() };
         register_persistence_driver(driver, meta);
         
         // 3. Manager

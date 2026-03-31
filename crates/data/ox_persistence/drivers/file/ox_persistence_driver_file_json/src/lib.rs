@@ -218,7 +218,7 @@ impl PersistenceDriver for JsonPersistenceDriver {
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         Ok(vec!["default".to_string()])
     }
     

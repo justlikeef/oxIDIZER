@@ -11,27 +11,11 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 
-[dependencies.ox_webservice]
-path = ".."
+[dependencies.ox_workflow_core]
+path = "../../../workflow/ox_workflow_core"
 
-[dependencies.ox_webservice_api]
-path = "../../ox_webservice_api"
-
-[dependencies.libc]
-version = "0.2"
-license = "GPL-3.0-only"
-
-[dependencies.bumpalo]
-version = "3.12"
-license = "GPL-3.0-only"
-
-[dependencies.axum]
-version = "0.7"
-license = "GPL-3.0-only"
-
-[dependencies.serde_json]
-version = "1.0"
-license = "GPL-3.0-only"
+[dependencies.ox_workflow_executor]
+path = "../../../workflow/ox_workflow_executor"
 
 [[bin]]
 name = "ffi_get_request_header"

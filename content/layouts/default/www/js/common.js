@@ -26,15 +26,19 @@ function initGlobalStatus(badgeId = 'status-badge') {
         } else if (status === 'alert') {
             badge.textContent = 'ALERT';
             badge.classList.add('status-warn');
-        } else {
+        } else if (status === 'offline') {
             badge.textContent = 'OFFLINE';
             badge.classList.add('status-error');
+        } else {
+            badge.textContent = 'UNKNOWN';
+            badge.classList.add('status-unknown');
         }
     };
 
+    updateBadge('unknown');
+
     const startHttpPolling = () => {
         if (pollInterval) return;
-        console.log('Falling back to HTTP polling for status');
 
         const checkPing = async () => {
             try {
@@ -120,5 +124,6 @@ function initGlobalStatus(badgeId = 'status-badge') {
         }
     };
 
+    startHttpPolling();
     connectWS();
 }

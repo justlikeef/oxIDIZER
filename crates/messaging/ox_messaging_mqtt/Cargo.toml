@@ -17,3 +17,4 @@ toml = "0.5"
 ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_event_bus = { path = "../ox_event_bus" }
 log = "0.4"
+prost = "0.13"

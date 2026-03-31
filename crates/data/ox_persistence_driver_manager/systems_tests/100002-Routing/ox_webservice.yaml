@@ -29,10 +29,10 @@ merge:
 #      - name: "example-2.com"
 
 # ------------------------------------------------------------------------------
-# Pipeline Configuration
+# Workflow Configuration
 # ------------------------------------------------------------------------------
 # Define the order of phases for handling requests.
-# See conf/defaults/pipeline.yaml for the default phase order.
+# See conf/defaults/workflow.yaml for the default phase order.
 
 # ------------------------------------------------------------------------------
 # Module Configuration

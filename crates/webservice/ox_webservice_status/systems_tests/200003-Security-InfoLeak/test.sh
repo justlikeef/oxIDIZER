@@ -3,7 +3,7 @@ set -e
 
 # Parameters
 SCRIPT_DIR=$1
-TEST_LIBS_DIR=${2:-"functional_tests/common"}
+TEST_LIBS_DIR=${2:-"systems_tests/common"}
 MODE=$3
 LOGGING_LEVEL=${4:-"info"}
 TARGET=${5:-"debug"}
@@ -27,7 +27,7 @@ mkdir -p "$LOGS_DIR"
 log_message "$LOGGING_LEVEL" "info" "Running OWASP Info Leak Check..."
 log_message "$LOGGING_LEVEL" "debug" "Output redirecting to: $LOG_FILE"
 
-pushd ox_webservice_status > /dev/null
+pushd crates/webservice/ox_webservice_status > /dev/null
 
 # run with -q to suppress extra compilation noise
 if cargo +nightly test --test security_infoleak -q > "$LOG_FILE" 2>&1; then

@@ -1,0 +1,3 @@
+mimetypes:
+  - mimetype: text/html
+    url: ".*[.]html$"

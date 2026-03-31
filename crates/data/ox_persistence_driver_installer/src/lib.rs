@@ -1,10 +1,10 @@
 use ox_fileproc::{process_file, RawFile};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 use std::ffi::{c_char, c_void, CStr, CString};
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR,
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO,
 };
 use serde_json::Value;
 use ox_persistence::{ConfiguredDriver, DriversList};
@@ -28,11 +28,25 @@ impl Default for InstallerConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+/// Proto-compatible mirror of InstallerConfig
+#[derive(prost::Message, Clone)]
+pub struct InstallerConfigProto {
+    #[prost(string, tag = "1")]
+    pub drivers_file: String,
+    #[prost(string, tag = "2")]
+    pub driver_root: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[derive(prost::Message)]
 pub struct StatusInfo {
+    #[prost(string, tag = "1")]
     pub status: String,
+    #[prost(uint32, tag = "2")]
     pub progress: u32,
+    #[prost(string, tag = "3")]
     pub message: String,
+    #[prost(string, tag = "4")]
     pub package_name: String,
 }
 
@@ -59,6 +73,19 @@ fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
 }
 
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
+
 fn json_response(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &str) {
     set_field(api, task_ctx, "response.status", &status.to_string());
     set_field(api, task_ctx, "response.body", body);
@@ -66,6 +93,7 @@ fn json_response(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &s
 }
 
 impl ModuleContext {
+    #[allow(dead_code)]
     fn load_configured_drivers(&self) -> Result<DriversList, String> {
         let path = Path::new(&self.config.drivers_file);
         if !path.exists() { return Ok(DriversList { drivers: Vec::new() }); }
@@ -108,7 +136,7 @@ impl ModuleContext {
         let package_path = get_field(api, task_ctx, "installer.package_path");
 
         let manifest: Value = serde_json::from_str(&manifest_str).unwrap_or(Value::Null);
-        let package_name = manifest.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+        let _package_name = manifest.get("name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
 
         if package_path.is_empty() {
             let err = serde_json::json!({"result": "error", "message": "Missing installer.package_path"}).to_string();

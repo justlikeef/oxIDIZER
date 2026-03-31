@@ -60,6 +60,9 @@ if [ -f "$PID_FILE" ]; then
     if [ -n "$PREV_PID" ]; then
         log_message "$LOG_LEVEL" "debug" "Found previous PID: $PREV_PID. Attempting to kill."
         kill "$PREV_PID" 2>/dev/null
+        while kill -0 "$PREV_PID" 2>/dev/null; do
+            sleep 0.1
+        done
     fi
 fi
 

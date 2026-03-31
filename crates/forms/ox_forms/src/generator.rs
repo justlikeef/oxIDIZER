@@ -1,5 +1,5 @@
 use crate::schema::*;
-use ox_data_object_manager::{DataObjectDefinition, DataObjectAttribute, AttributeValidation};
+use ox_data_object_manager::{DataObjectDefinition, DataObjectAttribute};
 use ox_type_converter::ValueType;
 use serde_json::Value;
 

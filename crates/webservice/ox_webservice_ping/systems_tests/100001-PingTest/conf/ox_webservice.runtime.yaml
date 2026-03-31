@@ -1,0 +1,20 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+
+modules:
+  - id: ping_module
+    name: ox_webservice_ping
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_ping.so"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3056
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+routes:
+  - url: "^/ping"
+    module_id: "ping_module"
+    phase: Content
+    priority: 100

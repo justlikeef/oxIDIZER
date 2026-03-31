@@ -3,7 +3,7 @@ set -e
 
 # Parameters
 SCRIPT_DIR=$1
-TEST_LIBS_DIR=${2:-"functional_tests/common"}
+TEST_LIBS_DIR=${2:-"systems_tests/common"}
 MODE=$3
 LOGGING_LEVEL=${4:-"info"}
 TARGET=${5:-"debug"}
@@ -23,7 +23,7 @@ source "$TEST_LIBS_DIR/log_function.sh"
 source "$TEST_LIBS_DIR/fuzz_utils.sh"
 
 # Enter crate directory where `fuzz` folder resides
-pushd ox_webservice_api > /dev/null
+pushd crates/webservice/ox_webservice_api > /dev/null
 
 run_fuzz_test "module_config_parse" "$LOGGING_LEVEL" "$LOGS_DIR"
 

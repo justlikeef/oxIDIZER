@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use ox_type_converter::ValueType;
 use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use rusqlite::{params, Connection, types::ToSql};
 use serde_json;
 
 pub struct SqlitePersistenceDriver {
     conn: Mutex<Option<Connection>>,
+    #[allow(dead_code)]
     connection_string: Mutex<String>,
 }
 
@@ -175,16 +176,16 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         Ok(ids)
     }
 
-    fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
+    fn notify_lock_status_change(&self, _lock_status: &str, _gdo_id: &str) {
          // No-op
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
         // Could run CREATE TABLE IF NOT EXISTS here if location is known
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         // List tables?
         let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
         let conn = guard.as_mut().ok_or("SQLite connection not initialized")?;

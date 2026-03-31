@@ -32,7 +32,7 @@ impl DataObjectManager {
         GenericDataObject::new(identifier_name, None)
     }
 
-    pub fn save_data_object(&self, data_object: &GenericDataObject) -> Result<(), String> {
+    pub fn save_data_object(&self, _data_object: &GenericDataObject) -> Result<(), String> {
         // Placeholder for saving logic
         Ok(())
     }

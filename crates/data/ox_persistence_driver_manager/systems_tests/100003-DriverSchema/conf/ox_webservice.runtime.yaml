@@ -1,0 +1,29 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+
+modules:
+  - id: driver_manager
+    name: ox_persistence_driver_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_persistence_driver_manager.so"
+    drivers_file: "/var/repos/oxIDIZER/crates/data/ox_persistence_driver_manager/systems_tests/100003-DriverSchema/conf/drivers.json"
+    driver_root: "/var/repos/oxIDIZER/target/debug"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: %BASE_PORT%
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/drivers/(.*)?$"
+    module_id: "driver_manager"

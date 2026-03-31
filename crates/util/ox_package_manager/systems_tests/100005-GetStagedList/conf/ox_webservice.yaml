@@ -1,12 +1,10 @@
-log4rs_config: "ox_package_manager/functional_tests/100005-GetStagedList//conf/log4rs.yaml"
+log4rs_config: "ox_package_manager/systems_tests/100005-GetStagedList//conf/log4rs.yaml"
 modules:
   - name: ox_package_manager
     path: "target/debug/libox_package_manager.so"
     phase: Content
     priority: 100
-pipeline:
-  phases:
-    - Content: default
+merge: "base.yaml"
 servers:
 - protocol: http
   port: 3000

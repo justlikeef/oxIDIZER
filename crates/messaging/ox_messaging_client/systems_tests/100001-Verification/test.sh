@@ -17,9 +17,8 @@ log_message "$LOGGING_LEVEL" "info" "Starting Test: 100001-Verification (Ports: 
 
 # Define workspace and paths
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-MODULE_DIR=$(dirname "$(dirname "$SCRIPT_DIR")")
-WORKSPACE_DIR=$(dirname "$MODULE_DIR")
-SERVER_START_SCRIPT="$WORKSPACE_DIR/scripts/start_server.sh"
+WORKSPACE_DIR="/var/repos/oxIDIZER"
+SERVER_START_SCRIPT="$SUPPORT_SCRIPTS_DIR/start_server.sh"
 
 # Ensure ports are clear
 log_message "$LOGGING_LEVEL" "info" "Cleaning up ports $PORTS_STR..."
@@ -70,9 +69,15 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
 EOF
 
 CONFIG_FILE="$SCRIPT_DIR/conf/ox_webservice.runtime.yaml"

@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 pub use ox_webservice_api::{ModuleConfig, UriMatcher};
+pub use ox_workflow_core::StageDef;
 
-pub mod pipeline;
+pub mod flow;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HostConfig {
@@ -21,6 +22,12 @@ pub struct ServerDetails {
     pub bind_address: String,
     #[serde(default)]
     pub hosts: Vec<HostConfig>,
+    #[serde(default = "default_backlog")]
+    pub backlog: u32,
+}
+
+fn default_backlog() -> u32 {
+    4096
 }
 
 fn default_details_id() -> String {
@@ -28,8 +35,9 @@ fn default_details_id() -> String {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PipelineConfig {
-    pub phases: Option<Vec<HashMap<String, String>>>,
+pub struct WorkflowConfig {
+    pub name: String,
+    pub stages: Vec<StageDef>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -56,7 +64,7 @@ pub struct ServerConfig {
     pub servers: Vec<ServerDetails>,
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
-    pub pipeline: Option<PipelineConfig>,
+    pub workflow: Option<WorkflowConfig>,
     #[serde(default)]
     pub routes: Vec<UrlRoute>,
     #[serde(default)]

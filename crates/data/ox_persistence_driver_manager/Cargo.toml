@@ -21,6 +21,7 @@ ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../../util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
 lazy_static = "1.4"
+prost = "0.13"
 
 [dev-dependencies]
 ox_webservice_test_utils = { path = "../../webservice/ox_webservice_test_utils" }

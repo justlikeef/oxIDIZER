@@ -1,0 +1,17 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+
+modules:
+  - id: messaging_mqtt
+    name: ox_messaging_mqtt
+    path: "/var/repos/oxIDIZER/target/debug/libox_messaging_mqtt.so"
+    broker_port: 3021
+    config_file: "/var/repos/oxIDIZER/crates/messaging/ox_messaging_mqtt/systems_tests/000001-ConfigInvalid/conf/bad_broker.yaml"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3020
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+

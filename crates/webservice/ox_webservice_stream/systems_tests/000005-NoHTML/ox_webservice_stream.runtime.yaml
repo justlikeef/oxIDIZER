@@ -1,0 +1,2 @@
+content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/000005-NoHTML/test_content"
+mimetypes_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/000005-NoHTML/conf/mimetypes.yaml"

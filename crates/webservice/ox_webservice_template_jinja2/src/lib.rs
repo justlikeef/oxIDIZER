@@ -8,8 +8,6 @@ use serde_json::Value;
 use std::ffi::{CStr, CString};
 use std::fs;
 use std::path::PathBuf;
-use std::error::Error;
-use anyhow::Result;
 use tera::{Context, Tera};
 
 mod tests;
@@ -59,6 +57,7 @@ pub struct ModuleContext {
     mimetypes: Vec<MimeTypeMapping>,
     default_documents: Vec<DocumentConfig>,
     content_config: ContentConfig,
+    #[allow(dead_code)]
     module_id: String,
     api: CoreHostApi,
 }
@@ -129,9 +128,9 @@ pub unsafe extern "C" fn ox_plugin_init(
     let config: ContentConfig = match ox_fileproc::process_file(&PathBuf::from(&config_file), 5) {
         Ok(v) => match serde_json::from_value(v) {
             Ok(c) => c,
-            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to parse config: {}", e)); return std::ptr::null_mut(); }
+            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to process config file: {}", e)); return std::ptr::null_mut(); }
         },
-        Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to read config: {}", e)); return std::ptr::null_mut(); }
+        Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to process config file: {}", e)); return std::ptr::null_mut(); }
     };
 
     let mimetype_path = PathBuf::from(&config.mimetypes_file);
@@ -220,6 +219,7 @@ pub unsafe extern "C" fn ox_plugin_process(
                             set_field(api, task_ctx, "response.header.Content-Type", &mapping.mimetype);
                             set_field(api, task_ctx, "response.body", &final_content);
                             set_field(api, task_ctx, "response.status", "200");
+                            log(api, task_ctx, OX_LOG_INFO, &format!("{}: Successfully handled request for path: {}", MODULE_NAME, request_path));
                         }
                         Err(e) => {
                             log(api, task_ctx, OX_LOG_ERROR, &format!("Template render error for {}: {}", request_path, e));
@@ -235,7 +235,7 @@ pub unsafe extern "C" fn ox_plugin_process(
         }
         // no matching mimetype - leave response untouched, fall through
     } else {
-        log(api, task_ctx, OX_LOG_WARN, &format!("File not found for {}", request_path));
+        log(api, task_ctx, OX_LOG_WARN, &format!("{}: File not found for path: {}", MODULE_NAME, request_path));
         set_field(api, task_ctx, "response.status", "404");
         set_field(api, task_ctx, "response.body", "404 Not Found");
     }
@@ -252,6 +252,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

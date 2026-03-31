@@ -13,7 +13,7 @@ read -r -a PORTS <<< "$PORTS_STR"
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -97,10 +97,6 @@ modules:
       config_file: "$TEST_DIR/ox_webservice_errorhandler_jinja2.runtime.yaml"
     phase: Error
     priority: 999
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
-    - Error: default
 routes:
   - url: ".*\\\\.jinja2$"
     module_id: test_module_0

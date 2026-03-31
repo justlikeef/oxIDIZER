@@ -9,7 +9,7 @@ async def test_websocket():
     try:
         async with websockets.connect(uri) as websocket:
             print("Connected")
-            # Send a message (pipeline ignores generic messages for ping but requires connection)
+            # Send a message (flow ignores generic messages for ping but requires connection)
             await websocket.send("ping")
             print("Sent ping")
             

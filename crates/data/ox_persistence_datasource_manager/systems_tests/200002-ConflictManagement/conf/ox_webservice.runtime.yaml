@@ -1,0 +1,39 @@
+log4rs_config: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200002-ConflictManagement/conf/log4rs.yaml"
+
+modules:
+  - id: data_source_manager_skip
+    name: ox_persistence_datasource_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
+    data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200002-ConflictManagement/conf/datastores"
+    on_content_conflict: "skip"
+
+  - id: data_source_manager_error
+    name: ox_persistence_datasource_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
+    data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200002-ConflictManagement/conf/datastores"
+    on_content_conflict: "error"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: %BASE_PORT%
+    bind_address: "127.0.0.1"
+    hosts:
+      - name: "localhost"
+
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/data_sources/skip(.*)?$"
+    module_id: "data_source_manager_skip"
+    priority: 100
+  - url: "^/data_sources/error(.*)?$"
+    module_id: "data_source_manager_error"
+    priority: 100

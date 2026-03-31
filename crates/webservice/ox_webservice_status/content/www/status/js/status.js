@@ -105,7 +105,11 @@ async function fetchStatus() {
         render(data);
     } catch (error) {
         console.error('Error fetching status:', error);
-        document.body.innerHTML = `<div class="container"><h1>Error fetching status</h1><p>${error.message}</p></div>`;
+        const badge = document.getElementById('status-badge');
+        if (badge) {
+            badge.className = 'status-badge status-warn';
+            badge.textContent = 'ALERT';
+        }
     }
 }
 
@@ -197,8 +201,8 @@ function render(data) {
         metricsEl.innerHTML = '<div class="card"><p>No metrics available</p></div>';
     }
 
-    // Pipeline Routing (NEW)
-    renderPipelineRouting(data.pipeline_routing, data.configurations);
+    // Workflow Routing (NEW)
+    renderWorkflowRouting(data.workflow_routing, data.configurations);
 
     // Configurations
     const configEl = document.getElementById('configurations');
@@ -328,7 +332,7 @@ function renderConfigObject(obj) {
     // Filter
     items = items.filter(item => {
         const name = item.name || item.id || '';
-        return !name.endsWith('_Router') && name !== 'ox_pipeline_router';
+        return !name.endsWith('_Router') && name !== 'ox_webservice_router';
     });
 
     // Sort by name
@@ -358,12 +362,8 @@ function renderConfigObject(obj) {
     return html;
 }
 
-function renderPipelineRouting(routing, configurations) {
-    // ... container creation code ...
-    // Note: I need to preserve the container check code which is before this. 
-    // I will replace the function body from start to the sorting logic.
-
-    let container = document.getElementById('pipeline-routing-section');
+function renderWorkflowRouting(routing, configurations) {
+    let container = document.getElementById('workflow-routing-section');
     if (!container) {
         const configEl = document.getElementById('configurations');
         const headings = document.getElementsByTagName('h2');
@@ -373,10 +373,10 @@ function renderPipelineRouting(routing, configurations) {
         }
 
         container = document.createElement('div');
-        container.id = 'pipeline-routing-section';
+        container.id = 'workflow-routing-section';
 
         const header = document.createElement('h2');
-        header.textContent = 'Pipeline Routing';
+        header.textContent = 'Workflow Routing';
 
         if (configH2) {
             configH2.parentNode.insertBefore(header, configH2);
@@ -387,95 +387,46 @@ function renderPipelineRouting(routing, configurations) {
         }
     }
 
-    if (!routing) {
+    // workflow_routing is an ordered array: [{phase, router_instance, config}, ...]
+    if (!routing || !Array.isArray(routing) || routing.length === 0) {
         container.innerHTML = '<p>No routing info available</p>';
         return;
     }
 
-    let html = '<div class="card" style="overflow-x: auto;"><table class="pipeline-table">';
-    html += '<thead><tr class="pipeline-header">';
+    let html = '<div class="card" style="overflow-x: auto;"><table class="workflow-table">';
+    html += '<thead><tr class="workflow-header">';
     html += '<th>Phase</th>';
     html += '<th>Router</th>';
     html += '<th>Routes</th>';
     html += '</tr></thead><tbody>';
 
-    // Sort phases based on execution order from config
-    let phaseOrder = [];
-    if (configurations && configurations.ox_webservice && configurations.ox_webservice.pipeline && configurations.ox_webservice.pipeline.phases) {
-        // phases is an array of objects: [{PhaseName: RouterName}, ...]
-        phaseOrder = configurations.ox_webservice.pipeline.phases.map(p => Object.keys(p)[0]);
-    } else {
-        // Fallback: No known order, use alphabetical
-        phaseOrder = [];
-    }
-
-    const keys = Object.keys(routing).sort((a, b) => {
-        if (phaseOrder.length > 0) {
-            let indexA = phaseOrder.indexOf(a);
-            let indexB = phaseOrder.indexOf(b);
-
-            // If both found, sort by index
-            if (indexA !== -1 && indexB !== -1) {
-                return indexA - indexB;
-            }
-            // If one found, it comes first
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-        }
-        // If neither found (or no order defined), do not sort (keep original order)
-        return 0;
-    });
-
-    for (const phase of keys) {
-        const router = routing[phase];
-        let routerName = 'Unknown';
-        let routeCount = 0;
+    for (const entry of routing) {
+        const phase = entry.phase || 'Unknown';
+        const routerName = escapeHtml(entry.router_instance || 'Unknown');
         let details = '';
 
-        if (typeof router === 'string') {
-            routerName = router;
-            details = '<span class="error-text">Error</span>';
-        } else if (typeof router === 'object') {
-            const rInstance = router.router_instance || 'Unknown';
-            routerName = escapeHtml(rInstance);
-
-            // Embed config
-            if (router.config) {
-                let routeInfo = '';
-                if (router.config.routes && Array.isArray(router.config.routes)) {
-                    routeInfo = ` (${router.config.routes.length} routes)`;
-                } else {
-                    routeInfo = ' (0 routes)';
-                }
-
-                details = `
-                 <details>
-                    <summary class="router-config-summary">
-                        Show Config ${routeInfo}
-                    </summary>
-                    <div class="router-config-container">
-                        ${renderNestedMetrics(router.config)}
-                        ${(!router.config || Object.keys(router.config).length === 0) ? '<div class="router-config-empty">Empty Configuration Object</div>' : ''}
-                    </div>
-                 </details>
-                 `;
-            } else {
-                details = '<small>No Config</small>';
-            }
+        if (entry.config) {
+            const routeCount = (entry.config.routes && Array.isArray(entry.config.routes))
+                ? entry.config.routes.length : 0;
+            const isEmpty = !entry.config || Object.keys(entry.config).length === 0;
+            details = `
+             <details>
+                <summary class="router-config-summary">Show Config (${routeCount} routes)</summary>
+                <div class="router-config-container">
+                    ${renderNestedMetrics(entry.config)}
+                    ${isEmpty ? '<div class="router-config-empty">Empty Configuration Object</div>' : ''}
+                </div>
+             </details>`;
+        } else {
+            details = '<small>No Config</small>';
         }
 
-        // Row 1: Basic Info
-        html += `<tr class="pipeline-phase-row">`;
+        html += `<tr class="workflow-phase-row">`;
         html += `<td><strong>${escapeHtml(phase)}</strong></td>`;
         html += `<td>${routerName}</td>`;
-        html += `<td></td>`;
-        html += `</tr>`;
-
-        // Row 2: Config (Full Width)
-        html += `<tr class="pipeline-config-row">`;
-        html += `<td colspan="3" class="pipeline-config-cell">`;
-        html += details;
-        html += `</td></tr>`;
+        html += `<td></td></tr>`;
+        html += `<tr class="workflow-config-row">`;
+        html += `<td colspan="3" class="workflow-config-cell">${details}</td></tr>`;
     }
     html += '</tbody></table></div>';
 

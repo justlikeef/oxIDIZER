@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 use std::fs;
-use ox_webservice::{ServerConfig, pipeline::Pipeline, ModuleConfig};
+use ox_webservice::{ServerConfig, flow::Flow, ModuleConfig, WorkflowConfig};
 use tempfile::tempdir;
 
 #[test]
 fn test_dynamic_module_loading_custom_path() {
-    // 1. Locate a valid .so to test with (e.g., ox_pipeline_router)
+    // 1. Locate a valid .so to test with (e.g., ox_webservice_router)
     let debug_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../target/debug");
-    let source_lib = debug_dir.join("libox_pipeline_router.so");
+    let source_lib = debug_dir.join("libox_webservice_router.so");
     
     if !source_lib.exists() {
         // Skip test if target not built (shouldn't happen in explicit test run)
@@ -22,9 +22,9 @@ fn test_dynamic_module_loading_custom_path() {
 
     // 3. Define Config with Custom Path
     let module_config = ModuleConfig {
-        name: "ox_pipeline_router".to_string(), // Must match internal name expected by lib? No, libname usually matches.
-        // Actually, ox_pipeline_router's initialize might not care about name, 
-        // but Pipeline::new loop for routers looks for "ox_pipeline_router" or whatever is in router_map.
+        name: "ox_webservice_router".to_string(), // Must match internal name expected by lib? No, libname usually matches.
+        // Actually, ox_webservice_router's initialize might not care about name,
+        // but Flow::new loop for routers looks for "ox_webservice_router" or whatever is in router_map.
         // Let's test "Module" loading first, then "Router" loading.
         
         // Testing generic Module loading
@@ -38,25 +38,23 @@ fn test_dynamic_module_loading_custom_path() {
         modules: vec![module_config],
         log4rs_config: "log4rs.yaml".to_string(),
         enable_metrics: Some(false),
-        pipeline: Some(ox_webservice::PipelineConfig {
-             phases: Some(vec![]) // Empty phases
-        }),
+        workflow: Some(WorkflowConfig { name: "test".to_string(), stages: vec![] }),
         servers: vec![],
         merge: None,
         merge_recursive: None,
     };
 
-    // 4. Initialize Pipeline
+    // 4. Initialize Flow
     // This should succeed if it finds the lib at the custom path
-    let result = Pipeline::new(&server_config, "{}".to_string());
-    assert!(result.is_ok(), "Pipeline failed to initialize with custom module path: {:?}", result.err());
+    let result = Flow::new(&server_config, "{}".to_string());
+    assert!(result.is_ok(), "Flow failed to initialize with custom module path: {:?}", result.err());
 }
 
 #[test]
 fn test_dynamic_router_loading_custom_path() {
     // 1. Locate source lib
     let debug_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../target/debug");
-    let source_lib = debug_dir.join("libox_pipeline_router.so");
+    let source_lib = debug_dir.join("libox_webservice_router.so");
 
     if !source_lib.exists() {
         return;
@@ -79,32 +77,26 @@ fn test_dynamic_router_loading_custom_path() {
         ..Default::default()
     };
     
-    // Define Pipeline Phase mapping
-    let mut phase_map = std::collections::HashMap::new();
-    phase_map.insert("TestPhase".to_string(), "CustomRouter".to_string());
-
     let server_config = ServerConfig {
         routes: vec![],
         modules: vec![module_config],
-        log4rs_config: "log4rs.yaml".to_string(), // won't be used/checked really by Pipeline::new
+        log4rs_config: "log4rs.yaml".to_string(), // won't be used/checked really by Flow::new
         enable_metrics: Some(false),
-        pipeline: Some(ox_webservice::PipelineConfig {
-             phases: Some(vec![phase_map])
-        }),
+        workflow: Some(WorkflowConfig { name: "test".to_string(), stages: vec![] }),
         servers: vec![],
         merge: None,
         merge_recursive: None,
     };
     
     // 4. Initialize
-    // Pipeline::new logic:
+    // Flow::new logic:
     // - Iterates phases (TestPhase)
     // - Gets router_id = "CustomRouter"
     // - Looks for "CustomRouter" in modules list
     // - Finds it, sees custom path
     // - Loads from custom path
-    let result = Pipeline::new(&server_config, "{}".to_string());
-    assert!(result.is_ok(), "Pipeline failed to load dynamic router: {:?}", result.err());
+    let result = Flow::new(&server_config, "{}".to_string());
+    assert!(result.is_ok(), "Flow failed to load dynamic router: {:?}", result.err());
 }
 
 #[test]
@@ -122,15 +114,13 @@ fn test_dynamic_loading_failure() {
         modules: vec![module_config],
         log4rs_config: "log4rs.yaml".to_string(),
         enable_metrics: Some(false),
-        pipeline: Some(ox_webservice::PipelineConfig {
-             phases: Some(vec![])
-        }),
+        workflow: Some(WorkflowConfig { name: "test".to_string(), stages: vec![] }),
         servers: vec![],
         merge: None,
         merge_recursive: None,
     };
 
-    let result = Pipeline::new(&server_config, "{}".to_string());
+    let result = Flow::new(&server_config, "{}".to_string());
     // Should fail
-    assert!(result.is_err(), "Pipeline should have failed loading missing module");
+    assert!(result.is_err(), "Flow should have failed loading missing module");
 }

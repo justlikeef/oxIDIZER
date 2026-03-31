@@ -1,15 +1,23 @@
-log4rs_config: "ox_package_manager/functional_tests/100003-Upload-TarBz2//conf/log4rs.yaml"
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+merge: "base.yaml"
+
 modules:
-  - name: ox_package_manager
-    path: "target/debug/libox_package_manager.so"
-    phase: Content
-    priority: 100
-pipeline:
-  phases:
-    - Content: default
+  - id: package_manager
+    name: ox_package_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
+    staging_directory: "/tmp/ox_test_staging_616873"
+
 servers:
-- protocol: http
-  port: 4500
-  bind_address: 0.0.0.0
-  hosts:
-  - name: .*
+  - id: "default_http"
+    protocol: "http"
+    port: 3031
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+
+routes:
+  - url: "^/packages/(upload)/?"
+    module_id: "package_manager"
+    priority: 450
+    headers:
+      Method: POST

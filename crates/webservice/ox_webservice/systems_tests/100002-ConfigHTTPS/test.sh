@@ -8,7 +8,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default
@@ -55,13 +55,6 @@ servers:
       - name: "localhost"
         tls_key_path: "$TEST_DIR/conf/certs/key.pem"
         tls_cert_path: "$TEST_DIR/conf/certs/cert.pem"
-modules:
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 routes:
   # No matches, should 500 or 404 depending on impl. Test expects 500?
   # Actually if no route matches, Router returns Unmodified, Host returns 404 (default) or 500 if error.

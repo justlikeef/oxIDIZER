@@ -1,0 +1,11 @@
+{
+  "name": "sample_project_yaml",
+  "version": "1.0",
+  "description": "Sample Project with YAML Manifest",
+  "package_type": "module",
+  "resources": [],
+  "filename": "install_test_pkg.zip",
+  "size": 260,
+  "dependencies": [],
+  "installer_handlers": {}
+}

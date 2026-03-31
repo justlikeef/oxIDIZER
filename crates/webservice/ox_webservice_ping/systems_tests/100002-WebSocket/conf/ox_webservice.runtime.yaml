@@ -1,0 +1,21 @@
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"
+
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+
+modules:
+  - id: ping_module
+    name: ox_webservice_ping
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_ping.so"
+    phase: Content
+
+servers:
+  - protocol: http
+    port: 3000
+    bind_address: "127.0.0.1"
+    hosts:
+      - name: "localhost"
+
+routes:
+  - url: "^/ping"
+    module_id: ping_module
+    priority: 100

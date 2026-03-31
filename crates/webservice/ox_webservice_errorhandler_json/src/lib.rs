@@ -31,6 +31,16 @@ pub struct ModuleContext {
     api: CoreHostApi,
 }
 
+/// Protobuf-compatible mirror of Config.
+/// on_success/on_error are encoded as i32 (0=ignore, 1=append, 2=replace).
+#[derive(prost::Message)]
+pub struct ConfigProto {
+    #[prost(int32, tag = "1")]
+    pub on_success: i32,
+    #[prost(int32, tag = "2")]
+    pub on_error: i32,
+}
+
 fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
     let c_key = CString::new(key).unwrap();
     let res_ptr = (api.get_field)(task_ctx, c_key.as_ptr());
@@ -42,6 +52,21 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
     let c_key = CString::new(key).unwrap();
     let c_val = CString::new(value).unwrap();
     (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
+#[allow(dead_code)]
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+#[allow(dead_code)]
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 #[unsafe(no_mangle)]

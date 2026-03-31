@@ -1,7 +1,9 @@
 use std::io::BufReader;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tokio::net::TcpSocket;
 
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls_pemfile::{certs, pkcs8_private_keys};
@@ -22,9 +24,8 @@ use axum::{
 use log4rs::config::{Appender, Config as LogConfig, Root};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
-use tokio::task::JoinSet;
 
-use ox_webservice::{ServerConfig, load_config_from_path, pipeline::Pipeline};
+use ox_webservice::{ServerConfig, load_config_from_path, flow::Flow};
 
 #[derive(Debug)]
 struct CustomCertResolver {
@@ -98,7 +99,7 @@ async fn main() {
     match cli.command {
         Commands::Configcheck => {
             info!("Running config check...");
-            match Pipeline::new(&server_config, config_json.clone()) {
+            match Flow::new(&server_config, config_json.clone()) {
                 Ok(_) => {
                     println!("Configuration OK");
                     std::process::exit(0);
@@ -117,16 +118,21 @@ async fn main() {
 }
 
 async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config_json: String) {
-    let pipeline: Arc<Pipeline> = match Pipeline::new(&initial_config, config_json) {
-        Ok(p) => Arc::new(p),
+    if initial_config.servers.is_empty() {
+        error!("Flow configuration missing: no servers defined");
+        std::process::exit(1);
+    }
+
+    let flow: Arc<Flow> = match Flow::new(&initial_config, config_json) {
+        Ok(f) => Arc::new(f),
         Err(e) => {
-            error!("Failed to initialize pipeline: {}", e);
+            error!("Failed to initialize flow: {}", e);
             std::process::exit(1);
         }
     };
 
-    let pipeline_holder = Arc::new(RwLock::new(pipeline));
-    let pipeline_holder_clone = pipeline_holder.clone();
+    let flow_holder = Arc::new(RwLock::new(flow));
+    let flow_holder_clone = flow_holder.clone();
     let config_path_clone = config_path.clone();
 
     tokio::spawn(async move {
@@ -134,17 +140,17 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
         loop {
             sighup.recv().await;
             info!("Received SIGHUP, reloading configuration...");
-            
+
             match load_config_from_path(&config_path_clone, "info") {
                 Ok((new_config, new_json)) => {
-                    match Pipeline::new(&new_config, new_json) {
-                        Ok(new_pipeline) => {
-                            let mut write_guard = pipeline_holder_clone.write().unwrap();
-                            *write_guard = Arc::new(new_pipeline);
-                            info!("Pipeline reloaded successfully.");
+                    match Flow::new(&new_config, new_json) {
+                        Ok(new_flow) => {
+                            let mut write_guard = flow_holder_clone.write().await;
+                            *write_guard = Arc::new(new_flow);
+                            info!("Flow reloaded successfully.");
                         }
                         Err(e) => {
-                            error!("Failed to build new pipeline: {}", e);
+                            error!("Failed to build new flow: {}", e);
                         }
                     }
                 }
@@ -158,51 +164,54 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
     let mut task_handles = Vec::new();
 
     for server_details in initial_config.servers {
-        let pipeline_holder_server = pipeline_holder.clone();
+        let flow_holder_server = flow_holder.clone();
         let protocol = server_details.protocol.clone();
         let bind_address = server_details.bind_address.clone();
         let port = server_details.port;
+        let backlog = server_details.backlog;
         let servers = server_details.hosts.clone();
 
         let app = Router::new()
             .route("/ws/*path", axum::routing::get({
-                let pipeline_holder_server = pipeline_holder_server.clone();
+                let flow_holder_server = flow_holder_server.clone();
                 let protocol_clone = protocol.clone();
                 move |ws: axum::extract::WebSocketUpgrade, axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<SocketAddr>, axum::extract::Path(path): axum::extract::Path<String>| async move {
-                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                    let flow_arc = flow_holder_server.read().await.clone();
                     let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
                     ws.on_upgrade(move |socket| async move {
-                        pipeline_arc.handle_socket(socket, addr, path, ws_protocol).await;
+                        flow_arc.handle_socket(socket, addr, path, ws_protocol).await;
                     })
                 }
             }))
             .route("/", axum::routing::any({
-                let pipeline_holder_server = pipeline_holder_server.clone();
+                let flow_holder_server = flow_holder_server.clone();
                 let protocol_clone = protocol.clone();
-                move |req: Request<Body>| {
-                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                move |req: Request<Body>| async move {
+                    let flow_arc = flow_holder_server.read().await.clone();
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
-                    async move {
-                         pipeline_arc.execute_request(connect_info, req, protocol_clone).await
-                    }
+                    flow_arc.execute_request(connect_info, req, protocol_clone).await
                 }
             }))
             .route("/*path", axum::routing::any({
-                let pipeline_holder_server = pipeline_holder_server.clone();
+                let flow_holder_server = flow_holder_server.clone();
                 let protocol_clone = protocol.clone();
-                move |req: Request<Body>| {
-                    let pipeline_arc = pipeline_holder_server.read().unwrap().clone();
+                move |req: Request<Body>| async move {
+                    let flow_arc = flow_holder_server.read().await.clone();
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
-                    async move {
-                         pipeline_arc.execute_request(connect_info, req, protocol_clone).await
-                    }
+                    flow_arc.execute_request(connect_info, req, protocol_clone).await
                 }
             }))
             .layer(tower_http::catch_panic::CatchPanicLayer::new());
 
-        let addr: SocketAddr = format!("{}:{}", bind_address, port).parse().expect("Invalid bind address");
+        // IPv6 addresses (e.g. "::1" or "::") need bracket notation: "[::1]:port"
+        let addr_str = if bind_address.contains(':') {
+            format!("[{}]:{}", bind_address, port)
+        } else {
+            format!("{}:{}", bind_address, port)
+        };
+        let addr: SocketAddr = addr_str.parse().expect("Invalid bind address");
         info!("Listening on {}", addr);
 
         if server_details.protocol == "https" {
@@ -240,82 +249,91 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
              let tls_acceptor = tokio_rustls::TlsAcceptor::from(rustls_config);
 
              task_handles.push(tokio::spawn(async move {
-                 let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-                 let mut join_set = JoinSet::new();
+                 let tcp_socket = match if addr.is_ipv6() { TcpSocket::new_v6() } else { TcpSocket::new_v4() } {
+                     Ok(s) => s, Err(e) => { error!("Failed to create TCP socket for {}: {}", addr, e); return; }
+                 };
+                 if let Err(e) = tcp_socket.set_reuseaddr(true) { error!("set_reuseaddr failed for {}: {}", addr, e); return; }
+                 if let Err(e) = tcp_socket.bind(addr) { error!("Failed to bind {}: {}", addr, e); return; }
+                 let listener = match tcp_socket.listen(backlog) {
+                     Ok(l) => l, Err(e) => { error!("Failed to listen on {}: {}", addr, e); return; }
+                 };
+                 info!("HTTPS listener ready on {}", addr);
 
                  loop {
-                     tokio::select! {
-                         accept_result = listener.accept() => {
-                             let (socket, remote_addr) = match accept_result {
-                                 Ok(res) => res,
-                                 Err(e) => {
-                                     error!("Accept error: {}", e);
-                                     continue;
-                                 }
-                             };
-
-                             // IP Filtering Placeholder:
-                             // let ip = remote_addr.ip();
-                             // if !allowed_ip(ip) { continue; }
-
-                             let tls_acceptor_clone = tls_acceptor.clone();
-                             let mut svc = app.clone().into_make_service_with_connect_info::<SocketAddr>();
-
-                             join_set.spawn(async move {
-                                 let tls_stream = match tls_acceptor_clone.accept(socket).await {
-                                     Ok(s) => s,
-                                     Err(e) => {
-                                         error!("TLS error: {}", e);
-                                         return;
-                                     }
-                                 };
-
-                                 // Call MakeService to get the HTTP service for this connection
-                                 let ready_svc = svc.call(remote_addr).await.unwrap();
-                                 let hyper_svc = TowerToHyperService::new(ready_svc);
-                                 let io = TokioIo::new(tls_stream);
-                                 let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
-                                     .serve_connection_with_upgrades(io, hyper_svc)
-                                     .await;
-                             });
+                     let (socket, remote_addr) = match listener.accept().await {
+                         Ok(res) => res,
+                         Err(e) => {
+                             error!("Accept error on {}: {}", addr, e);
+                             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                             continue;
                          }
-                         Some(_) = join_set.join_next() => {}
-                     }
+                     };
+
+                     // IP Filtering Placeholder:
+                     // let ip = remote_addr.ip();
+                     // if !allowed_ip(ip) { continue; }
+
+                     let tls_acceptor_clone = tls_acceptor.clone();
+                     let app_clone = app.clone();
+                     let _ = socket.set_nodelay(true);
+
+                     tokio::spawn(async move {
+                         let tls_stream = match tls_acceptor_clone.accept(socket).await {
+                             Ok(s) => s,
+                             Err(e) => {
+                                 error!("TLS error: {}", e);
+                                 return;
+                             }
+                         };
+
+                         let mut svc = app_clone.into_make_service_with_connect_info::<SocketAddr>();
+                         let ready_svc = match svc.call(remote_addr).await { Ok(s) => s, Err(_) => return };
+                         let hyper_svc = TowerToHyperService::new(ready_svc);
+                         let io = TokioIo::new(tls_stream);
+                         let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                             .serve_connection_with_upgrades(io, hyper_svc)
+                             .await;
+                     });
                  }
              }));
         } else {
             task_handles.push(tokio::spawn(async move {
-                 let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-                 let mut join_set = JoinSet::new();
+                 let tcp_socket = match if addr.is_ipv6() { TcpSocket::new_v6() } else { TcpSocket::new_v4() } {
+                     Ok(s) => s, Err(e) => { error!("Failed to create TCP socket for {}: {}", addr, e); return; }
+                 };
+                 if let Err(e) = tcp_socket.set_reuseaddr(true) { error!("set_reuseaddr failed for {}: {}", addr, e); return; }
+                 if let Err(e) = tcp_socket.bind(addr) { error!("Failed to bind {}: {}", addr, e); return; }
+                 let listener = match tcp_socket.listen(backlog) {
+                     Ok(l) => l, Err(e) => { error!("Failed to listen on {}: {}", addr, e); return; }
+                 };
+                 info!("HTTP listener ready on {}", addr);
 
                  loop {
-                     tokio::select! {
-                         accept_result = listener.accept() => {
-                             let (socket, remote_addr) = match accept_result {
-                                 Ok(res) => res,
-                                 Err(e) => {
-                                     error!("Accept error: {}", e);
-                                     continue;
-                                 }
-                             };
-
-                             // IP Filtering Placeholder:
-                             // let ip = remote_addr.ip();
-                             // if !allowed_ip(ip) { continue; }
-
-                             let mut svc = app.clone().into_make_service_with_connect_info::<SocketAddr>();
-
-                             join_set.spawn(async move {
-                                 let ready_svc = svc.call(remote_addr).await.unwrap();
-                                 let hyper_svc = TowerToHyperService::new(ready_svc);
-                                 let io = TokioIo::new(socket);
-                                 let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
-                                     .serve_connection_with_upgrades(io, hyper_svc)
-                                     .await;
-                             });
+                     let (socket, remote_addr) = match listener.accept().await {
+                         Ok(res) => res,
+                         Err(e) => {
+                             error!("Accept error on {}: {}", addr, e);
+                             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                             continue;
                          }
-                         Some(_) = join_set.join_next() => {}
-                     }
+                     };
+
+                     // IP Filtering Placeholder:
+                     // let ip = remote_addr.ip();
+                     // if !allowed_ip(ip) { continue; }
+
+                     let app_clone = app.clone();
+                     let _ = socket.set_nodelay(true);
+
+                     tokio::spawn(async move {
+                         let mut svc = app_clone.into_make_service_with_connect_info::<SocketAddr>();
+                         let ready_svc = match svc.call(remote_addr).await { Ok(s) => s, Err(_) => return };
+                         let hyper_svc = TowerToHyperService::new(ready_svc);
+                         let io = TokioIo::new(socket);
+                         let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                             .serve_connection_with_upgrades(io, hyper_svc)
+                             .await;
+                     });
                  }
             }));
         }

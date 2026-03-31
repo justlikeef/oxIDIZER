@@ -6,8 +6,9 @@ use regex::Regex;
 use std::collections::HashMap;
 
 use ox_webservice_api::{
-    CoreHostApi, FlowControl, ModuleConfig, UriMatcher,
-    FLOW_CONTROL_CONTINUE, OX_LOG_ERROR, OX_LOG_DEBUG
+    CoreHostApi, FlowControl, UriMatcher,
+    FLOW_CONTROL_CONTINUE, FLOW_CONTROL_SKIP,
+    OX_LOG_ERROR, OX_LOG_DEBUG
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -24,6 +25,7 @@ pub struct RouterRouteEntry {
 }
 
 pub struct RouterModule {
+    #[allow(dead_code)]
     config: RouterConfig,
     compiled_routes: Vec<CompiledRoute>,
 }
@@ -33,6 +35,7 @@ struct CompiledRoute {
     matcher_header_regexes: HashMap<String, Regex>,
     matcher_query_regexes: HashMap<String, Regex>,
     module_id: String,
+    module_id_cstring: CString,
     matcher_protocol: Option<String>,
     matcher_hostname_regex: Option<Regex>,
     matcher_status_code_regex: Option<Regex>,
@@ -80,6 +83,7 @@ impl RouterModule {
                 matcher_path_regex: path_regex,
                 matcher_header_regexes: header_regexes,
                 matcher_query_regexes: query_regexes,
+                module_id_cstring: CString::new(route.module_id.clone()).unwrap_or_default(),
                 module_id: route.module_id.clone(),
                 matcher_protocol: route.matcher.as_ref().and_then(|m| m.protocol.clone()),
                 matcher_hostname_regex,
@@ -234,22 +238,29 @@ pub unsafe extern "C" fn ox_plugin_process(
             if !re.is_match(&status_val) { continue; }
         }
 
-        // Match found! Updates flags and route target.
+        // Match found — capture group, route target field, then jump to the module stage.
         if let Some(cap) = path_match_capture {
             let mut existing_capture = get_field(api, task_ctx, "request.capture");
-            existing_capture.push_str(&cap);
+            // An empty capture means the path ended at the prefix (e.g., "/prefix/").
+            // Use "/" so downstream modules (e.g., stream) serve the root document.
+            let effective_cap = if cap.is_empty() { "/" } else { &cap };
+            existing_capture.push_str(effective_cap);
             set_field(api, task_ctx, "request.capture", &existing_capture);
         }
 
         set_field(api, task_ctx, "route.target", &route.module_id);
-        
+
         let msg = CString::new(format!("Router matched route -> target: {}", route.module_id)).unwrap();
         (api.log)(task_ctx, OX_LOG_DEBUG, msg.as_ptr());
 
-        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+        // SKIP to the module plugin within the same pipeline stage.
+        // The payload pointer is valid for the lifetime of CompiledRoute (server lifetime).
+        return FlowControl { code: FLOW_CONTROL_SKIP, payload: route.module_id_cstring.as_ptr() };
     }
 
-    FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
+    // No route matched — end the stage without running any module plugin.
+    // SKIP with null payload signals StageRunner to stop processing this stage.
+    FlowControl { code: FLOW_CONTROL_SKIP, payload: std::ptr::null() }
 }
 
 #[unsafe(no_mangle)]
@@ -262,6 +273,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

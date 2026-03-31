@@ -10,7 +10,7 @@ PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
 BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -28,7 +28,7 @@ TEST_DIR=$(dirname "$(readlink -f "$0")")
 LOGS_DIR="$TEST_DIR/logs"
 
 # Verify we are in repo root or adjust path to crate
-CRATE_DIR="ox_persistence_driver_manager"
+CRATE_DIR="crates/data/ox_persistence_driver_manager"
 
 if [ "$MODE" == "integrated" ]; then
   log_message "$LOGGING_LEVEL" "info" "Skipping test in integrated mode."

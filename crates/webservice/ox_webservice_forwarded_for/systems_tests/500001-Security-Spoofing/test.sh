@@ -3,7 +3,7 @@ set -e
 
 # Parameters
 SCRIPT_DIR=$1
-TEST_LIBS_DIR=${2:-"functional_tests/common"}
+TEST_LIBS_DIR=${2:-"systems_tests/common"}
 MODE=$3
 LOGGING_LEVEL=${4:-"info"}
 TARGET=${5:-"debug"}
@@ -27,7 +27,7 @@ mkdir -p "$LOGS_DIR"
 log_message "$LOGGING_LEVEL" "info" "Running OWASP IP Spoofing Check..."
 log_message "$LOGGING_LEVEL" "debug" "Output redirecting to: $LOG_FILE"
 
-pushd ox_webservice_forwarded_for > /dev/null
+pushd crates/webservice/ox_webservice_forwarded_for > /dev/null
 
 if cargo +nightly test --test security_spoofing -q > "$LOG_FILE" 2>&1; then
     log_message "$LOGGING_LEVEL" "info" "Security Check PASSED"

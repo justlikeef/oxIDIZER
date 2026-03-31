@@ -48,9 +48,6 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 EOF
 
 LOG_FILE="$SCRIPT_DIR/logs/ox_webservice.log"

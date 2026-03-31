@@ -866,24 +866,24 @@ git commit -m "refactor: migrate cc domain to crates/cc/ and dissolve ox_cc/"
 
 ---
 
-## Task 8: Rename `functional_tests/` and reorganize docs
+## Task 8: Rename `systems_tests/` and reorganize docs
 
 **Files:**
-- Move: `functional_tests/` → `tests/`
+- Move: `systems_tests/` → `tests/`
 - Move: `IMPLEMENT_OX_WORKFLOW.md` → `docs/IMPLEMENT_OX_WORKFLOW.md`
 - Move: `ProcessingPhases.md` → `docs/ProcessingPhases.md`
 - Move: `bulk_cargo.py` → `scripts/bulk_cargo.py`
 
-- [ ] **Step 1: Rename `functional_tests/` to `tests/`**
+- [ ] **Step 1: Rename `systems_tests/` to `tests/`**
 
 ```bash
-git mv functional_tests tests
+git mv systems_tests tests
 ```
 
-- [ ] **Step 2: Check for test scripts referencing `functional_tests/` by path**
+- [ ] **Step 2: Check for test scripts referencing `systems_tests/` by path**
 
 ```bash
-grep -r "functional_tests" tests/ scripts/ conf/ --include="*.sh" --include="*.yaml" --include="*.py" -l
+grep -r "systems_tests" tests/ scripts/ conf/ --include="*.sh" --include="*.yaml" --include="*.py" -l
 ```
 
 Update any references found. Common locations: test runner scripts in `tests/`, conf files that reference test directories.
@@ -913,7 +913,7 @@ Expected: compiles successfully (no path deps affected).
 
 ```bash
 git add -A
-git commit -m "refactor: rename functional_tests/ to tests/, move docs and scripts"
+git commit -m "refactor: rename systems_tests/ to tests/, move docs and scripts"
 ```
 
 ---
@@ -982,17 +982,17 @@ rm -f crates/data/ox_persistence_datasource_manager/logs/ox_webservice.log
 rm -f crates/data/ox_persistence_datasource_manager/ox_webservice.pid
 ```
 
-- [ ] **Step 5: Untrack and delete nested artifact files in `crates/util/ox_package_manager/functional_tests/`**
+- [ ] **Step 5: Untrack and delete nested artifact files in `crates/util/ox_package_manager/systems_tests/`**
 
 ```bash
-git rm --cached $(git ls-files crates/util/ox_package_manager/functional_tests/ | grep -E "\.(log|pid)$|start_script")
-rm -f $(git -C . ls-files --error-unmatch crates/util/ox_package_manager/functional_tests/ 2>/dev/null | grep -E "\.(log|pid)$|start_script" || true)
+git rm --cached $(git ls-files crates/util/ox_package_manager/systems_tests/ | grep -E "\.(log|pid)$|start_script")
+rm -f $(git -C . ls-files --error-unmatch crates/util/ox_package_manager/systems_tests/ 2>/dev/null | grep -E "\.(log|pid)$|start_script" || true)
 ```
 
 Or more directly:
 ```bash
-find crates/util/ox_package_manager/functional_tests/ -name "*.log" -o -name "*.pid" -o -name "start_script.log" | xargs git rm --cached 2>/dev/null || true
-find crates/util/ox_package_manager/functional_tests/ \( -name "*.log" -o -name "*.pid" -o -name "start_script.log" \) -delete
+find crates/util/ox_package_manager/systems_tests/ -name "*.log" -o -name "*.pid" -o -name "start_script.log" | xargs git rm --cached 2>/dev/null || true
+find crates/util/ox_package_manager/systems_tests/ \( -name "*.log" -o -name "*.pid" -o -name "start_script.log" \) -delete
 ```
 
 - [ ] **Step 6: Delete misc root temp files**
@@ -1000,12 +1000,12 @@ find crates/util/ox_package_manager/functional_tests/ \( -name "*.log" -o -name 
 ```bash
 git rm --cached \
   ai_info.md ai_information.txt ai_tests.txt \
-  all_modules.txt failing_modules.txt modules-functional_tests.txt \
+  all_modules.txt failing_modules.txt modules-systems_tests.txt \
   single_module.txt test_modules.txt test_single_module.txt \
   form_output.html repro_crash.sh log4rs.yaml 2>/dev/null || true
 
 rm -f ai_info.md ai_information.txt ai_tests.txt \
-  all_modules.txt failing_modules.txt modules-functional_tests.txt \
+  all_modules.txt failing_modules.txt modules-systems_tests.txt \
   single_module.txt test_modules.txt test_single_module.txt \
   form_output.html repro_crash.sh log4rs.yaml
 ```

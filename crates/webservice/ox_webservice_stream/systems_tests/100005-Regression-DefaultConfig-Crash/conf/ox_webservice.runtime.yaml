@@ -1,0 +1,18 @@
+log4rs_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100005-Regression-DefaultConfig-Crash/conf/log4rs.yaml"
+servers:
+  - id: default
+    protocol: http
+    port: 3066
+    bind_address: 0.0.0.0
+    hosts:
+      - name: ".*"
+modules:
+  - id: test_stream
+    name: ox_webservice_stream
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+    params:
+      content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100005-Regression-DefaultConfig-Crash"
+      mimetypes_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100005-Regression-DefaultConfig-Crash/conf/mimetypes.yaml"
+routes:
+  - url: ".*"
+    module_id: test_stream

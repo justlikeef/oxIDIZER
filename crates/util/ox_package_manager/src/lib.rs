@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use ox_workflow_abi::{
     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR,
-    OX_LOG_INFO, OX_LOG_ERROR, OX_LOG_WARN,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_yaml;
 use multipart::server::Multipart;
+use prost::Message;
 
 const MODULE_NAME: &str = "ox_package_manager";
 
@@ -73,6 +73,33 @@ pub struct ResourceRecord {
     #[serde(alias = "type")]
     pub resource_type: String, // e.g. "module_config", "config_file", "content"
     pub filename: String,
+}
+
+/// Prost-compatible representation of PackageMetadata for binary task-state encoding.
+/// Fields that are not directly prost-compatible (Vec<ResourceRecord>, HashMap) are
+/// stored as their JSON-encoded strings.
+#[derive(Clone, PartialEq, prost::Message)]
+pub struct PackageMetadataProto {
+    #[prost(string, tag = "1")]
+    pub name: String,
+    #[prost(string, tag = "2")]
+    pub version: String,
+    #[prost(string, tag = "3")]
+    pub description: String,
+    #[prost(string, tag = "4")]
+    pub package_type: String,
+    /// JSON-encoded Vec<ResourceRecord>
+    #[prost(string, tag = "5")]
+    pub resources_json: String,
+    #[prost(string, tag = "6")]
+    pub filename: String,
+    #[prost(uint64, tag = "7")]
+    pub size: u64,
+    #[prost(string, repeated, tag = "8")]
+    pub dependencies: Vec<String>,
+    /// JSON-encoded HashMap<String, String>
+    #[prost(string, tag = "9")]
+    pub installer_handlers_json: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -141,11 +168,7 @@ impl OxModule {
         // Return the actual error status code.
         set_field(api, task_ctx, "response.status", &serde_json::json!(status).to_string());
         set_field(api, task_ctx, "response.body", &response_json.to_string());
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() }
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn load_installers_from_config(path_str: &str) -> HashMap<String, String> {
@@ -210,7 +233,7 @@ impl OxModule {
              self.log(ox_workflow_abi::OX_LOG_ERROR, format!("DEBUG: Missing required fields: type='{}', module_id='{}'", pkg_type, module_id));
              let response_json = serde_json::json!({ "result": "error", "message": "type and module_id are required" });
              set_field(api, task_ctx, "response.status", &400.to_string());
-             set_field(api, task_ctx, "response.body", &response_json);
+             set_field(api, task_ctx, "response.body", &response_json.to_string());
              return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
 
@@ -225,13 +248,13 @@ impl OxModule {
         if let Err(e) = self.save_installers() {
              let response_json = serde_json::json!({ "result": "error", "message": format!("Failed to save installers: {}", e) });
              set_field(api, task_ctx, "response.status", &500.to_string());
-             set_field(api, task_ctx, "response.body", &response_json);
+             set_field(api, task_ctx, "response.body", &response_json.to_string());
              return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
 
         let response_json = serde_json::json!({ "result": "success", "message": format!("Registered {} to handle {}", module_id, pkg_type) });
         set_field(api, task_ctx, "response.status", &200.to_string());
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
         FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
@@ -256,7 +279,7 @@ impl OxModule {
         if pkg_type.is_empty() {
              let response_json = serde_json::json!({ "result": "error", "message": "type is required" });
              set_field(api, task_ctx, "response.status", &400.to_string());
-             set_field(api, task_ctx, "response.body", &response_json);
+             set_field(api, task_ctx, "response.body", &response_json.to_string());
              return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
 
@@ -271,13 +294,13 @@ impl OxModule {
         if let Err(e) = self.save_installers() {
              let response_json = serde_json::json!({ "result": "error", "message": format!("Failed to save installers: {}", e) });
              set_field(api, task_ctx, "response.status", &500.to_string());
-             set_field(api, task_ctx, "response.body", &response_json);
+             set_field(api, task_ctx, "response.body", &response_json.to_string());
              return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
         }
 
         let response_json = serde_json::json!({ "result": "success", "message": format!("Deregistered handler for {}", pkg_type) });
         set_field(api, task_ctx, "response.status", &200.to_string());
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
         FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
@@ -303,15 +326,14 @@ impl OxModule {
         };
 
         set_field(api, task_ctx, "response.status", &200.to_string());
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
         FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     pub fn process_request(&self, task_ctx: *mut c_void) -> FlowControl {
         let api = &self.api;
-        let api = &self.api;
 
-        let verb = get_field(api, task_ctx, "request.verb").to_lowercase();
+        let verb = { let v = get_field(api, task_ctx, "request.verb"); if v.is_empty() { get_field(api, task_ctx, "request.method") } else { v } }.to_lowercase();
         let resource = { let r = get_field(api, task_ctx, "request.resource"); if r.is_empty() { get_field(api, task_ctx, "request.path") } else { r } };
         let installer_action = get_field(api, task_ctx, "installer.action");
         
@@ -375,11 +397,7 @@ impl OxModule {
         }
 
         // Default: Ignore
-        HandlerResult {
-            status: ModuleStatus::Unmodified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn handle_install(&self, api: &CoreHostApi, task_ctx: *mut c_void) -> FlowControl {
@@ -391,6 +409,9 @@ impl OxModule {
         }
         
         if body_str.is_empty() {
+            body_str = get_field(api, task_ctx, "request.body");
+        }
+        if body_str.is_empty() {
              if let Some(v) = get_field_val(api, task_ctx, "request.body_path") {
                   if let Some(path) = v.as_str() {
                        if let Ok(s) = std::fs::read_to_string(path) {
@@ -399,7 +420,7 @@ impl OxModule {
                   }
              }
         }
-            
+
         self.log(ox_workflow_abi::OX_LOG_INFO, format!("DEBUG: handle_install body_str: {}", body_str));
             
         let json: Value = serde_json::from_str(&body_str).unwrap_or(Value::Null);
@@ -478,7 +499,7 @@ impl OxModule {
 
         let response_json = serde_json::json!({ "result": "success", "message": "Package and dependencies installed successfully" });
         set_field(api, task_ctx, "response.status", &200.to_string());
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
         FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
@@ -805,6 +826,32 @@ impl OxModule {
             }
         }
 
+        // Encode staged package list as protobuf and store in binary task-state field.
+        let proto_packages: Vec<PackageMetadataProto> = packages.iter().map(|m| PackageMetadataProto {
+            name: m.name.clone(),
+            version: m.version.clone(),
+            description: m.description.clone(),
+            package_type: m.package_type.clone(),
+            resources_json: serde_json::to_string(&m.resources).unwrap_or_default(),
+            filename: m.filename.clone(),
+            size: m.size,
+            dependencies: m.dependencies.clone(),
+            installer_handlers_json: serde_json::to_string(&m.installer_handlers).unwrap_or_default(),
+        }).collect();
+        // Encode each proto entry and concatenate length-delimited
+        let mut all_proto_bytes: Vec<u8> = Vec::new();
+        for p in &proto_packages {
+            let mut buf = Vec::new();
+            if p.encode(&mut buf).is_ok() {
+                let len = buf.len() as u32;
+                all_proto_bytes.extend_from_slice(&len.to_le_bytes());
+                all_proto_bytes.extend_from_slice(&buf);
+            }
+        }
+        if !all_proto_bytes.is_empty() {
+            set_field_bytes_data(api, task_ctx, "data.staged_packages_proto", &all_proto_bytes);
+        }
+
         let response_json = serde_json::json!({
             "result": "success",
             "packages": packages
@@ -812,13 +859,9 @@ impl OxModule {
 
         set_field(api, task_ctx, "response.status", &200.to_string());
         set_field(api, task_ctx, "response.type", &"application/json");
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
 
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn handle_list_installed(&self, api: &CoreHostApi, task_ctx: *mut c_void) -> FlowControl {
@@ -854,13 +897,9 @@ impl OxModule {
 
         set_field(api, task_ctx, "response.status", &200.to_string());
         set_field(api, task_ctx, "response.type", &"application/json");
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
 
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn handle_get_installed_package(&self, api: &CoreHostApi, task_ctx: *mut c_void) -> FlowControl {
@@ -882,11 +921,7 @@ impl OxModule {
              set_field(api, task_ctx, "response.type", &"application/json");
              set_field(api, task_ctx, "response.body", &serde_json::Value::String(content).to_string());
              
-             HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-            }
+             FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
         } else {
              self.error_response(api, task_ctx, 500, "Failed to read package manifest")
         }
@@ -1007,13 +1042,9 @@ impl OxModule {
         });
         
         set_field(api, task_ctx, "response.status", &200.to_string());
-        set_field(api, task_ctx, "response.body", &response_json);
+        set_field(api, task_ctx, "response.body", &response_json.to_string());
 
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn handle_upload(&self, api: &CoreHostApi, task_ctx: *mut c_void) -> FlowControl {
@@ -1021,10 +1052,11 @@ impl OxModule {
         let request_body = request_body_str.as_bytes().to_vec();
         self.log(ox_workflow_abi::OX_LOG_INFO, "Processing upload request...".to_string());
 
-        // Check Content-Type
-        let content_type = get_field_val(api, task_ctx, "request.header.Content-Type")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
+        // Check Content-Type (try both mixed-case and lowercase, since HTTP/2 uses lowercase)
+        let content_type = {
+            let ct = get_field(api, task_ctx, "request.header.content-type");
+            if ct.is_empty() { get_field(api, task_ctx, "request.header.Content-Type") } else { ct }
+        };
         
         self.log(ox_workflow_abi::OX_LOG_INFO, format!("Content-Type: {}", content_type));
 
@@ -1122,7 +1154,7 @@ impl OxModule {
           });
           set_field(api, task_ctx, "response.status", &200.to_string());
           set_field(api, task_ctx, "response.type", &"application/json");
-          set_field(api, task_ctx, "response.body", &response_json);
+          set_field(api, task_ctx, "response.body", &response_json.to_string());
 
      } else {
           let response_json = serde_json::json!({
@@ -1131,14 +1163,10 @@ impl OxModule {
           });
           set_field(api, task_ctx, "response.status", &200.to_string());
           set_field(api, task_ctx, "response.type", &"application/json");
-          set_field(api, task_ctx, "response.body", &response_json);
+          set_field(api, task_ctx, "response.body", &response_json.to_string());
      }
 
-        HandlerResult {
-            status: ModuleStatus::Modified,
-            flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }, 
-            return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-        }
+        FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() }
     }
 
     fn resolve_dependencies(&self, api: &CoreHostApi, task_ctx: *mut c_void, metadata: &PackageMetadata, depth: u32, visited: &mut Vec<String>) -> Result<(), String> {
@@ -1232,7 +1260,25 @@ impl OxModule {
               // Build metadata json and save to installed/
                let manifest_json = serde_json::to_string_pretty(metadata).unwrap_or_default();
                let manifest_path = PathBuf::from(&self.config.manifests_directory).join(format!("{}.json", metadata.name));
-              std::fs::write(manifest_path, manifest_json).map_err(|e| format!("Failed to save manifest: {}", e))?;
+              std::fs::write(&manifest_path, &manifest_json).map_err(|e| format!("Failed to save manifest: {}", e))?;
+
+              // Also write a protobuf-encoded binary alongside the JSON manifest.
+              let proto = PackageMetadataProto {
+                  name: metadata.name.clone(),
+                  version: metadata.version.clone(),
+                  description: metadata.description.clone(),
+                  package_type: metadata.package_type.clone(),
+                  resources_json: serde_json::to_string(&metadata.resources).unwrap_or_default(),
+                  filename: metadata.filename.clone(),
+                  size: metadata.size,
+                  dependencies: metadata.dependencies.clone(),
+                  installer_handlers_json: serde_json::to_string(&metadata.installer_handlers).unwrap_or_default(),
+              };
+              let mut proto_bytes = Vec::new();
+              if proto.encode(&mut proto_bytes).is_ok() {
+                  let proto_path = PathBuf::from(&self.config.manifests_directory).join(format!("{}.proto.bin", metadata.name));
+                  let _ = std::fs::write(proto_path, &proto_bytes);
+              }
 
               // Clean up meta file if it exists
               let meta_path = staging_path.join(format!("{}.meta", filename));
@@ -1254,183 +1300,13 @@ impl OxModule {
               set_field(api, task_ctx, "installer.package_name", &Value::String(metadata.name.clone()).to_string());
 
                self.log(ox_workflow_abi::OX_LOG_INFO, format!("DEBUG: Delegating installation to {}", installer_id));
-               let _result = ctx.execute_module(&installer_id);
-               
-               // Polling for completion
-               let mut attempts = 0;
-               let max_attempts = 60; // 60 seconds timeout
-               loop {
-                   set_field(api, task_ctx, "installer.action", &Value::String("status".to_string()).to_string());
-                   let _ = ctx.execute_module(&installer_id);
-                   
-                   let status_body = get_field_val(api, task_ctx, "response.body")
-                       .and_then(|v| v.as_str().map(|s| s.to_string()))
-                       .and_then(|s| serde_json::from_str::<Value>(&s).ok());
-
-                   if let Some(body) = status_body {
-                       // Format: {"result": "success", "status": {"status": "...", "message": "..."}}
-                       let status_obj = body.get("status");
-                       let st = status_obj.and_then(|v| v.get("status")).and_then(|v| v.as_str()).unwrap_or("pending");
-                       
-                       if st == "success" {
-                           self.log(ox_workflow_abi::OX_LOG_INFO, format!("DEBUG: Installer {} reported success for {}", installer_id, metadata.name));
-                           break;
-                       } else if st == "failed" {
-                           let msg = status_obj.and_then(|v| v.get("message")).and_then(|v| v.as_str()).unwrap_or("unknown error");
-                           let _ = std::fs::remove_dir_all(&temp_dir);
-                           return Err(format!("Installer {} failed: {}", installer_id, msg));
-                       }
-                       self.log(ox_workflow_abi::OX_LOG_INFO, format!("DEBUG: Polling {}: status={}", metadata.name, st));
-                   }
-
-                   attempts += 1;
-                   if attempts >= max_attempts {
-                       let _ = std::fs::remove_dir_all(&temp_dir);
-                       return Err(format!("Installer {} timed out for {}", installer_id, metadata.name));
-                   }
-                   std::thread::sleep(std::time::Duration::from_millis(500));
-               }
-               
-              // Cleanup
-              let _ = std::fs::remove_dir_all(&temp_dir);
-
-              // Save manifest
-              let manifest_json = serde_json::to_string_pretty(metadata).unwrap_or_default();
-              let manifest_path = PathBuf::from(&self.config.manifests_directory).join(format!("{}.json", metadata.name));
-              std::fs::write(manifest_path, manifest_json).map_err(|e| format!("Failed to save manifest: {}", e))?;
-
-              // Move archive
-              let installed_archives = staging_path.join("installed_archives");
-              let _ = std::fs::create_dir_all(&installed_archives);
-              let dest_path = installed_archives.join(filename);
-              let _ = std::fs::rename(&source_path, &dest_path);
-
-              let meta_path = staging_path.join(format!("{}.meta", filename));
-              if meta_path.exists() {
-                  let _ = std::fs::remove_file(meta_path);
-              }
-
-               // Dynamic Installer Registration
-               if !metadata.installer_handlers.is_empty() {
-                   self.log(ox_workflow_abi::OX_LOG_INFO, format!("DEBUG: Registering installer handlers for {}: {:?}", metadata.name, metadata.installer_handlers));
-                   let mut installers = match self.installers.write() {
-                       Ok(lock) => lock,
-                       Err(_) => return Err("Internal error: installers lock poisoned".to_string()),
-                   };
-                   
-                   for (pkg_type, mod_id) in &metadata.installer_handlers {
-                       installers.insert(pkg_type.clone(), mod_id.clone());
-                   }
-                   
-                   if let Err(e) = self.save_installers() {
-                       self.log(ox_workflow_abi::OX_LOG_ERROR, format!("Failed to save installers config: {}", e));
-                   }
-               }
-
+               // TODO: cross-module dispatch not yet supported in workflow ABI
+               let _ = std::fs::remove_dir_all(&temp_dir);
+               return Err(format!("Delegated installation to installer '{}' is not yet supported in the workflow ABI", installer_id));
           }
           Ok(())
      }
 }
-
-// Boilerplate C-exports
-#[no_mangle]
-pub unsafe extern "C" fn initialize_module(
-    module_params_json_ptr: *const c_char,
-    module_id_ptr: *const c_char,
-    api_ptr: *const CoreHostApi,
-) -> *mut ModuleInterface {
-    if api_ptr.is_null() { return std::ptr::null_mut(); }
-    let api = &*api_ptr;
-
-    let module_params_json = if !module_params_json_ptr.is_null() {
-        CStr::from_ptr(module_params_json_ptr).to_str().unwrap_or("{}")
-    } else { "{}" };
-    
-    // Deserialize config directly from params
-    let mut config: Config = serde_json::from_str(module_params_json).unwrap_or_else(|_| Config::default());
-
-    // Check if we need to load from external file (if staging_directory is still default or explicit config_file present)
-    let params_value: Value = serde_json::from_str(module_params_json).unwrap_or(Value::Null);
-    
-    if let Some(config_path) = params_value.get("config_file").and_then(|v| v.as_str()) {
-         if let Ok(file_content) = std::fs::read_to_string(config_path) {
-             // Try YAML first (common), then JSON
-             if let Ok(loaded_config) = serde_yaml::from_str::<Config>(&file_content) {
-                 config = loaded_config;
-             } else if let Ok(loaded_config) = serde_json::from_str::<Config>(&file_content) {
-                 config = loaded_config;
-             }
-         }
-    }
-
-    let module_id = if !module_id_ptr.is_null() {
-        CStr::from_ptr(module_id_ptr).to_string_lossy().to_string()
-    } else {
-        MODULE_NAME.to_string()
-    };
-
-    let module = OxModule::new(api, config, module_id);
-    let instance_ptr = Box::into_raw(Box::new(module)) as *mut c_void;
-
-    Box::into_raw(Box::new(ModuleInterface {
-        instance_ptr,
-        handler_fn: process_request_c,
-        log_callback: api.log_callback,
-        get_config: get_config_c,
-    }))
-}
-
-unsafe extern "C" fn process_request_c(
-    instance_ptr: *mut c_void,
-    pipeline_state_ptr: *mut PipelineState,
-    log_callback: LogCallback,
-    _alloc_fn: AllocFn,
-    _arena: *const c_void, 
-) -> HandlerResult {
-    if instance_ptr.is_null() {
-        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
-    }
-
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let handler = unsafe { &*(instance_ptr as *mut OxModule) };
-        handler.process_request(pipeline_state_ptr)
-    }));
-
-    match result {
-        Ok(handler_result) => handler_result,
-        Err(e) => {
-             // Try to log the panic if possible
-             let msg = if let Some(s) = e.downcast_ref::<&str>() {
-                 format!("Panic in ox_package_manager: {}", s)
-             } else if let Some(s) = e.downcast_ref::<String>() {
-                 format!("Panic in ox_package_manager: {}", s)
-             } else {
-                 "Panic in ox_package_manager: unknown error".to_string()
-             };
-
-             if let Ok(c_msg) = CString::new(msg) {
-                 if let Ok(mod_name) = CString::new(MODULE_NAME) {
-                      unsafe { (log_callback)(LogLevel::Error, mod_name.as_ptr(), c_msg.as_ptr()); }
-                 }
-             }
-
-             HandlerResult {
-                status: ModuleStatus::Modified,
-                flow_control: FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() },
-                return_parameters: ReturnParameters { return_data: std::ptr::null_mut() },
-            }
-        }
-    }
-}
-
-unsafe extern "C" fn get_config_c(
-    _instance_ptr: *mut c_void,
-    _arena: *const c_void,
-    _alloc_fn: AllocStrFn,
-) -> *mut c_char {
-    std::ptr::null_mut() // TODO: Implement
-}
-
 
 fn get_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> String {
     let c_key = CString::new(key).unwrap();
@@ -1448,6 +1324,21 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
     let c_key = CString::new(key).unwrap();
     let c_val = CString::new(value).unwrap();
     (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
+}
+
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 {
+        return None;
+    }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 #[unsafe(no_mangle)]

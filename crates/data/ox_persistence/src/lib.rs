@@ -3,8 +3,6 @@ use std::sync::{Arc, Mutex};
 use ox_data_object::{GenericDataObject};
 use ox_type_converter::ValueType;
 use serde::{Deserialize, Serialize};
-use std::ffi::{c_void, CString};
-use libc::c_char;
 
 /// A C-compatible buffer for passing data across FFI boundaries.
 /// The `ptr` points to the data, `len` is the valid length, and `cap` is the capacity (if managed by Rust Vec).
@@ -204,7 +202,7 @@ pub trait PersistenceDriver {
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
 
     /// Executes a generic action defined by the driver (e.g., "discover_local", "validate_connection").
-    fn call_action(&self, action: &str, params: &serde_json::Value) -> Result<serde_json::Value, String> {
+    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, String> {
         Err(format!("Action '{}' not supported by this driver", action))
     }
 }
@@ -230,12 +228,9 @@ impl Persistent for GenericDataObject {
              
              let mut results = Vec::new();
              for id in ids {
-                 let mut obj = GenericDataObject::new(&self.identifier_name, None);
-                 // We need to hydrate this new object
-                 // But hydrate_object is instance method.
                  // We can call restore on driver directly.
                  let restored_map = driver.restore(location, &id)?;
-                 obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
+                 let obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
                  results.push(obj);
              }
              Ok(results)

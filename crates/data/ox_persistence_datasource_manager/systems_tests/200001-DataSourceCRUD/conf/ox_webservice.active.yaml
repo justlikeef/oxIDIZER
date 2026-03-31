@@ -1,0 +1,39 @@
+log4rs_config: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200001-DataSourceCRUD/conf/log4rs.yaml"
+
+modules:
+  - id: data_source_manager
+    name: ox_persistence_datasource_manager
+    path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
+    data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200001-DataSourceCRUD/conf/datastores"
+
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3000
+    bind_address: "127.0.0.1"
+    hosts:
+      - name: "localhost"
+
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/data_sources(.*)?$"
+    headers:
+      Accept: "application/json"
+    module_id: "data_source_manager"
+    priority: 499
+  - url: "^/data_sources(.*)?$"
+    query:
+      format: "json"
+    module_id: "data_source_manager"
+    priority: 499
+  - url: "^/data_sources(.*)?$"
+    module_id: "data_source_manager"
+    priority: 500

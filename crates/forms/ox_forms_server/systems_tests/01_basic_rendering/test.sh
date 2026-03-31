@@ -12,7 +12,7 @@ PORTS_STR=$6
 PORT=$(echo $PORTS_STR | cut -d' ' -f1)
 
 TEST_DIR=$(dirname "$(readlink -f "$0")")
-WORKSPACE_DIR=$(dirname "$(dirname "$(dirname "$(dirname "$TEST_DIR")")")") # ox_forms/ox_forms_server/functional_tests/01... -> workspace
+WORKSPACE_DIR=$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$TEST_DIR")")")")")  # crates/forms/ox_forms_server/systems_tests/01... -> workspace
 
 # Source common libs
 
@@ -41,10 +41,6 @@ log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
 
 logging:
   level: "debug"
-
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 
 modules:
   - id: "forms_server"

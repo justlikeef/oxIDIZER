@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # run_module_tests.sh
-# Runs all functional tests for a specific module sequentially, using a designated port block.
+# Runs all systems tests for a specific module sequentially, using a designated port block.
 
 # Parameters
 MODULE_NAME=$1
@@ -43,15 +43,15 @@ fi
 log_to_file "INFO" "=================================================="
 
 MODULE_DIR="./$MODULE_NAME"
-FUNCTIONAL_TESTS_DIR="$MODULE_DIR/tests"
+SYSTEMS_TESTS_DIR="$MODULE_DIR/systems_tests"
 
 if [ ! -d "$MODULE_DIR" ]; then
     log_to_file "WARN" "Module directory '$MODULE_DIR' not found. Skipping."
     exit 0
 fi
 
-if [ ! -d "$FUNCTIONAL_TESTS_DIR" ]; then
-    log_to_file "WARN" "'tests' directory not found. Skipping."
+if [ ! -d "$SYSTEMS_TESTS_DIR" ]; then
+    log_to_file "WARN" "'systems_tests' directory not found. Skipping."
     exit 0
 fi
 
@@ -60,17 +60,17 @@ if [ -n "$SPECIFIC_TESTS" ]; then
     TEST_FILES=""
     for test_id in $SPECIFIC_TESTS; do
         # Try exact match, then try prefix match
-        MATCH=$(find "$FUNCTIONAL_TESTS_DIR" -maxdepth 1 -type d -name "$test_id*" | head -n 1)
+        MATCH=$(find "$SYSTEMS_TESTS_DIR" -maxdepth 1 -type d -name "$test_id*" | head -n 1)
         
         if [ -n "$MATCH" ] && [ -f "$MATCH/test.sh" ]; then
             TEST_FILES="$TEST_FILES $MATCH/test.sh"
         else
-            log_to_file "WARN" "Specific test matching '$test_id' not found in $FUNCTIONAL_TESTS_DIR."
+            log_to_file "WARN" "Specific test matching '$test_id' not found in $SYSTEMS_TESTS_DIR."
         fi
     done
 else
     # Find all test.sh files
-    TEST_FILES=$(find "$FUNCTIONAL_TESTS_DIR" -type f -name "test.sh" -not -path "*/tests/common/*" | sort)
+    TEST_FILES=$(find "$SYSTEMS_TESTS_DIR" -type f -name "test.sh" -not -path "*/tests/common/*" | sort)
 fi
 
 if [ -z "$TEST_FILES" ]; then

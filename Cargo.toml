@@ -12,6 +12,7 @@ members = [
 
     # Event bus & messaging
     "crates/messaging/ox_event_bus",
+    "crates/messaging/ox_event_bus/ox_event_bus_mqtt",
     "crates/messaging/ox_messaging_client",
     "crates/messaging/ox_messaging_mqtt",
 
@@ -58,10 +59,23 @@ members = [
 
     # data
     "crates/data/ox_data_object",
+    "crates/data/ox_data_object/ox_data_object_dictionary_manager",
+    "crates/data/ox_data_object/ox_data_object_manager",
     "crates/data/ox_data_broker",
     "crates/data/ox_locking",
     "crates/data/ox_type_converter",
     "crates/data/ox_persistence",
+    "crates/data/ox_persistence/ox_persistence_api",
+    "crates/data/ox_persistence/ox_persistence_dictionary_manager",
+    "crates/data/ox_persistence/drivers/db/ox_persistence_driver_db_sql",
+    "crates/data/ox_persistence/drivers/db/ox_persistence_driver_db_sqlite",
+    "crates/data/ox_persistence/drivers/db/ox_persistence_driver_db_postgres",
+    "crates/data/ox_persistence/drivers/db/ox_persistence_driver_db_mysql",
+    "crates/data/ox_persistence/drivers/db/ox_persistence_driver_db_mssql",
+    "crates/data/ox_persistence/drivers/file/ox_persistence_driver_file_json",
+    "crates/data/ox_persistence/drivers/file/ox_persistence_driver_file_yaml",
+    "crates/data/ox_persistence/drivers/file/ox_persistence_driver_file_xml",
+    "crates/data/ox_persistence/drivers/file/ox_persistence_driver_file_delimited",
     "crates/data/ox_persistence_datasource_manager",
     "crates/data/ox_persistence_driver_installer",
     "crates/data/ox_persistence_driver_manager",

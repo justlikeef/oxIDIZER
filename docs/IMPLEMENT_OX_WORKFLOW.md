@@ -100,7 +100,7 @@ Implement the `ox_workflow_core` execution and C-ABI requirements.
 ### Automated Tests
 1. **Compilation:** Run `cargo build --workspace` to ensure successful compilation without warnings.
    *   **Warning Strictness Policy**: All code must compile and run absolutely without warnings. Warnings should **not** simply be silenced by adding the `_` prefix or using silencing attributes like `#[allow(dead_code)]`. Leave warnings visible until properly resolved.
-2. **Functional Tests:** Run the existing functional bash scripts across the repo to ensure plugins integrate correctly. Do not use the `-b` or `-r` flags for `run_functional_tests.sh` unless code changes necessitate a build.
+2. **Functional Tests:** Run the existing functional bash scripts across the repo to ensure plugins integrate correctly. Do not use the `-b` or `-r` flags for `run_systems_tests.sh` unless code changes necessitate a build.
 
 ### Manual Verification
 1. Launch the `ox_webservice` binary manually.

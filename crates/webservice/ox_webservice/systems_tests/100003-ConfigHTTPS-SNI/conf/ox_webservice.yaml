@@ -1,4 +1,4 @@
-log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/conf/log4rs.yaml
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/conf/log4rs.yaml
 routes:
 - module_id: content_handler_1
   phase: Content
@@ -19,10 +19,10 @@ servers:
 - bind_address: 0.0.0.0
   hosts:
   - name: localhost
-    tls_cert_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/localhost-cert.pem
-    tls_key_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/localhost-key.pem
+    tls_cert_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/localhost-cert.pem
+    tls_key_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/localhost-key.pem
   - name: .*
-    tls_cert_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/default-cert.pem
-    tls_key_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/functional_tests/100003-ConfigHTTPS-SNI/default-key.pem
+    tls_cert_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/default-cert.pem
+    tls_key_path: /var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/default-key.pem
   port: 3443
   protocol: https

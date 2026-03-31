@@ -11,7 +11,7 @@ PORTS_STR=${6:-"3000 3001 3002 3003 3004"}
 read -r -a PORTS <<< "$PORTS_STR"
 BASE_PORT=${PORTS[0]}
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 # Use provided TEST_LIBS_DIR or the default

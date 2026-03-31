@@ -29,7 +29,7 @@ sleep 2
 # Since we expect it to fail loading config, exit code might be non-zero (or server might just log error and exit)
 # We look for "Error deserializing configuration: In file ... missing field"
 
-if grep -q "Pipeline configuration missing" "$OUTPUT_FILE"; then
+if grep -q "Flow configuration missing" "$OUTPUT_FILE"; then
     echo "TEST PASSED: Correct error message found."
     exit 0
 else

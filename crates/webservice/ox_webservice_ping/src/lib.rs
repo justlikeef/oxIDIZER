@@ -1,21 +1,23 @@
 use std::ffi::{CStr, CString};
 use libc::{c_char, c_void};
 use serde::Serialize;
-use std::sync::Arc;
+
 
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO, OX_LOG_ERROR
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_LOG_INFO,
 };
 
 const MODULE_NAME: &str = "ox_webservice_ping";
 
-#[derive(Serialize)]
+#[derive(Serialize, prost::Message, Clone)]
 struct PingResponse {
+    #[prost(string, tag = "1")]
     response: String,
 }
 
 pub struct ModuleContext {
     api: CoreHostApi,
+    #[allow(dead_code)]
     module_id: String,
 }
 
@@ -34,7 +36,20 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
     (api.set_field)(task_ctx, c_key.as_ptr(), c_val.as_ptr());
 }
 
-fn log_msg(api: &CoreHostApi, task_ctx: *mut c_void, level: i32, msg: &str) {
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
+
+fn log_msg(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c_msg) = CString::new(msg) {
         (api.log)(task_ctx, level, c_msg.as_ptr());
     }
@@ -74,15 +89,15 @@ pub unsafe extern "C" fn ox_plugin_process(
     let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
     let api = &context.api;
 
-    let verb = {
-        let v = get_field(api, task_ctx, "request.verb");
-        if v.is_empty() { "get".to_string() } else { v }
-    };
+    let accept = get_field(api, task_ctx, "request.header.accept");
+    let query = get_field(api, task_ctx, "request.query");
 
-    let default_format = if verb == "stream" { "json" } else { "html" };
-    let format = {
-        let f = get_field(api, task_ctx, "request.format");
-        if f.is_empty() { default_format.to_string() } else { f }
+    let format = if accept.contains("application/json")
+        || query.split('&').any(|p| p == "format=json")
+    {
+        "json"
+    } else {
+        "html"
     };
 
     let (body_content, content_type) = if format == "html" {

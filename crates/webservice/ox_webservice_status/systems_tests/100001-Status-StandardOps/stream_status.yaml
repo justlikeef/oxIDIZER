@@ -1,5 +1,5 @@
 content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/content/www"
-mimetypes_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/functional_tests/100001-Status-StandardOps/conf/mimetypes.yaml"
+mimetypes_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/systems_tests/100001-Status-StandardOps/conf/mimetypes.yaml"
 default_documents:
   - document: "index.html"
 on_content_conflict: skip

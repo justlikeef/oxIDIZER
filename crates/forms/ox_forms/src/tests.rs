@@ -2,7 +2,7 @@
 mod tests {
     use crate::schema::{FormDefinition, FieldDefinition, ValidationRule};
     use crate::binding::{GenericDataObjectBinder, Binder};
-    use crate::validation::{Validator, ValidationError};
+    use crate::validation::Validator;
     use ox_data_object::GenericDataObject;
     use serde_json::json;
 

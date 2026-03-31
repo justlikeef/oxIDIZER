@@ -6,7 +6,7 @@
 /**
  * Current ABI version for the workflow engine and plugins
  */
-#define OX_WORKFLOW_ABI_VERSION 2
+#define OX_WORKFLOW_ABI_VERSION 3
 
 /**
  * Flow control code: Continue to the next plugin or stage.
@@ -96,6 +96,15 @@ typedef struct FlowControl {
 typedef struct CoreHostApi {
   const char *(*get_field)(void *task_ctx, const char *key);
   void (*set_field)(void *task_ctx, const char *key, const char *value);
+  /**
+   * Read a binary (Bytes) field. Returns null pointer and sets len_out=0 if not found.
+   * The returned pointer is valid until the next API call on this task.
+   */
+  const uint8_t *(*get_field_bytes)(void *task_ctx, const char *key, uintptr_t *len_out);
+  /**
+   * Write a binary (Bytes) field. Copies `len` bytes from `value`.
+   */
+  void (*set_field_bytes)(void *task_ctx, const char *key, const uint8_t *value, uintptr_t len);
   const char *(*get_metadata)(void *task_ctx, const char *key);
   bool (*insert_into_flow)(void *task_ctx, const char *flow_name);
   void (*pause_task)(void *task_ctx, const char *signal_key);

@@ -5,7 +5,7 @@ set -e
 # Build with ASan - Using prefer-dynamic to avoid static linking conflicts with dylibs
 # Handle Logging
 TEST_DIR=$(dirname "$(readlink -f "$0")")
-TEST_LIBS_DIR=$(readlink -f "${2:-functional_tests/common}")
+TEST_LIBS_DIR=$(readlink -f "${2:-systems_tests/common}")
 LOGGING_LEVEL=${4:-"info"}
 LOGS_DIR="$TEST_DIR/logs"
 
@@ -68,8 +68,6 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
-pipeline:
-  phases: []
 routes: []
 EOF
 

@@ -1,0 +1,16 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+servers:
+  - id: "default_https"
+    protocol: "https"
+    port: 3036
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"
+        tls_key_path: "/var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/conf/certs/key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/conf/certs/cert.pem"
+      # Fallback/Default
+      - name: ".*"
+        tls_key_path: "/var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/conf/certs/key.pem"
+        tls_cert_path: "/var/repos/oxIDIZER/crates/webservice/ox_webservice/systems_tests/100003-ConfigHTTPS-SNI/conf/certs/cert.pem"
+routes:
+  []

@@ -47,9 +47,6 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
 EOF
 
    # Use runtime config in start script argument if possible (start_server.sh takes config as arg 3)

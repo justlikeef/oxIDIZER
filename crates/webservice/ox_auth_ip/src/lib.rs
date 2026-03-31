@@ -18,25 +18,23 @@ struct Config {
 
 fn default_config_file() -> String { "conf/ip_rules.yaml".to_string() }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, prost::Message, Clone)]
 struct RulesConfig {
     #[serde(default)]
+    #[prost(string, repeated, tag = "1")]
     allow: Vec<String>,
     #[serde(default)]
+    #[prost(string, repeated, tag = "2")]
     deny: Vec<String>,
     #[serde(default = "default_order")]
+    #[prost(string, tag = "3")]
     order: String,
     #[serde(default)]
+    #[prost(string, optional, tag = "4")]
     jump_target: Option<String>,
 }
 
 fn default_order() -> String { "deny, allow".to_string() }
-
-impl Default for RulesConfig {
-    fn default() -> Self {
-        RulesConfig { allow: Vec::new(), deny: Vec::new(), order: "deny, allow".to_string(), jump_target: None }
-    }
-}
 
 struct IpRules {
     allow: Vec<IpNetwork>,
@@ -105,6 +103,19 @@ fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
 }
 
+fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
+    let c_key = CString::new(key).unwrap();
+    let mut len: usize = 0;
+    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
+    if ptr.is_null() || len == 0 { return None; }
+    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
+}
+
+fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
+    let c_key = CString::new(key).unwrap();
+    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_init(
     plugin_config_ctx: *const c_char,
@@ -160,7 +171,7 @@ pub unsafe extern "C" fn ox_plugin_process(
         set_field(api, task_ctx, "response.status", "403");
 
         let target = CString::new(rules.jump_target.clone()).unwrap();
-        let payload = target.into_raw() as *const std::ffi::c_void;
+        let payload = target.into_raw() as *const c_char;
         FlowControl { code: FLOW_CONTROL_JUMP, payload }
     }
 }

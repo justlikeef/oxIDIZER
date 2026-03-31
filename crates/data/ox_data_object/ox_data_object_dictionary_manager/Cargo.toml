@@ -20,3 +20,4 @@ ox_type_converter = { path = "../../ox_type_converter" }
 ox_persistence = { path = "../../ox_persistence" }
 ox_webservice_api = { path = "../../../webservice/ox_webservice_api" }
 ox_workflow_abi = { path = "../../../workflow/ox_workflow_abi" }
+prost = "0.13"

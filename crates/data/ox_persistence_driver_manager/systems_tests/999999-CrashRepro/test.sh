@@ -16,18 +16,12 @@ source "$TEST_LIBS_DIR/log_function.sh"
 
 # Define workspace and paths
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-MODULE_DIR=$(dirname "$(dirname "$SCRIPT_DIR")")
-WORKSPACE_DIR=$(dirname "$MODULE_DIR")
+WORKSPACE_DIR="/var/repos/oxIDIZER"
 
 SERVER_START_SCRIPT="$WORKSPACE_DIR/scripts/start_server.sh"
 SERVER_STOP_SCRIPT="$WORKSPACE_DIR/scripts/stop_server.sh"
 
 log_message "$LOGGING_LEVEL" "info" "Starting Test: 999999-CrashRepro"
-
-# Define workspace and paths
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-MODULE_DIR=$(dirname "$(dirname "$SCRIPT_DIR")")
-WORKSPACE_DIR=$(dirname "$MODULE_DIR")
 
 # Setup Config
 CONFIG_DIR="$SCRIPT_DIR/conf"
@@ -48,9 +42,20 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+
+routes:
+  - url: "^/drivers(.*)?$"
+    module_id: "driver_manager"
+    priority: 100
+
 EOF
 
 # Start Server

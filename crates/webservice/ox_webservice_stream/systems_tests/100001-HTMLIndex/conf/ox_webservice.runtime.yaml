@@ -1,0 +1,20 @@
+log4rs_config: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100001-HTMLIndex/conf/log4rs.yaml
+modules:
+- id: test_content
+  name: ox_webservice_stream
+  params:
+    config_file: /var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/100001-HTMLIndex/conf/ox_content.yaml
+  phase: Content
+  priority: 999
+  routes: null
+merge: "base.yaml"
+routes:
+- module_id: test_content
+  phase: Content
+  url: .*
+servers:
+- bind_address: 0.0.0.0
+  hosts:
+  - name: .*
+  port: 3066
+  protocol: http

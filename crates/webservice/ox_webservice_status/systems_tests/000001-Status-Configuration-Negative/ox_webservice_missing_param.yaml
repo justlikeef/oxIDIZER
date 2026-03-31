@@ -9,9 +9,6 @@ modules:
   priority: 50
   routes:
   - path: /status.*$
-pipeline:
-  phases:
-  - Content: ox_pipeline_router
 routes:
 - module_id: status_module
   phase: Content

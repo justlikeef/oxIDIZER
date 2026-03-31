@@ -1,31 +1,31 @@
 @import "/css/common.css";
 
-/* Pipeline Routing Table Styles */
-.pipeline-table {
+/* Workflow Routing Table Styles */
+.workflow-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.pipeline-header th {
+.workflow-header th {
     text-align: left;
     border-bottom: 1px solid #eee;
     padding: 0.5rem;
 }
 
-.pipeline-phase-row {
+.workflow-phase-row {
     border-bottom: none;
 }
 
-.pipeline-phase-row td {
+.workflow-phase-row td {
     padding: 0.5rem;
     vertical-align: top;
 }
 
-.pipeline-config-row {
+.workflow-config-row {
     border-bottom: 1px solid #f5f5f5;
 }
 
-.pipeline-config-cell {
+.workflow-config-cell {
     padding: 0 0.5rem 0.5rem 0.5rem;
 }
 

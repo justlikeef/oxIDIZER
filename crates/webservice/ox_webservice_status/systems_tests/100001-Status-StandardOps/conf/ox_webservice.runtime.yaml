@@ -1,0 +1,18 @@
+log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
+modules:
+  - id: status_module
+    name: ox_webservice_status
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_status.so"
+  - id: stream_module
+    name: ox_webservice_stream
+    path: "/var/repos/oxIDIZER/target/debug/libox_webservice_stream.so"
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/systems_tests/100001-Status-StandardOps/conf/stream_config.json"
+      on_content_conflict: skip
+servers:
+  - id: "default_http"
+    protocol: "http"
+    port: 3061
+    bind_address: "0.0.0.0"
+    hosts:
+      - name: "localhost"

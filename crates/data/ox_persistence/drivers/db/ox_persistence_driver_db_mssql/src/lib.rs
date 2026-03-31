@@ -3,16 +3,14 @@ use std::collections::HashMap;
 use ox_type_converter::ValueType;
 use std::ffi::{c_void, CString, CStr};
 use libc::c_char;
-use std::sync::Arc;
 use chrono;
 use ox_fileproc::serde_json;
 
 
 use tokio::runtime::Runtime;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
-use tiberius::{Client, Config, AuthMethod};
+use tiberius::{Client, Config};
 use futures::StreamExt;
-use std::net::ToSocketAddrs;
 
 pub struct MssqlPersistenceDriver {
     runtime: Runtime,
@@ -203,7 +201,7 @@ impl PersistenceDriver for MssqlPersistenceDriver {
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
         Ok(vec!["default".to_string()])
     }
     

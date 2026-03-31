@@ -12,7 +12,7 @@ const MODULE_NAME: &str = "ox_webservice_errorhandler_jinja2";
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Deserialize, serde::Serialize)]
+#[derive(Debug, Deserialize, serde::Serialize, Clone)]
 pub struct ErrorHandlerConfig {
     pub content_root: PathBuf,
     pub debug_force_status: Option<u16>,
@@ -41,6 +41,7 @@ fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
 }
 
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_init(
     plugin_config_ctx: *const c_char,
@@ -67,9 +68,9 @@ pub unsafe extern "C" fn ox_plugin_init(
     let config: ErrorHandlerConfig = match ox_fileproc::process_file(&PathBuf::from(&config_file), 5) {
         Ok(v) => match serde_json::from_value(v) {
             Ok(c) => c,
-            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to deserialize config: {}", e)); return std::ptr::null_mut(); }
+            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to deserialize ErrorHandlerConfig: {}", e)); return std::ptr::null_mut(); }
         },
-        Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to read config file: {}", e)); return std::ptr::null_mut(); }
+        Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to process config file: {}", e)); return std::ptr::null_mut(); }
     };
 
     log(&api, std::ptr::null_mut(), OX_LOG_INFO, &format!("{} initialized with content_root: {:?}", MODULE_NAME, config.content_root));
@@ -156,7 +157,7 @@ pub unsafe extern "C" fn ox_plugin_process(
             }
         }
         None => {
-            log(api, task_ctx, OX_LOG_WARN, &format!("No error template for status {}. Using text fallback.", status_code));
+            log(api, task_ctx, OX_LOG_WARN, &format!("No specific error template found for status {}", status_code));
             format!("{} {}", status_code, status_text)
         }
     };
@@ -190,6 +191,6 @@ pub unsafe extern "C" fn ox_plugin_error(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ox_plugin_destroy(plugin_config_ctx: *mut c_void) {
     if !plugin_config_ctx.is_null() {
-        let _ = Box::from_raw(plugin_config_ctx as *mut ModuleContext);
+        let _ = unsafe { Box::from_raw(plugin_config_ctx as *mut ModuleContext) };
     }
 }

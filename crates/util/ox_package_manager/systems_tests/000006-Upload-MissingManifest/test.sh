@@ -8,7 +8,7 @@ SKIPPED=77
 # Parameters
 DEFAULT_LOGGING_LEVEL="info"
 DEFAULT_MODE="isolated"
-DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../functional_tests/common
+DEFAULT_TEST_LIBS_DIR=$(dirname "$0")/../../../systems_tests/common
 
 SCRIPTS_DIR=$1
 TEST_LIBS_DIR=${2:-$DEFAULT_TEST_LIBS_DIR}
@@ -37,15 +37,13 @@ if [ "$MODE" == "isolated" ]; then
   mkdir -p "$TEST_DIR/conf"
   cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
+merge: "base.yaml"
 
 modules:
   - id: package_manager
     name: ox_package_manager
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_package_manager.so"
     staging_directory: "$STAGING_DIR"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 
 servers:
   - id: "default_http"
@@ -55,14 +53,9 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
-
 routes:
   - url: "^/packages/(upload)/?"
     module_id: "package_manager"
-    phase: Content
     priority: 450
     headers:
       Method: POST

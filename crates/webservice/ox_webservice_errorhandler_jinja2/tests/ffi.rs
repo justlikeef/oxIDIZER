@@ -1,14 +1,10 @@
-use ox_webservice_api::{
-    InitializeModuleFn, ModuleStatus
-};
-use std::ffi::{c_void, CString};
+use std::ffi::{c_char, c_void, CString};
 use libloading::{Library, Symbol};
 use std::path::PathBuf;
 use cargo_metadata::MetadataCommand;
 use std::fs;
-use bumpalo::Bump;
-use ox_webservice_test_utils::{create_mock_api, create_stub_pipeline_state, mock_alloc_raw, mock_log};
-
+use ox_webservice_test_utils::{create_mock_api, create_task_state, drop_task_state, get_mock_field, set_mock_field};
+use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, OX_WORKFLOW_ABI_VERSION};
 
 fn get_dynamic_library_path() -> PathBuf {
     let metadata = MetadataCommand::new().exec().unwrap();
@@ -23,85 +19,72 @@ fn test_module_loading_and_execution() {
     let temp_dir = tempfile::tempdir().unwrap();
     let content_root = temp_dir.path().to_path_buf();
     fs::create_dir_all(&content_root).unwrap();
-    let error_500_template_path = content_root.join("500.jinja2");
-    fs::write(&error_500_template_path, "Error page: {{ status_code }}").unwrap();
-    let index_template_path = content_root.join("index.jinja2");
-    fs::write(&index_template_path, "Generic error page: {{ status_code }}").unwrap();
+    fs::write(content_root.join("500.jinja2"), "Error page: {{ status_code }}").unwrap();
+    fs::write(content_root.join("index.jinja2"), "Generic error page: {{ status_code }}").unwrap();
 
     let config_file_path = temp_dir.path().join("error_handler_config.yaml");
-    fs::write(&config_file_path, format!(r#"
-content_root: "{}"
-"#, content_root.to_str().unwrap())).unwrap();
+    fs::write(
+        &config_file_path,
+        format!("content_root: \"{}\"", content_root.to_str().unwrap()),
+    )
+    .unwrap();
 
     let api = create_mock_api();
     let params_json = serde_json::json!({
         "config_file": config_file_path.to_str().unwrap(),
-    }).to_string();
-
+    })
+    .to_string();
     let params_cstring = CString::new(params_json).unwrap();
 
     unsafe {
         let lib_path = get_dynamic_library_path();
-        // Skip if dylib doesn't exist (e.g. running cargo test without full build)
         if !lib_path.exists() {
             println!("Skipping FFI test: dylib not found at {:?}", lib_path);
             return;
         }
 
         let lib = Library::new(lib_path).unwrap();
-        let init_func: Symbol<InitializeModuleFn> = lib.get(b"initialize_module").unwrap();
-        let module_id = CString::new("test_module").unwrap();
-        let module_interface_ptr = init_func(params_cstring.as_ptr(), module_id.as_ptr(), &api);
-        assert!(!module_interface_ptr.is_null());
-        let module_interface = Box::from_raw(module_interface_ptr);
-        
-        // Test with a specific error template (500.jinja2)
-        let mut state_err_500 = create_stub_pipeline_state();
-        state_err_500.status_code = 500;
-        state_err_500.request_method = "GET".to_string();
-        state_err_500.request_path = "/error".to_string();
 
-        let result_err_500 = (module_interface.handler_fn)(
-            module_interface.instance_ptr, 
-            &mut state_err_500, 
-            mock_log, 
-            mock_alloc_raw, 
-            &state_err_500.arena as *const Bump as *const c_void
-        );
-        
-        assert_eq!(result_err_500.status, ModuleStatus::Modified);
-        let body = String::from_utf8(state_err_500.response_body).unwrap();
-        assert!(body.contains("Error page: 500"));
+        type InitFn = unsafe extern "C" fn(*const c_char, *const CoreHostApi, u32) -> *mut c_void;
+        type ProcessFn = unsafe extern "C" fn(*mut c_void, *mut c_void) -> FlowControl;
+        type DestroyFn = unsafe extern "C" fn(*mut c_void);
 
-        // Test with a generic index.jinja2 template
-        let mut state_err_404 = create_stub_pipeline_state();
-        state_err_404.status_code = 404;
-        state_err_404.request_path = "/notfound".to_string();
+        let init_fn: Symbol<InitFn> = lib.get(b"ox_plugin_init").unwrap();
+        let process_fn: Symbol<ProcessFn> = lib.get(b"ox_plugin_process").unwrap();
+        let destroy_fn: Symbol<DestroyFn> = lib.get(b"ox_plugin_destroy").unwrap();
 
-        let result_err_404 = (module_interface.handler_fn)(
-            module_interface.instance_ptr, 
-            &mut state_err_404, 
-            mock_log, 
-            mock_alloc_raw, 
-            &state_err_404.arena as *const Bump as *const c_void
-        );
-        assert_eq!(result_err_404.status, ModuleStatus::Modified);
-        let body = String::from_utf8(state_err_404.response_body).unwrap();
-        assert!(body.contains("Generic error page: 404"));
+        let plugin_ctx = init_fn(params_cstring.as_ptr(), &api as *const CoreHostApi, OX_WORKFLOW_ABI_VERSION);
+        assert!(!plugin_ctx.is_null());
 
-        // Test OK status (should be unmodified)
-        let mut state_ok = create_stub_pipeline_state();
-        state_ok.status_code = 200;
-        let result_ok = (module_interface.handler_fn)(
-            module_interface.instance_ptr, 
-            &mut state_ok, 
-            mock_log, 
-            mock_alloc_raw, 
-            &state_ok.arena as *const Bump as *const c_void
-        );
-        assert_eq!(result_ok.status, ModuleStatus::Unmodified);
+        // Test with 500 status
+        let task_ctx = create_task_state();
+        set_mock_field(task_ctx, "response.status", "500");
+        set_mock_field(task_ctx, "request.method", "GET");
+        set_mock_field(task_ctx, "request.path", "/error");
+        let result = process_fn(plugin_ctx, task_ctx);
+        assert_eq!(result.code, FLOW_CONTROL_CONTINUE);
+        let body = get_mock_field(task_ctx, "response.body").unwrap_or_default();
+        assert!(body.contains("Error page: 500"), "body was: {}", body);
+        drop_task_state(task_ctx);
 
-         // Clean up (Box takes ownership so it drops when out of scope, but since we constructed from raw, we need to be careful. 
-         // In test scope it's fine, typically we'd have a destroy function).
+        // Test with 404 status (falls back to index.jinja2)
+        let task_ctx = create_task_state();
+        set_mock_field(task_ctx, "response.status", "404");
+        set_mock_field(task_ctx, "request.path", "/notfound");
+        let result = process_fn(plugin_ctx, task_ctx);
+        assert_eq!(result.code, FLOW_CONTROL_CONTINUE);
+        let body = get_mock_field(task_ctx, "response.body").unwrap_or_default();
+        assert!(body.contains("Generic error page: 404"), "body was: {}", body);
+        drop_task_state(task_ctx);
+
+        // Test OK status (should not modify body)
+        let task_ctx = create_task_state();
+        set_mock_field(task_ctx, "response.status", "200");
+        let result = process_fn(plugin_ctx, task_ctx);
+        assert_eq!(result.code, FLOW_CONTROL_CONTINUE);
+        assert!(get_mock_field(task_ctx, "response.body").unwrap_or_default().is_empty());
+        drop_task_state(task_ctx);
+
+        destroy_fn(plugin_ctx);
     }
 }

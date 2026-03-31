@@ -115,7 +115,7 @@ pub fn render_standard_module(module: &schema::ModuleSchema, form_id: &str, prop
 }
 // --- FFI Exports ---
 use std::ffi::{CString, CStr};
-use ox_webservice_api::AllocStrFn;
+type AllocStrFn = unsafe extern "C" fn(*const c_void, *const c_char) -> *mut c_char;
 use libc::{c_void, c_char};
 
 #[no_mangle]

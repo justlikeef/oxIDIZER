@@ -11,7 +11,7 @@ read -r -a PORTS <<< "$PORTS_STR"
 BASE_PORT=${PORTS[0]}
 
 # Setup
-source "/var/repos/oxIDIZER/functional_tests/common/log_function.sh"
+source "/var/repos/oxIDIZER/systems_tests/common/log_function.sh"
 TEST_DIR=$(dirname "$(readlink -f "$0")")
 TEST_WORKSPACE_DIR="/var/repos/oxIDIZER"
 
@@ -35,9 +35,6 @@ modules:
     path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_package_manager.so"
     staging_directory: "$TEST_DIR/staging"
     manifests_directory: "$TEST_DIR/installed"
-  - id: ox_pipeline_router
-    name: ox_pipeline_router
-    path: "$TEST_WORKSPACE_DIR/target/$TARGET/libox_pipeline_router.so"
 
 servers:
   - id: "default_http"
@@ -47,18 +44,21 @@ servers:
     hosts:
       - name: "localhost"
 
-pipeline:
-  phases:
-    - Content: "ox_pipeline_router"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
 
 routes:
   - url: "^/packages/upload/?"
     module_id: "package_manager"
-    phase: Content
     priority: 450
   - url: "^/packages/(list|install|uninstall)(/.*)?$"
     module_id: "package_manager"
-    phase: Content
     priority: 450
 EOF
 

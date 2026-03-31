@@ -1,4 +1,4 @@
-content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/content/www/"
+content_root: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/content/www/status/"
 mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
 default_documents:
   - document: "index.html"
