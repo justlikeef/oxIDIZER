@@ -11,8 +11,8 @@ import sys
 import json
 
 
-async def test_ws_ping(port: int):
-    uri = f"ws://127.0.0.1:{port}/ws/ping/"
+async def test_ws_ping(port: int, host: str = "127.0.0.1"):
+    uri = f"ws://{host}:{port}/ping/"
     print(f"Connecting to {uri}")
 
     try:
@@ -48,6 +48,8 @@ async def test_ws_ping(port: int):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 ws_ping_client.py <port>")
+        print("Usage: python3 ws_ping_client.py <port> [host]")
         sys.exit(1)
-    asyncio.run(test_ws_ping(int(sys.argv[1])))
+    port = int(sys.argv[1])
+    host = sys.argv[2] if len(sys.argv) > 2 else "127.0.0.1"
+    asyncio.run(test_ws_ping(port, host))

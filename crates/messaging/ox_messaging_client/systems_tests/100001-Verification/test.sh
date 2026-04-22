@@ -58,8 +58,10 @@ log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
 modules:
   - id: messaging_mqtt
     name: ox_messaging_mqtt
+    phase: Content
     path: "$WORKSPACE_DIR/target/$TARGET/libox_messaging_mqtt.so"
-    config_file: "$SCRIPT_DIR/conf/broker.runtime.yaml"
+    params:
+      config_file: "$SCRIPT_DIR/conf/broker.runtime.yaml"
 
 servers:
   - id: "default_http"
@@ -68,6 +70,11 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
+
+routes:
+  - url: "/mqtt_dummy"
+    module_id: "messaging_mqtt"
+    phase: Content
 
 workflow:
   name: "ox_webservice"

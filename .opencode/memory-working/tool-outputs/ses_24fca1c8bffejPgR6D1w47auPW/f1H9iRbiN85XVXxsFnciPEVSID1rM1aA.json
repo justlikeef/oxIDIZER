@@ -1,0 +1,7 @@
+{
+  "callID": "f1H9iRbiN85XVXxsFnciPEVSID1rM1aA",
+  "sessionID": "ses_24fca1c8bffejPgR6D1w47auPW",
+  "tool": "read",
+  "fullOutput": "<path>/home/justlikeef/.config/opencode/AGENTS.md</path>\n<type>file</type>\n<content>\n1: # Agent Instructions\n2: \n3: This is the OpenCode config directory (`~/.config/opencode`). It is not a typical code repository.\n4: \n5: ## Structure\n6: \n7: - **opencode.json**: OpenCode provider configuration (Ollama at `192.168.99.136:13305`)\n8: - **package.json**: Dependencies for the Ollama plugin\n9: - **.gitignore**: Tracks ignored files (e.g., `opencode/` session storage)\n10: \n11: ## Key Facts\n12: \n13: - The Ollama server runs at `http://192.168.99.136:13305/api/v1`\n14: - Default model: `Qwen3.5-35B-A3B-GGUF`\n15: - Plugin: `@opencode-ai/plugin@1.4.3`\n16: \n17: ## Commands\n18: \n19: No build/test/lint commands apply. This directory holds runtime configuration only.\n\n(End of file - total 19 lines)\n</content>",
+  "timestamp": 1776777998802
+}

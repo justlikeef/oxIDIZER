@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use ox_type_converter::{ValueType, TypeConverter, CONVERSION_REGISTRY};
+use ox_callback_manager::{ CALLBACK_MANAGER, EventType };
 use std::any::{Any, TypeId};
 use uuid::Uuid;
 
@@ -80,9 +81,6 @@ impl GenericDataObject {
         object
     }
 
-    /// Get a value from the attributes HashMap.
-    /// This function calls BeforeGet and AfterGet callbacks.
-    /// Get a value from the attributes HashMap.
     pub fn get<T: Clone + 'static + Default>(&self, identifier: &str) -> Option<T>
     where
         T: Any + Clone,
@@ -107,9 +105,6 @@ impl GenericDataObject {
         }
     }
 
-    /// Set a value in the attributes HashMap
-    /// Set a value in the attributes HashMap.
-    /// Returns the old `AttributeValue` if an attribute was replaced, or `None` otherwise.
     pub fn set<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T) -> Option<AttributeValue> {
         let value_type = TypeConverter::infer_value_type(&value);
         self.set_with_type(identifier, value, value_type, None)
@@ -131,7 +126,65 @@ impl GenericDataObject {
         self.attributes.insert(identifier.to_string(), new_attr_value)
     }
 
+    pub fn get_mut<T: Clone + 'static + Default>(&mut self, identifier: &str) -> Option<T>
+    where
+        T: Any + Clone,
+    {
+        let id_owned = identifier.to_string();
+        let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(
+            &EventType::new("BeforeGet"),
+            self,
+            &[&id_owned],
+        );
 
+        let attr_value = self.attributes.get(identifier)?;
+
+        let result = if let Some(value) = attr_value.get_value::<T>() {
+            Some(value)
+        } else {
+            let string_value = attr_value.to_string();
+            let target_type = TypeConverter::infer_value_type(&T::default());
+            let registry = CONVERSION_REGISTRY.lock().unwrap();
+            match registry.convert_with_specific_converter(
+                &attr_value.value_type.as_str(),
+                &target_type.as_str(),
+                &string_value,
+                &attr_value.value_type_parameters
+            ) {
+                Ok(value) => value.downcast_ref::<T>().cloned(),
+                Err(_) => None,
+            }
+        };
+
+        let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(
+            &EventType::new("AfterGet"),
+            self,
+            &[&id_owned],
+        );
+
+        result
+    }
+
+    pub fn set_mut<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T) -> Option<AttributeValue> {
+        let id_owned = identifier.to_string();
+        let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(
+            &EventType::new("BeforeSet"),
+            self,
+            &[&id_owned],
+        );
+
+        let value_type = TypeConverter::infer_value_type(&value);
+        let new_attr_value = AttributeValue::new(value, value_type);
+        let result = self.attributes.insert(identifier.to_string(), new_attr_value);
+
+        let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(
+            &EventType::new("AfterSet"),
+            self,
+            &[&id_owned],
+        );
+
+        result
+    }
 
     // --- Other methods ---
 
@@ -157,6 +210,11 @@ impl GenericDataObject {
 
     pub fn len(&self) -> usize {
         self.attributes.len()
+    }
+
+    pub fn register_callback(&mut self, event_type: EventType, callback: ox_callback_manager::CallbackFn) {
+        let mut manager = CALLBACK_MANAGER.lock().unwrap();
+        manager.register_callback(event_type, callback);
     }
 
     pub fn is_empty(&self) -> bool {

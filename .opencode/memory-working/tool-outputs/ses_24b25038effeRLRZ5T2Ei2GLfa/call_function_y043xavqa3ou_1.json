@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_y043xavqa3ou_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/lib.rs</path>\n<type>file</type>\n<content>\n1: pub mod plugin_registry;\n2: \n3: use ox_workflow_abi::{\n4:     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, FLOW_CONTROL_ERROR,\n5:     FLOW_CONTROL_JUMP, FLOW_CONTROL_SKIP, FLOW_CONTROL_YIELD,\n6: };\n7: use ox_workflow_core::{Task, TaskStatus, FlowDef, StageDef};\n8: use std::collections::HashMap;\n9: use std::ffi::{c_char, c_void, CStr, CString};\n10: use std::sync::Arc;\n11: use crate::plugin_registry::{PluginInstance, LoadedPlugin, PluginError};\n12: use ox_workflow_core::HistoryRecord;\n13: \n14: pub struct StageRunner {\n15:     pub name: String,\n16:     pub on_error_target: Option<String>,\n17:     pub plugins: Vec<PluginInstance>,\n18: }\n19: \n20: impl StageRunner {\n\n(Showing lines 1-20 of 688. Use offset=21 to continue.)\n</content>",
+  "timestamp": 1776856636990
+}

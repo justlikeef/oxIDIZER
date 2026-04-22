@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_zb4xnz9geoyi_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "bash",
+  "fullOutput": "    Checking ox_data_object v0.1.0 (/var/repos/oxIDIZER/crates/data/ox_data_object)\nerror[E0599]: no method named `trigger_system_event` found for struct `CALLBACK_MANAGER` in the current scope\n  --> crates/data/ox_data_object/src/lib.rs:92:34\n   |\n92 |         let _ = CALLBACK_MANAGER.trigger_system_event(EventType::new(\"BeforeGet\"), before_params);\n   |                                  ^^^^^^^^^^^^^^^^^^^^ method not found in `CALLBACK_MANAGER`\n\nerror[E0599]: no method named `trigger_system_event` found for struct `CALLBACK_MANAGER` in the current scope\n   --> crates/data/ox_data_object/src/lib.rs:116:38\n    |\n116 |             let _ = CALLBACK_MANAGER.trigger_system_event(EventType::new(\"AfterGet\"), after_params);\n    |                                      ^^^^^^^^^^^^^^^^^^^^ method not found in `CALLBACK_MANAGER`\n\nerror[E0599]: no method named `trigger_system_event` found for struct `CALLBACK_MANAGER` in the current scope\n   --> crates/data/ox_data_object/src/lib.rs:145:34\n    |\n145 |         let _ = CALLBACK_MANAGER.trigger_system_event(EventType::new(\"AfterSet\"), after_params);\n    |                                  ^^^^^^^^^^^^^^^^^^^^ method not found in `CALLBACK_MANAGER`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `ox_data_object` (lib) due to 3 previous errors\n",
+  "timestamp": 1776699804778
+}

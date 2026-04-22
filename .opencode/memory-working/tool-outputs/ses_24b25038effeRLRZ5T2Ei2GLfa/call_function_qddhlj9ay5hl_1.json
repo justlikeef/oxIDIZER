@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_qddhlj9ay5hl_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/build.rs</path>\n<type>file</type>\n<content>\n1: use std::env;\n2: \n3: fn main() {\n4:     let crate_dir = env::var(\"CARGO_MANIFEST_DIR\").unwrap();\n5:     cbindgen::Builder::new()\n6:         .with_crate(crate_dir)\n7:         .with_language(cbindgen::Language::C)\n8:         .generate()\n9:         .expect(\"Unable to generate bindings\")\n10:         .write_to_file(\"ox_workflow_abi.h\");\n11: }\n\n(End of file - total 11 lines)\n</content>",
+  "timestamp": 1776858243726
+}

@@ -172,34 +172,40 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
         let servers = server_details.hosts.clone();
 
         let app = Router::new()
-            .route("/ws/*path", axum::routing::get({
-                let flow_holder_server = flow_holder_server.clone();
-                let protocol_clone = protocol.clone();
-                move |ws: axum::extract::WebSocketUpgrade, axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<SocketAddr>, axum::extract::Path(path): axum::extract::Path<String>| async move {
-                    let flow_arc = flow_holder_server.read().await.clone();
-                    let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
-                    ws.on_upgrade(move |socket| async move {
-                        flow_arc.handle_socket(socket, addr, path, ws_protocol).await;
-                    })
-                }
-            }))
+
             .route("/", axum::routing::any({
                 let flow_holder_server = flow_holder_server.clone();
                 let protocol_clone = protocol.clone();
-                move |req: Request<Body>| async move {
+                move |ws: Option<axum::extract::ws::WebSocketUpgrade>, req: Request<Body>| async move {
                     let flow_arc = flow_holder_server.read().await.clone();
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
+                    
+                    if let Some(ws_upgrade) = ws {
+                        let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
+                        return ws_upgrade.on_upgrade(move |socket| async move {
+                            flow_arc.handle_socket(socket, connect_info, "".to_string(), ws_protocol).await;
+                        });
+                    }
+                    
                     flow_arc.execute_request(connect_info, req, protocol_clone).await
                 }
             }))
             .route("/*path", axum::routing::any({
                 let flow_holder_server = flow_holder_server.clone();
                 let protocol_clone = protocol.clone();
-                move |req: Request<Body>| async move {
+                move |ws: Option<axum::extract::ws::WebSocketUpgrade>, axum::extract::Path(path): axum::extract::Path<String>, req: Request<Body>| async move {
                     let flow_arc = flow_holder_server.read().await.clone();
                     let connect_info = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|ci| ci.0).unwrap_or(SocketAddr::from(([0, 0, 0, 0], 0)));
                     let protocol_clone = protocol_clone.clone();
+                    
+                    if let Some(ws_upgrade) = ws {
+                        let ws_protocol = if protocol_clone == "https" { "WSS".to_string() } else { "WS".to_string() };
+                        return ws_upgrade.on_upgrade(move |socket| async move {
+                            flow_arc.handle_socket(socket, connect_info, path, ws_protocol).await;
+                        });
+                    }
+                    
                     flow_arc.execute_request(connect_info, req, protocol_clone).await
                 }
             }))

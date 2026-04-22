@@ -38,6 +38,7 @@ servers:
       - name: "*"
 
 log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
+merge: "$WORKSPACE_DIR/conf/service/active/base.yaml"
 
 logging:
   level: "debug"

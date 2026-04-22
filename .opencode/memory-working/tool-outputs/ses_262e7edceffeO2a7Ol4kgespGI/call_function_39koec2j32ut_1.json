@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_39koec2j32ut_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_data_object/src/lib.rs</path>\n<type>file</type>\n<content>\n165:         result\n166:     }\n167: \n168:     pub fn set_mut<T: Any + Send + Sync + Clone + 'static>(&mut self, identifier: &str, value: T) -> Option<AttributeValue> {\n169:         let id_owned = identifier.to_string();\n170:         let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(\n171:             &EventType::new(\"BeforeSet\"),\n172:             self,\n173:             &[&id_owned],\n174:         );\n175: \n176:         let value_type = TypeConverter::infer_value_type(&value);\n177:         let mut new_attr_value = AttributeValue::new(value, value_type);\n178:         let result = self.attributes.insert(identifier.to_string(), new_attr_value);\n179: \n180:         let _ = CALLBACK_MANAGER.lock().unwrap().trigger_callbacks(\n181:             &EventType::new(\"AfterSet\"),\n182:             self,\n183:             &[&id_owned],\n184:         );\n\n(Showing lines 165-184 of 328. Use offset=185 to continue.)\n</content>",
+  "timestamp": 1776701188882
+}

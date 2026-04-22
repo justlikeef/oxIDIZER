@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_5fg6ys7rs9w2_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "bash",
+  "fullOutput": "    Checking ox_data_object v0.1.0 (/var/repos/oxIDIZER/crates/data/ox_data_object)\nwarning: variable does not need to be mutable\n   --> crates/data/ox_data_object/src/lib.rs:177:13\n    |\n177 |         let mut new_attr_value = AttributeValue::new(value, value_type);\n    |             ----^^^^^^^^^^^^^^\n    |             |\n    |             help: remove this `mut`\n    |\n    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default\n\nwarning: variable `idOwned` should have a snake case name\n   --> crates/data/ox_data_object/src/lib.rs:133:13\n    |\n133 |         let idOwned = identifier.to_string();\n    |             ^^^^^^^ help: convert the identifier to snake case: `id_owned`\n    |\n    = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default\n\nwarning: variable `idOwned` should have a snake case name\n   --> crates/data/ox_data_object/src/lib.rs:169:13\n    |\n169 |         let idOwned = identifier.to_string();\n    |             ^^^^^^^ help: convert the identifier to snake case: `id_owned`\n\nwarning: `ox_data_object` (lib) generated 3 warnings (run `cargo fix --lib -p ox_data_object` to apply 1 suggestion)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s\n",
+  "timestamp": 1776700876423
+}

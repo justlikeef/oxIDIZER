@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_mkjyjtmr4fsp_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "  |\n  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\nerror[E0505]: cannot move out of `lib` because it is borrowed\n  --> crates/workflow/ox_workflow_executor/src/plugin_registry.rs:84:23\n   |\n68 |             let lib = Library::new(path)?;\n   |                 --- binding `lib` declared here\n69 |             let init_fn: libloading::Symbol<OxPluginInitFn> = lib.get(b\"ox_plugin_init\\0\")?;\n   |                                                               --- borrow of `lib` occurs here\n...\n84 |                 _lib: lib,\n",
+  "timestamp": 1776857272788
+}

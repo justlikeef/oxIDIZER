@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_6sw5hv5fugnf_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs</path>\n<type>file</type>\n<content>\n30:     pub optional_deps: Vec<String>,\n31: }\n32: \n33: impl PluginConfig {\n34:     pub fn from_json(json: &str) -> Option<Self> {\n35:         let v: serde_json::Value = serde_json::from_str(json).ok()?;\n36:         Some(Self {\n37:             path: v.get(\"path\")?.as_str()?.to_string(),\n38:             depends_on: v.get(\"depends_on\")?\n39:                 .as_array()?\n40:                 .iter()\n41:                 .filter_map(|x| x.as_str().map(String::from))\n42:                 .collect(),\n43:             optional_deps: v.get(\"optional_deps\")?\n44:                 .as_array()?\n45:                 .iter()\n46:                 .filter_map(|x| x.as_str().map(String::from))\n47:                 .collect(),\n48:         })\n49:     }\n50: }\n51: \n52: pub struct LoadedPlugin {\n53:     _lib: Library,\n54:     init_fn: OxPluginInitFn,\n55:     negotiate_fn: Option<OxPluginNegotiateFn>,\n56:     process_fn: OxPluginProcessFn,\n57:     error_fn: OxPluginErrorFn,\n58:     destroy_fn: OxPluginDestroyFn,\n59:     capabilities: Option<PluginCapabilities>,\n\n(Showing lines 30-59 of 161. Use offset=60 to continue.)\n</content>",
+  "timestamp": 1776856997026
+}

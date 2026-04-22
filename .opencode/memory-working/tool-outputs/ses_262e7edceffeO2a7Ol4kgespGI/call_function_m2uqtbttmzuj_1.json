@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_m2uqtbttmzuj_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_data_object/src/lib.rs</path>\n<type>file</type>\n<content>\n195:     pub fn get_raw_value<T: Any + Clone>(&self, identifier: &str) -> Option<T> {\n196:         self.attributes.get(identifier)?.get_value::<T>()\n197:     }\n198: \n199:     pub fn has_attribute(&self, identifier: &str) -> bool {\n200:         self.attributes.contains_key(identifier)\n201:     }\n202: \n203:     pub fn remove_attribute(&mut self, identifier: &str) -> Option<AttributeValue> {\n204:         self.attributes.remove(identifier)\n205:     }\n206: \n207:     pub fn get_attribute_names(&self) -> Vec<&String> {\n208:         self.attributes.keys().collect()\n209:     }\n210: \n211:     pub fn len(&self) -> usize {\n212:         self.attributes.len()\n213:     }\n214: \n215:     pub fn is_empty(&self) -> bool {\n216:         self.attributes.is_empty()\n217:     }\n218:     \n219:     pub fn to_serializable_map(&self) -> HashMap<String, (String, ValueType, HashMap<String, String>)> {\n220:         self.attributes.iter().map(|(k, v)| {\n221:             let coerced_value = TypeConverter::coerce_string(&v.to_string(), &v.value_type);\n222:             (k.clone(), (coerced_value, v.value_type.clone(), v.value_type_parameters.clone()))\n223:         }).collect()\n224:     }\n\n(Showing lines 195-224 of 323. Use offset=225 to continue.)\n</content>",
+  "timestamp": 1776701149758
+}

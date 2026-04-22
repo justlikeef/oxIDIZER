@@ -1,0 +1,7 @@
+{
+  "callID": "yEh3ZMJi1pYTBtHoutW7v85zL1D7zzKM",
+  "sessionID": "ses_25010acd7ffe1uqOhFm6Y4zv7y",
+  "tool": "bash",
+  "fullOutput": "Cargo.lock*\nCargo.toml\nLICENSE*\nREADME.md\nTODO.md*\nconf/\ncontent/\ncrates/\ndocs/\nimages/\nlogo/\nlogs/\nnode_modules/\nox_package_manager/\nox_webservice.log\npackage-lock.json\npackage.json\npkg/\nsample_projects/\nscratch.rs\nscratch_ws_test.rs\nscripts/\ntarget/\ntest_assets/\ntest_log.log\ntest_ox_webservice.txt\ntest_plugins/\ntestrunout.log\ntests/\n",
+  "timestamp": 1776777553549
+}

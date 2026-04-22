@@ -1,0 +1,7 @@
+{
+  "callID": "9ZCecr9GfPxhY3JamIyy6nbvEtnuuuD9",
+  "sessionID": "ses_2543d2710ffeL76Tx372LwZdGv",
+  "tool": "task",
+  "fullOutput": "Background task launched.\n\nBackground Task ID: bg_c6fa1506\nDescription: Find the location of\nAgent: explore\nStatus: pending\n\nSystem notifies on completion. Use `background_output` with task_id=\"bg_c6fa1506\" to check.\n\nDo NOT call background_output now. Wait for <system-reminder> notification first.\n\n<task_metadata>\nsession_id: ses_25416b05fffeZV7e1ZsfRhEuPF\ntask_id: bg_c6fa1506\nbackground_task_id: bg_c6fa1506\n</task_metadata>\n\nto continue: task(session_id=\"ses_25416b05fffeZV7e1ZsfRhEuPF\", load_skills=[], run_in_background=false, prompt=\"...\")",
+  "timestamp": 1776705687564
+}

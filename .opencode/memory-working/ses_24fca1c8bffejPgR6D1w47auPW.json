@@ -1,0 +1,63 @@
+{
+  "sessionID": "ses_24fca1c8bffejPgR6D1w47auPW",
+  "slots": {
+    "error": [],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1776778396568_r91x0lr",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/README.md",
+      "source": "tool:glob",
+      "timestamp": 1776778443862,
+      "relevanceScore": 5.98153553646077,
+      "mentions": 2,
+      "lastEventCounter": 21
+    },
+    {
+      "id": "wm_1776777998808_tmwp8pf",
+      "type": "file-path",
+      "content": "/home/justlikeef/.config/opencode/AGENTS.md",
+      "source": "tool:read",
+      "timestamp": 1776777998808,
+      "relevanceScore": 3.242894427469466,
+      "mentions": 1,
+      "lastEventCounter": 21
+    },
+    {
+      "id": "wm_1776777998809_o8ah4kh",
+      "type": "file-path",
+      "content": "opencode.js",
+      "source": "tool:read",
+      "timestamp": 1776777998808,
+      "relevanceScore": 3.2269346205523135,
+      "mentions": 1,
+      "lastEventCounter": 21
+    },
+    {
+      "id": "wm_1776777998809_9ri0n67",
+      "type": "file-path",
+      "content": "package.js",
+      "source": "tool:read",
+      "timestamp": 1776777998808,
+      "relevanceScore": 3.2081583771203688,
+      "mentions": 1,
+      "lastEventCounter": 21
+    },
+    {
+      "id": "wm_1776778396567_5u5joo5",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/which/README.md",
+      "source": "tool:glob",
+      "timestamp": 1776778396567,
+      "relevanceScore": 3.18606867896514,
+      "mentions": 1,
+      "lastEventCounter": 21
+    }
+  ],
+  "eventCounter": 21,
+  "updatedAt": "2026-04-21T23:56:10.260Z"
+}

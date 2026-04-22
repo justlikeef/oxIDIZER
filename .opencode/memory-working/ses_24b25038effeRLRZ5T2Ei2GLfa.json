@@ -1,0 +1,391 @@
+{
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1776858925964_b3qo2it",
+        "type": "error",
+        "content": "error[E0308]: mismatched types",
+        "source": "tool:bash",
+        "timestamp": 1776858925963,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1776858910449_yuknryj",
+        "type": "error",
+        "content": "90 |     pub fn process(&mut self, task_ctx: i32) -> Result<FlowControl, WasmPluginError> {",
+        "source": "tool:bash",
+        "timestamp": 1776858910441,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1776858910450_63l0h0v",
+        "type": "error",
+        "content": "For more information about this error, try `rustc --explain E0308`.",
+        "source": "tool:bash",
+        "timestamp": 1776858910441,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1776855786418_6pwunuq",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs",
+      "source": "tool:read",
+      "timestamp": 1776857142029,
+      "relevanceScore": 15.350941036403828,
+      "mentions": 10,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776856725249_5gw8chi",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs",
+      "source": "tool:read",
+      "timestamp": 1776858799738,
+      "relevanceScore": 10.383667291730635,
+      "mentions": 8,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768459_53o453s",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/lib.rs",
+      "source": "tool:glob",
+      "timestamp": 1776858857975,
+      "relevanceScore": 9.717940930934713,
+      "mentions": 7,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855795289_vvl5bqh",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776858209506,
+      "relevanceScore": 6.10868140404346,
+      "mentions": 4,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776856311328_3mgt474",
+      "type": "file-path",
+      "content": "Modified: /var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/lib.rs",
+      "source": "tool:edit",
+      "timestamp": 1776856348794,
+      "relevanceScore": 4.6089916995158635,
+      "mentions": 3,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762673_kp19ubr",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/package.js",
+      "source": "tool:glob",
+      "timestamp": 1776855768385,
+      "relevanceScore": 3.072667307784595,
+      "mentions": 2,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768458_l4byow5",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice/src/lib.rs",
+      "source": "tool:glob",
+      "timestamp": 1776855786275,
+      "relevanceScore": 3.072666776819974,
+      "mentions": 2,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768457_2m42961",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/registry.rs",
+      "source": "tool:glob",
+      "timestamp": 1776855801492,
+      "relevanceScore": 3.0726653106826887,
+      "mentions": 2,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776858241580_r5sz6a4",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/build.rs",
+      "source": "tool:glob",
+      "timestamp": 1776858243727,
+      "relevanceScore": 2.936262344096934,
+      "mentions": 2,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776858199205_488nxij",
+      "type": "file-path",
+      "content": "Modified: /var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/sdk.rs",
+      "source": "tool:write",
+      "timestamp": 1776858199200,
+      "relevanceScore": 1.5533342935043506,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762222_he5x77h",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/shebang-regex/readme.md",
+      "source": "tool:glob",
+      "timestamp": 1776855762222,
+      "relevanceScore": 1.5363337577589138,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762223_ke2t8rk",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/which/README.md",
+      "source": "tool:glob",
+      "timestamp": 1776855762222,
+      "relevanceScore": 1.5363337561164292,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762228_dne2cwg",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/which/CHANGELOG.md",
+      "source": "tool:glob",
+      "timestamp": 1776855762222,
+      "relevanceScore": 1.5363337541840945,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762228_yzjnes5",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/path-key/readme.md",
+      "source": "tool:glob",
+      "timestamp": 1776855762222,
+      "relevanceScore": 1.5363337519107594,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762229_7iuqjys",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/cross-spawn/README.md",
+      "source": "tool:glob",
+      "timestamp": 1776855762222,
+      "relevanceScore": 1.5363337492362479,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762320_98um2mm",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/.opencode/memory-working/ses_24b25038effeRLRZ5T2Ei2GLfa.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762320,
+      "relevanceScore": 1.5363337460897635,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762320_ai2itz8",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/.opencode/memory-working/ses_24b25038effeRLRZ5T2Ei2GLfa_pressure.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762320,
+      "relevanceScore": 1.536333742388017,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762321_pshiwjl",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/.opencode/memory-working/ses_24b381e9bffeuJRVBY4gT0kbZO_pressure.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762320,
+      "relevanceScore": 1.5363337380330215,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762321_i2r3808",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/.opencode/memory-working/ses_24d842df8ffecXvHEut7dv13Y0_pressure.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762320,
+      "relevanceScore": 1.5363337329094973,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762321_8yabdr9",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/.opencode/memory-working/ses_24d842df8ffecXvHEut7dv13Y0_compaction.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762320,
+      "relevanceScore": 1.5363337268818216,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762679_ykaa83p",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/which/package.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762673,
+      "relevanceScore": 1.536333711447635,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762679_fqanrew",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/cross-spawn/package.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762673,
+      "relevanceScore": 1.5363337016325718,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762680_ibp94uo",
+      "type": "file-path",
+      "content": "opencode-ai/sdk/package.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762673,
+      "relevanceScore": 1.5363336900854385,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855762680_3w19qis",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/node_modules/path-key/package.js",
+      "source": "tool:glob",
+      "timestamp": 1776855762673,
+      "relevanceScore": 1.5363336765005764,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768014_ggfmu1o",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/README.md",
+      "source": "tool:read",
+      "timestamp": 1776855768007,
+      "relevanceScore": 1.536333660518385,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768015_v9hks5b",
+      "type": "file-path",
+      "content": "README.md",
+      "source": "tool:read",
+      "timestamp": 1776855768007,
+      "relevanceScore": 1.5363336417158076,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768458_4bvim5e",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice/src/main.rs",
+      "source": "tool:glob",
+      "timestamp": 1776855768457,
+      "relevanceScore": 1.5363335629539412,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855768458_uz8sr9v",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/src/lib.rs",
+      "source": "tool:glob",
+      "timestamp": 1776855768457,
+      "relevanceScore": 1.536333526934108,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855786637_gdlbhc1",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/ox_persistence/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776855786627,
+      "relevanceScore": 1.5363332258687998,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855786677_w3ztu5r",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/forms/ox_forms/src/traits.rs",
+      "source": "tool:read",
+      "timestamp": 1776855786677,
+      "relevanceScore": 1.5363331303633543,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855795787_tskzkwm",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/cc/ox_cc_broker_plugin/src/plugin.rs",
+      "source": "tool:read",
+      "timestamp": 1776855795782,
+      "relevanceScore": 1.5363328858165382,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855798452_o95ffan",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice_api/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776855798451,
+      "relevanceScore": 1.53633273030187,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855798827_higa2lm",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice_router/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776855798826,
+      "relevanceScore": 1.5363325473434364,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776855798857_dx1lh66",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776855798857,
+      "relevanceScore": 1.5363323320982207,
+      "mentions": 1,
+      "lastEventCounter": 120
+    },
+    {
+      "id": "wm_1776858293705_1g9m8pv",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/ABI_CONTRACT.md",
+      "source": "tool:read",
+      "timestamp": 1776858293699,
+      "relevanceScore": 1.4387133541452515,
+      "mentions": 1,
+      "lastEventCounter": 120
+    }
+  ],
+  "eventCounter": 129,
+  "updatedAt": "2026-04-22T11:55:25.964Z"
+}

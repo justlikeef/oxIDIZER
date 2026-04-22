@@ -1,4 +1,22 @@
-# oxWorkflow Plugin ABI Contract
+# OX Workflow Plugin ABI Contract
+
+## Version: 3
+
+All plugins and host functions conform to `OX_WORKFLOW_ABI_VERSION = 3`. Plugins must verify the host ABI version during initialization.
+
+## Required Exports
+
+Every plugin MUST export:
+
+| Function | Signature | Required |
+|----------|----------|---------|
+| `ox_plugin_init` | `void*(const char*, const CoreHostApi*, u32)` | Yes |
+| `ox_plugin_process` | `FlowControl(void*, void*)` | Yes |
+| `ox_plugin_error` | `void(void*, void*)` | No |
+| `ox_plugin_destroy` | `void(void*)` | No |
+| `ox_plugin_negotiate` | `PluginCapabilities*(u32)` | No |
+| `alloc` | `u32(u32)` | For WASM |
+| `dealloc` | `void(u32)` | For WASM |
 
 ## Versioning
 All plugins and host functions conform to the `OX_WORKFLOW_ABI_VERSION` defined in this repository. Plugins must verify the host ABI version during initialization.

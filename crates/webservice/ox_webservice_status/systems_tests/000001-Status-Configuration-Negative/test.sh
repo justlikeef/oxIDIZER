@@ -45,6 +45,7 @@ if [ "$MODE" == "isolated" ]; then
   # Dynamic Config
   mkdir -p "$TEST_DIR/conf"
   cat <<EOF > "$TEST_DIR/conf/ox_webservice_1.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
 modules:
   - id: status_module
@@ -93,6 +94,7 @@ EOF
 
   # Case 2: Missing 'config_file' param
   cat <<EOF > "$TEST_DIR/conf/ox_webservice_2.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
 modules:
   - id: status_module
@@ -140,6 +142,7 @@ EOF
 
   # Case 3: Invalid 'config_file' param type (int)
   cat <<EOF > "$TEST_DIR/conf/ox_webservice_3.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
 modules:
   - id: status_module

@@ -1,9 +1,10 @@
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"
 log4rs_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/000003-ConfigInvalid/conf/log4rs.yaml"
 mimetypes_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/systems_tests/000003-ConfigInvalid/conf/mimetypes.yaml"
 servers:
   - id: default
     protocol: http
-    port: 3066
+    port: 3065
     bind_address: 0.0.0.0
     hosts:
       - name: ".*"

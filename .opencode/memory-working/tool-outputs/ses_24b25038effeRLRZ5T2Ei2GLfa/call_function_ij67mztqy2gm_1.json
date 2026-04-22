@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_ij67mztqy2gm_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error[E0382]: use of partially moved value: `negotiate_fn`\n  --> crates/workflow/ox_workflow_executor/src/plugin_registry.rs:90:27\n   |\n76 |         let capabilities = if let Some(neg_fn) = negotiate_fn {\n",
+  "timestamp": 1776857112934
+}

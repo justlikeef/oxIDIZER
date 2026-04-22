@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_11ckblybgh0a_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "  |                       ^^^^^^^^^^^                                                          ^^^^^^^^^^^^^^^^\n\nerror[E0308]: mismatched types\n   --> crates/workflow/ox_workflow_executor/src/wasm_plugin.rs:78:12\n    |\n 78 |         Ok(offset)\n    |         -- ^^^^^^ expected `u32`, found `u64`\n    |         |\n",
+  "timestamp": 1776858925957
+}

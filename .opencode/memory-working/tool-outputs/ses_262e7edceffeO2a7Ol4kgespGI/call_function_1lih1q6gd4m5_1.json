@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_1lih1q6gd4m5_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_data_object/src/lib.rs</path>\n<type>file</type>\n<content>\n115:     pub fn set_with_type<T: Any + Send + Sync + Clone + 'static>(\n116:         &mut self, \n117:         identifier: &str, \n118:         value: T, \n119:         value_type: ValueType,\n120:         parameters: Option<HashMap<String, String>>\n121:     ) -> Option<AttributeValue> {\n122:         let new_attr_value = AttributeValue::new(value, value_type);\n123:         if let Some(params) = parameters {\n124:             new_attr_value = new_attr_value.with_parameters(params);\n125:         }\n126:         self.attributes.insert(identifier.to_string(), new_attr_value)\n127:     }\n128: \n129:     pub fn get_mut<T: Clone + 'static + Default>(&mut self, identifier: &str) -> Option<T>\n\n(Showing lines 115-129 of 328. Use offset=130 to continue.)\n</content>",
+  "timestamp": 1776701193838
+}

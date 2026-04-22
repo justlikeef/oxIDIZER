@@ -11,11 +11,11 @@ modules:
     phase: Content
     priority: 50
     uris: 
-      - url: "^ping/?$"
+      - url: "^/ping/?$"
 merge: "base.yaml"
 servers:
-- protocol: http
-  port: 3036
+- protocol: http-ws
+  port: 3035
   bind_address: 0.0.0.0
   hosts:
   - name: .*

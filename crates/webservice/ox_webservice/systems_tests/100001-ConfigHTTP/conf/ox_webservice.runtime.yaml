@@ -9,7 +9,7 @@ modules:
 merge: "base.yaml"
 servers:
 - protocol: http
-  port: 3036
+  port: 3035
   bind_address: 0.0.0.0
   hosts:
   - name: .*

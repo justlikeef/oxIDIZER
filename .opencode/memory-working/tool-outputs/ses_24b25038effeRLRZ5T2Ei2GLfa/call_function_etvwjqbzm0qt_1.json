@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_etvwjqbzm0qt_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error[E0599]: no method named `ok` found for enum `Option<T>` in the current scope\nerror[E0063]: missing field `_lib` in initializer of `LoadedPlugin`\nerror: could not compile `ox_workflow_executor` (lib) due to 2 previous errors; 2 warnings emitted\n",
+  "timestamp": 1776856988298
+}

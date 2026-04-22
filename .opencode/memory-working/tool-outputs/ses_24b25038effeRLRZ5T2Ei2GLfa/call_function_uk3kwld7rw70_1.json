@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_uk3kwld7rw70_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error[E0505]: cannot move out of `lib` because it is borrowed\n  --> crates/workflow/ox_workflow_executor/src/plugin_registry.rs:84:19\n   |\n64 |         let lib = Library::new(path)?;\n   |             --- binding `lib` declared here\n65 |\n",
+  "timestamp": 1776857242737
+}

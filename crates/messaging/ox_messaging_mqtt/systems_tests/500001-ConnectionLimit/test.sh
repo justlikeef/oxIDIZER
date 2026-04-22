@@ -25,13 +25,16 @@ mkdir -p "$SCRIPT_DIR/conf"
 cat <<EOF > "$SCRIPT_DIR/conf/ox_webservice.runtime.yaml"
 log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
 
+merge: "$WORKSPACE_DIR/conf/service/active/base.yaml"
 modules:
   - id: messaging_mqtt
     name: ox_messaging_mqtt
+    phase: Content
     path: "$WORKSPACE_DIR/target/$TARGET/libox_messaging_mqtt.so"
-    broker_port: $BROKER_PORT
-    console_port: $CONSOLE_PORT
-    max_connections: 2
+    params:
+      broker_port: $BROKER_PORT
+      console_port: $CONSOLE_PORT
+      max_connections: 2
 
 servers:
   - id: "default_http"
@@ -40,6 +43,11 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
+
+routes:
+  - url: "/mqtt_dummy"
+    module_id: "messaging_mqtt"
+    phase: Content
 
 EOF
 

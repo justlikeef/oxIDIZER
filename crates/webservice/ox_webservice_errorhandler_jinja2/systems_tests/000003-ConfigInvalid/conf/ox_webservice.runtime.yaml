@@ -3,7 +3,7 @@ mimetypes_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhand
 servers:
   - id: default
     protocol: http
-    port: 3046
+    port: 3045
     bind_address: 0.0.0.0
     hosts:
       - name: ".*"

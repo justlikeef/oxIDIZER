@@ -45,6 +45,8 @@ if [ "$MODE" == "isolated" ]; then
   # Dynamic Config Generation
   mkdir -p "$TEST_DIR/conf"
   cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
+
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
 
 modules:

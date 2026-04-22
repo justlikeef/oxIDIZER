@@ -1,0 +1,24 @@
+{
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "modelID": "Gemma-4-31B-it-GGUF",
+  "providerID": "lemonade",
+  "limits": {
+    "context": 128000,
+    "output": 65536
+  },
+  "calculated": {
+    "maxOutputTokens": 32000,
+    "reserved": 20000,
+    "usable": 96000
+  },
+  "current": {
+    "totalTokens": 20884,
+    "pressure": 0.21754166666666666,
+    "level": "safe"
+  },
+  "thresholds": {
+    "moderate": 72000,
+    "high": 86400
+  },
+  "updatedAt": "2026-04-20T16:37:22.102Z"
+}

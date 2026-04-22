@@ -5,12 +5,12 @@ modules:
   - id: package_manager
     name: ox_package_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
-    staging_directory: "/tmp/ox_test_staging_615799"
+    staging_directory: "/tmp/ox_test_staging_2384548"
 
 servers:
   - id: "default_http"
     protocol: "http"
-    port: 3031
+    port: 3030
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"

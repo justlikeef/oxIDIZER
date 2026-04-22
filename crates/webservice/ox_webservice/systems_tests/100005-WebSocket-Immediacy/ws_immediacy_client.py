@@ -16,7 +16,7 @@ MAX_CONNECT_SECONDS = 2.0
 
 
 async def test_ws_immediacy(port: int):
-    uri = f"ws://127.0.0.1:{port}/ws/ping/"
+    uri = f"ws://127.0.0.1:{port}/ping/"
     print(f"Connecting to {uri}")
 
     start = time.monotonic()

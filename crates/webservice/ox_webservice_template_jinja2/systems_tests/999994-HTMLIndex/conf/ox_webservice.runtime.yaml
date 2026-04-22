@@ -15,5 +15,6 @@ servers:
 - bind_address: 127.0.0.1
   hosts:
   - name: .*
-  port: 3071
+  port: 3070
   protocol: http
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"

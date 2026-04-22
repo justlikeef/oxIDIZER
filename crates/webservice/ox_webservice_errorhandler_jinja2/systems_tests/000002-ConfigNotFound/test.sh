@@ -58,6 +58,7 @@ mimetypes:
     url: ".*[.]html$"
 EOF
   cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_DIR/conf/log4rs.yaml"
 mimetypes_config: "$TEST_DIR/conf/mimetypes.yaml"
 servers:
@@ -73,12 +74,12 @@ modules:
     path: "$TEST_WORKSPACE_DIR/target/debug/libox_webservice_errorhandler_jinja2.so"
     params:
       config_file: "$TEST_DIR/non_existent.yaml"
-    phase: Error
+    phase: ErrorHandling
     priority: 999
 routes:
   - url: ".*"
     module_id: errorhandler
-    phase: Error
+    phase: ErrorHandling
 EOF
 
   # Start the server and capture the output
@@ -119,7 +120,7 @@ EOF
     fi
 
     # Check for correct error message in the log file
-    if grep -q "Failed to read config file" "$TEST_DIR/logs/ox_webservice.log"; then
+    if grep -iq "Failed to process config file" "$TEST_DIR/logs/ox_webservice.log"; then
         log_message "$LOGGING_LEVEL" "notice" "Found read error in log"
     else
         log_message "$LOGGING_LEVEL" "error" "Did not find read error in log"

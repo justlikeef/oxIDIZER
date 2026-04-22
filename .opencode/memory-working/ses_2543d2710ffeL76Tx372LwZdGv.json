@@ -1,0 +1,91 @@
+{
+  "sessionID": "ses_2543d2710ffeL76Tx372LwZdGv",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1776722718289_853g2bw",
+        "type": "error",
+        "content": "errors.py",
+        "source": "tool:bash",
+        "timestamp": 1776722718288,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1776722718290_1k21gkg",
+        "type": "error",
+        "content": "errors.cpython-312.pyc",
+        "source": "tool:bash",
+        "timestamp": 1776722718288,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1776707619277_a4jj5dr",
+        "type": "error",
+        "content": "reproduce_upload_error.sh",
+        "source": "tool:bash",
+        "timestamp": 1776707619277,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1776731408834_6hbfyqm",
+      "type": "file-path",
+      "content": "TEST_DIR/ws_ping_client.py",
+      "source": "tool:read",
+      "timestamp": 1776731408878,
+      "relevanceScore": 4.1523365625,
+      "mentions": 2,
+      "lastEventCounter": 14
+    },
+    {
+      "id": "wm_1776731415894_alz1p1u",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/webservice/ox_webservice_ping/systems_tests/100002-WebSocket/ws_ping_client.py",
+      "source": "tool:read",
+      "timestamp": 1776731449055,
+      "relevanceScore": 2.825375,
+      "mentions": 2,
+      "lastEventCounter": 14
+    },
+    {
+      "id": "wm_1776719452980_3bnivbp",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/README.md",
+      "source": "tool:read",
+      "timestamp": 1776719452973,
+      "relevanceScore": 2.4440304900527337,
+      "mentions": 1,
+      "lastEventCounter": 14
+    },
+    {
+      "id": "wm_1776719452981_xq53tyz",
+      "type": "file-path",
+      "content": "README.md",
+      "source": "tool:read",
+      "timestamp": 1776719452973,
+      "relevanceScore": 2.3486588062890625,
+      "mentions": 1,
+      "lastEventCounter": 14
+    },
+    {
+      "id": "wm_1776731415894_jjdhwmt",
+      "type": "file-path",
+      "content": "ws_ping_client.py",
+      "source": "tool:read",
+      "timestamp": 1776731449055,
+      "relevanceScore": 2.1475,
+      "mentions": 2,
+      "lastEventCounter": 14
+    }
+  ],
+  "eventCounter": 14,
+  "updatedAt": "2026-04-21T00:30:49.056Z"
+}

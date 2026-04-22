@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_two6p6wiwqdd_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "bash",
+  "fullOutput": "    Checking ox_callback_manager v0.1.0 (/var/repos/oxIDIZER/crates/util/ox_callback_manager)\n    Checking ox_data_object v0.1.0 (/var/repos/oxIDIZER/crates/data/ox_data_object)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s\n",
+  "timestamp": 1776699946184
+}

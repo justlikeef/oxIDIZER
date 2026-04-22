@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_wexeoa9ugfnu_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/Cargo.toml</path>\n<type>file</type>\n<content>\n1: [package]\n2: name = \"ox_workflow_abi\"\n3: version = \"0.1.0\"\n4: edition = \"2021\"\n5: \n6: [dependencies]\n7: libc = \"0.2\"\n8: \n9: [build-dependencies]\n10: cbindgen = \"0.26.0\"\n\n(End of file - total 10 lines)\n</content>",
+  "timestamp": 1776858188718
+}

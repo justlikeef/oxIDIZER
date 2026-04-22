@@ -42,20 +42,40 @@ if [ "$MODE" == "isolated" ]; then
   cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
   sed -i "s/port: 3000/port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
   sed -i "s/dependency_port: 3000/dependency_port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml" # Just in case
+  
+  # Fix hardcoded target paths
+  sed -i "s|target/debug|target/$TARGET|g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+
+  # Correct the server protocol to enable WebSockets and fix the module URI.
+  sed -i 's/protocol: http/protocol: http-ws/' "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  sed -i '/- url: /s|\^ping/\?\$|\^/ping/\?\$|' "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  # Fix the module URI to match the client's request path
+  sed -i 's|ping/?|/ping/?|g' "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+
   # Start the server
   "$SCRIPTS_DIR/start_server.sh" \
     "$LOGGING_LEVEL" \
-    "debug" \
+    "$TARGET" \
     "$TEST_DIR/conf/ox_webservice.runtime.yaml" \
     "$TEST_DIR/logs/ox_webservice.log" \
     "$TEST_PID_FILE" \
     "$TEST_WORKSPACE_DIR"
 
-  # Allow the server to start
-  sleep 3
-
-  # Allow the server to start
-  sleep 3
+  # Wait for the server to be ready by polling the log file
+  log_message "$LOGGING_LEVEL" "info" "Waiting for server to start..."
+  ATTEMPTS=0
+  MAX_ATTEMPTS=10 # Wait for 10 seconds max
+  while ! grep -q "HTTP listener ready" "$TEST_DIR/logs/ox_webservice.log" 2>/dev/null; do
+    if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
+      log_message "$LOGGING_LEVEL" "error" "Server failed to start in time."
+      cat "$TEST_DIR/logs/ox_webservice.log" | while read -r line; do log_message "$LOGGING_LEVEL" "error" "  $line"; done
+      "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
+      exit $FAILED
+    fi
+    sleep 1
+    ATTEMPTS=$((ATTEMPTS + 1))
+  done
+  log_message "$LOGGING_LEVEL" "info" "Server is ready."
 
   # Setup Virtual Env for WebSocket client
   if [ ! -d "$TEST_DIR/venv" ]; then

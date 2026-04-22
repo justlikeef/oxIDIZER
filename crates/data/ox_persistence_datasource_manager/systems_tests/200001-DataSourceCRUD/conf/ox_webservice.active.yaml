@@ -4,7 +4,8 @@ modules:
   - id: data_source_manager
     name: ox_persistence_datasource_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_persistence_datasource_manager.so"
-    data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200001-DataSourceCRUD/conf/datastores"
+    params:
+      data_sources_dir: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/systems_tests/200001-DataSourceCRUD/conf/datastores"
 
 servers:
   - id: "default_http"

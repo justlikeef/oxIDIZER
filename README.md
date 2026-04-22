@@ -32,7 +32,7 @@ The toolkit is organized into logical layers:
 
 ### ⚙️ Infrastructure & Processing
 *   **[ox_fileproc](./ox_fileproc)**: Advanced recursive configuration loading with variable substitution and structure-aware "surgical" file editing.
-*   **[ox_pipeline](./ox_pipeline)**: A flexible execution engine for data processing pipelines.
+*   **[ox_workflow](./crates/workflow)**: A modular workflow execution engine with plugin registry, flow scheduling, and stage-based processing.
 *   **[ox_type_converter](./ox_type_converter)**: The unified type conversion engine used throughout the toolkit.
 *   **[ox_package_manager](./ox_package_manager)**: Handles dynamic crate loading and dependency management.
 

@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_1dx91oke7wvn_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n60:             module,\n61:             memory_limit_pages,\n62:         })\n63:     }\n64: }\n65: \n66: impl WasmPlugin {\n67:     pub fn instantiate(\n68:         self,\n69:     ) -> Result<Self, WasmPluginError> {\n70:         let memory_limit = (self.memory_limit_pages as u64) * 65536;\n71: \n72:         let context = WasmContext {\n73:             memory_limit,\n74:             memory_used: Arc::new(Mutex::new(0)),\n75:             error: Arc::new(Mutex::new(None)),\n76:         };\n77: \n78:         let mut store = Store::new(&self.engine, context);\n79: \n80:         let instance = Instance::new(&mut store, &self.module, &[])\n81:             .map_err(|e| WasmPluginError::InstantiationError(e.to_string()))?;\n82: \n83:         let memory = instance.get_memory(&mut store, \"memory\")\n84:             .ok_or_else(|| WasmPluginError::InstantiationError(\"No memory export\".to_string()))?;\n85: \n86:         Ok(Self {\n87:             instance,\n88:             store,\n89:             memory,\n\n(Showing lines 60-89 of 244. Use offset=90 to continue.)\n</content>",
+  "timestamp": 1776858734766
+}

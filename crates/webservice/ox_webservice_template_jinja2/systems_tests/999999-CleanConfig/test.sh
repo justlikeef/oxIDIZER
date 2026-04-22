@@ -40,6 +40,7 @@ fi
 if [ "$MODE" == "isolated" ]; then
   # Dynamic Config Generation
   cp "$TEST_DIR/conf/ox_webservice.yaml" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+  echo "merge: \"/var/repos/oxIDIZER/conf/service/active/base.yaml\"" >> "$TEST_DIR/conf/ox_webservice.runtime.yaml"
   sed -i "s/port: 3000/port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
   sed -i "s/dependency_port: 3000/dependency_port: $BASE_PORT/g" "$TEST_DIR/conf/ox_webservice.runtime.yaml"
   # End Dynamic Config

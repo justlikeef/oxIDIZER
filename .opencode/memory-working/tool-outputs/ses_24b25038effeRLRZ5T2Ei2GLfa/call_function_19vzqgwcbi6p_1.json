@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_19vzqgwcbi6p_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/Cargo.toml</path>\n<type>file</type>\n<content>\n1: [package]\n2: name = \"ox_workflow_executor\"\n3: version = \"0.1.0\"\n4: edition = \"2021\"\n5: \n6: [dependencies]\n7: ox_workflow_core = { path = \"../ox_workflow_core\" }\n8: ox_workflow_abi = { path = \"../ox_workflow_abi\" }\n9: ox_workflow_config = { path = \"../ox_workflow_config\" }\n10: parking_lot = \"0.12\"\n11: libloading = \"0.8\"\n12: log = \"0.4\"\n13: serde = { version = \"1.0\", features = [\"derive\"] }\n14: serde_json = \"1.0\"\n15: thiserror = \"2.0\"\n16: uuid = { version = \"1.10\", features = [\"v4\"] }\n17: tokio = { version = \"1.0\", features = [\"full\"] }\n18: ox_fileproc = { path = \"../../util/ox_fileproc\" }\n\n(End of file - total 18 lines)\n</content>",
+  "timestamp": 1776856548907
+}

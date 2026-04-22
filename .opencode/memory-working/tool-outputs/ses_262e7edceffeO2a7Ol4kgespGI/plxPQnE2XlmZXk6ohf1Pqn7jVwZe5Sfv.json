@@ -1,0 +1,7 @@
+{
+  "callID": "plxPQnE2XlmZXk6ohf1Pqn7jVwZe5Sfv",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "session_list",
+  "fullOutput": "| Session ID                     | Messages | First      | Last       | Agents |\n|--------------------------------|----------|------------|------------|--------------------------------------------|\n| ses_262e7edceffeO2a7Ol4kgespGI | 926      | 2026-04-17 | 2026-04-20 | build, compaction, ​Sisyphus - Ultraworker |\n| ses_2578b66beffeVIfUNm0tHr8TSC | 54       | 2026-04-20 | 2026-04-20 | build, compaction |\n| ses_257cdba64ffe0G8TF0EhBB56UV | 10       | 2026-04-20 | 2026-04-20 | build, compaction |\n| ses_262e90b58ffeU97sAO4kxsQF8u | 2        | 2026-04-17 | 2026-04-17 | build |",
+  "timestamp": 1776698863269
+}

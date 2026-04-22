@@ -57,6 +57,7 @@ EOF
 
   # Dynamic Config Generation
   cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_DIR/conf/log4rs.yaml"
 mimetypes_config: "$TEST_DIR/conf/mimetypes.yaml"
 servers:

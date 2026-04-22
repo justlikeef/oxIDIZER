@@ -10,7 +10,7 @@ modules:
 
 servers:
   - protocol: http
-    port: 3000
+    port: 3035
     bind_address: "127.0.0.1"
     hosts:
       - name: "localhost"

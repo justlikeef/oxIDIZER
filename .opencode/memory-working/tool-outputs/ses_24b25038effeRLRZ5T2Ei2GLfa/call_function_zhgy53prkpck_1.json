@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_zhgy53prkpck_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "36 |     compiled: bool,\n   |     ^^^^^^^^\n\nwarning: `ox_workflow_executor` (lib) generated 6 warnings (run `cargo fix --lib -p ox_workflow_executor` to apply 2 suggestions)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s\n",
+  "timestamp": 1776858975123
+}

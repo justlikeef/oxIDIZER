@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_jrbiyk2tr19n_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "grep",
+  "fullOutput": "No matches found\n[Agent Usage Reminder]\n\nYou called a search/fetch tool directly without leveraging specialized agents.\n\nRECOMMENDED: Use task with explore/librarian agents for better results:\n\n```\n// Parallel exploration - fire multiple agents simultaneously\ntask(subagent_type=\"explore\", load_skills=[], prompt=\"Find all files matching pattern X\")\ntask(subagent_type=\"explore\", load_skills=[], prompt=\"Search for implementation of Y\")\ntask(subagent_type=\"librarian\", load_skills=[], prompt=\"Lookup documentation for Z\")\n\n// Then continue your work while they run in background\n// System will notify you when each completes\n```\n\nWHY:\n- Agents can perform deeper, more thorough searches\n- Background tasks run in parallel, saving time\n- Specialized agents have domain expertise\n- Reduces context window usage in main session\n\nALWAYS prefer: Multiple parallel task calls > Direct tool calls\n",
+  "timestamp": 1776699841577
+}

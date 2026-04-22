@@ -1,3 +1,4 @@
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"
 log4rs_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/systems_tests/999998-NoTemplate/conf/log4rs.yaml"
 modules:
   - id: eh_module
@@ -8,7 +9,7 @@ modules:
 servers:
   - id: "default_http"
     protocol: "http"
-    port: 3046
+    port: 3045
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"

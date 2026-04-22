@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_q3u46qdjrqkp_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n115:             None => return Err(WasmPluginError::InitFailed),\n116:         };\n117: \n118:         let config_offset = self.alloc(config_json.len() as u32 + 1)?;\n119: \n120:         let ptr = self.memory.data(&store)[config_offset as usize..].as_ptr() as *mut u8;\n121:         unsafe {\n122:             std::ptr::copy_nonoverlapping(\n123:                 config_json.as_bytes().as_ptr(),\n124:                 ptr,\n125:                 config_json.len(),\n126:             );\n127:             std::ptr::write(ptr.add(config_json.len()), 0);\n128:         }\n129: \n130:         let api_ptr: i32 = 0;\n131:         let version: i32 = 3;\n132: \n133:         let results = init_func.call(store, &[Val::I32(config_offset as i32), Val::I32(api_ptr), Val::I32(version)])\n134:             .map_err(|e| WasmPluginError::Trap(e.to_string()))?;\n135: \n136:         let ctx = results[0].i32().unwrap_or(0);\n137: \n138:         if ctx == 0 {\n139:             return Err(WasmPluginError::InitFailed);\n140:         }\n141: \n142:         Ok(WasmPluginCtx {\n143:             ctx,\n144:             plugin: self.clone(),\n\n(Showing lines 115-144 of 244. Use offset=145 to continue.)\n</content>",
+  "timestamp": 1776858725674
+}

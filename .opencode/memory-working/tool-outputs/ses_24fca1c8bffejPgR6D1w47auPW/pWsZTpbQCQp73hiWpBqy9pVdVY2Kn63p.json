@@ -1,0 +1,7 @@
+{
+  "callID": "pWsZTpbQCQp73hiWpBqy9pVdVY2Kn63p",
+  "sessionID": "ses_24fca1c8bffejPgR6D1w47auPW",
+  "tool": "glob",
+  "fullOutput": "Found 15 file(s)\n\n/var/repos/oxIDIZER/docs/superpowers/plans/2026-03-30-ox-workflow-server-mode.md\n/var/repos/oxIDIZER/docs/superpowers/specs/2026-03-30-ox-workflow-server-mode-design.md\n/var/repos/oxIDIZER/docs/IMPLEMENT_OX_WORKFLOW.md\n/var/repos/oxIDIZER/docs/superpowers/plans/2026-03-22-directory-restructure.md\n/var/repos/oxIDIZER/docs/superpowers/specs/2026-03-22-directory-restructure-design.md\n/var/repos/oxIDIZER/docs/superpowers/plans/2026-03-20-commandset-executor.md\n/var/repos/oxIDIZER/docs/superpowers/plans/2026-03-20-session-authorization.md\n/var/repos/oxIDIZER/docs/superpowers/specs/2026-03-20-commandset-executor-and-session-authorization-design.md\n/var/repos/oxIDIZER/docs/cc/PROJECT_INFO.md\n/var/repos/oxIDIZER/docs/cc/NEW_FEATURE.md\n/var/repos/oxIDIZER/docs/cc/IMPLEMENTATION_PLAN.md\n/var/repos/oxIDIZER/docs/cc/DESIGN.md\n/var/repos/oxIDIZER/docs/cc/WORK_IN_PROGRESS.md\n/var/repos/oxIDIZER/docs/design_proposals/streaming_data.md\n/var/repos/oxIDIZER/docs/ProcessingPhases.md",
+  "timestamp": 1776778612842
+}

@@ -56,6 +56,7 @@ EOF
 EOF
 
   cat <<EOF > "$TEST_DIR/conf/ox_webservice.runtime.yaml"
+merge: "$TEST_WORKSPACE_DIR/conf/service/active/base.yaml"
 log4rs_config: "$TEST_WORKSPACE_DIR/conf/log4rs.yaml"
 modules:
   - id: status_module
@@ -74,6 +75,23 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
+routes:
+  - url: "^/status/?$"
+    query:
+      format: "json"
+    module_id: "status_module"
+    phase: Content
+    priority: 10
+  - url: "^/status/?$"
+    headers:
+      Accept: ".*application/json.*"
+    module_id: "status_module"
+    phase: Content
+    priority: 20
+  - url: "^/status/?.*$"
+    module_id: "stream_module"
+    phase: Content
+    priority: 100
 EOF
 
   TEST_PID_FILE="$TEST_DIR/ox_webservice.pid"

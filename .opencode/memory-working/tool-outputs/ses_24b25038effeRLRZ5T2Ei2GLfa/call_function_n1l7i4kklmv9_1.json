@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_n1l7i4kklmv9_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "todowrite",
+  "fullOutput": "[\n  {\n    \"content\": \"Add version negotiation to FFI plugins (PluginCapabilities)\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Add plugin dependency management with depends_on config\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Implement typed context accessors (get_keys, set, get<T>, unset)\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Add sync plugin execution with output chaining\",\n    \"status\": \"cancelled\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Add WASM plugin support for server-side execution\",\n    \"status\": \"in_progress\",\n    \"priority\": \"high\"\n  }\n]",
+  "timestamp": 1776856524168
+}

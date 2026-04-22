@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_4ie2nebzqqnp_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error: unexpected closing delimiter: `}`\nerror: could not compile `ox_workflow_executor` (lib) due to 1 previous error\n",
+  "timestamp": 1776858714029
+}

@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_7ny4yku2so7k_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error[E0428]: the name `WasmPluginInstance` is defined multiple times\nerror[E0432]: unresolved import `wasmtime::Context`\nerror[E0412]: cannot find type `TypedFunc` in this scope\nerror[E0412]: cannot find type `TypedFunc` in this scope\nerror[E0412]: cannot find type `TypedFunc` in this scope\nerror[E0412]: cannot find type `TypedFunc` in this scope\nerror[E0412]: cannot find type `PluginCapabilities` in this scope\nerror[E0425]: cannot find value `OX_WORKFLOW_ABI_VERSION` in this scope\nerror[E0425]: cannot find value `FLOW_CONTROL_END` in this scope\nerror[E0425]: cannot find value `FLOW_CONTROL_ERROR` in this scope\nerror[E0425]: cannot find value `FLOW_CONTROL_JUMP` in this scope\nerror[E0425]: cannot find value `FLOW_CONTROL_SKIP` in this scope\nerror[E0107]: missing generics for struct `Store`\nerror[E0107]: missing generics for struct `Store`\nerror[E0592]: duplicate definitions with name `from_wasm_bytes`\nerror[E0592]: duplicate definitions with name `init`\nerror[E0592]: duplicate definitions with name `process`\nerror[E0592]: duplicate definitions with name `error`\nerror[E0592]: duplicate definitions with name `destroy`\nerror[E0599]: no method named `ok` found for enum `std::option::Option<T>` in the current scope\n",
+  "timestamp": 1776856872573
+}

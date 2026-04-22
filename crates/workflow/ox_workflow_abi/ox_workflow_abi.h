@@ -9,6 +9,30 @@
 #define OX_WORKFLOW_ABI_VERSION 3
 
 /**
+ * Minimum ABI version this crate supports
+ */
+#define OX_WORKFLOW_ABI_MIN_VERSION 3
+
+/**
+ * Feature flags for plugin capabilities
+ */
+#define FEATURE_NONE 0
+
+#define FEATURE_BINARY_DATA (1 << 0)
+
+#define FEATURE_METADATA (1 << 1)
+
+#define FEATURE_FLAGS (1 << 2)
+
+#define FEATURE_FLOW_INSERT (1 << 3)
+
+#define FEATURE_TASK_PAUSE (1 << 4)
+
+#define FEATURE_ASYNC (1 << 5)
+
+#define FEATURE_WASM (1 << 6)
+
+/**
  * Flow control code: Continue to the next plugin or stage.
  */
 #define FLOW_CONTROL_CONTINUE 0
@@ -80,6 +104,35 @@
  */
 #define OX_LOG_TRACE 5
 
+#define PLUGIN_ABI_VERSION 3
+
+/**
+ * Plugin capabilities structure returned during version negotiation.
+ * This allows the host to understand what features a plugin supports.
+ */
+typedef struct PluginCapabilities {
+  /**
+   * Minimum ABI version the plugin supports
+   */
+  uint32_t min_abi_version;
+  /**
+   * Maximum ABI version the plugin supports
+   */
+  uint32_t max_abi_version;
+  /**
+   * Bitfield of supported features (use FEATURE_* constants)
+   */
+  uint64_t features;
+  /**
+   * Plugin name (null-terminated C string, max 64 chars including null)
+   */
+  char name[64];
+  /**
+   * Plugin version (null-terminated C string, max 32 chars including null)
+   */
+  char version[32];
+} PluginCapabilities;
+
 /**
  * Structure returned by plugins to dictate the engine's next action.
  */
@@ -108,15 +161,23 @@ typedef struct CoreHostApi {
   const char *(*get_metadata)(void *task_ctx, const char *key);
   bool (*insert_into_flow)(void *task_ctx, const char *flow_name);
   void (*pause_task)(void *task_ctx, const char *signal_key);
-  /**
-   * Log a message. `task_ctx` may be null when called outside of a task context.
-   * Use OX_LOG_* constants for `level`. The host enriches the record with task/stage context.
-   */
   void (*log)(void *task_ctx, uint8_t level, const char *message);
   void (*set_flag)(void *task_ctx, const char *flag, uint8_t scope);
   void (*set_flags)(void *task_ctx, const char *const *flags, uint8_t scope);
   bool (*has_flag)(void *task_ctx, const char *flag, uint8_t scope);
   void (*clear_flag)(void *task_ctx, const char *flag, uint8_t scope);
+  /**
+   * Get all keys in task context. Returns comma-separated list, empty if none.
+   */
+  const char *(*get_keys)(void *task_ctx);
+  /**
+   * Remove a key from task context. Returns 1 if removed, 0 if not found.
+   */
+  bool (*unset_field)(void *task_ctx, const char *key);
+  /**
+   * Check if key exists. Returns 1 if exists, 0 if not.
+   */
+  bool (*has_field)(void *task_ctx, const char *key);
 } CoreHostApi;
 
 /**
@@ -140,6 +201,12 @@ typedef void (*OxPluginErrorFn)(void *plugin_config_ctx, void *task_ctx);
  * Type representing the plugin teardown/destroy function
  */
 typedef void (*OxPluginDestroyFn)(void *plugin_config_ctx);
+
+/**
+ * Frees capabilities returned by negotiate function.
+ * Should be called by host after obtaining capabilities.
+ */
+void free_plugin_caps(struct PluginCapabilities *caps);
 
 void _ox_workflow_dummy_export(struct FlowControl _fc,
                                struct CoreHostApi _api,

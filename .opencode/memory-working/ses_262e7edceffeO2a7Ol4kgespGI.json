@@ -1,0 +1,61 @@
+{
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1776701223233_odi1tdh",
+        "type": "error",
+        "content": "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "source": "tool:bash",
+        "timestamp": 1776701223232,
+        "relevanceScore": 0,
+        "mentions": 2
+      },
+      {
+        "id": "wm_1776701199103_r6rsnpz",
+        "type": "error",
+        "content": "For more information about this error, try `rustc --explain E0384`.",
+        "source": "tool:bash",
+        "timestamp": 1776701199094,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1776701199104_7kiwglf",
+        "type": "error",
+        "content": "error: could not compile `ox_data_object` (lib) due to 1 previous error",
+        "source": "tool:bash",
+        "timestamp": 1776701199094,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1776699771268_va8puix",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/registry.rs",
+      "source": "tool:glob",
+      "timestamp": 1776700764890,
+      "relevanceScore": 14.24884026711568,
+      "mentions": 6,
+      "lastEventCounter": 72
+    },
+    {
+      "id": "wm_1776699751970_da3ibe5",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/ox_data_object/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1776701193838,
+      "relevanceScore": 12.297329418935897,
+      "mentions": 7,
+      "lastEventCounter": 72
+    }
+  ],
+  "eventCounter": 76,
+  "updatedAt": "2026-04-20T16:37:21.932Z"
+}

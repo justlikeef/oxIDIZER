@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_27bzv89se3wy_1",
+  "sessionID": "ses_2543d2710ffeL76Tx372LwZdGv",
+  "tool": "todowrite",
+  "fullOutput": "[\n  {\n    \"content\": \"Fix ws_ping_client.py to support IPv6 (::1) address for 100003-WebSocket-IPv6 test\",\n    \"status\": \"in_progress\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Verify both WebSocket tests actually establish real handshakes\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]",
+  "timestamp": 1776731429087
+}

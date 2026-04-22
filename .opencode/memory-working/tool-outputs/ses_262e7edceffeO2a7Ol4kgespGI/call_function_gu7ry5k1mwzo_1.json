@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_gu7ry5k1mwzo_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "bash",
+  "fullOutput": "    Checking ox_callback_manager v0.1.0 (/var/repos/oxIDIZER/crates/util/ox_callback_manager)\nerror[E0597]: `placeholder` does not live long enough\n   --> crates/util/ox_callback_manager/src/registry.rs:117:49\n    |\n116 |     let placeholder = RefCell::new(());\n    |         ----------- binding `placeholder` declared here\n117 |     manager.trigger_callbacks(&event_type, &mut placeholder.borrow_mut(), &params)\n    |                                            -----^^^^^^^^^^^-------------\n    |                                            |    |\n    |                                            |    borrowed value does not live long enough\n    |                                            coercion requires that `placeholder` is borrowed for `'static`\n118 | }\n    | - `placeholder` dropped here while still borrowed\n\nFor more information about this error, try `rustc --explain E0597`.\nerror: could not compile `ox_callback_manager` (lib) due to 1 previous error\n",
+  "timestamp": 1776699886876
+}

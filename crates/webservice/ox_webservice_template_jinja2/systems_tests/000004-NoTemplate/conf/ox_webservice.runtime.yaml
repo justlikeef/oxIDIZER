@@ -1,9 +1,10 @@
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"
 log4rs_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_template_jinja2/systems_tests/000004-NoTemplate/conf/log4rs.yaml"
 mimetypes_config: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_template_jinja2/systems_tests/000004-NoTemplate/conf/mimetypes.yaml"
 servers:
   - id: default
     protocol: http
-    port: 3071
+    port: 3070
     bind_address: 0.0.0.0
     hosts:
       - name: ".*"

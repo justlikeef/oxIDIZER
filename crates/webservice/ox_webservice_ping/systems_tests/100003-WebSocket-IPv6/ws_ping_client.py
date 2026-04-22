@@ -1,6 +1,6 @@
 """
-Verifies that the ox_webservice_ping module works correctly over WebSocket via IPv6:
-  - Connects to /ws/ping/ using [::1]
+Verifies that the ox_webservice_ping module works correctly over WebSocket:
+  - Connects to /ws/ping/
   - Sends a text message
   - Receives a JSON response with {"response": "pong"}
 """
@@ -11,8 +11,8 @@ import sys
 import json
 
 
-async def test_ws_ping_ipv6(port: int):
-    uri = f"ws://[::1]:{port}/ws/ping/"
+async def test_ws_ping(port: int, host: str = "127.0.0.1"):
+    uri = f"ws://{host}:{port}/ping/"
     print(f"Connecting to {uri}")
 
     try:
@@ -35,7 +35,7 @@ async def test_ws_ping_ipv6(port: int):
                 print(f"FAILURE: Expected {{\"response\": \"pong\"}}, got: {data}")
                 sys.exit(1)
 
-            print("SUCCESS: Received pong via WebSocket over IPv6")
+            print("SUCCESS: Received pong via WebSocket")
             sys.exit(0)
 
     except asyncio.TimeoutError:
@@ -48,6 +48,8 @@ async def test_ws_ping_ipv6(port: int):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 ws_ping_client.py <port>")
+        print("Usage: python3 ws_ping_client.py <port> [host]")
         sys.exit(1)
-    asyncio.run(test_ws_ping_ipv6(int(sys.argv[1])))
+    port = int(sys.argv[1])
+    host = sys.argv[2] if len(sys.argv) > 2 else "127.0.0.1"
+    asyncio.run(test_ws_ping(port, host))

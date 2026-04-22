@@ -1,4 +1,5 @@
 pub mod plugin_registry;
+pub mod wasm_plugin;
 
 use ox_workflow_abi::{
     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, FLOW_CONTROL_ERROR,
@@ -416,6 +417,18 @@ pub fn create_host_api() -> CoreHostApi {
         }
     }
 
+    extern "C" fn get_keys_impl(_task_ctx: *mut c_void) -> *const c_char {
+        std::ptr::null()
+    }
+
+    extern "C" fn unset_field_impl(_task_ctx: *mut c_void, _key: *const c_char) -> bool {
+        false
+    }
+
+    extern "C" fn has_field_impl(_task_ctx: *mut c_void, _key: *const c_char) -> bool {
+        false
+    }
+
     CoreHostApi {
         get_field: get_field_impl,
         set_field: set_field_impl,
@@ -429,6 +442,9 @@ pub fn create_host_api() -> CoreHostApi {
         set_flags: set_flags_impl,
         has_flag: has_flag_impl,
         clear_flag: clear_flag_impl,
+        get_keys: get_keys_impl,
+        unset_field: unset_field_impl,
+        has_field: has_field_impl,
     }
 }
 

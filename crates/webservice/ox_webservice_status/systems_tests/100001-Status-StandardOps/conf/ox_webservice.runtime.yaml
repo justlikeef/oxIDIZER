@@ -1,3 +1,4 @@
+merge: "/var/repos/oxIDIZER/conf/service/active/base.yaml"
 log4rs_config: "/var/repos/oxIDIZER/conf/log4rs.yaml"
 modules:
   - id: status_module
@@ -12,7 +13,24 @@ modules:
 servers:
   - id: "default_http"
     protocol: "http"
-    port: 3061
+    port: 3060
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
+routes:
+  - url: "^/status/?$"
+    query:
+      format: "json"
+    module_id: "status_module"
+    phase: Content
+    priority: 10
+  - url: "^/status/?$"
+    headers:
+      Accept: ".*application/json.*"
+    module_id: "status_module"
+    phase: Content
+    priority: 20
+  - url: "^/status/?.*$"
+    module_id: "stream_module"
+    phase: Content
+    priority: 100

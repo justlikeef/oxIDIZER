@@ -32,12 +32,15 @@ sleep 1
    cat <<EOF > "$SCRIPT_DIR/conf/ox_webservice.runtime.yaml"
 log4rs_config: "$WORKSPACE_DIR/conf/log4rs.yaml"
 
+merge: "$WORKSPACE_DIR/conf/service/active/base.yaml"
 modules:
   - id: messaging_mqtt
     name: ox_messaging_mqtt
+    phase: Content
     path: "$WORKSPACE_DIR/target/$TARGET/libox_messaging_mqtt.so"
-    broker_port: $BROKER_PORT
-    console_port: $CONSOLE_PORT
+    params:
+      broker_port: $BROKER_PORT
+      console_port: $CONSOLE_PORT
 
 servers:
   - id: "default_http"
@@ -46,6 +49,11 @@ servers:
     bind_address: "0.0.0.0"
     hosts:
       - name: "localhost"
+
+routes:
+  - url: "/mqtt_dummy"
+    module_id: "messaging_mqtt"
+    phase: Content
 
 EOF
 
@@ -65,7 +73,7 @@ for ((i=1; i<=MAX_RETRIES; i++)); do
         log_message "$LOGGING_LEVEL" "info" "Port $BROKER_PORT is OPEN. Verification Successful."
         
         # Clean up
-        kill "$SERVER_PID" 2>/dev/null
+        kill $(cat "$PID_FILE") 2>/dev/null
         rm -rf "$SCRIPT_DIR/conf" "$SCRIPT_DIR/logs" "$PID_FILE" "$SCRIPT_DIR/start_script.log"
         exit 0
     fi
@@ -76,6 +84,6 @@ log_message "$LOGGING_LEVEL" "error" "Port $BROKER_PORT is NOT OPEN after $MAX_R
 cat "$LOG_FILE"
 
 # Clean up
-kill "$SERVER_PID" 2>/dev/null
+kill $(cat "$PID_FILE") 2>/dev/null
 rm -rf "$SCRIPT_DIR/conf" "$SCRIPT_DIR/logs" "$PID_FILE" "$SCRIPT_DIR/start_script.log"
 exit 1

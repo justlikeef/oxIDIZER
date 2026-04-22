@@ -4,7 +4,7 @@ import sys
 import json
 
 async def test_websocket():
-    uri = f"ws://localhost:{sys.argv[1]}/ws/ping/"
+    uri = f"ws://localhost:{sys.argv[1]}/ping/"
     print(f"Connecting to {uri}")
     try:
         async with websockets.connect(uri) as websocket:

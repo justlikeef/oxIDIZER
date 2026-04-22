@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_6etu6utlsif4_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "   |\n14 | pub struct WasmPluginInstance {\n   |            ------------------ fields in this struct\n15 |     name: String,\n   |     ^^^^\n16 |     data: Mutex<HashMap<String, String>>,\n   |     ^^^^\n\nwarning: `ox_workflow_executor` (lib) generated 4 warnings (run `cargo fix --lib -p ox_workflow_executor` to apply 1 suggestion)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.60s\n",
+  "timestamp": 1776857285189
+}

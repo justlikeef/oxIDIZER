@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_xo86z4xto8xk_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_data_object/Cargo.toml</path>\n<type>file</type>\n<content>\n1: [package]\n2: name = \"ox_data_object\"\n3: version = \"0.1.0\"\n4: license = \"GPL-3.0-only\"\n5: edition = \"2024\"\n6: \n7: [dependencies]\n8: uuid = { version = \"1.8.0\", features = [\"v4\", \"serde\"] }\n9: ox_type_converter = { path = \"../ox_type_converter\" }\n10: serde = { version = \"1.0\", features = [\"derive\"] }\n11: ox_callback_manager = { path = \"../../util/ox_callback_manager\" }\n\n(End of file - total 11 lines)\n</content>",
+  "timestamp": 1776699763310
+}

@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_iiihu4c1113c_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/lib.rs</path>\n<type>file</type>\n<content>\n1: pub mod plugin_registry;\n2: pub mod wasm_plugin;\n3: \n4: use ox_workflow_abi::{\n5:     CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, FLOW_CONTROL_ERROR,\n\n(Showing lines 1-5 of 704. Use offset=6 to continue.)\n</content>",
+  "timestamp": 1776858857974
+}

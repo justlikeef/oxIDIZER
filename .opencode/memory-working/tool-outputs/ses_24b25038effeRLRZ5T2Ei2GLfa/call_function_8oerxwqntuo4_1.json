@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_8oerxwqntuo4_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n1: use std::sync::{Arc, Mutex};\n2: use wasmtime::{Engine, Module, Instance, Store, Memory, Func, Val};\n3: use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, FLOW_CONTROL_END};\n4: use thiserror::Error;\n5: \n\n(Showing lines 1-5 of 221. Use offset=6 to continue.)\n</content>",
+  "timestamp": 1776858799737
+}

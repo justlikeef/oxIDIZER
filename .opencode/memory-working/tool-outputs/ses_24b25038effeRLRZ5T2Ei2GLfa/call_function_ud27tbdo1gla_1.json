@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_ud27tbdo1gla_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs</path>\n<type>file</type>\n<content>\n1: use libloading::Library;\n2: use ox_workflow_abi::{\n3:     CoreHostApi, FlowControl, OxPluginDestroyFn, OxPluginErrorFn, OxPluginInitFn,\n4:     OxPluginNegotiateFn, OxPluginProcessFn, PluginCapabilities,\n5:     OX_WORKFLOW_ABI_VERSION, OX_WORKFLOW_ABI_MIN_VERSION, FEATURE_NONE,\n6: };\n7: use std::collections::HashSet;\n8: use std::ffi::CString;\n9: use std::sync::Arc;\n10: use thiserror::Error;\n11: \n12: #[derive(Error, Debug)]\n13: pub enum PluginError {\n14:     #[error(\"Failed to load library: {0}\")]\n15:     LoadError(#[from] libloading::Error),\n16:     #[error(\"Initialization failed\")]\n17:     InitFailed,\n18:     #[error(\"ABI version mismatch: plugin requires {0}, host supports {1}\")]\n19:     VersionMismatch(u32, u32),\n20:     #[error(\"Missing dependency: {0}\")]\n\n(Showing lines 1-20 of 161. Use offset=21 to continue.)\n</content>",
+  "timestamp": 1776857036212
+}

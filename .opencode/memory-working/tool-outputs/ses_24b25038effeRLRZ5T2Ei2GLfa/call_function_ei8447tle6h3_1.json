@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_ei8447tle6h3_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs</path>\n<type>file</type>\n<content>\n68:         let error_fn: libloading::Symbol<OxPluginErrorFn> = lib.get(b\"ox_plugin_error\\0\")?;\n69:         let destroy_fn: libloading::Symbol<OxPluginDestroyFn> = lib.get(b\"ox_plugin_destroy\\0\")?;\n70: \n71:         let negotiate_fn: Option<libloading::Symbol<OxPluginNegotiateFn>> = lib.get(b\"ox_plugin_negotiate\\0\").ok();\n72: \n73:         let capabilities = if let Some(neg_fn) = negotiate_fn {\n74:             let ptr = (neg_fn)(OX_WORKFLOW_ABI_VERSION);\n75:             if ptr.is_null() {\n76:                 None\n77:             } else {\n\n(Showing lines 68-77 of 161. Use offset=78 to continue.)\n</content>",
+  "timestamp": 1776857032194
+}

@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_hf1ag5i1too7_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_data_object/src/lib.rs</path>\n<type>file</type>\n<content>\n115:     pub fn set_with_type<T: Any + Send + Sync + Clone + 'static>(\n116:         &mut self, \n117:         identifier: &str, \n118:         value: T, \n119:         value_type: ValueType,\n120:         parameters: Option<HashMap<String, String>>\n121:     ) -> Option<AttributeValue> {\n122:         let mut new_attr_value = AttributeValue::new(value, value_type);\n123:         if let Some(params) = parameters {\n124:             new_attr_value = new_attr_value.with_parameters(params);\n125:         }\n126:         self.attributes.insert(identifier.to_string(), new_attr_value)\n127:     }\n128: \n129: \n130: \n131:     // --- Other methods ---\n132: \n133:     pub fn get_attribute(&self, identifier: &str) -> Option<&AttributeValue> {\n134:         self.attributes.get(identifier)\n135:     }\n136: \n137:     pub fn get_raw_value<T: Any + Clone>(&self, identifier: &str) -> Option<T> {\n138:         self.attributes.get(identifier)?.get_value::<T>()\n139:     }\n140: \n141:     pub fn has_attribute(&self, identifier: &str) -> bool {\n142:         self.attributes.contains_key(identifier)\n143:     }\n144: \n\n(Showing lines 115-144 of 265. Use offset=145 to continue.)\n</content>",
+  "timestamp": 1776700862401
+}

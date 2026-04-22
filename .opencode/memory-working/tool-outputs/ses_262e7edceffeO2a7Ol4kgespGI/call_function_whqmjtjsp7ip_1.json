@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_whqmjtjsp7ip_1",
+  "sessionID": "ses_262e7edceffeO2a7Ol4kgespGI",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/registry.rs</path>\n<type>file</type>\n<content>\n100:     }\n101: \n102:     /// Checks if any callbacks are registered for a given event type.\n103:     pub fn has_callbacks(&self, event_type: &EventType) -> bool {\n104:         self.callbacks.contains_key(event_type)\n105:     }\n106: \n107:     /// Returns a list of all registered event names.\n108:     pub fn get_registered_events(&self) -> Vec<EventType> {\n109:         self.callbacks.keys().cloned().collect()\n110:     }\n111: }\n112: \n113: pub fn trigger_system_event(event_type: EventType, params: Vec<&dyn Any>) -> Result<Vec<String>, CallbackError> {\n114:     let mut manager = CALLBACK_MANAGER.lock().unwrap();\n115:     manager.trigger_system_event_internal(&event_type, &params)\n116: }\n\n(End of file - total 116 lines)\n</content>",
+  "timestamp": 1776699907517
+}

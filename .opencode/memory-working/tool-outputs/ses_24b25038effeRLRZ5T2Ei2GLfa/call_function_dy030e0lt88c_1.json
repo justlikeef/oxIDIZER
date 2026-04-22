@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_dy030e0lt88c_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "    |\n    = note: call `drop(Box::from_raw(ptr))` if you intend to drop the `Box`\n    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default\nhelp: use `let _ = ...` to ignore the resulting value\n    |\n197 |         let _ = Box::from_raw(caps);\n    |         +++++++\n\nwarning: `ox_workflow_abi` (lib) generated 1 warning\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.12s\n",
+  "timestamp": 1776858238698
+}

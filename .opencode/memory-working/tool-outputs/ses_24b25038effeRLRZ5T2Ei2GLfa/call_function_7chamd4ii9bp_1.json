@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_7chamd4ii9bp_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n1: use std::collections::HashMap;\n2: use wasmtime::{\n3:     Engine, Module, Instance, Store, Context as WasmContext, TypedFunc,\n4: };\n5: use ox_workflow_abi::{\n6:     CoreHostApi, FlowControl, PluginCapabilities,\n7:     FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, FLOW_CONTROL_ERROR,\n8:     FLOW_CONTROL_JUMP, FLOW_CONTROL_SKIP,\n9:     OX_WORKFLOW_ABI_VERSION,\n10: };\n\n(Showing lines 1-10 of 121. Use offset=11 to continue.)\n</content>",
+  "timestamp": 1776856788349
+}

@@ -16,5 +16,5 @@ servers:
 - bind_address: 0.0.0.0
   hosts:
   - name: .*
-  port: 3066
+  port: 3065
   protocol: http

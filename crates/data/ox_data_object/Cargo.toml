@@ -8,3 +8,4 @@ edition = "2024"
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 ox_type_converter = { path = "../ox_type_converter" }
 serde = { version = "1.0", features = ["derive"] }
+ox_callback_manager = { path = "../../util/ox_callback_manager" }

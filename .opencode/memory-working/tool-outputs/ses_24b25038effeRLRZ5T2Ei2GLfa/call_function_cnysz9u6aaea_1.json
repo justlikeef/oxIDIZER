@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_cnysz9u6aaea_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "  59 |         let _ = self.process_func.call(&mut self.store, &[], /* &mut [wasmtime::Val] */);\n     |                                                            ++++++++++++++++++++++++++++\n\nwarning: unnecessary `unsafe` block\n  --> crates/workflow/ox_workflow_executor/src/plugin_registry.rs:97:29\n   |\n97 |             let caps_name = unsafe {\n   |                             ^^^^^^ unnecessary `unsafe` block\n   |\n   = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default\n\nSome errors have detailed explanations: E0061, E0063, E0599.\nFor more information about an error, try `rustc --explain E0061`.\nwarning: `ox_workflow_executor` (lib) generated 2 warnings\nerror: could not compile `ox_workflow_executor` (lib) due to 4 previous errors; 2 warnings emitted\n",
+  "timestamp": 1776856912390
+}

@@ -35,8 +35,9 @@ modules:
   - id: data_source_manager_skip
     name: ox_persistence_datasource_manager
     path: "$WORKSPACE_DIR/target/$TARGET/libox_persistence_datasource_manager.so"
-    data_sources_dir: "$SCRIPT_DIR/conf/datastores"
-    on_content_conflict: "skip"
+    params:
+      data_sources_dir: "$SCRIPT_DIR/conf/datastores"
+      on_content_conflict: "skip"
 servers:
   - id: "default_http"
     protocol: "http"
@@ -87,8 +88,9 @@ modules:
   - id: data_source_manager_error
     name: ox_persistence_datasource_manager
     path: "$WORKSPACE_DIR/target/$TARGET/libox_persistence_datasource_manager.so"
-    data_sources_dir: "$SCRIPT_DIR/conf/datastores"
-    on_content_conflict: "error"
+    params:
+      data_sources_dir: "$SCRIPT_DIR/conf/datastores"
+      on_content_conflict: "error"
 servers:
   - id: "default_http"
     protocol: "http"

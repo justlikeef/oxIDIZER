@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_udcc7zfsd0qg_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error[E0063]: missing field `_lib` in initializer of `LoadedPlugin`\nerror: could not compile `ox_workflow_executor` (lib) due to 1 previous error; 2 warnings emitted\n",
+  "timestamp": 1776857071438
+}

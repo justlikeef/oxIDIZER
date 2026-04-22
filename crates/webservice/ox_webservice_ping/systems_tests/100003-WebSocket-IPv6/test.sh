@@ -78,7 +78,7 @@ EOF
     "$TEST_DIR/venv/bin/pip" install websockets --quiet
   fi
 
-  PYTHON_OUTPUT=$("$TEST_DIR/venv/bin/python3" "$TEST_DIR/ws_ping_client.py" "$BASE_PORT" 2>&1)
+  PYTHON_OUTPUT=$("$TEST_DIR/venv/bin/python3" "$TEST_DIR/ws_ping_client.py" "$BASE_PORT" "::1" 2>&1)
   PYTHON_EXIT_CODE=$?
 
   "$SCRIPTS_DIR/stop_server.sh" "$LOGGING_LEVEL" "$TEST_PID_FILE" "$TEST_WORKSPACE_DIR"
