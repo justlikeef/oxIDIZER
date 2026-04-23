@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_vjnnmdc9gqzf_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "(no output)\n\n<bash_metadata>\nbash tool terminated command after exceeding timeout 120000 ms. If this command is expected to take longer and is not waiting for interactive input, retry with a larger timeout value in milliseconds.\n</bash_metadata>",
+  "timestamp": 1776890567392
+}

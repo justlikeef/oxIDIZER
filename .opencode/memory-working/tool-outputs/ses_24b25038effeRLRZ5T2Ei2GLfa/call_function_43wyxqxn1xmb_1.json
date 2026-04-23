@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_43wyxqxn1xmb_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n88:         Ok(offset as i32)\n89:     }\n90: \n91:     pub fn process(&mut self, task_ctx: i32) -> Result<FlowControl, WasmPluginError> {\n92:         if self.ctx.is_none() {\n93:             return Err(WasmPluginError::InitFailed);\n94:         }\n95: \n96:         if self.call_count >= self.config.max_calls_per_task {\n97:             return Ok(FlowControl {\n98:                 code: FLOW_CONTROL_ERROR,\n99:                 payload: std::ptr::null(),\n100:             });\n101:         }\n102: \n103:         self.call_count += 1;\n104: \n105:         Ok(FlowControl {\n106:             code: FLOW_CONTROL_CONTINUE,\n107:             payload: std::ptr::null(),\n\n(Showing lines 88-107 of 133. Use offset=108 to continue.)\n</content>",
+  "timestamp": 1776890788744
+}

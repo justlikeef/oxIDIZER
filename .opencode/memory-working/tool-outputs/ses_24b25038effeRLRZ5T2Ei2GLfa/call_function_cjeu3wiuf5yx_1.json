@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_cjeu3wiuf5yx_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n30:         }\n31:     }\n32: }\n33: \n34: pub struct WasmPluginInstance {\n35:     config: WasmPluginConfig,\n36:     compiled: bool,\n37: }\n38: \n39: impl WasmPluginInstance {\n40:     pub fn from_wasm_bytes(\n41:         wasm_bytes: &[u8],\n42:         config: WasmPluginConfig,\n43:     ) -> Result<Self, WasmPluginError> {\n44:         let _ = wasm_bytes;\n\n(Showing lines 30-44 of 133. Use offset=45 to continue.)\n</content>",
+  "timestamp": 1776891005158
+}

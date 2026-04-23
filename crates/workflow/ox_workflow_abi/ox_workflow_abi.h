@@ -106,6 +106,10 @@
 
 #define PLUGIN_ABI_VERSION 3
 
+typedef struct Option_OxPluginNegotiateFn Option_OxPluginNegotiateFn;
+
+typedef struct Option_PluginCapabilities Option_PluginCapabilities;
+
 /**
  * Plugin capabilities structure returned during version negotiation.
  * This allows the host to understand what features a plugin supports.
@@ -213,4 +217,6 @@ void _ox_workflow_dummy_export(struct FlowControl _fc,
                                OxPluginInitFn _init,
                                OxPluginProcessFn _proc,
                                OxPluginErrorFn _err,
-                               OxPluginDestroyFn _destroy);
+                               OxPluginDestroyFn _destroy,
+                               struct Option_OxPluginNegotiateFn _negotiate,
+                               struct Option_PluginCapabilities _caps);

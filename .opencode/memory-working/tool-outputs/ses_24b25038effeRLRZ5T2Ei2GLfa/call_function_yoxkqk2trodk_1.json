@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_yoxkqk2trodk_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "   |     ^^^^^^^^\n\nwarning: `ox_workflow_executor` (lib) generated 6 warnings (run `cargo fix --lib -p ox_workflow_executor` to apply 2 suggestions)\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `ox_webservice_test_utils` (lib) due to 2 previous errors\n",
+  "timestamp": 1776867104715
+}

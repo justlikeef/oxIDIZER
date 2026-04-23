@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_6e2hxhjpdbs0_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/ox_persistence_driver_installer/src/lib.rs</path>\n<type>file</type>\n<content>\n73:     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }\n74: }\n75: \n76: fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {\n77:     let c_key = CString::new(key).unwrap();\n78:     let mut len: usize = 0;\n79:     let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);\n80:     if ptr.is_null() || len == 0 { return None; }\n81:     Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())\n82: }\n83: \n84: fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {\n85:     let c_key = CString::new(key).unwrap();\n86:     (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());\n87: }\n88: \n89: fn json_response(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &str) {\n90:     set_field(api, task_ctx, \"response.status\", &status.to_string());\n91:     set_field(api, task_ctx, \"response.body\", body);\n92:     set_field(api, task_ctx, \"response.header.Content-Type\", \"application/json\");\n\n(Showing lines 73-92 of 263. Use offset=93 to continue.)\n</content>",
+  "timestamp": 1776890571288
+}

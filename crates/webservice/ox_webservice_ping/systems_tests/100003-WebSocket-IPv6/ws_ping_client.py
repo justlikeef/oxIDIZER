@@ -12,7 +12,9 @@ import json
 
 
 async def test_ws_ping(port: int, host: str = "127.0.0.1"):
-    uri = f"ws://{host}:{port}/ping/"
+    # Handle IPv6 addresses by wrapping them in brackets
+    formatted_host = f"[{host}]" if ":" in host and "[" not in host else host
+    uri = f"ws://{formatted_host}:{port}/ping/"
     print(f"Connecting to {uri}")
 
     try:

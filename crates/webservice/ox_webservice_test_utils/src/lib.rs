@@ -45,6 +45,12 @@ pub extern "C" fn mock_set_field(task_ctx: *mut c_void, key: *const c_char, valu
     lock.fields.insert(key_str, val_str);
 }
 
+pub extern "C" fn mock_get_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, _len_out: *mut usize) -> *const u8 {
+    std::ptr::null_mut()
+}
+
+pub extern "C" fn mock_set_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, _value: *const u8, _len: usize) {}
+
 pub extern "C" fn mock_get_metadata(_task_ctx: *mut c_void, _key: *const c_char) -> *const c_char {
     ptr::null()
 }
@@ -60,11 +66,9 @@ pub extern "C" fn mock_set_flag(_task_ctx: *mut c_void, _flag: *const c_char, _s
 pub extern "C" fn mock_set_flags(_task_ctx: *mut c_void, _flags: *const *const c_char, _scope: u8) {}
 pub extern "C" fn mock_has_flag(_task_ctx: *mut c_void, _flag: *const c_char, _scope: u8) -> bool { false }
 pub extern "C" fn mock_clear_flag(_task_ctx: *mut c_void, _flag: *const c_char, _scope: u8) {}
-pub extern "C" fn mock_get_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, len_out: *mut usize) -> *const u8 {
-    unsafe { *len_out = 0; }
-    std::ptr::null()
-}
-pub extern "C" fn mock_set_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, _value: *const u8, _len: usize) {}
+pub extern "C" fn mock_get_keys(_task_ctx: *mut c_void) -> *const c_char { std::ptr::null() }
+pub extern "C" fn mock_unset_field(_task_ctx: *mut c_void, _key: *const c_char) -> bool { false }
+pub extern "C" fn mock_has_field(_task_ctx: *mut c_void, _key: *const c_char) -> bool { false }
 
 /// Create a `CoreHostApi` pointing to mock functions.
 pub fn create_mock_api() -> CoreHostApi {
@@ -81,6 +85,9 @@ pub fn create_mock_api() -> CoreHostApi {
         set_flags: mock_set_flags,
         has_flag: mock_has_flag,
         clear_flag: mock_clear_flag,
+        get_keys: mock_get_keys,
+        unset_field: mock_unset_field,
+        has_field: mock_has_field,
     }
 }
 

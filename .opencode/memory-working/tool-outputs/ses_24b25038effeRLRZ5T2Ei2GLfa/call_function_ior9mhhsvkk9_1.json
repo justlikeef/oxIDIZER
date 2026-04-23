@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_ior9mhhsvkk9_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "    = help: consider adding a `#[repr(C)]`, `#[repr(transparent)]`, or integer `#[repr(...)]` attribute to this enum\n    = note: enum has no representation hint\n    = note: `#[warn(improper_ctypes_definitions)]` on by default\n\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.91s\n",
+  "timestamp": 1776890775539
+}

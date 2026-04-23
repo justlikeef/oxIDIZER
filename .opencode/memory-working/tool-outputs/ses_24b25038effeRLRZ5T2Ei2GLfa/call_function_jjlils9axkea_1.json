@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_jjlils9axkea_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/webservice/ox_webservice_test_utils/src/lib.rs</path>\n<type>file</type>\n<content>\n38: \n39: pub extern \"C\" fn mock_set_field(task_ctx: *mut c_void, key: *const c_char, value: *const c_char) {\n40:     if task_ctx.is_null() || key.is_null() { return; }\n41:     let key_str = unsafe { CStr::from_ptr(key).to_string_lossy().into_owned() };\n42:     let val_str = if value.is_null() { String::new() } else { unsafe { CStr::from_ptr(value).to_string_lossy().into_owned() } };\n43:     let state = unsafe { &*(task_ctx as *const RwLock<MockTaskState>) };\n44:     let mut lock = state.write().unwrap();\n45:     lock.fields.insert(key_str, val_str);\n46: }\n47: \n48: pub extern \"C\" fn mock_get_metadata(_task_ctx: *mut c_void, _key: *const c_char) -> *const c_char {\n49:     ptr::null()\n50: }\n51: \n52: pub extern \"C\" fn mock_insert_into_flow(_task_ctx: *mut c_void, _flow: *const c_char) -> bool { false }\n53: pub extern \"C\" fn mock_pause_task(_task_ctx: *mut c_void, _key: *const c_char) {}\n54: pub extern \"C\" fn mock_log(_task_ctx: *mut c_void, level: u8, message: *const c_char) {\n55:     if message.is_null() { return; }\n56:     let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };\n57:     println!(\"[MOCK LOG lvl={}] {}\", level, msg);\n\n(Showing lines 38-57 of 146. Use offset=58 to continue.)\n</content>",
+  "timestamp": 1776867150443
+}

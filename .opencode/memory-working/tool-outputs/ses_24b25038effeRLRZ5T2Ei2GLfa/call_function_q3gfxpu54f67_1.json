@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_q3gfxpu54f67_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "warning: unused return value of `Box::<T>::from_raw` that must be used\nwarning: unused import: `FEATURE_NONE`\nwarning: unused imports: `CoreHostApi` and `FLOW_CONTROL_END`\nwarning: unused variable: `task_ctx`\n",
+  "timestamp": 1776890631817
+}

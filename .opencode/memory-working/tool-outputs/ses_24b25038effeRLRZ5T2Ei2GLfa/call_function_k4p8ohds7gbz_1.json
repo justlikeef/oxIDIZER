@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_k4p8ohds7gbz_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "    Checking ox_workflow_core v0.1.0 (/var/repos/oxIDIZER/crates/workflow/ox_workflow_core)\n    Checking ox_workflow_executor v0.1.0 (/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.82s\n",
+  "timestamp": 1776891052072
+}

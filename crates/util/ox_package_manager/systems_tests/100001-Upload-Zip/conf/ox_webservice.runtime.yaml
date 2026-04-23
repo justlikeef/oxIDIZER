@@ -5,7 +5,7 @@ modules:
   - id: package_manager
     name: ox_package_manager
     path: "/var/repos/oxIDIZER/target/debug/libox_package_manager.so"
-    staging_directory: "/tmp/ox_test_staging_2384548"
+    staging_directory: "/tmp/ox_test_staging_3020737"
 
 servers:
   - id: "default_http"

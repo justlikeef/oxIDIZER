@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_zbmojgppj4hv_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/lib.rs</path>\n<type>file</type>\n<content>\n193: /// Should be called by host after obtaining capabilities.\n194: #[no_mangle]\n195: pub unsafe extern \"C\" fn free_plugin_caps(caps: *mut PluginCapabilities) {\n196:     if !caps.is_null() {\n197:         Box::from_raw(caps);\n198:     }\n199: }\n200: \n201: #[no_mangle]\n202: pub extern \"C\" fn _ox_workflow_dummy_export(\n\n(Showing lines 193-202 of 211. Use offset=203 to continue.)\n</content>",
+  "timestamp": 1776891017445
+}

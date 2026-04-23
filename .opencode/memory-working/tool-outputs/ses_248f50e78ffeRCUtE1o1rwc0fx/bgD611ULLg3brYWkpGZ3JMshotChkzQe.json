@@ -1,0 +1,7 @@
+{
+  "callID": "bgD611ULLg3brYWkpGZ3JMshotChkzQe",
+  "sessionID": "ses_248f50e78ffeRCUtE1o1rwc0fx",
+  "tool": "read",
+  "fullOutput": "<path>/tmp/test_persistence.log</path>\n<type>file</type>\n<content>\n1: [INFO] ==================================================\n2: [INFO] STARTING MODULE: crates/data/ox_persistence_datasource_manager (Ports: 3010 3011 3012 3013 3014)\n3: [INFO] RUNNING SPECIFIC TESTS: 200001-DataSourceCRUD\n4: [INFO] ==================================================\n5: [INFO] Running test: 200001-DataSourceCRUD\n6: [INFO] Result: PASSED\n7: [RESULT] crates/data/ox_persistence_datasource_manager:200001-DataSourceCRUD:PASSED\n8: [INFO] Module crates/data/ox_persistence_datasource_manager completed. Tests: 1, Failures: 0\n9: [INFO] --------------------------------------------------\n\n(End of file - total 9 lines)\n</content>",
+  "timestamp": 1776893322219
+}

@@ -194,11 +194,12 @@ pub type OxPluginNegotiateFn = extern "C" fn(abi_version: u32) -> *mut PluginCap
 #[no_mangle]
 pub unsafe extern "C" fn free_plugin_caps(caps: *mut PluginCapabilities) {
     if !caps.is_null() {
-        Box::from_raw(caps);
+        let _ = Box::from_raw(caps);
     }
 }
 
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern "C" fn _ox_workflow_dummy_export(
     _fc: FlowControl,
     _api: CoreHostApi,
@@ -206,4 +207,6 @@ pub extern "C" fn _ox_workflow_dummy_export(
     _proc: OxPluginProcessFn,
     _err: OxPluginErrorFn,
     _destroy: OxPluginDestroyFn,
+    _negotiate: Option<OxPluginNegotiateFn>,
+    _caps: Option<PluginCapabilities>,
 ) {}

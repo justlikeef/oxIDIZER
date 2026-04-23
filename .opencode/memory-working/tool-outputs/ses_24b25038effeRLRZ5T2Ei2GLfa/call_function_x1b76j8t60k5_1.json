@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_x1b76j8t60k5_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "warning: `extern` fn uses type `Option<PluginCapabilities>`, which is not FFI-safe\nwarning: `ox_workflow_abi` (lib) generated 1 warning\n",
+  "timestamp": 1776891025528
+}

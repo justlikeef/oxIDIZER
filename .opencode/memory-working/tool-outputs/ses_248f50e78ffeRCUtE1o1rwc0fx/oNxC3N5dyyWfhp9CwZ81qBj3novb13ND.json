@@ -1,0 +1,7 @@
+{
+  "callID": "oNxC3N5dyyWfhp9CwZ81qBj3novb13ND",
+  "sessionID": "ses_248f50e78ffeRCUtE1o1rwc0fx",
+  "tool": "read",
+  "fullOutput": "<path>/tmp/test_webservice.log</path>\n<type>file</type>\n<content>\n1: [INFO] ==================================================\n2: [INFO] STARTING MODULE: crates/webservice/ox_webservice_ping (Ports: 3000 3001 3002 3003 3004)\n3: [INFO] RUNNING SPECIFIC TESTS: 100003-WebSocket-IPv6\n4: [INFO] ==================================================\n5: [INFO] Running test: 100003-WebSocket-IPv6\n6: [ERROR] [2026-04-22 17:26:25] [notice] Starting server process...\n7: [2026-04-22 17:26:25] [info] Server started with PID 3040778. Output redirected to /var/repos/oxIDIZER/crates/webservice/ox_webservice_ping/systems_tests/100003-WebSocket-IPv6/logs/ox_webservice.log\n8: [2026-04-22 17:26:27] [notice] Stopping server with PID 3040778...\n9: [2026-04-22 17:26:27] [info] Server stopped.\n10: [ERROR] WebSocket IPv6 ping test FAILED\n11: [ERROR] Client output: Connecting to ws://::1:3000/ping/\n12: FAILURE: ws://::1:3000/ping/ isn't a valid URI: hostname isn't provided\n13: [ERROR] Result: FAILED (Exit: 255)\n14: [RESULT] crates/webservice/ox_webservice_ping:100003-WebSocket-IPv6:FAILED\n15: [INFO] Module crates/webservice/ox_webservice_ping completed. Tests: 1, Failures: 1\n16: [INFO] --------------------------------------------------\n\n(End of file - total 16 lines)\n</content>",
+  "timestamp": 1776893217702
+}

@@ -1,0 +1,7 @@
+{
+  "callID": "1m94SYKA53kfRkkXlo5Y0Bgn6rMGRWPh",
+  "sessionID": "ses_248f50e78ffeRCUtE1o1rwc0fx",
+  "tool": "bash",
+  "fullOutput": "DEBUG_ARGS: 1='crates/data/ox_persistence_datasource_manager' 2='3010 3011 3012 3013 3014' 3='scripts' 4='tests/common' 5='isolated' 6='info' 7='debug' 8='/tmp/test_persistence.log' 9='200001-DataSourceCRUD'\n",
+  "timestamp": 1776893273208
+}

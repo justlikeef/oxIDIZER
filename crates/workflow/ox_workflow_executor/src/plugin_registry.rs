@@ -2,7 +2,7 @@ use libloading::Library;
 use ox_workflow_abi::{
     CoreHostApi, FlowControl, OxPluginDestroyFn, OxPluginErrorFn, OxPluginInitFn,
     OxPluginNegotiateFn, OxPluginProcessFn, PluginCapabilities,
-    OX_WORKFLOW_ABI_VERSION, OX_WORKFLOW_ABI_MIN_VERSION, FEATURE_NONE,
+    OX_WORKFLOW_ABI_VERSION, OX_WORKFLOW_ABI_MIN_VERSION,
 };
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -52,6 +52,7 @@ impl PluginConfig {
 pub struct LoadedPlugin {
     _lib: Library,
     init_fn: OxPluginInitFn,
+    #[allow(dead_code)]
     negotiate_fn: Option<OxPluginNegotiateFn>,
     process_fn: OxPluginProcessFn,
     error_fn: OxPluginErrorFn,
@@ -97,15 +98,13 @@ impl LoadedPlugin {
     pub fn check_dependencies(&self, loaded_plugins: &HashSet<String>) -> Result<(), PluginError> {
         if let Some(ref caps) = self.capabilities {
             let mut deps: Vec<String> = Vec::new();
-            let caps_name = unsafe {
-                let mut n = Vec::new();
-                let mut i = 0;
-                while i < 64 && caps.name[i] != 0 {
-                    n.push(caps.name[i] as u8);
-                    i += 1;
-                }
-                String::from_utf8_lossy(&n).into_owned()
-            };
+            let mut n = Vec::new();
+            let mut i = 0;
+            while i < 64 && caps.name[i] != 0 {
+                n.push(caps.name[i] as u8);
+                i += 1;
+            }
+            let caps_name = String::from_utf8_lossy(&n).into_owned();
             if !caps_name.is_empty() {
                 if !loaded_plugins.contains(&caps_name) {
                     deps.push(caps_name);

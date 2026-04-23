@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_ju9f6ddqq47k_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs</path>\n<type>file</type>\n<content>\n52: pub struct LoadedPlugin {\n53:     _lib: Library,\n54:     init_fn: OxPluginInitFn,\n55:     negotiate_fn: Option<OxPluginNegotiateFn>,\n56:     process_fn: OxPluginProcessFn,\n57:     error_fn: OxPluginErrorFn,\n58:     destroy_fn: OxPluginDestroyFn,\n59:     capabilities: Option<PluginCapabilities>,\n60: }\n61: \n62: impl LoadedPlugin {\n63:     pub unsafe fn new(path: &str) -> Result<Self, PluginError> {\n64:         let lib = Library::new(path)?;\n65: \n66:         let init_fn: libloading::Symbol<OxPluginInitFn> = lib.get(b\"ox_plugin_init\\0\")?;\n67:         let init_fn_val = *init_fn;\n68: \n69:         let process_fn: libloading::Symbol<OxPluginProcessFn> = lib.get(b\"ox_plugin_process\\0\")?;\n70:         let process_fn_val = *process_fn;\n71: \n\n(Showing lines 52-71 of 162. Use offset=72 to continue.)\n</content>",
+  "timestamp": 1776890986782
+}

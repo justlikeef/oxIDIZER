@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_0azsl8962ybf_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/webservice/ox_webservice_test_utils/src/lib.rs</path>\n<type>file</type>\n<content>\n65:     std::ptr::null()\n66: }\n67: pub extern \"C\" fn mock_set_field_bytes(_task_ctx: *mut c_void, _key: *const c_char, _value: *const u8, _len: usize) {}\n68: \n69: /// Create a `CoreHostApi` pointing to mock functions.\n70: pub fn create_mock_api() -> CoreHostApi {\n71:     CoreHostApi {\n72:         get_field: mock_get_field,\n73:         set_field: mock_set_field,\n74:         get_field_bytes: mock_get_field_bytes,\n75:         set_field_bytes: mock_set_field_bytes,\n76:         get_metadata: mock_get_metadata,\n77:         insert_into_flow: mock_insert_into_flow,\n78:         pause_task: mock_pause_task,\n79:         log: mock_log,\n80:         set_flag: mock_set_flag,\n81:         set_flags: mock_set_flags,\n82:         has_flag: mock_has_flag,\n83:         clear_flag: mock_clear_flag,\n84:     }\n\n(Showing lines 65-84 of 145. Use offset=85 to continue.)\n</content>",
+  "timestamp": 1776866911447
+}

@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_5caqge9tutxa_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/lib.rs</path>\n<type>file</type>\n<content>\n198:     }\n199: }\n200: \n201: #[no_mangle]\n202: pub extern \"C\" fn _ox_workflow_dummy_export(\n203:     _fc: FlowControl,\n204:     _api: CoreHostApi,\n205:     _init: OxPluginInitFn,\n206:     _proc: OxPluginProcessFn,\n207:     _err: OxPluginErrorFn,\n208:     _destroy: OxPluginDestroyFn,\n209: ) {}\n\n(End of file - total 209 lines)\n</content>",
+  "timestamp": 1776867013909
+}

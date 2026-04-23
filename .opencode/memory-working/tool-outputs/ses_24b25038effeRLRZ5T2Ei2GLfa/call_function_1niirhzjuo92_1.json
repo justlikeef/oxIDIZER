@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_1niirhzjuo92_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "error: this file contains an unclosed delimiter\nerror: could not compile `ox_webservice_test_utils` (lib) due to 1 previous error\n",
+  "timestamp": 1776867082799
+}

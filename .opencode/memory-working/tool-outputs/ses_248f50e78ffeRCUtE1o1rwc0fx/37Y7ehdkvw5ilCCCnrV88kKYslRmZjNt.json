@@ -1,0 +1,7 @@
+{
+  "callID": "37Y7ehdkvw5ilCCCnrV88kKYslRmZjNt",
+  "sessionID": "ses_248f50e78ffeRCUtE1o1rwc0fx",
+  "tool": "bash",
+  "fullOutput": "DEBUG_ARGS: 1='crates/webservice/ox_webservice_ping' 2='3000 3001 3002 3003 3004' 3='scripts' 4='tests/common' 5='isolated' 6='info' 7='debug' 8='/tmp/test_webservice.log' 9='100003-WebSocket-IPv6'\n",
+  "timestamp": 1776893187684
+}

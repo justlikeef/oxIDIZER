@@ -1,0 +1,7 @@
+{
+  "callID": "vypAiUZV9qvF0U9gP3TNT1Tp07oHANY3",
+  "sessionID": "ses_248f50e78ffeRCUtE1o1rwc0fx",
+  "tool": "read",
+  "fullOutput": "<path>/tmp/test_webservice.log</path>\n<type>file</type>\n<content>\n1: [INFO] ==================================================\n2: [INFO] STARTING MODULE: crates/webservice/ox_webservice_ping (Ports: 3000 3001 3002 3003 3004)\n3: [INFO] RUNNING SPECIFIC TESTS: 100003-WebSocket-IPv6\n4: [INFO] ==================================================\n5: [INFO] Running test: 100003-WebSocket-IPv6\n6: [INFO] Result: PASSED\n7: [RESULT] crates/webservice/ox_webservice_ping:100003-WebSocket-IPv6:PASSED\n8: [INFO] Module crates/webservice/ox_webservice_ping completed. Tests: 1, Failures: 0\n9: [INFO] --------------------------------------------------\n\n(End of file - total 9 lines)\n</content>",
+  "timestamp": 1776894587050
+}

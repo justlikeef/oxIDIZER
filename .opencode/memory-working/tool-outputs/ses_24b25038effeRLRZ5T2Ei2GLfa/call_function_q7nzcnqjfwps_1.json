@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_q7nzcnqjfwps_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "bash",
+  "fullOutput": "warning: `ox_workflow_abi` (lib) generated 2 warnings\n    Checking ox_webservice_test_utils v0.1.0 (/var/repos/oxIDIZER/crates/webservice/ox_webservice_test_utils)\nerror[E0425]: cannot find value `mock_get_field_bytes` in this scope\n  --> crates/webservice/ox_webservice_test_utils/src/lib.rs:72:26\n   |\n26 | pub extern \"C\" fn mock_get_field(task_ctx: *mut c_void, key: *const c_char) -> *const c_char {\n   | -------------------------------------------------------------------------------------------- similarly named function `mock_get_field` defined here\n...\n--\n   |                          ^^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `mock_get_field`\n\nerror[E0425]: cannot find value `mock_set_field_bytes` in this scope\n  --> crates/webservice/ox_webservice_test_utils/src/lib.rs:73:26\n   |\n39 | pub extern \"C\" fn mock_set_field(task_ctx: *mut c_void, key: *const c_char, value: *const c_char) {\n   | ------------------------------------------------------------------------------------------------- similarly named function `mock_set_field` defined here\n...\n",
+  "timestamp": 1776867126023
+}

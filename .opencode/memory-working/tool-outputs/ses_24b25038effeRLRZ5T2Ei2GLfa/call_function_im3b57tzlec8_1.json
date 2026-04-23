@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_im3b57tzlec8_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/plugin_registry.rs</path>\n<type>file</type>\n<content>\n1: use libloading::Library;\n2: use ox_workflow_abi::{\n3:     CoreHostApi, FlowControl, OxPluginDestroyFn, OxPluginErrorFn, OxPluginInitFn,\n4:     OxPluginNegotiateFn, OxPluginProcessFn, PluginCapabilities,\n5:     OX_WORKFLOW_ABI_VERSION, OX_WORKFLOW_ABI_MIN_VERSION, FEATURE_NONE,\n6: };\n7: use std::collections::HashSet;\n8: use std::ffi::CString;\n9: use std::sync::Arc;\n10: use thiserror::Error;\n\n(Showing lines 1-10 of 164. Use offset=11 to continue.)\n</content>",
+  "timestamp": 1776890735559
+}

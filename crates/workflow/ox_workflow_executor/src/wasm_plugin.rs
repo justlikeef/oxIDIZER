@@ -1,4 +1,4 @@
-use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, FLOW_CONTROL_END};
+use ox_workflow_abi::{FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -33,6 +33,7 @@ impl Default for WasmPluginConfig {
 
 pub struct WasmPluginInstance {
     config: WasmPluginConfig,
+    #[allow(dead_code)]
     compiled: bool,
 }
 
@@ -88,7 +89,7 @@ impl WasmPlugin {
         Ok(offset as i32)
     }
 
-    pub fn process(&mut self, task_ctx: i32) -> Result<FlowControl, WasmPluginError> {
+    pub fn process(&mut self, _task_ctx: i32) -> Result<FlowControl, WasmPluginError> {
         if self.ctx.is_none() {
             return Err(WasmPluginError::InitFailed);
         }

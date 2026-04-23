@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_04207vjz14kq_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_executor/src/wasm_plugin.rs</path>\n<type>file</type>\n<content>\n1: use ox_workflow_abi::{CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, FLOW_CONTROL_END};\n2: use thiserror::Error;\n3: \n4: #[derive(Error, Debug)]\n5: pub enum WasmPluginError {\n6:     #[error(\"Failed to compile WASM module: {0}\")]\n7:     CompileError(String),\n8:     #[error(\"Failed to instantiate: {0}\")]\n9:     InstantiationError(String),\n10:     #[error(\"Memory limit exceeded\")]\n\n(Showing lines 1-10 of 133. Use offset=11 to continue.)\n</content>",
+  "timestamp": 1776890691068
+}

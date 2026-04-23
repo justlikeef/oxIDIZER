@@ -1,0 +1,7 @@
+{
+  "callID": "call_function_l1du08qrwdwa_1",
+  "sessionID": "ses_24b25038effeRLRZ5T2Ei2GLfa",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/workflow/ox_workflow_abi/src/lib.rs</path>\n<type>file</type>\n<content>\n160:     /// Check if key exists. Returns 1 if exists, 0 if not.\n161:     pub has_field: extern \"C\" fn(task_ctx: *mut c_void, key: *const c_char) -> bool,\n162: }\n163: \n164: /// Type representing the plugin initialization function\n165: pub type OxPluginInitFn = extern \"C\" fn(\n166:     plugin_config_ctx: *const c_char,\n167:     api: *const CoreHostApi,\n168:     abi_version: u32,\n169: ) -> *mut c_void;\n170: \n171: /// Type representing the plugin process function\n172: pub type OxPluginProcessFn = extern \"C\" fn(\n173:     plugin_config_ctx: *mut c_void,\n174:     task_ctx: *mut c_void,\n\n(Showing lines 160-174 of 211. Use offset=175 to continue.)\n</content>",
+  "timestamp": 1776890654086
+}
