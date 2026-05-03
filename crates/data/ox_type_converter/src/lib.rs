@@ -11,6 +11,7 @@ pub use value_type::ValueType;
 pub use converters::TypeConverter;
 pub use converters::generic_conversions::convert_value;
 pub use registry::{ConversionRegistry, CONVERSION_REGISTRY};
+pub use ox_data_error::OxDataError;
 
 // Re-export commonly used types
 pub use std::collections::HashMap;

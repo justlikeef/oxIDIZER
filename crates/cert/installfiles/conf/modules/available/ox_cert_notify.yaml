@@ -1,0 +1,6 @@
+modules:
+  - id: "cert_notify"
+    name: "ox_cert_notify"
+    phase: Init
+    params:
+      config_file: "/etc/ox_webservice/notify.yaml"

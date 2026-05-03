@@ -1,5 +1,5 @@
 content_root: "/var/repos/oxIDIZER/content"
-mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
 default_documents:
   - document: "index.html"
   - document: "index.jinja2"

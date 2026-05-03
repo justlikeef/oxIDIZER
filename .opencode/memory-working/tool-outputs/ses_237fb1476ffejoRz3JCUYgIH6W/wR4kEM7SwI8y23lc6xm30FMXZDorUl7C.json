@@ -1,0 +1,7 @@
+{
+  "callID": "wR4kEM7SwI8y23lc6xm30FMXZDorUl7C",
+  "sessionID": "ses_237fb1476ffejoRz3JCUYgIH6W",
+  "tool": "bash",
+  "fullOutput": "total 68\ndrwxrwx--x  5 root       devel       4096 Apr 24 09:38 .\ndrwxr-xr-x 13 justlikeef justlikeef  4096 Apr 26 00:44 ..\n-rw-rwxr--  1 justlikeef justlikeef   383 Apr 24 09:38 Cargo.toml\n-rw-r-x---  1 justlikeef justlikeef 35129 Feb 19 23:08 LICENSE\n-rw-rwx---  1 root       devel       7860 Nov 24 22:47 README.md\ndrwxr-xr-x  4 justlikeef justlikeef  4096 Mar 28 20:24 ox_data_object_dictionary_manager\ndrwxrwx--x  3 root       devel       4096 Mar 22 21:48 ox_data_object_manager\ndrwxrwxr-x  2 root       devel       4096 Apr 20 12:00 src\n",
+  "timestamp": 1777181006392
+}

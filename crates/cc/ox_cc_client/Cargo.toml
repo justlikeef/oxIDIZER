@@ -29,6 +29,10 @@ thiserror        = "1"
 base64           = "0.22"
 ed25519-dalek    = { version = "2", features = ["zeroize"] }
 x25519-dalek     = { version = "2", features = ["zeroize", "static_secrets"] }
+trust-dns-resolver = { version = "0.23.2", features = ["dnssec-ring"] }
+rcgen = "0.14.7"
+url = "2.5.8"
+gethostname = "1.1.0"
 
 [dev-dependencies]
 tempfile = "3"

@@ -17,12 +17,15 @@ use crate::config::ClientConfig;
 ///   - report_url + mTLS cert paths (so the agent can POST directly)
 ///   - payload (forwarded verbatim)
 pub async fn apply(consumer_dir: &str, cfg: &ClientConfig, manifest: &Manifest) -> Result<()> {
+    let tls = cfg.tls.as_ref().ok_or_else(|| anyhow::anyhow!("TLS not configured; cannot apply manifest"))?;
+    let report_url = cfg.report_url.as_ref().ok_or_else(|| anyhow::anyhow!("report_url not configured; cannot apply manifest"))?;
+
     let applier_manifest = ApplierManifest {
         manifest_id: manifest.manifest_id.clone(),
-        report_url: cfg.report_url.clone(),
-        client_cert: cfg.tls.client_cert.clone(),
-        client_key: cfg.tls.client_key.clone(),
-        ca_cert: cfg.tls.ca_cert.clone(),
+        report_url: report_url.clone(),
+        client_cert: tls.client_cert.clone(),
+        client_key: tls.client_key.clone(),
+        ca_cert: tls.ca_cert.clone(),
         payload: manifest.payload.clone(),
     };
 
@@ -61,21 +64,22 @@ mod tests {
         consumer_dirs.insert("test_consumer".to_string(), consumer_dir.to_string());
         ClientConfig {
             client_id: "test-client".to_string(),
-            manifest_url: "https://manifest.example.com".to_string(),
-            report_url: "https://manifest.example.com/cc/report/test-client".to_string(),
+            manifest_url: Some("https://manifest.example.com".to_string()),
+            bootstrap_url: None,
+            report_url: Some("https://manifest.example.com/cc/report/test-client".to_string()),
             db_path: ":memory:".to_string(),
             db_encryption_key: "key".to_string(),
             poll_interval_secs: 60,
             max_manifest_window_secs: 90 * 24 * 3600,
-            broker_signing_pubkeys_dir: "/tmp".to_string(),
-            client_enc_privkey_b64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_string(),
+            broker_signing_pubkeys_dir: Some("/tmp".to_string()),
+            client_enc_privkey_b64: Some("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_string()),
             consumer_dirs,
             plugin_dir: None,
-            tls: ClientTlsConfig {
+            tls: Some(ClientTlsConfig {
                 client_cert: "/dev/null".to_string(),
                 client_key: "/dev/null".to_string(),
                 ca_cert: "/dev/null".to_string(),
-            },
+            }),
         }
     }
 
@@ -107,8 +111,8 @@ mod tests {
 
         assert_eq!(v["manifest_id"], "m1");
         assert_eq!(v["payload"]["package"], "nginx");
-        assert_eq!(v["report_url"], cfg.report_url.as_str());
-        assert_eq!(v["client_cert"], cfg.tls.client_cert.as_str());
+        assert_eq!(v["report_url"], cfg.report_url.as_ref().unwrap().as_str());
+        assert_eq!(v["client_cert"], cfg.tls.as_ref().unwrap().client_cert.as_str());
     }
 
     #[tokio::test]

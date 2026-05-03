@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA Admin &mdash; ox Certificate Authority</title>
+    <link rel="stylesheet" href="/ca/css/style.css">
+    <style>
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        .tab {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            padding: 0.65rem 1.1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: var(--font-family);
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        code {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.875em;
+            color: var(--accent);
+        }
+        pre { margin: 0.75rem 0; }
+        pre code {
+            display: block;
+            padding: 0.9rem 1rem;
+            border-radius: 6px;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        a { color: var(--accent); }
+
+        textarea.csr-input {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 200px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 0.85rem;
+            padding: 0.75rem;
+            resize: vertical;
+        }
+        textarea.csr-input:focus { outline: none; border-color: var(--accent); }
+
+        .btn {
+            display: inline-block;
+            padding: 0.55rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: var(--font-family);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: var(--accent); color: var(--bg-color); font-weight: 700; }
+        .btn-approve { background: #22c55e; color: #052e16; font-weight: 600; }
+        .btn-deny    { background: #ef4444; color: #fff;    font-weight: 600; }
+        .btn-ghost   { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+        .btn-outline { background: rgba(56,189,248,0.12); color: var(--accent); }
+        .btn-sm      { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+        .btn:disabled { opacity: 0.4; cursor: default; }
+
+        .file-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .file-row label { color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap; }
+        input[type="file"] { font-size: 0.85rem; color: var(--text-secondary); }
+
+        .result-box { margin-top: 1.25rem; display: none; }
+        .result-box.visible { display: block; }
+        .result-cert {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: pre;
+            overflow-x: auto;
+            max-height: 260px;
+        }
+        .result-meta { margin-bottom: 0.6rem; color: var(--text-secondary); font-size: 0.875rem; }
+
+        .alert {
+            padding: 0.7rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        .alert-error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+        .alert-ok    { background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.35); color: #86efac; }
+
+        .queue-table-wrap { overflow-x: auto; }
+        table.queue { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        table.queue th {
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem 0.75rem;
+            white-space: nowrap;
+        }
+        table.queue td {
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        table.queue td.cn { color: var(--text-primary); font-weight: 500; }
+        table.queue tr:last-child td { border-bottom: none; }
+        table.queue .actions { display: flex; gap: 0.5rem; }
+
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-secondary);
+        }
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+        .spinner {
+            display: inline-block;
+            width: 1.1rem;
+            height: 1.1rem;
+            border: 2px solid rgba(56,189,248,0.3);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.4rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem 1.75rem;
+            max-width: 440px;
+            width: 90%;
+        }
+        .modal h3 { margin: 0 0 0.85rem; }
+        .modal label { display: block; color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.35rem; }
+        .modal textarea {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            padding: 0.5rem 0.65rem;
+            margin-bottom: 1rem;
+        }
+        .modal textarea:focus { outline: none; border-color: var(--accent); }
+        .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-content">
+            <div class="logo-area">
+                <div>
+                    <h1>Certificate Authority</h1>
+                    <p class="subtitle">Admin &mdash; CSR Management</p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <nav style="margin-top:0.25rem;">
+                    <a href="/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Back to Trust Setup</a>
+                </nav>
+                <a href="/status" class="status-badge status-ok" id="status-badge" title="System Status">ONLINE</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div class="tab-bar" role="tablist">
+            <button class="tab active" data-target="sign"  role="tab">Sign CSR</button>
+            <button class="tab"        data-target="queue" role="tab">Pending Queue
+                <span id="queue-badge" style="display:none; background:var(--accent); color:var(--bg-color); border-radius:9px; font-size:0.75rem; font-weight:700; padding:0 0.45rem; margin-left:0.3rem;"></span>
+            </button>
+            <button class="tab"        data-target="api"   role="tab">API Reference</button>
+        </div>
+
+        <!-- Sign CSR -->
+        <div class="tab-panel active" id="sign">
+            <h2>Sign a Certificate Signing Request</h2>
+            <p class="label">Paste a PEM-encoded CSR or upload a <code>.csr</code> / <code>.pem</code> file.
+               The certificate is signed immediately without queuing.</p>
+
+            <div class="file-row">
+                <label for="csr-file">Upload file:</label>
+                <input type="file" id="csr-file" accept=".csr,.pem,.txt">
+            </div>
+
+            <textarea class="csr-input" id="csr-text"
+                placeholder="-----BEGIN CERTIFICATE REQUEST-----&#10;...&#10;-----END CERTIFICATE REQUEST-----"></textarea>
+
+            <div style="margin-top:0.75rem; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="sign-btn">Sign Certificate</button>
+                <button class="btn btn-ghost" id="clear-btn">Clear</button>
+            </div>
+
+            <div class="result-box" id="sign-result">
+                <div class="result-meta" id="sign-meta"></div>
+                <div class="result-cert" id="sign-cert"></div>
+                <div style="margin-top:0.75rem;">
+                    <button class="btn btn-sm btn-outline" id="copy-btn">Copy PEM</button>
+                    <button class="btn btn-sm btn-outline" id="download-btn" style="margin-left:0.4rem;">Download .crt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Queue -->
+        <div class="tab-panel" id="queue">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                <h2 style="margin:0;">Pending Approval Queue</h2>
+                <button class="btn btn-sm btn-outline" id="refresh-btn">&#8635; Refresh</button>
+            </div>
+            <div class="queue-table-wrap">
+                <div id="queue-content"></div>
+            </div>
+        </div>
+
+        <!-- API Reference -->
+        <div class="tab-panel" id="api">
+            <h2>Automated CSR Submission</h2>
+            <p class="label">External systems can submit CSRs to the issue endpoint.
+               When RA approval is required by policy, the request enters the Pending Queue above.</p>
+
+            <h3>Submit a CSR for signing</h3>
+            <pre><code>POST /api/v1/certificates
+Content-Type: application/json
+
+{
+  "csr": "&lt;PEM-encoded CSR&gt;",
+  "profile": "server"
+}</code></pre>
+            <p class="label">Or send the raw PEM body with <code>Content-Type: application/pkcs10</code>.</p>
+            <p class="label">Returns <code>201 Created</code> with the signed certificate, or <code>202 Accepted</code>
+               with a <code>request_id</code> when RA approval is required.</p>
+
+            <h3>Poll for an approved certificate</h3>
+            <pre><code>GET /api/v1/ra/requests/{request_id}/certificate</code></pre>
+            <p class="label">Returns <code>200</code> with the certificate once approved and issued,
+               or <code>202</code> while still pending.</p>
+
+            <h3>Admin direct-sign (bypasses RA queue)</h3>
+            <pre><code>POST /api/v1/ra/sign
+Content-Type: application/json
+
+{
+  "csr": "&lt;PEM-encoded CSR&gt;"
+}</code></pre>
+            <p class="label">Also accepts a raw PEM body. Returns <code>201 Created</code> with the signed certificate.</p>
+
+            <h3>Queue management</h3>
+            <pre><code>GET  /api/v1/ra/pending                      # list pending requests
+GET  /api/v1/ra/pending/{id}                 # get single request
+POST /api/v1/ra/pending/{id}/approve         # approve (issues cert)
+POST /api/v1/ra/pending/{id}/deny            # deny with reason</code></pre>
+        </div>
+    </div>
+
+    <footer>
+        <p>ox Certificate Authority &mdash; powered by <strong>oxIDIZER</strong></p>
+    </footer>
+
+</div>
+
+<!-- Approve modal -->
+<div class="modal-overlay" id="approve-modal">
+    <div class="modal">
+        <h3>Approve Request</h3>
+        <label for="approve-notes">Reviewer notes (optional)</label>
+        <textarea id="approve-notes" rows="3" placeholder="Approved — verified identity"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="approve-cancel">Cancel</button>
+            <button class="btn btn-approve" id="approve-submit">Approve &amp; Sign</button>
+        </div>
+    </div>
+</div>
+
+<!-- Deny modal -->
+<div class="modal-overlay" id="deny-modal">
+    <div class="modal">
+        <h3>Deny Request</h3>
+        <label for="deny-reason">Reason <span style="color:#ef4444">*</span></label>
+        <textarea id="deny-reason" rows="3" placeholder="Reason for denial"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="deny-cancel">Cancel</button>
+            <button class="btn btn-deny" id="deny-submit">Deny</button>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+var _signedPem = '';
+var _signedSubject = '';
+var _pendingActionId = '';
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.target).classList.add('active');
+        if (btn.dataset.target === 'queue') loadQueue();
+    });
+});
+
+// ── File upload → textarea ────────────────────────────────────────────────────
+document.getElementById('csr-file').addEventListener('change', function() {
+    var file = this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('csr-text').value = e.target.result;
+    };
+    reader.readAsText(file);
+});
+
+// ── Sign CSR ──────────────────────────────────────────────────────────────────
+document.getElementById('sign-btn').addEventListener('click', signCsr);
+document.getElementById('clear-btn').addEventListener('click', function() {
+    document.getElementById('csr-text').value = '';
+    document.getElementById('csr-file').value = '';
+    hideSignResult();
+});
+document.getElementById('copy-btn').addEventListener('click', function() {
+    if (!_signedPem) return;
+    var self = this;
+    navigator.clipboard.writeText(_signedPem).then(function() {
+        self.textContent = 'Copied!';
+        setTimeout(function() { self.textContent = 'Copy PEM'; }, 1500);
+    });
+});
+document.getElementById('download-btn').addEventListener('click', function() {
+    if (!_signedPem) return;
+    var blob = new Blob([_signedPem], { type: 'application/x-pem-file' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (_signedSubject || 'certificate').replace(/[^a-z0-9_-]/gi, '_') + '.crt';
+    a.click();
+});
+
+function signCsr() {
+    var csr = document.getElementById('csr-text').value.trim();
+    if (!csr) { showSignAlert('Paste or upload a CSR first.', false); return; }
+
+    var btn = document.getElementById('sign-btn');
+    btn.disabled = true;
+    setText(btn, 'Signing…');
+    hideSignResult();
+
+    fetch('/api/v1/ra/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csr: csr })
+    })
+    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+    .then(function(res) {
+        btn.disabled = false;
+        setText(btn, 'Sign Certificate');
+        if (res.status === 201 && res.body.data) {
+            var d = res.body.data;
+            _signedPem = d.certificate || '';
+            _signedSubject = d.subject_cn || d.subject_dn || 'certificate';
+
+            var meta = document.getElementById('sign-meta');
+            clearEl(meta);
+            var strong = document.createElement('strong');
+            strong.textContent = d.subject_cn || d.subject_dn || '';
+            meta.appendChild(strong);
+            meta.appendChild(document.createTextNode(' ·  Serial: '));
+            var c = document.createElement('code');
+            c.textContent = d.serial || '';
+            meta.appendChild(c);
+            meta.appendChild(document.createTextNode(' ·  Expires: ' + (d.not_after || '').substring(0, 10)));
+
+            document.getElementById('sign-cert').textContent = _signedPem;
+            document.getElementById('sign-result').classList.add('visible');
+        } else {
+            var msg = (res.body.error && res.body.error.message) || 'Unexpected error';
+            showSignAlert('Error ' + res.status + ': ' + msg, false);
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        setText(btn, 'Sign Certificate');
+        showSignAlert('Network error: ' + err.message, false);
+    });
+}
+
+function hideSignResult() {
+    document.getElementById('sign-result').classList.remove('visible');
+    var a = document.getElementById('sign-alert');
+    if (a) a.remove();
+}
+
+function showSignAlert(msg, ok) {
+    var a = document.getElementById('sign-alert');
+    if (!a) {
+        a = document.createElement('div');
+        a.id = 'sign-alert';
+        document.getElementById('sign').appendChild(a);
+    }
+    a.className = 'alert ' + (ok ? 'alert-ok' : 'alert-error');
+    a.textContent = msg;
+}
+
+// ── Queue ─────────────────────────────────────────────────────────────────────
+document.getElementById('refresh-btn').addEventListener('click', loadQueue);
+
+function loadQueue() {
+    var content = document.getElementById('queue-content');
+    clearEl(content);
+    var spinner = document.createElement('div');
+    spinner.className = 'empty-state';
+    var s = document.createElement('span');
+    s.className = 'spinner';
+    spinner.appendChild(s);
+    spinner.appendChild(document.createTextNode(' Loading…'));
+    content.appendChild(spinner);
+
+    fetch('/api/v1/ra/pending')
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        var items = (res.data || []).filter(function(r) { return r.status === 'Pending'; });
+        updateBadge(items.length);
+        clearEl(content);
+        if (items.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'empty-state';
+            var icon = document.createElement('div');
+            icon.className = 'icon';
+            icon.textContent = '✓';
+            empty.appendChild(icon);
+            var p = document.createElement('p');
+            p.textContent = 'No pending requests';
+            empty.appendChild(p);
+            content.appendChild(empty);
+            return;
+        }
+        content.appendChild(buildQueueTable(items));
+    })
+    .catch(function(err) {
+        clearEl(content);
+        var alert = document.createElement('div');
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Failed to load queue: ' + err.message;
+        content.appendChild(alert);
+    });
+}
+
+function buildQueueTable(items) {
+    var table = document.createElement('table');
+    table.className = 'queue';
+
+    var thead = table.createTHead();
+    var hrow = thead.insertRow();
+    ['Subject CN / ID', 'Profile', 'Submitted', 'SANs', 'Actions'].forEach(function(h) {
+        var th = document.createElement('th');
+        th.textContent = h;
+        hrow.appendChild(th);
+    });
+
+    var tbody = table.createTBody();
+    items.forEach(function(req) {
+        var row = tbody.insertRow();
+
+        var tdId = row.insertCell();
+        tdId.className = 'cn';
+        tdId.textContent = req.id;
+
+        var tdProf = row.insertCell();
+        tdProf.textContent = req.profile || '';
+
+        var tdDate = row.insertCell();
+        tdDate.textContent = (req.created_at || '').substring(0, 16).replace('T', ' ');
+
+        var sans = (req.sans || []).join(', ') || '—';
+        var tdSans = row.insertCell();
+        tdSans.textContent = sans;
+        tdSans.style.maxWidth = '180px';
+        tdSans.style.overflow = 'hidden';
+        tdSans.style.textOverflow = 'ellipsis';
+        tdSans.style.whiteSpace = 'nowrap';
+        tdSans.title = (req.sans || []).join(', ');
+
+        var tdAct = row.insertCell();
+        var actions = document.createElement('div');
+        actions.className = 'actions';
+
+        var approveBtn = document.createElement('button');
+        approveBtn.className = 'btn btn-sm btn-approve';
+        approveBtn.textContent = 'Approve';
+        approveBtn.addEventListener('click', (function(id) { return function() { openApprove(id); }; })(req.id));
+
+        var denyBtn = document.createElement('button');
+        denyBtn.className = 'btn btn-sm btn-deny';
+        denyBtn.textContent = 'Deny';
+        denyBtn.addEventListener('click', (function(id) { return function() { openDeny(id); }; })(req.id));
+
+        var csrBtn = document.createElement('button');
+        csrBtn.className = 'btn btn-sm btn-ghost';
+        csrBtn.textContent = 'CSR';
+        var csrRow = tbody.insertRow();
+        csrRow.style.display = 'none';
+        var csrCell = csrRow.insertCell();
+        csrCell.colSpan = 5;
+        var csrBox = document.createElement('div');
+        csrBox.className = 'result-cert';
+        csrBox.style.maxHeight = '120px';
+        csrBox.style.fontSize = '0.75rem';
+        csrBox.textContent = req.csr_pem || '';
+        csrCell.appendChild(csrBox);
+        csrBtn.addEventListener('click', function() {
+            if (csrRow.style.display === 'none') {
+                csrRow.style.display = '';
+                csrBtn.textContent = 'Hide';
+            } else {
+                csrRow.style.display = 'none';
+                csrBtn.textContent = 'CSR';
+            }
+        });
+
+        actions.appendChild(approveBtn);
+        actions.appendChild(denyBtn);
+        actions.appendChild(csrBtn);
+        tdAct.appendChild(actions);
+    });
+
+    return table;
+}
+
+function updateBadge(n) {
+    var b = document.getElementById('queue-badge');
+    b.textContent = String(n);
+    b.style.display = n > 0 ? 'inline' : 'none';
+}
+
+// ── Approve / Deny ────────────────────────────────────────────────────────────
+document.getElementById('approve-cancel').addEventListener('click', function() { closeModal('approve-modal'); });
+document.getElementById('deny-cancel').addEventListener('click', function() { closeModal('deny-modal'); });
+
+document.getElementById('approve-submit').addEventListener('click', function() {
+    var notes = document.getElementById('approve-notes').value.trim();
+    closeModal('approve-modal');
+    raAction(_pendingActionId, 'approve', { reviewer_notes: notes });
+});
+
+document.getElementById('deny-submit').addEventListener('click', function() {
+    var reason = document.getElementById('deny-reason').value.trim();
+    if (!reason) { document.getElementById('deny-reason').focus(); return; }
+    closeModal('deny-modal');
+    raAction(_pendingActionId, 'deny', { reason: reason });
+});
+
+document.querySelectorAll('.modal-overlay').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+        if (e.target === el) el.classList.remove('open');
+    });
+});
+
+function openApprove(id) {
+    _pendingActionId = id;
+    document.getElementById('approve-notes').value = '';
+    document.getElementById('approve-modal').classList.add('open');
+    document.getElementById('approve-notes').focus();
+}
+
+function openDeny(id) {
+    _pendingActionId = id;
+    document.getElementById('deny-reason').value = '';
+    document.getElementById('deny-modal').classList.add('open');
+    document.getElementById('deny-reason').focus();
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+function raAction(id, action, payload) {
+    fetch('/api/v1/ra/pending/' + encodeURIComponent(id) + '/' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+    .then(function(res) {
+        loadQueue();
+        if (res.status !== 200) {
+            var msg = (res.body.error && res.body.error.message) || 'Error ' + res.status;
+            alert(action + ' failed: ' + msg);
+        }
+    })
+    .catch(function(err) { alert('Network error: ' + err.message); });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function clearEl(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function setText(el, t) { el.textContent = t; }
+
+// Load queue count for badge on initial page load
+fetch('/api/v1/ra/pending')
+.then(function(r) { return r.json(); })
+.then(function(res) {
+    var n = (res.data || []).filter(function(r) { return r.status === 'Pending'; }).length;
+    updateBadge(n);
+})
+.catch(function() {});
+</script>
+<script>
+(function() {
+    function updateStatusBadge(ok) {
+        var b = document.getElementById('status-badge');
+        if (!b) return;
+        if (ok) { b.textContent = 'ONLINE'; b.className = 'status-badge status-ok'; }
+        else     { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    }
+    fetch('/ping/').then(function(r) { updateStatusBadge(r.ok); }).catch(function() { updateStatusBadge(false); });
+})();
+</script>
+</body>
+</html>

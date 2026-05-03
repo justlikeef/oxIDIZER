@@ -1,0 +1,12 @@
+# ox_cert_ra — Registration Authority
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+resubmit_queue: "tasks.pending"
+resubmit_priority: 100
+auto_approve_rules: []
+# notification_webhook: "https://hooks.example.com/cert-ra"

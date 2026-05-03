@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, ModuleCompatibility, PERSISTENCE_DRIVER_REGISTRY};
 use ox_type_converter::ValueType;
 use std::collections::HashMap;
@@ -17,10 +18,10 @@ impl GdoRelationalDriver {
         Self { internal_driver_name, internal_location }
     }
 
-    fn get_internal_driver(&self) -> Result<(Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata), String> {
+    fn get_internal_driver(&self) -> Result<(Arc<dyn PersistenceDriver + Send + Sync>, DriverMetadata), OxDataError> {
         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         registry.get_driver(&self.internal_driver_name)
-            .ok_or_else(|| format!("Internal driver '{}' not found.", self.internal_driver_name))
+            .ok_or_else(|| OxDataError::DriverError(format!("Internal driver '{}' not found.", self.internal_driver_name)))
     }
 }
 
@@ -29,7 +30,7 @@ impl PersistenceDriver for GdoRelationalDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         _location: &str, // Location is handled by internal_location
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         let (driver, _) = self.get_internal_driver()?;
         driver.persist(serializable_map, &self.internal_location)
     }
@@ -38,7 +39,7 @@ impl PersistenceDriver for GdoRelationalDriver {
         &self,
         _location: &str, // Location is handled by internal_location
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         let (driver, _) = self.get_internal_driver()?;
         driver.restore(&self.internal_location, id)
     }
@@ -47,7 +48,7 @@ impl PersistenceDriver for GdoRelationalDriver {
         &self,
         filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         _location: &str, // Location is handled by internal_location
-    ) -> Result<Vec<String>, String> {
+    ) -> Result<Vec<String>, OxDataError> {
         let (driver, _) = self.get_internal_driver()?;
         driver.fetch(filter, &self.internal_location)
     }
@@ -56,16 +57,16 @@ impl PersistenceDriver for GdoRelationalDriver {
         println!("GdoRelationalDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         // The internal driver should be prepared separately
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["relationships".to_string()])
     }
 
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, OxDataError> {
         // Define the schema for a relationship GDO
         Ok(DataSet {
             name: "relationships".to_string(),

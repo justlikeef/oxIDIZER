@@ -1,0 +1,37 @@
+modules:
+  - id: "cert_admin"
+    name: "ox_cert_admin"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/admin.yaml"
+  - id: "cert_stream"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "/etc/ox_webservice/stream.yaml"
+
+routes:
+  - url: "^/ca/root\\.crt$"
+    module_id: "cert_admin"
+    priority: 50
+
+  - url: "^/api/v1/certificates(/.*)?$"
+    module_id: "cert_admin"
+    priority: 150
+  - url: "^/api/v1/audit(/.*)?$"
+    module_id: "cert_admin"
+    priority: 150
+  - url: "^/api/v1/ca(/.*)?$"
+    module_id: "cert_admin"
+    priority: 150
+  - url: "^/api/v1/scep(/.*)?$"
+    module_id: "cert_admin"
+    priority: 150
+  - url: "^/api/v1/trust(/.*)?$"
+    module_id: "cert_admin"
+    priority: 150
+
+  - url: "^/ca/(.*)$"
+    module_id: "cert_stream"
+    priority: 50
+    phase: Content
+    path_capture: true

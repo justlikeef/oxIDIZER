@@ -1,0 +1,7 @@
+{
+  "callID": "kvbZpNROeIhleMQT2xbtb6rRwwPtaOiv",
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "tool": "bash",
+  "fullOutput": "crates/data/ox_type_converter:\nCargo.toml\nLICENSE\nREADME.md\nsrc\ntests\n\ncrates/data/ox_type_converter/src:\nconverters\nlib.rs\nregistry.rs\nvalue_type.rs\n\ncrates/data/ox_type_converter/src/converters:\nboolean_conversions.rs\ngeneric_conversions.rs\nmod.rs\nnumeric_conversions.rs\nstring_conversions.rs\n\ncrates/data/ox_type_converter/tests:\nregistry.rs\n\ncrates/util/ox_callback_manager:\nCargo.toml\nLICENSE\nsrc\n\ncrates/util/ox_callback_manager/src:\nlib.rs\nmain.rs\nregistry.rs\n",
+  "timestamp": 1777042730869
+}

@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -18,9 +19,9 @@ impl PersistenceDriver for PostgresPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
-        let mut guard = self.client.lock().map_err(|e| e.to_string())?;
-        let client = guard.as_mut().ok_or("Postgres client not initialized")?;
+    ) -> Result<(), OxDataError> {
+        let mut guard = self.client.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let client = guard.as_mut().ok_or_else(|| OxDataError::InternalError("Postgres client not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Postgres);
@@ -68,7 +69,7 @@ impl PersistenceDriver for PostgresPersistenceDriver {
             .map(|s| s.as_ref() as &(dyn postgres::types::ToSql + Sync))
             .collect();
 
-        client.execute(&query, &params_refs).map_err(|e| e.to_string())?;
+        client.execute(&query, &params_refs).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         Ok(())
     }
@@ -77,15 +78,15 @@ impl PersistenceDriver for PostgresPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let mut guard = self.client.lock().map_err(|e| e.to_string())?;
-        let client = guard.as_mut().ok_or("Postgres client not initialized")?;
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
+        let mut guard = self.client.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let client = guard.as_mut().ok_or_else(|| OxDataError::InternalError("Postgres client not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Postgres);
         let query = builder.build_select_by_id(location);
         
-        let rows = client.query(&query, &[&id]).map_err(|e| e.to_string())?;
+        let rows = client.query(&query, &[&id]).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         if let Some(row) = rows.get(0) {
             let mut map = HashMap::new();
@@ -111,13 +112,13 @@ impl PersistenceDriver for PostgresPersistenceDriver {
             }
             Ok(map)
         } else {
-            Err(format!("Object with id {} not found", id))
+            Err(OxDataError::InternalError(format!("Object with id {} not found", id)))
         }
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
-        let mut guard = self.client.lock().map_err(|e| e.to_string())?;
-        let client = guard.as_mut().ok_or("Postgres client not initialized")?;
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
+        let mut guard = self.client.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let client = guard.as_mut().ok_or_else(|| OxDataError::InternalError("Postgres client not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Postgres);
@@ -166,7 +167,7 @@ impl PersistenceDriver for PostgresPersistenceDriver {
             .map(|s| s.as_ref() as &(dyn postgres::types::ToSql + Sync))
             .collect();
 
-        let rows = client.query(&query, &params_refs).map_err(|e| e.to_string())?;
+        let rows = client.query(&query, &params_refs).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         let mut ids = Vec::new();
         for row in rows {
@@ -188,16 +189,16 @@ impl PersistenceDriver for PostgresPersistenceDriver {
          println!("PostgresDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing Postgres datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["default".to_string()])
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

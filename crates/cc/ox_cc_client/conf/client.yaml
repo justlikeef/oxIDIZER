@@ -1,0 +1,22 @@
+# ox_cc_client configuration
+client_id: "$(hostname)-$(openssl rand -hex 4)"
+
+# Initial bootstrap URL for DNSSEC-validated trust exchange
+# bootstrap_url: "https://cc.example.com/cc/bootstrap"
+bootstrap_url: "https://cc.internal.justlikeef.com/cc/bootstrap"
+
+# Service URLs (configured automatically after bootstrap)
+# manifest_url: "https://cc.example.com"
+# report_url: "https://cc.example.com/cc/report"
+
+poll_interval_secs: 60
+db_path: "/var/lib/ox_cc/client.db"
+db_encryption_key: "$(openssl rand -hex 32)"
+broker_signing_pubkeys_dir: "/etc/ox_cc/broker_keys"
+
+# client_enc_privkey_b64: "" # Managed by bootstrap
+
+# tls:
+#   client_cert: "/etc/ox_cc/certs/client.crt"
+#   client_key: "/etc/ox_cc/certs/client.key"
+#   ca_cert: "/etc/ox_cc/certs/ca.crt"

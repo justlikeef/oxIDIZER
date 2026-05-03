@@ -1,0 +1,7 @@
+{
+  "callID": "ZVjKhZxaL6nkDv8pdF9u3nV7pvyIKdEw",
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "tool": "bash",
+  "fullOutput": "ls: cannot access 'spec/': No such file or directory\n",
+  "timestamp": 1776996270358
+}

@@ -18,7 +18,30 @@ fn make_wire(suffix: &str) -> String {
     format!("fakepayload{}.fakesig{}", suffix, suffix)
 }
 
+fn enroll(db: &ManifestDb, client_id: &str) {
+    let body = serde_json::json!({
+        "client_id": client_id,
+        "enc_pubkey_b64": "fakeenc",
+        "sig_pubkey_b64": "fakesig",
+        "metadata": {}
+    })
+    .to_string();
+    let cfg = crate::config::ManifestPluginConfig {
+        db_path: "".to_string(),
+        db_encryption_key: "".to_string(),
+        max_manifest_window_secs: 100,
+        broker_pubkeys: vec!["broker1".to_string()],
+        manifest_url: "https://m.example.com".to_string(),
+        report_url: "https://r.example.com".to_string(),
+    };
+    handlers::bootstrap_checkin(db, &cfg, &body);
+    handlers::trust_client(db, client_id);
+}
+
 fn deploy(db: &ManifestDb, client_id: &str, manifest_id: &str) {
+    // Ensure client is enrolled and trusted before deploying
+    enroll(db, client_id);
+
     let body = serde_json::json!({
         "envelope_wire": make_wire(manifest_id),
         "manifest_id": manifest_id,
@@ -168,7 +191,7 @@ fn test_list_clients() {
 }
 
 #[test]
-fn test_list_clients_excludes_expired() {
+fn test_list_clients_shows_all_enrolled() {
     let (db, _tmp) = open_test_db();
     deploy(&db, "client-a", "manifest-1");
     deploy(&db, "client-b", "manifest-2");
@@ -177,8 +200,13 @@ fn test_list_clients_excludes_expired() {
     let resp = handlers::list_clients(&db);
     let v: Value = serde_json::from_str(&resp.body).unwrap();
     let clients = v["clients"].as_array().unwrap();
-    assert_eq!(clients.len(), 1);
-    assert_eq!(clients[0]["client_id"], "client-b");
+    assert_eq!(clients.len(), 2);
+    
+    let a = clients.iter().find(|c| c["client_id"] == "client-a").unwrap();
+    assert!(a["latest_manifest_id"].is_null());
+
+    let b = clients.iter().find(|c| c["client_id"] == "client-b").unwrap();
+    assert_eq!(b["latest_manifest_id"], "manifest-2");
 }
 
 #[test]
@@ -206,4 +234,44 @@ fn test_deploy_bad_body() {
     let (db, _tmp) = open_test_db();
     let resp = handlers::deploy_envelope(&db, "client-a", "not-json");
     assert_eq!(resp.status, 400);
+}
+#[test]
+fn test_bootstrap_flow() {
+    let (db, _tmp) = open_test_db();
+    let cfg = crate::config::ManifestPluginConfig {
+        db_path: "".to_string(),
+        db_encryption_key: "".to_string(),
+        max_manifest_window_secs: 100,
+        broker_pubkeys: vec!["broker1".to_string()],
+        manifest_url: "https://m.example.com".to_string(),
+        report_url: "https://r.example.com".to_string(),
+    };
+
+    // 1. Checkin
+    let body = serde_json::json!({
+        "client_id": "client-new",
+        "enc_pubkey_b64": "pub1",
+        "sig_pubkey_b64": "sig1",
+        "metadata": {"hostname": "test"}
+    }).to_string();
+    let resp = handlers::bootstrap_checkin(&db, &cfg, &body);
+    assert_eq!(resp.status, 200);
+
+    // 2. Poll (should be Forbidden since status is pending)
+    let resp = handlers::get_latest(&db, "client-new");
+    assert_eq!(resp.status, 403);
+    assert!(resp.body.contains("pending"));
+
+    // 3. List pending
+    let resp = handlers::list_pending_clients(&db);
+    let v: Value = serde_json::from_str(&resp.body).unwrap();
+    assert_eq!(v["pending_clients"].as_array().unwrap().len(), 1);
+
+    // 4. Trust
+    let resp = handlers::trust_client(&db, "client-new");
+    assert_eq!(resp.status, 200);
+
+    // 5. Poll (now 404 since no manifest deployed yet, but no longer 403)
+    let resp = handlers::get_latest(&db, "client-new");
+    assert_eq!(resp.status, 404);
 }

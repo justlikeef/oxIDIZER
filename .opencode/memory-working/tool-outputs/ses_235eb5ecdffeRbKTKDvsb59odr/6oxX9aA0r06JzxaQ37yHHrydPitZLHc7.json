@@ -1,0 +1,7 @@
+{
+  "callID": "6oxX9aA0r06JzxaQ37yHHrydPitZLHc7",
+  "sessionID": "ses_235eb5ecdffeRbKTKDvsb59odr",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/data/task.md</path>\n<type>file</type>\n<content>\n1: # Data Module Refactor Tasks\n2: \n3: ## Unified Error Handling\n4: - `[x]` Create `ox_data_error` crate.\n5: - `[x]` Update `ox_type_converter` to use `ox_data_error`.\n6: - `[x]` Update `ox_data_object` to use `ox_data_error`.\n7: - `[x]` Update `ox_persistence` API to use `OxDataError`.\n8: - `[x]` Refactor SQL and GDO Relational drivers to use `OxDataError`.\n9: - `[/]` Fix `ox_persistence_driver_manager` (handle `serde::Serialize` on `OxDataError`).\n10: \n11: ## Persistence API Stabilization\n12: - `[x]` Add `Text`, `BigInt`, `Json`, `Timestamp` variants to `ValueType`.\n13: - `[x]` Implement `DataObjectSchema` and `FieldDescriptor` builder APIs in `ox_data_object_manager`.\n14: - `[x]` Fix non-exhaustive matches in `TypeConverter`.\n15: \n16: ## Infrastructure & Subsystems\n17: - `[x]` Update `ox_data_object_dictionary_manager` to handle new error types.\n18: - `[x]` Fix `ox_cert_core` compilation (stub crypto, schema registration fix).\n19: - `[ ]` Rename `ox_locking` to `ox_transaction` and expand functionality.\n20: - `[ ]` Refactor `ox_data_broker` to use `OxDataError`.\n21: \n22: ## Verification\n23: - `[/]` Run `cargo check --workspace` to identify remaining errors.\n24: - `[ ]` Run `cargo test --workspace` to verify integration.\n\n(End of file - total 24 lines)\n</content>",
+  "timestamp": 1777213036017
+}

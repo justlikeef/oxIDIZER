@@ -1,0 +1,28 @@
+    Blocking waiting for file lock on build directory
+    Checking ox_data_object v0.1.0 (/var/repos/oxIDIZER/crates/data/ox_data_object)
+error[E0432]: unresolved import `lazy_static`
+ --> crates/data/ox_data_object/src/lib.rs:7:5
+  |
+7 | use lazy_static::lazy_static;
+  |     ^^^^^^^^^^^ use of unresolved module or unlinked crate `lazy_static`
+  |
+  = help: if you wanted to use a crate named `lazy_static`, use `cargo add lazy_static` to add it to your `Cargo.toml`
+
+error[E0425]: cannot find value `CALLBACK_MANAGER` in this scope
+   --> crates/data/ox_data_object/src/lib.rs:148:30
+    |
+148 |         let global_manager = CALLBACK_MANAGER.lock().unwrap();
+    |                              ^^^^^^^^^^^^^^^^ not found in this scope
+
+warning: unused import: `std::sync::Mutex`
+ --> crates/data/ox_data_object/src/lib.rs:5:5
+  |
+5 | use std::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+Some errors have detailed explanations: E0425, E0432.
+For more information about an error, try `rustc --explain E0425`.
+warning: `ox_data_object` (lib) generated 1 warning
+error: could not compile `ox_data_object` (lib) due to 2 previous errors; 1 warning emitted

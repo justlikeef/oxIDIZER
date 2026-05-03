@@ -34,12 +34,12 @@ impl BootstrapService {
             .ok_or_else(|| anyhow::anyhow!("'location' parameter required"))?;
 
         // RAW FETCH
-        let ids = driver.fetch(&HashMap::new(), location).map_err(|e: String| anyhow::anyhow!(e))?;
+        let ids = driver.fetch(&HashMap::new(), location).map_err(|e| anyhow::anyhow!("{}", e))?;
         
         let mut dictionary = DataDictionary::new();
         
         for id in ids {
-             let record_map = driver.restore(location, &id).map_err(|e: String| anyhow::anyhow!(e))?;
+             let record_map = driver.restore(location, &id).map_err(|e| anyhow::anyhow!("{}", e))?;
              
              if let Some((json_str, _, _)) = record_map.get("definition_json") {
                  let def: DataObjectDefinition = serde_json::from_str(json_str)?;

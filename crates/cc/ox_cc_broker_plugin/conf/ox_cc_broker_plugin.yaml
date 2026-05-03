@@ -4,7 +4,7 @@
 modules:
   - id: "ox_cc_broker"
     name: "ox_cc_broker_plugin"
-    config_file: "/etc/ox_cc/broker_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_broker_plugin/conf/plugin.yaml"
 
 routes:
   - url: "^/broker/healthz$"

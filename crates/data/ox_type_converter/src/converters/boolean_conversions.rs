@@ -2,40 +2,41 @@
 //! 
 //! This module contains all conversion functions that involve boolean types.
 
+use ox_data_error::OxDataError;
 use crate::HashMap;
 
 /// Convert boolean to string
-pub fn boolean_to_string(value: bool, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn boolean_to_string(value: bool, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert boolean to integer
-pub fn boolean_to_integer(value: bool, _parameters: &HashMap<String, String>) -> Result<i64, String> {
+pub fn boolean_to_integer(value: bool, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
     Ok(if value { 1 } else { 0 })
 }
 
 /// Convert integer to boolean
-pub fn integer_to_boolean(value: i64, _parameters: &HashMap<String, String>) -> Result<bool, String> {
+pub fn integer_to_boolean(value: i64, _parameters: &HashMap<String, String>) -> Result<bool, OxDataError> {
     Ok(value != 0)
 }
 
 /// Convert boolean to unsigned integer
-pub fn boolean_to_uinteger(value: bool, _parameters: &HashMap<String, String>) -> Result<u64, String> {
+pub fn boolean_to_uinteger(value: bool, _parameters: &HashMap<String, String>) -> Result<u64, OxDataError> {
     Ok(if value { 1 } else { 0 })
 }
 
 /// Convert unsigned integer to boolean
-pub fn uinteger_to_boolean(value: u64, _parameters: &HashMap<String, String>) -> Result<bool, String> {
+pub fn uinteger_to_boolean(value: u64, _parameters: &HashMap<String, String>) -> Result<bool, OxDataError> {
     Ok(value != 0)
 }
 
 /// Convert boolean to float
-pub fn boolean_to_float(value: bool, _parameters: &HashMap<String, String>) -> Result<f64, String> {
+pub fn boolean_to_float(value: bool, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
     Ok(if value { 1.0 } else { 0.0 })
 }
 
 /// Convert float to boolean
-pub fn float_to_boolean(value: f64, _parameters: &HashMap<String, String>) -> Result<bool, String> {
+pub fn float_to_boolean(value: f64, _parameters: &HashMap<String, String>) -> Result<bool, OxDataError> {
     Ok(value != 0.0)
 }
 

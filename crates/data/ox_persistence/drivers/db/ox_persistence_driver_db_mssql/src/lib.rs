@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -22,8 +23,8 @@ impl PersistenceDriver for MssqlPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
-        let conn_str = self.connection_string.as_ref().ok_or("Connection string not set")?;
+    ) -> Result<(), OxDataError> {
+        let conn_str = self.connection_string.as_ref().ok_or_else(|| OxDataError::InternalError("Connection string not set".to_string()))?;
         // Parse simple connection string: server=host;user=u;password=p;port=1433
         // For this demo, let's assume we parse it or use a config map if passed.
         // But here we only have the string.
@@ -31,10 +32,10 @@ impl PersistenceDriver for MssqlPersistenceDriver {
         let rt = &self.runtime;
         
         rt.block_on(async {
-            let config = Config::from_ado_string(conn_str).map_err(|e| e.to_string())?;
-            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| e.to_string())?;
+            let config = Config::from_ado_string(conn_str).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let tcp = tcp.compat_write();
-            let mut client = Client::connect(config, tcp).await.map_err(|e| e.to_string())?;
+            let mut client = Client::connect(config, tcp).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
             use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
             let builder = SqlBuilder::new(SqlDialect::Mssql);
@@ -77,10 +78,10 @@ impl PersistenceDriver for MssqlPersistenceDriver {
                 }
             }
 
-            query_obj.execute(&mut client).await.map_err(|e| e.to_string())?;
+            query_obj.execute(&mut client).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             
-            Ok::<(), String>(())
-        }).map_err(|e| e.to_string())?;
+            Ok::<(), OxDataError>(())
+        })?;
 
         Ok(())
     }
@@ -89,48 +90,48 @@ impl PersistenceDriver for MssqlPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let conn_str = self.connection_string.as_ref().ok_or("Connection string not set")?;
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
+        let conn_str = self.connection_string.as_ref().ok_or_else(|| OxDataError::InternalError("Connection string not set".to_string()))?;
         let rt = &self.runtime;
 
         rt.block_on(async {
-            let config = Config::from_ado_string(conn_str).map_err(|e| e.to_string())?;
-            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| e.to_string())?;
+            let config = Config::from_ado_string(conn_str).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let tcp = tcp.compat_write();
-            let mut client = Client::connect(config, tcp).await.map_err(|e| e.to_string())?;
+            let mut client = Client::connect(config, tcp).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
             let query_str = format!("SELECT * FROM [{}] WHERE id = @P1", location);
             let mut query = tiberius::Query::new(query_str);
             query.bind(id);
 
-            let result = query.query(&mut client).await.map_err(|e| e.to_string())?;
-            let row = result.into_row().await.map_err(|e| e.to_string())?;
+            let result = query.query(&mut client).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
+            let row = result.into_row().await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
             if let Some(r) = row {
                 let mut map = HashMap::new();
                 for col in r.columns() {
                     let name = col.name().to_string();
                     // Tiberius row.get needs type. We can use try_get string.
-                    let val: Option<&str> = r.try_get(name.as_str()).map_err(|e| e.to_string())?;
+                    let val: Option<&str> = r.try_get(name.as_str()).map_err(|e| OxDataError::InternalError(e.to_string()))?;
                     let val_str = val.unwrap_or_default().to_string();
                     map.insert(name, (val_str, ValueType::from("string"), HashMap::new()));
                 }
                 Ok(map)
             } else {
-                 Err(format!("Object with id {} not found", id))
+                 Err(OxDataError::InternalError(format!("Object with id {} not found", id)))
             }
-        }).map_err(|e| e.to_string())
+        }).map_err(|e| OxDataError::InternalError(e.to_string()))
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
-         let conn_str = self.connection_string.as_ref().ok_or("Connection string not set")?;
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
+         let conn_str = self.connection_string.as_ref().ok_or_else(|| OxDataError::InternalError("Connection string not set".to_string()))?;
         let rt = &self.runtime;
 
         rt.block_on(async {
-            let config = Config::from_ado_string(conn_str).map_err(|e| e.to_string())?;
-            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| e.to_string())?;
+            let config = Config::from_ado_string(conn_str).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+            let tcp = tokio::net::TcpStream::connect(config.get_addr()).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let tcp = tcp.compat_write();
-            let mut client = Client::connect(config, tcp).await.map_err(|e| e.to_string())?;
+            let mut client = Client::connect(config, tcp).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
             let mut query_str = format!("SELECT id FROM [{}] WHERE 1=1", location);
             let mut idx = 1;
@@ -176,36 +177,36 @@ impl PersistenceDriver for MssqlPersistenceDriver {
                 }
             }
 
-            let mut stream = query.query(&mut client).await.map_err(|e| e.to_string())?;
+            let mut stream = query.query(&mut client).await.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let mut ids = Vec::new();
             
             while let Some(item) = stream.next().await {
-                let item = item.map_err(|e| e.to_string())?;
+                let item = item.map_err(|e| OxDataError::InternalError(e.to_string()))?;
                 if let tiberius::QueryItem::Row(row) = item {
-                    let id: Option<&str> = row.try_get("id").map_err(|e| e.to_string())?;
+                    let id: Option<&str> = row.try_get("id").map_err(|e| OxDataError::InternalError(e.to_string()))?;
                     if let Some(id_val) = id {
                         ids.push(id_val.to_string());
                     }
                 }
             }
-            Ok::<Vec<String>, String>(ids)
-        }).map_err(|e: String| e)
+            Ok::<Vec<String>, OxDataError>(ids)
+        })
     }
 
     fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str) {
          println!("MssqlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing MSSQL datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["default".to_string()])
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

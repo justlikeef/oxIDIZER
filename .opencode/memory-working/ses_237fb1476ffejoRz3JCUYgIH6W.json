@@ -1,0 +1,111 @@
+{
+  "sessionID": "ses_237fb1476ffejoRz3JCUYgIH6W",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1777209463257_m9hmfu0",
+        "type": "error",
+        "content": "error[E0308]: mismatched types",
+        "source": "tool:bash",
+        "timestamp": 1777209463255,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777209463267_snku2a6",
+        "type": "error",
+        "content": "   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `OxDataError`, found `std::string::String`",
+        "source": "tool:bash",
+        "timestamp": 1777209463255,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777209463267_n089ewe",
+        "type": "error",
+        "content": "   = note: expected enum `Result<Box<(dyn Any + Send + Sync + 'static)>, OxDataError>`",
+        "source": "tool:bash",
+        "timestamp": 1777209463255,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1777177663190_wfgl88c",
+      "type": "file-path",
+      "content": "README.md",
+      "source": "tool:read",
+      "timestamp": 1777204898504,
+      "relevanceScore": 19.304536138273114,
+      "mentions": 6,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777202206328_7pis4kn",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/README.md",
+      "source": "tool:read",
+      "timestamp": 1777204898504,
+      "relevanceScore": 9.458226599677207,
+      "mentions": 3,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777204898518_g6slkie",
+      "type": "file-path",
+      "content": "lib.rs",
+      "source": "tool:read",
+      "timestamp": 1777204969859,
+      "relevanceScore": 5.298991306408105,
+      "mentions": 2,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777177663189_s8uvu96",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/TODO.md",
+      "source": "tool:read",
+      "timestamp": 1777177663179,
+      "relevanceScore": 3.331777982227045,
+      "mentions": 1,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777202206327_4bx7vjt",
+      "type": "file-path",
+      "content": "src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1777202206319,
+      "relevanceScore": 3.293205110344848,
+      "mentions": 1,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777204898516_xu5pajh",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/ox_type_converter/src/error.rs",
+      "source": "tool:read",
+      "timestamp": 1777204898504,
+      "relevanceScore": 3.09353743776127,
+      "mentions": 1,
+      "lastEventCounter": 47
+    },
+    {
+      "id": "wm_1777205351512_07gkulh",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/lib.rs",
+      "source": "tool:glob",
+      "timestamp": 1777205578532,
+      "relevanceScore": 3.04031875,
+      "mentions": 2,
+      "lastEventCounter": 47
+    }
+  ],
+  "eventCounter": 53,
+  "updatedAt": "2026-04-26T13:17:43.267Z"
+}

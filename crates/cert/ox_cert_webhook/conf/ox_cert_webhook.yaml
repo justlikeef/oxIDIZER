@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_webhook"
+    name: "ox_cert_webhook"
+    phase: PreContent
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_webhook/conf/plugin.yaml"
+routes:
+  - url: "^/api/v1/certificates(/.*)?$"
+    module_id: "cert_webhook"
+    priority: 10

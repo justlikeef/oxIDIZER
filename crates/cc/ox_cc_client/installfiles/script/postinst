@@ -1,0 +1,27 @@
+#!/bin/bash
+set -e
+
+# Create ox_cc user/group if they don't exist
+if ! getent group ox_cc >/dev/null; then
+    groupadd --system ox_cc
+fi
+
+if ! getent passwd ox_cc >/dev/null; then
+    useradd --system \
+            -g ox_cc \
+            -d /var/lib/ox_cc \
+            -s /usr/sbin/nologin \
+            ox_cc
+fi
+
+# Set permissions
+chown -R ox_cc:ox_cc /etc/ox_cc
+chown -R ox_cc:ox_cc /var/lib/ox_cc
+chmod 700 /var/lib/ox_cc
+
+# Reload systemd
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+fi
+
+exit 0

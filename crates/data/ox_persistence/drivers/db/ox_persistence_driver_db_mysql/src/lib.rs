@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -35,7 +36,7 @@ impl MysqlPersistenceDriver {
         
         // Initialize with no pool for static registration (connection string handled in persist?)
         // Actually persist() checks for pool initialization!
-        // "pool.as_ref().ok_or("MySQL pool not initialized")?"
+        // "pool.as_ref().ok_or_else(|| OxDataError::InternalError("MySQL pool not initialized".to_string()))?"
         // This driver implementation seems to require init via FFI config string to set the pool.
         // For static usage, we might need to change how pool is handled or allowed lazily?
         // OR we just register it, but persist will fail.
@@ -61,9 +62,9 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
-        let pool = self.pool.as_ref().ok_or("MySQL pool not initialized")?;
-        let mut conn = pool.get_conn().map_err(|e| e.to_string())?;
+    ) -> Result<(), OxDataError> {
+        let pool = self.pool.as_ref().ok_or_else(|| OxDataError::InternalError("MySQL pool not initialized".to_string()))?;
+        let mut conn = pool.get_conn().map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         
@@ -118,7 +119,7 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         }).collect();
 
         use mysql::prelude::Queryable;
-        conn.exec_drop(query, params).map_err(|e| e.to_string())?;
+        conn.exec_drop(query, params).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         Ok(())
     }
@@ -127,9 +128,9 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let pool = self.pool.as_ref().ok_or("MySQL pool not initialized")?;
-        let mut conn = pool.get_conn().map_err(|e| e.to_string())?;
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
+        let pool = self.pool.as_ref().ok_or_else(|| OxDataError::InternalError("MySQL pool not initialized".to_string()))?;
+        let mut conn = pool.get_conn().map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Mysql);
@@ -138,12 +139,12 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         use mysql::prelude::Queryable;
         use mysql::params;
 
-        let res = conn.exec_iter(query, params!{ "id" => id }).map_err(|e| e.to_string())?;
+        let res = conn.exec_iter(query, params!{ "id" => id }).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         // We need to map columns back to HashMap.
         
         for row in res {
-            let row = row.map_err(|e| e.to_string())?;
+            let row = row.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let mut map = HashMap::new();
             
             for (i, col) in row.columns_ref().iter().enumerate() {
@@ -157,12 +158,12 @@ impl PersistenceDriver for MysqlPersistenceDriver {
             return Ok(map);
         }
 
-        Err(format!("Object with id {} not found", id))
+        Err(OxDataError::InternalError(format!("Object with id {} not found", id)))
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
-        let pool = self.pool.as_ref().ok_or("MySQL pool not initialized")?;
-        let mut conn = pool.get_conn().map_err(|e| e.to_string())?;
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
+        let pool = self.pool.as_ref().ok_or_else(|| OxDataError::InternalError("MySQL pool not initialized".to_string()))?;
+        let mut conn = pool.get_conn().map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Mysql);
@@ -215,7 +216,7 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         }
 
         use mysql::prelude::Queryable;
-        let ids: Vec<String> = conn.exec(query, params_vec).map_err(|e| e.to_string())?;
+        let ids: Vec<String> = conn.exec(query, params_vec).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         Ok(ids)
     }
@@ -224,22 +225,22 @@ impl PersistenceDriver for MysqlPersistenceDriver {
          println!("MysqlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing MySQL datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
-        let opts = build_opts(connection_info).ok_or("Invalid connection parameters")?;
-        let pool = mysql::Pool::new(opts).map_err(|e| e.to_string())?;
-        let mut conn = pool.get_conn().map_err(|e| e.to_string())?;
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
+        let opts = build_opts(connection_info).ok_or_else(|| OxDataError::InternalError("Invalid connection parameters".to_string()))?;
+        let pool = mysql::Pool::new(opts).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let mut conn = pool.get_conn().map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         // SHOW DATABASES
-        let databases: Vec<String> = conn.query("SHOW DATABASES").map_err(|e| e.to_string())?;
+        let databases: Vec<String> = conn.query("SHOW DATABASES").map_err(|e| OxDataError::InternalError(e.to_string()))?;
         Ok(databases)
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 
@@ -283,7 +284,7 @@ impl PersistenceDriver for MysqlPersistenceDriver {
         ]
     }
 
-    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, String> {
+    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, OxDataError> {
         match action {
             "discover_local" => {
                 // Mock implementation of local discovery
@@ -294,7 +295,7 @@ impl PersistenceDriver for MysqlPersistenceDriver {
                 ];
                 Ok(serde_json::json!(servers))
             },
-            _ => Err(format!("Action '{}' not supported", action))
+            _ => Err(OxDataError::InternalError(format!("Action '{}' not supported", action)))
         }
     }
 }
@@ -511,7 +512,7 @@ pub unsafe extern "C" fn ox_driver_call_action(
             // Convention: specific error structure or handle in wrapper.
             // For now, empty buffer behaves like 'fail'. 
             // Better: return JSON { "error": ... }
-            let err_json = serde_json::json!({ "error": e });
+            let err_json = serde_json::json!({ "error": e.to_string() });
             OxBuffer::from_str(err_json.to_string())
         }
     }
@@ -533,7 +534,7 @@ pub unsafe extern "C" fn ox_driver_list_datasets(
              OxBuffer::from_str(json)
         },
         Err(e) => {
-             let err_json = serde_json::json!({ "error": e });
+             let err_json = serde_json::json!({ "error": e.to_string() });
              OxBuffer::from_str(err_json.to_string())
         }
     }

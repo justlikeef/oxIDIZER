@@ -1,0 +1,35 @@
+# ox_cert_ssh — SSH Certificate Authority
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+user_ca:
+  key_id: "ssh-user-ca"
+  key_type: Ed25519
+  default_validity: "8h"
+
+host_ca:
+  key_id: "ssh-host-ca"
+  key_type: Ed25519
+  default_validity: "52w"
+
+user:
+  allowed_principals: []
+  max_validity: "24h"
+  default_extensions:
+    permit-pty: ""
+    permit-user-rc: ""
+
+host:
+  allowed_principals: []
+  max_validity: "104w"
+  default_extensions: {}
+  default_critical_options: {}

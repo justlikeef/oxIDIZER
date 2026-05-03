@@ -10,6 +10,7 @@ use ox_workflow_abi::{
 use serde_json::Value;
 use ox_fileproc::{process_file, RawFile};
 use ox_persistence::DriversList;
+use ox_data_error::OxDataError;
 
 const MODULE_NAME: &str = "ox_persistence_driver_manager";
 
@@ -42,9 +43,9 @@ pub struct DriverManager {
 }
 
 impl DriverManager {
-    pub fn list_available_driver_files(&self) -> Result<Vec<String>, String> {
+    pub fn list_available_driver_files(&self) -> Result<Vec<String>, OxDataError> {
         let root = Path::new(&self.config.driver_root);
-        if !root.exists() { return Err(format!("Driver root does not exist: {}", self.config.driver_root)); }
+        if !root.exists() { return Err(OxDataError::InternalError(format!("Driver root does not exist: {}", self.config.driver_root))); }
         let mut files = Vec::new();
         for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();
@@ -62,15 +63,15 @@ impl DriverManager {
         Ok(files)
     }
 
-    pub fn load_configured_drivers(&self) -> Result<DriversList, String> {
+    pub fn load_configured_drivers(&self) -> Result<DriversList, OxDataError> {
         let path = Path::new(&self.config.drivers_file);
         if !path.exists() { return Ok(DriversList { drivers: Vec::new() }); }
-        let val = process_file(path, 5).map_err(|e| e.to_string())?;
-        serde_json::from_value(val).map_err(|e| e.to_string())
+        let val = process_file(path, 5).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        serde_json::from_value(val).map_err(|e| OxDataError::InternalError(e.to_string()))
     }
 
-    pub fn toggle_driver_status(&self, id: &str) -> Result<String, String> {
-        let mut raw = RawFile::open(&self.config.drivers_file).map_err(|e| e.to_string())?;
+    pub fn toggle_driver_status(&self, id: &str) -> Result<String, OxDataError> {
+        let mut raw = RawFile::open(&self.config.drivers_file).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         let query = format!("drivers[id=\"{}\"]/state", id);
         let span_and_val = raw.find(&query).next().map(|c| {
             let val = c.value().trim();
@@ -81,31 +82,31 @@ impl DriverManager {
             let new_val = if current_val == "enabled" { "disabled" } else { "enabled" };
             let replacement = if is_quoted { format!("\"{}\"", new_val) } else { new_val.to_string() };
             raw.update(span, &replacement);
-            raw.save().map_err(|e| e.to_string())?;
+            raw.save().map_err(|e| OxDataError::InternalError(e.to_string()))?;
             Ok(new_val.to_string())
         } else {
-            Err(format!("Driver '{}' not found", id))
+            Err(OxDataError::InternalError(format!("Driver '{}' not found", id)))
         }
     }
 
-    pub fn get_driver_metadata(&self, library_path: &str) -> Result<String, String> {
+    pub fn get_driver_metadata(&self, library_path: &str) -> Result<String, OxDataError> {
         unsafe {
-            let lib = libloading::Library::new(library_path).map_err(|e| e.to_string())?;
+            let lib = libloading::Library::new(library_path).map_err(|e| OxDataError::DriverError(e.to_string()))?;
             let get_meta: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> =
-                lib.get(b"ox_driver_get_driver_metadata").map_err(|_| "Missing symbol".to_string())?;
+                lib.get(b"ox_driver_get_driver_metadata").map_err(|_| OxDataError::DriverError("Missing symbol".to_string()))?;
             let ptr = get_meta();
-            if ptr.is_null() { return Err("null metadata".to_string()); }
+            if ptr.is_null() { return Err(OxDataError::DriverError("null metadata".to_string())); }
             Ok(CStr::from_ptr(ptr).to_string_lossy().into_owned())
         }
     }
 
-    pub fn get_driver_schema(&self, library_path: &str) -> Result<String, String> {
+    pub fn get_driver_schema(&self, library_path: &str) -> Result<String, OxDataError> {
         unsafe {
-            let lib = libloading::Library::new(library_path).map_err(|e| e.to_string())?;
+            let lib = libloading::Library::new(library_path).map_err(|e| OxDataError::DriverError(e.to_string()))?;
             let get_schema: libloading::Symbol<unsafe extern "C" fn() -> *mut libc::c_char> =
-                lib.get(b"ox_driver_get_config_schema").map_err(|_| "Missing symbol".to_string())?;
+                lib.get(b"ox_driver_get_config_schema").map_err(|_| OxDataError::DriverError("Missing symbol".to_string()))?;
             let ptr = get_schema();
-            if ptr.is_null() { return Err("null schema".to_string()); }
+            if ptr.is_null() { return Err(OxDataError::DriverError("null schema".to_string())); }
             Ok(CStr::from_ptr(ptr).to_string_lossy().into_owned())
         }
     }
@@ -210,7 +211,7 @@ pub unsafe extern "C" fn ox_plugin_process(
                 }
                 Err(e) => {
                     log(api, task_ctx, OX_LOG_ERROR, &format!("Toggle failed: {}", e));
-                    json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string());
+                    json_response(api, task_ctx, 500, &serde_json::json!({"error": e.to_string()}).to_string());
                 }
             }
         } else {
@@ -222,7 +223,7 @@ pub unsafe extern "C" fn ox_plugin_process(
     if method == "get" && path.ends_with("/available") {
         match manager.list_available_driver_files() {
             Ok(files) => json_response(api, task_ctx, 200, &serde_json::to_string(&files).unwrap_or_default()),
-            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string()),
+            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e.to_string()}).to_string()),
         }
         return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
@@ -237,13 +238,13 @@ pub unsafe extern "C" fn ox_plugin_process(
                         let lib_path = format!("{}/lib{}.so", if driver.library_path.is_empty() { &manager.config.driver_root } else { &driver.library_path }, driver.name);
                         match manager.get_driver_schema(&lib_path) {
                             Ok(schema) => json_response(api, task_ctx, 200, &schema),
-                            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string()),
+                            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e.to_string()}).to_string()),
                         }
                     } else {
                         json_response(api, task_ctx, 404, &serde_json::json!({"error": "Driver not found"}).to_string());
                     }
                 }
-                Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string()),
+                Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e.to_string()}).to_string()),
             }
         }
         return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
@@ -264,7 +265,7 @@ pub unsafe extern "C" fn ox_plugin_process(
                 let json = serde_json::json!({"drivers": drivers}).to_string();
                 json_response(api, task_ctx, 200, &json);
             }
-            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e}).to_string()),
+            Err(e) => json_response(api, task_ctx, 500, &serde_json::json!({"error": e.to_string()}).to_string()),
         }
         return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }

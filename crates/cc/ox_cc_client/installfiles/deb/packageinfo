@@ -1,0 +1,10 @@
+Package: ${PACKAGE_NAME}
+Version: ${VERSION}
+Section: net
+Priority: optional
+Architecture: ${ARCHITECTURE}
+Maintainer: ${MAINTAINER}
+Depends: libc6, libssl3, ca-certificates
+Description: ${DESCRIPTION}
+ ox_cc is a secure configuration management client that pulls
+ signed and encrypted manifests from a central server.

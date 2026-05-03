@@ -1,0 +1,7 @@
+{
+  "callID": "EiG9afpbKignIRSckmD9kxaPJgj00qBb",
+  "sessionID": "ses_237fb1476ffejoRz3JCUYgIH6W",
+  "tool": "bash",
+  "fullOutput": "crates/data/ox_data_object:\nCargo.toml\nLICENSE\nREADME.md\nox_data_object_dictionary_manager\nox_data_object_manager\nsrc\n\ncrates/data/ox_data_object/ox_data_object_dictionary_manager:\nCargo.toml\nLICENSE\nconf\nsrc\n\ncrates/data/ox_data_object/ox_data_object_dictionary_manager/conf:\nox_data_object_dictionary_manager.yaml\n\ncrates/data/ox_data_object/ox_data_object_dictionary_manager/src:\nlib.rs\n\ncrates/data/ox_data_object/ox_data_object_manager:\nCargo.toml\nLICENSE\nsrc\n\ncrates/data/ox_data_object/ox_data_object_manager/src:\ndictionary.rs\nintrospection.rs\nlib.rs\nquery.rs\ntests.rs\n\ncrates/data/ox_data_object/src:\nlib.rs\nmain.rs\n",
+  "timestamp": 1777203223742
+}

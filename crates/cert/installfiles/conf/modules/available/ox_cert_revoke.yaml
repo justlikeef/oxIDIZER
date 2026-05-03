@@ -1,0 +1,11 @@
+modules:
+  - id: "cert_revoke"
+    name: "ox_cert_revoke"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/revoke.yaml"
+routes:
+  - url: "^/api/v1/certificates/[^/]+/revoke$"
+    method: POST
+    module_id: "cert_revoke"
+    priority: 200

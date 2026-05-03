@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -18,9 +19,9 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
-        let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
-        let conn = guard.as_mut().ok_or("SQLite connection not initialized")?;
+    ) -> Result<(), OxDataError> {
+        let mut guard = self.conn.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let conn = guard.as_mut().ok_or_else(|| OxDataError::InternalError("SQLite connection not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Sqlite);
@@ -64,7 +65,7 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         let params_refs: Vec<&dyn ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
 
         conn.execute(&query, params_refs.as_slice())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
             
         Ok(())
     }
@@ -73,20 +74,20 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-        let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
-        let conn = guard.as_mut().ok_or("SQLite connection not initialized")?;
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
+        let mut guard = self.conn.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let conn = guard.as_mut().ok_or_else(|| OxDataError::InternalError("SQLite connection not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Sqlite);
         let query = builder.build_select_by_id(location);
         
         // Prepare statement
-        let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare(&query).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
-        let mut rows = stmt.query(params![id]).map_err(|e| e.to_string())?;
+        let mut rows = stmt.query(params![id]).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
-        if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        if let Some(row) = rows.next().map_err(|e| OxDataError::InternalError(e.to_string()))? {
             let mut map = HashMap::new();
             
             // Iterate columns. Rusqlite doesn't easily let us iterate all columns generically without knowing count/names upfront 
@@ -97,7 +98,7 @@ impl PersistenceDriver for SqlitePersistenceDriver {
                 
                 // Try to get as generic Value or String
                 // rusqlite::types::ValueRef
-                let val_ref = row.get_ref(i).map_err(|e| e.to_string())?;
+                let val_ref = row.get_ref(i).map_err(|e| OxDataError::InternalError(e.to_string()))?;
                 
                 let (val_str, v_type) = match val_ref {
                     rusqlite::types::ValueRef::Null => ("".to_string(), ValueType::String),
@@ -111,13 +112,13 @@ impl PersistenceDriver for SqlitePersistenceDriver {
             }
             Ok(map)
         } else {
-             Err(format!("Object with id {} not found", id))
+             Err(OxDataError::InternalError(format!("Object with id {} not found", id)))
         }
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
-         let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
-        let conn = guard.as_mut().ok_or("SQLite connection not initialized")?;
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
+         let mut guard = self.conn.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let conn = guard.as_mut().ok_or_else(|| OxDataError::InternalError("SQLite connection not initialized".to_string()))?;
 
         use ox_persistence_driver_sql::{SqlBuilder, SqlDialect};
         let builder = SqlBuilder::new(SqlDialect::Sqlite);
@@ -155,11 +156,11 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         }
          let params_refs: Vec<&dyn ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
          
-         let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
-         let mut rows = stmt.query(params_refs.as_slice()).map_err(|e| e.to_string())?;
+         let mut stmt = conn.prepare(&query).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+         let mut rows = stmt.query(params_refs.as_slice()).map_err(|e| OxDataError::InternalError(e.to_string()))?;
          
         let mut ids = Vec::new();
-        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        while let Some(row) = rows.next().map_err(|e| OxDataError::InternalError(e.to_string()))? {
             // Assume ID is first column or named "id"
             // Let's try to get "id"
             let id_val: rusqlite::Result<String> = row.get("id").or_else(|_| {
@@ -180,18 +181,18 @@ impl PersistenceDriver for SqlitePersistenceDriver {
          // No-op
     }
 
-    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         // Could run CREATE TABLE IF NOT EXISTS here if location is known
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         // List tables?
-        let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
-        let conn = guard.as_mut().ok_or("SQLite connection not initialized")?;
+        let mut guard = self.conn.lock().map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let conn = guard.as_mut().ok_or_else(|| OxDataError::InternalError("SQLite connection not initialized".to_string()))?;
         
-        let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table'").map_err(|e| e.to_string())?;
-        let rows = stmt.query_map([], |row| row.get(0)).map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table'").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let rows = stmt.query_map([], |row| row.get(0)).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         let mut tables = Vec::new();
         for name in rows {
@@ -202,7 +203,7 @@ impl PersistenceDriver for SqlitePersistenceDriver {
         Ok(tables)
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

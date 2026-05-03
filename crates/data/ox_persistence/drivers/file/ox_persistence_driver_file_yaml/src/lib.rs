@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -12,12 +13,12 @@ impl PersistenceDriver for YamlPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         use std::fs;
         use std::path::Path;
         use ox_fileproc::RawFile;
 
-        let id_val = serializable_map.get("id").ok_or("Missing 'id' in data object")?;
+        let id_val = serializable_map.get("id").ok_or_else(|| OxDataError::InternalError("Missing 'id' in data object".to_string()))?;
         let id = &id_val.0;
 
         let file_path = Path::new(location);
@@ -30,10 +31,10 @@ impl PersistenceDriver for YamlPersistenceDriver {
 
         // Check if file exists. If not, create empty one (or with empty list if yaml)
         if !file_path.exists() {
-             fs::write(file_path, "---\n[]\n").map_err(|e| e.to_string())?;
+             fs::write(file_path, "---\n[]\n").map_err(|e| OxDataError::InternalError(e.to_string()))?;
         }
 
-        let mut raw_file = RawFile::open(file_path).map_err(|e| e.to_string())?;
+        let mut raw_file = RawFile::open(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         // Construct query to find the list item with this ID.
         // Assuming list of objects: "[id=THE_ID]" should find the item.
@@ -102,7 +103,7 @@ impl PersistenceDriver for YamlPersistenceDriver {
                 }
             }
             
-            raw_file.save().map_err(|e| e.to_string())?;
+            raw_file.save().map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         } else {
             // New Record. We can't surgically update what's not there.
@@ -121,7 +122,7 @@ impl PersistenceDriver for YamlPersistenceDriver {
                 };
                 temp_map.insert(serde_yaml::Value::String(k.clone()), yv);
             }
-            let record_str = serde_yaml::to_string(&vec![temp_map]).map_err(|e| e.to_string())?;
+            let record_str = serde_yaml::to_string(&vec![temp_map]).map_err(|e| OxDataError::InternalError(e.to_string()))?;
             // serde writes "---\n- field: val..."
             // We want to append just the list item part.
             // Strip "---\n"
@@ -136,7 +137,7 @@ impl PersistenceDriver for YamlPersistenceDriver {
             }
             file_content.push_str(clean_rec);
             
-            fs::write(file_path, file_content).map_err(|e| e.to_string())?;
+            fs::write(file_path, file_content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         }
 
         Ok(())
@@ -146,17 +147,17 @@ impl PersistenceDriver for YamlPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         use std::fs;
         use std::path::Path;
         use serde_yaml::Value;
 
         let file_path = Path::new(location);
         if !file_path.exists() {
-            return Err(format!("File {} not found", location));
+            return Err(OxDataError::InternalError(format!("File {} not found", location)));
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let records: Vec<Value> = serde_yaml::from_str(&content).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let records: Vec<Value> = serde_yaml::from_str(&content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         for record in records {
              // In YAML, keys are Values. We need to find "id" key.
@@ -209,10 +210,10 @@ impl PersistenceDriver for YamlPersistenceDriver {
              }
         }
 
-        Err(format!("Object with id {} not found in {}", id, location))
+        Err(OxDataError::InternalError(format!("Object with id {} not found in {}", id, location)))
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
         use std::fs;
         use std::path::Path;
         use serde_yaml::Value;
@@ -221,8 +222,8 @@ impl PersistenceDriver for YamlPersistenceDriver {
         if !file_path.exists() {
              return Ok(Vec::new());
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let records: Vec<Value> = serde_yaml::from_str(&content).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let records: Vec<Value> = serde_yaml::from_str(&content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         let mut matching_ids = Vec::new();
 
@@ -283,16 +284,16 @@ impl PersistenceDriver for YamlPersistenceDriver {
         println!("YamlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing YAML datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["default".to_string()])
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

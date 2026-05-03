@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_ocsp"
+    name: "ox_cert_ocsp"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/ocsp.yaml"
+routes:
+  - url: "^/ocsp(/.*)?$"
+    module_id: "cert_ocsp"
+    priority: 100

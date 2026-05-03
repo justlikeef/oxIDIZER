@@ -9,9 +9,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ox_persistence = { path = "../../../" }
-ox_locking = { path = "../../../../ox_locking" }
+ox_transaction = { path = "../../../../ox_transaction" }
 ox_persistence_driver_sql = { package = "ox_persistence_driver_db_sql", path = "../ox_persistence_driver_db_sql" }
 ox_data_object = { path = "../../../../ox_data_object" }
+ox_data_error = { path = "../../../../ox_data_error" }
 ox_type_converter = { path = "../../../../ox_type_converter" }
 rusqlite = { version = "0.31", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }

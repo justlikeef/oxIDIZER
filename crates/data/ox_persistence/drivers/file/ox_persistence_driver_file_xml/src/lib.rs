@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use std::ffi::{CString, CStr};
@@ -14,17 +15,17 @@ impl PersistenceDriver for XmlPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         use std::fs;
         use std::path::Path;
 
         let file_path = Path::new(location);
         let mut wrapper : RecordsWrapper = if file_path.exists() {
-            let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
+            let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
             if content.trim().is_empty() {
                 RecordsWrapper { record: Vec::new() }
             } else {
-                 quick_xml::de::from_str(&content).map_err(|e| format!("XML parse error: {}", e))?
+                 quick_xml::de::from_str(&content).map_err(|e| OxDataError::InternalError(format!("XML parse error: {}", e)))?
             }
         } else {
             RecordsWrapper { record: Vec::new() }
@@ -41,8 +42,8 @@ impl PersistenceDriver for XmlPersistenceDriver {
 
         wrapper.record.push(Record { fields });
 
-        let new_content = quick_xml::se::to_string(&wrapper).map_err(|e| e.to_string())?;
-        fs::write(file_path, new_content).map_err(|e| e.to_string())?;
+        let new_content = quick_xml::se::to_string(&wrapper).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        fs::write(file_path, new_content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         Ok(())
     }
@@ -51,16 +52,16 @@ impl PersistenceDriver for XmlPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         use std::fs;
         use std::path::Path;
 
         let file_path = Path::new(location);
         if !file_path.exists() {
-            return Err(format!("File {} not found", location));
+            return Err(OxDataError::InternalError(format!("File {} not found", location)));
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let wrapper : RecordsWrapper = quick_xml::de::from_str(&content).map_err(|e| format!("XML parse error: {}", e))?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let wrapper : RecordsWrapper = quick_xml::de::from_str(&content).map_err(|e| OxDataError::InternalError(format!("XML parse error: {}", e)))?;
 
         for record in wrapper.record {
              if let Some(id_field) = record.fields.get("id") {
@@ -74,10 +75,10 @@ impl PersistenceDriver for XmlPersistenceDriver {
              }
         }
 
-        Err(format!("Object with id {} not found in {}", id, location))
+        Err(OxDataError::InternalError(format!("Object with id {} not found in {}", id, location)))
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
         use std::fs;
         use std::path::Path;
 
@@ -85,8 +86,8 @@ impl PersistenceDriver for XmlPersistenceDriver {
         if !file_path.exists() {
              return Ok(Vec::new());
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let wrapper : RecordsWrapper = quick_xml::de::from_str(&content).map_err(|e| format!("XML parse error: {}", e))?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let wrapper : RecordsWrapper = quick_xml::de::from_str(&content).map_err(|e| OxDataError::InternalError(format!("XML parse error: {}", e)))?;
 
         let mut matching_ids = Vec::new();
 
@@ -117,16 +118,16 @@ impl PersistenceDriver for XmlPersistenceDriver {
          println!("XmlDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing XML datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["default".to_string()])
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

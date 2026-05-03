@@ -1,0 +1,21 @@
+# ox_cert_crl — CRL Generator
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca_intermediate_key_id: "ca-intermediate"
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+
+crl_update_interval_secs: 3600
+crl_delta_interval_secs: 600
+crl_cache_ttl_secs: 1800
+crl_lock_ttl_secs: 300
+background_pregenerate: true

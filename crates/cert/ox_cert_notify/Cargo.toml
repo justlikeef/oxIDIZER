@@ -1,0 +1,23 @@
+[package]
+name = "ox_cert_notify"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_cert_core = { path = "../ox_cert_core" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["serde", "formatting", "macros"] }
+ring = "0.17"
+base64 = "0.22"
+ureq = { version = "2", features = ["json"] }
+cron = "0.12"
+chrono = "0.4"
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "rustls-tls", "builder"] }

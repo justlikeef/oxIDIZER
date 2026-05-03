@@ -1,0 +1,7 @@
+# ox_cert_revoke — Certificate Revocation
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"

@@ -1,0 +1,3 @@
+rules:
+  - match_pattern: "^/$"
+    replace_string: "/ca/"

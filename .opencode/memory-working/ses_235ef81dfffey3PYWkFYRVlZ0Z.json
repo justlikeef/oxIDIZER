@@ -1,0 +1,40 @@
+{
+  "sessionID": "ses_235ef81dfffey3PYWkFYRVlZ0Z",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1777211655944_0mxwyv1",
+        "type": "error",
+        "content": "serde_path_to_error-fe2382f7966756e7.d",
+        "source": "tool:bash",
+        "timestamp": 1777211655943,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777211655950_0mz339x",
+        "type": "error",
+        "content": "thiserror-4ad6d3873a40d7e3.d",
+        "source": "tool:bash",
+        "timestamp": 1777211655943,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777211655950_x3ijoho",
+        "type": "error",
+        "content": "thiserror-4ca0e257a64f4da4.d",
+        "source": "tool:bash",
+        "timestamp": 1777211655943,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [],
+  "eventCounter": 3,
+  "updatedAt": "2026-04-26T13:54:15.950Z"
+}

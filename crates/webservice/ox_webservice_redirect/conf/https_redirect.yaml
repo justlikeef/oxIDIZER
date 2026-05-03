@@ -1,0 +1,10 @@
+rules:
+  # ACME http-01 challenge requests MUST be served over plain HTTP on port 80.
+  # This exclusion rule passes them through without redirecting.
+  - match_pattern: "^/.well-known/acme-challenge/"
+    skip: true
+
+  # Redirect all other HTTP requests to HTTPS. {host} is substituted with the
+  # value of the incoming Host header at request time.
+  - match_pattern: "^(.*)$"
+    replace_string: "https://{host}$1"

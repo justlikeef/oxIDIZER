@@ -1,0 +1,20 @@
+# ox_cert_admin — Certificate Administration API
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+ca_root_cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+
+extensions:
+  aia_ocsp_url: "http://localhost:8080/ocsp"
+  aia_ca_issuer_url: "http://localhost:8080/ca/intermediate.crt"
+  cdp_url: "http://localhost:8080/crl.der"

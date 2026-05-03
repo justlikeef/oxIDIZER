@@ -1,0 +1,7 @@
+{
+  "callID": "bEPjA3a9RYsqeR7HCjttYJpbx4gINO35",
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "tool": "bash",
+  "fullOutput": "crates/data/spec/:\nbroker.md\ncore.md\ndictionary.md\ndictionary_manager.md\ndrivers.md\nintrospection.md\npersistence.md\nquery.md\ntransactions.md\ntypes.md\nvalidation.md\n\n[Category+Skill Reminder]\n\n**Built-in**: playwright, frontend-ui-ux, git-master, dev-browser, review-work, ai-slop-remover\n**⚡ YOUR SKILLS (PRIORITY)**: (none)\n\n> User-installed skills OVERRIDE built-in defaults. ALWAYS prefer YOUR SKILLS when domain matches.\n\n```typescript\ntask(category=\"visual-engineering\", load_skills=[\"playwright\"], run_in_background=true)\n```\n",
+  "timestamp": 1776996293012
+}

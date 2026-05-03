@@ -1,0 +1,7 @@
+{
+  "callID": "sG2vd4FDK3nPtnVkq22sMc9k99CUgVUV",
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "tool": "task",
+  "fullOutput": "Task aborted.\n\nSession ID: ses_23b63ea87ffeLrVJ6FCGRBRFQl\n\nto continue: task(session_id=\"ses_23b63ea87ffeLrVJ6FCGRBRFQl\", load_skills=[], run_in_background=false, prompt=\"...\")",
+  "timestamp": 1777120493285
+}

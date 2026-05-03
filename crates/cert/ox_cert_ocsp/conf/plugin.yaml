@@ -1,0 +1,19 @@
+# ox_cert_ocsp — OCSP Responder (RFC 6960)
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+responder_key_id: "ca-intermediate"
+
+# delegated_cert_path: "/etc/pki/ox_webservice/ca/ocsp-responder.crt"
+
+max_age_secs: 3600
+next_update_secs: 86400

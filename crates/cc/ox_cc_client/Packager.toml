@@ -1,0 +1,23 @@
+[package]
+name = "ox-cc-client"
+identifier = "io.oxidizer.ox-cc-client"
+version = "0.1.0"
+authors = ["oxIDIZER Team <support@oxidizer.io>"]
+description = "ox_cc secure configuration client daemon"
+
+[[binaries]]
+path = "target/release/ox_cc_client"
+main = true
+
+[[files]]
+src = "conf/client.yaml"
+dest = "/etc/ox_cc/client.yaml"
+
+[[files]]
+src = "installfiles/systemd/ox-cc-client.service"
+dest = "/lib/systemd/system/ox-cc-client.service"
+
+[deb]
+section = "net"
+depends = ["libc6", "libssl3", "ca-certificates"]
+# maintainer-scripts = "installfiles/script"

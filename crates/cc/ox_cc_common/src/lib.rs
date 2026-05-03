@@ -8,6 +8,8 @@ pub mod manifest;
 pub mod encrypt;
 pub mod verify;
 pub mod error;
+pub mod keys;
+pub mod bootstrap;
 
 pub use envelope::EncryptedManifestEnvelope;
 pub use manifest::Manifest;

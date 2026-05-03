@@ -23,7 +23,7 @@ pub struct Flow {
 
 /// Normalized route entry used during flow construction.
 struct EffectiveRoute {
-    phase: String,
+    stage: String,
     module_id: String,
     priority: u16,
     path: String,
@@ -45,14 +45,14 @@ impl Flow {
         // Collect all routes from both sources:
         //   1. Top-level config.routes  (UrlRoute, has module_id field)
         //   2. Module-embedded module.routes (UriMatcher, module_id = module id/name)
-        // Resolve phase: route.phase → module.phase → "Content"
+        // Resolve stage: route.stage → module.stage → "Content"
         // ------------------------------------------------------------------
         let mut all_routes: Vec<EffectiveRoute> = Vec::new();
 
-        // Build a quick lookup: module_id → module phase
-        let module_phase_map: HashMap<String, Option<String>> = config.modules.iter().map(|m| {
+        // Build a quick lookup: module_id → module stage
+        let module_stage_map: HashMap<String, Option<String>> = config.modules.iter().map(|m| {
             let id = m.id.clone().unwrap_or_else(|| m.name.clone());
-            (id, m.phase.clone())
+            (id, m.stage.clone())
         }).collect();
 
         // 1. Top-level routes
@@ -60,12 +60,12 @@ impl Flow {
             let module_id = r.module_id.clone().unwrap_or_default();
             if module_id.is_empty() { continue; }
 
-            let route_phase = r.phase.as_deref();
-            let module_phase = module_phase_map.get(&module_id).and_then(|p| p.as_deref());
-            let phase = route_phase.or(module_phase).unwrap_or("Content").to_string();
+            let route_stage = r.stage.as_deref();
+            let module_stage = module_stage_map.get(&module_id).and_then(|p| p.as_deref());
+            let stage = route_stage.or(module_stage).unwrap_or("Content").to_string();
 
             all_routes.push(EffectiveRoute {
-                phase,
+                stage,
                 module_id,
                 priority: r.priority,
                 path: r.url.clone().unwrap_or_default(),
@@ -81,14 +81,14 @@ impl Flow {
         for mod_cfg in &config.modules {
             if let Some(mod_routes) = &mod_cfg.routes {
                 let module_id = mod_cfg.id.as_deref().unwrap_or(&mod_cfg.name).to_string();
-                let module_phase = mod_cfg.phase.as_deref();
+                let module_stage = mod_cfg.stage.as_deref();
 
                 for r in mod_routes {
-                    let route_phase = r.phase.as_deref();
-                    let phase = route_phase.or(module_phase).unwrap_or("Content").to_string();
+                    let route_stage = r.stage.as_deref();
+                    let stage = route_stage.or(module_stage).unwrap_or("Content").to_string();
 
                     all_routes.push(EffectiveRoute {
-                        phase,
+                        stage,
                         module_id: module_id.clone(),
                         priority: r.priority,
                         path: r.path.clone(),
@@ -103,43 +103,48 @@ impl Flow {
         }
 
         // ------------------------------------------------------------------
-        // Group routes by phase and sort each group by priority (ascending).
+        // Group routes by stage and sort each group by priority (ascending).
         // Lower priority number = higher precedence = checked first by router.
         // ------------------------------------------------------------------
-        let mut routes_by_phase: HashMap<String, Vec<&EffectiveRoute>> = HashMap::new();
+        let mut routes_by_stage: HashMap<String, Vec<&EffectiveRoute>> = HashMap::new();
         for r in &all_routes {
-            routes_by_phase.entry(r.phase.clone()).or_default().push(r);
+            routes_by_stage.entry(r.stage.clone()).or_default().push(r);
         }
-        for routes in routes_by_phase.values_mut() {
+        for routes in routes_by_stage.values_mut() {
             routes.sort_by_key(|r| r.priority);
         }
 
-        // Resolve the router .so path once
+        // Resolve the plugin directory: OX_PLUGIN_DIR overrides the default dev path.
+        // Set OX_PLUGIN_DIR=/usr/lib/ox_webservice for installed deployments.
+        let plugin_dir = std::env::var("OX_PLUGIN_DIR")
+            .unwrap_or_else(|_| "target/debug".to_string());
+
+        // Resolve the router .so path once (OX_ROUTER_PATH still overrides if set)
         let router_path = std::env::var("OX_ROUTER_PATH")
-            .unwrap_or_else(|_| "target/debug/libox_webservice_router.so".to_string());
+            .unwrap_or_else(|_| format!("{}/libox_webservice_router.so", plugin_dir));
 
         // ------------------------------------------------------------------
         // Build pipeline stages (from workflow config).
-        // For each stage, inject a per-phase router config and embed the
-        // module plugins that belong to this phase, in priority order.
+        // For each stage, inject a per-stage router config and embed the
+        // module plugins that belong to this stage, in priority order.
         // ------------------------------------------------------------------
         let workflow_stages = config.workflow.as_ref()
             .map(|w| w.stages.clone())
             .unwrap_or_default();
 
         let mut final_stages: Vec<String> = Vec::new();
-        // Collect router configs per phase so we can build the post-injection config JSON later.
+        // Collect router configs per stage so we can build the post-injection config JSON later.
         let mut stage_router_configs: HashMap<String, serde_json::Value> = HashMap::new();
         // Track which (stage, plugin_id) pairs belong to the status module so we can
         // inject the built config JSON after all router configs are known.
         let mut status_plugin_locations: Vec<(String, String)> = Vec::new();
 
         for mut stage in workflow_stages {
-            let stage_phase = stage.name.clone();
-            let phase_routes = routes_by_phase.get(&stage_phase).cloned().unwrap_or_default();
+            let stage_name = stage.name.clone();
+            let stage_routes = routes_by_stage.get(&stage_name).cloned().unwrap_or_default();
 
-            // Build router config for this phase only
-            let router_routes: Vec<serde_json::Value> = phase_routes.iter().map(|r| {
+            // Build router config for this stage only
+            let router_routes: Vec<serde_json::Value> = stage_routes.iter().map(|r| {
                 let mut matcher = serde_json::Map::new();
                 if !r.path.is_empty() {
                     matcher.insert("path".to_string(), serde_json::Value::String(r.path.clone()));
@@ -177,7 +182,7 @@ impl Flow {
             }).collect();
 
             let router_cfg = serde_json::json!({ "routes": router_routes });
-            stage_router_configs.insert(stage_phase.clone(), router_cfg.clone());
+            stage_router_configs.insert(stage_name.clone(), router_cfg.clone());
 
             // Inject router config into any ox_webservice_router plugin in this stage
             for plugin in &mut stage.plugins {
@@ -188,9 +193,9 @@ impl Flow {
                 }
             }
 
-            // Add module plugins for this phase (deduplicated, in priority order)
+            // Add module plugins for this stage (deduplicated, in priority order)
             let mut seen_modules: HashSet<String> = HashSet::new();
-            for route in &phase_routes {
+            for route in &stage_routes {
                 let module_id = &route.module_id;
                 if !seen_modules.insert(module_id.clone()) {
                     continue; // already added
@@ -204,14 +209,14 @@ impl Flow {
                 let Some(mod_cfg) = mod_cfg else { continue };
 
                 let path = mod_cfg.path.clone()
-                    .unwrap_or_else(|| format!("target/debug/lib{}.so", mod_cfg.name));
+                    .unwrap_or_else(|| format!("{}/lib{}.so", plugin_dir, mod_cfg.name));
                 plugin_paths.insert(module_id.clone(), path);
 
                 // Build plugin config by merging extra_params and params sub-object
                 let mut plugin_map = serde_json::Map::new();
                 for (k, v) in &mod_cfg.extra_params {
                     // Skip non-config fields that shouldn't be passed to the plugin
-                    if k == "phase" || k == "routes" { continue; }
+                    if k == "stage" || k == "routes" { continue; }
                     plugin_map.insert(k.clone(), v.clone());
                 }
                 if let Some(params) = &mod_cfg.params {
@@ -224,7 +229,7 @@ impl Flow {
                 // For the status module, record its location so we can inject
                 // the post-injection config JSON after all stages are built.
                 if mod_cfg.name == "ox_webservice_status" {
-                    status_plugin_locations.push((stage_phase.clone(), module_id.clone()));
+                    status_plugin_locations.push((stage_name.clone(), module_id.clone()));
                 }
 
                 let mod_config_val = serde_json::Value::Object(plugin_map);

@@ -1,0 +1,10 @@
+modules:
+  - id: "ca_root_redirect"
+    name: "ox_webservice_redirect"
+    phase: EarlyRequest
+    params:
+      config_file: "/etc/ox_webservice/ca_root_redirect.yaml"
+routes:
+  - url: "^/$"
+    module_id: "ca_root_redirect"
+    priority: 100

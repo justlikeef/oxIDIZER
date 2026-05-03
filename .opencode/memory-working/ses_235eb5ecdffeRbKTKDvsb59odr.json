@@ -1,0 +1,173 @@
+{
+  "sessionID": "ses_235eb5ecdffeRbKTKDvsb59odr",
+  "slots": {
+    "error": [],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1777212653691_a0bhtci",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/OXDATASPEC.md",
+      "source": "tool:read",
+      "timestamp": 1777212653689,
+      "relevanceScore": 3.1295068220970794,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212653692_iv3u4pp",
+      "type": "file-path",
+      "content": "spec/core.md",
+      "source": "tool:read",
+      "timestamp": 1777212653689,
+      "relevanceScore": 3.09353743776127,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212653692_o53wkr8",
+      "type": "file-path",
+      "content": "spec/types.md",
+      "source": "tool:read",
+      "timestamp": 1777212653689,
+      "relevanceScore": 3.0512205150132585,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212653693_u1nk7k5",
+      "type": "file-path",
+      "content": "spec/persistence.md",
+      "source": "tool:read",
+      "timestamp": 1777212653689,
+      "relevanceScore": 3.0014359000155983,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212653693_1330goy",
+      "type": "file-path",
+      "content": "spec/transactions.md",
+      "source": "tool:read",
+      "timestamp": 1777212653689,
+      "relevanceScore": 2.9428657647242336,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212726372_nu29ii8",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/implementation_plan.md",
+      "source": "tool:read",
+      "timestamp": 1777212726370,
+      "relevanceScore": 2.8739597232049805,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212726381_78pn1t9",
+      "type": "file-path",
+      "content": "development_status.md",
+      "source": "tool:read",
+      "timestamp": 1777212726370,
+      "relevanceScore": 2.7928937920058594,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212726381_bw1xp7q",
+      "type": "file-path",
+      "content": "OXDATASPEC.md",
+      "source": "tool:read",
+      "timestamp": 1777212726370,
+      "relevanceScore": 2.6975221082421874,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212726382_wzgkh2w",
+      "type": "file-path",
+      "content": "ox_data_object/src/error.rs",
+      "source": "tool:read",
+      "timestamp": 1777212726370,
+      "relevanceScore": 2.58532012734375,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212726383_l21ejbf",
+      "type": "file-path",
+      "content": "crates/data/ox_type_converter/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1777212726370,
+      "relevanceScore": 2.453317796875,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212851048_vy8f09d",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/development_status.md",
+      "source": "tool:read",
+      "timestamp": 1777212851048,
+      "relevanceScore": 2.2980209375,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212851050_2rk447p",
+      "type": "file-path",
+      "content": "crates/data/ox_type_converter/src/error.rs",
+      "source": "tool:read",
+      "timestamp": 1777212851048,
+      "relevanceScore": 2.11531875,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212851050_l8ykuf6",
+      "type": "file-path",
+      "content": "crates/data/ox_data_object/src/error.rs",
+      "source": "tool:read",
+      "timestamp": 1777212851048,
+      "relevanceScore": 1.900375,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212851058_gnz9ckz",
+      "type": "file-path",
+      "content": "crates/data/ox_data_object/src/lib.rs",
+      "source": "tool:read",
+      "timestamp": 1777212851048,
+      "relevanceScore": 1.6475,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777212851058_blec51q",
+      "type": "file-path",
+      "content": "crates/util/ox_callback_manager/src/error.rs",
+      "source": "tool:read",
+      "timestamp": 1777212851048,
+      "relevanceScore": 1.35,
+      "mentions": 1,
+      "lastEventCounter": 16
+    },
+    {
+      "id": "wm_1777213036026_l2n4b0f",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/task.md",
+      "source": "tool:read",
+      "timestamp": 1777213036017,
+      "relevanceScore": 1,
+      "mentions": 1,
+      "lastEventCounter": 16
+    }
+  ],
+  "eventCounter": 16,
+  "updatedAt": "2026-04-26T14:17:16.026Z"
+}

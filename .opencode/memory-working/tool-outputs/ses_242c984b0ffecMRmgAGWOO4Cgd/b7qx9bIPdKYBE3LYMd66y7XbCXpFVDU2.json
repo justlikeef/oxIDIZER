@@ -1,0 +1,7 @@
+{
+  "callID": "b7qx9bIPdKYBE3LYMd66y7XbCXpFVDU2",
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "tool": "bash",
+  "fullOutput": "[package]\nname = \"ox_type_converter\"\nversion = \"0.1.0\"\nedition = \"2021\"\nauthors = [\"Your Name <your.email@example.com>\"]\ndescription = \"A modular type conversion system for Rust\"\nlicense = \"GPL-3.0-only\"\n\n[dependencies]\nlazy_static = \"1.4.0\"\nserde = { version = \"1.0\", features = [\"derive\"] }\nchrono = { version = \"0.4\", features = [\"serde\"] }\n\n[lib]\nname = \"ox_type_converter\"\npath = \"src/lib.rs\"\n[package]\nname = \"ox_callback_manager\"\nversion = \"0.1.0\"\nlicense = \"GPL-3.0-only\"\nedition = \"2024\"\n\n[dependencies]\nlazy_static = \"1.4.0\"\n",
+  "timestamp": 1777044102980
+}

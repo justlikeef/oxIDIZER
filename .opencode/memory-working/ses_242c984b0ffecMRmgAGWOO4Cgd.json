@@ -1,0 +1,51 @@
+{
+  "sessionID": "ses_242c984b0ffecMRmgAGWOO4Cgd",
+  "slots": {
+    "error": [
+      {
+        "id": "wm_1777042776731_8ivdrxr",
+        "type": "error",
+        "content": "            v.parse::<i64>().map_err(|e| format!(\"Failed to parse integer: {:?}\", e))",
+        "source": "tool:bash",
+        "timestamp": 1777042776730,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777042776732_1g65i40",
+        "type": "error",
+        "content": "            v.parse::<f64>().map_err(|e| format!(\"Failed to parse float: {:?}\", e))",
+        "source": "tool:bash",
+        "timestamp": 1777042776730,
+        "relevanceScore": 0,
+        "mentions": 1
+      },
+      {
+        "id": "wm_1777042776732_qe9hvxg",
+        "type": "error",
+        "content": "            v.parse::<u64>().map_err(|e| format!(\"Failed to parse unsigned integer: {:?}\", e))",
+        "source": "tool:bash",
+        "timestamp": 1777042776730,
+        "relevanceScore": 0,
+        "mentions": 1
+      }
+    ],
+    "decision": [],
+    "todo": [],
+    "dependency": []
+  },
+  "pool": [
+    {
+      "id": "wm_1776996159403_eya224m",
+      "type": "file-path",
+      "content": "/var/repos/oxIDIZER/crates/data/OXDATASPEC.md",
+      "source": "tool:read",
+      "timestamp": 1776996159402,
+      "relevanceScore": 3.0459946412098664,
+      "mentions": 1,
+      "lastEventCounter": 27
+    }
+  ],
+  "eventCounter": 27,
+  "updatedAt": "2026-04-26T04:11:40.092Z"
+}

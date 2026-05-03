@@ -4,17 +4,23 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct ManifestPluginConfig {
     /// Path to the shared SQLite database (manifest_instance.db).
-    /// Also used by ox_cc_report_plugin on the same instance.
     pub db_path: String,
 
     /// Encryption key for the SQLite database (SQLCipher PRAGMA key).
-    /// Must match the key configured in ox_cc_report_plugin since both share the file.
     pub db_encryption_key: String,
 
     /// Maximum valid window for manifests (expires_at - issued_at), in seconds.
-    /// Default: 90 days.
     #[serde(default = "default_max_manifest_window_secs")]
     pub max_manifest_window_secs: u64,
+
+    /// List of broker public keys (base64url) to distribute to clients during bootstrap.
+    pub broker_pubkeys: Vec<String>,
+
+    /// Public URL of the manifest service.
+    pub manifest_url: String,
+
+    /// Public URL of the report service.
+    pub report_url: String,
 }
 
 impl ManifestPluginConfig {

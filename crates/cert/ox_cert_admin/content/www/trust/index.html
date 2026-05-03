@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Trust &mdash; ox Certificate Authority</title>
+    <link rel="stylesheet" href="/ca/css/style.css">
+    <style>
+        code { font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85em; color: var(--accent); }
+        a { color: var(--accent); }
+
+        .cert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 760px) { .cert-grid { grid-template-columns: 1fr; } }
+
+        .cert-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem 1.5rem; }
+        .cert-card h2 { font-size: 1.1rem; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.6rem; }
+
+        .trust-pill {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.25rem 0.65rem; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .trust-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .trust-yes     { color: #27ae60; border: 1px solid #27ae60; background: rgba(39,174,96,0.08); }
+        .trust-no      { color: #e74c3c; border: 1px solid #e74c3c; background: rgba(231,76,60,0.08); }
+        .trust-unknown { color: var(--text-secondary); border: 1px solid var(--border); }
+
+        .field-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .field-table tr + tr td { border-top: 1px solid rgba(255,255,255,0.05); }
+        .field-table td { padding: 0.45rem 0; vertical-align: top; }
+        .field-table td:first-child { color: var(--text-secondary); white-space: nowrap; padding-right: 1rem; width: 40%; }
+        .field-table td.fp-value { word-break: break-all; font-family: monospace; font-size: 0.82rem; }
+
+        .no-client { text-align: center; padding: 2.5rem 1.5rem; color: var(--text-secondary); }
+        .no-client .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+        .loader-wrap { display: flex; align-items: center; justify-content: center; padding: 3rem; }
+        .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg { color: #e74c3c; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.3); border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.875rem; }
+
+        footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-content">
+            <div class="logo-area">
+                <div>
+                    <h1>Certificate Authority</h1>
+                    <p class="subtitle">Certificate Trust Information</p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <nav style="margin-top:0.25rem;">
+                    <a href="/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Trust Setup</a>
+                </nav>
+                <a href="/status" class="status-badge status-ok" id="status-badge" title="System Status">ONLINE</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loading state -->
+    <div id="loader" class="loader-wrap"><div class="spinner"></div></div>
+
+    <!-- Error state -->
+    <div id="error-banner" class="error-msg" style="display:none;"></div>
+
+    <!-- Cert grid (hidden until data loads) -->
+    <div id="cert-grid" class="cert-grid" style="display:none;">
+
+        <!-- Server cert card -->
+        <div class="cert-card">
+            <h2>&#127919; Server Certificate (Root CA)</h2>
+            <table class="field-table">
+                <tr><td>Subject</td>    <td class="fp-value" id="srv-subject"></td></tr>
+                <tr><td>Issuer</td>     <td class="fp-value" id="srv-issuer"></td></tr>
+                <tr><td>Serial</td>     <td class="fp-value" id="srv-serial"></td></tr>
+                <tr><td>Valid from</td> <td class="fp-value" id="srv-not-before"></td></tr>
+                <tr><td>Valid until</td><td class="fp-value" id="srv-not-after"></td></tr>
+                <tr><td>CA cert</td>    <td class="fp-value" id="srv-is-ca"></td></tr>
+                <tr><td>Self-signed</td><td class="fp-value" id="srv-self-signed"></td></tr>
+                <tr><td>Key type</td>   <td class="fp-value" id="srv-key-algo"></td></tr>
+                <tr><td>SHA-256</td>    <td class="fp-value" id="srv-fp"></td></tr>
+            </table>
+        </div>
+
+        <!-- Client cert card — shown/hidden based on whether client presented a cert -->
+        <div class="cert-card" id="client-card">
+            <h2>
+                &#128100; Your Certificate
+                <span id="client-trust-pill" class="trust-pill trust-unknown" style="display:none;"></span>
+            </h2>
+            <!-- Populated fields (shown when cert present) -->
+            <div id="client-fields" style="display:none;">
+                <table class="field-table">
+                    <tr><td>Subject</td>    <td class="fp-value" id="cli-subject"></td></tr>
+                    <tr><td>Issuer</td>     <td class="fp-value" id="cli-issuer"></td></tr>
+                    <tr><td>Serial</td>     <td class="fp-value" id="cli-serial"></td></tr>
+                    <tr><td>Valid from</td> <td class="fp-value" id="cli-not-before"></td></tr>
+                    <tr><td>Valid until</td><td class="fp-value" id="cli-not-after"></td></tr>
+                    <tr><td>CA cert</td>    <td class="fp-value" id="cli-is-ca"></td></tr>
+                    <tr><td>Key type</td>   <td class="fp-value" id="cli-key-algo"></td></tr>
+                    <tr><td>SHA-256</td>    <td class="fp-value" id="cli-fp"></td></tr>
+                </table>
+                <div style="margin-top:1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem;">
+                        <span style="color:var(--text-secondary);">Trusted by server:</span>
+                        <span id="cli-trusted-pill" class="trust-pill trust-unknown"></span>
+                    </div>
+                    <div id="cli-issued-row" style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; display:none;">
+                        <span style="color:var(--text-secondary);">Issued by this CA:</span>
+                        <span id="cli-issued-pill" class="trust-pill trust-unknown"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- No-cert placeholder -->
+            <div id="client-none" class="no-client">
+                <div class="icon">&#128274;</div>
+                <p>No client certificate was presented with this request.</p>
+                <p style="font-size:0.85rem; margin-top:0.5rem;">Client certificate authentication requires a certificate issued by this CA installed in your browser or client tool.</p>
+            </div>
+        </div>
+
+    </div><!-- /cert-grid -->
+
+    <!-- How-to hint (shown when no client cert) -->
+    <div id="howto-hint" class="card" style="display:none; margin-top:1.5rem;">
+        <h2>How to present a client certificate</h2>
+        <p class="label">To see client certificate trust information, connect using a certificate issued by this CA.</p>
+        <ul style="color:var(--text-secondary); padding-left:1.5rem; line-height:2; margin:0.75rem 0;">
+            <li>Install a client certificate in your browser and configure the server to require mutual TLS (mTLS).</li>
+            <li>Use <code>curl --cert client.crt --key client.key https://&lt;ca-server&gt;/ca/trust</code></li>
+            <li>Pass the certificate PEM as the <code>X-Client-Cert</code> header for proxy or testing scenarios.</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p>ox Certificate Authority &mdash; powered by <strong>oxIDIZER</strong></p>
+    </footer>
+
+</div>
+<script>
+(function () {
+    function set(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = (val === undefined || val === null) ? '—' : String(val);
+    }
+
+    function setPill(id, trusted, labelTrue, labelFalse) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = '';
+        if (trusted === true) {
+            el.textContent = labelTrue || 'Trusted';
+            el.className = 'trust-pill trust-yes';
+        } else if (trusted === false) {
+            el.textContent = labelFalse || 'Not trusted';
+            el.className = 'trust-pill trust-no';
+        } else {
+            el.textContent = 'Unknown';
+            el.className = 'trust-pill trust-unknown';
+        }
+    }
+
+    function show(id) { var el = document.getElementById(id); if (el) el.style.display = ''; }
+    function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+    fetch('/api/v1/trust/info')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            hide('loader');
+
+            if (data.error) {
+                var banner = document.getElementById('error-banner');
+                banner.textContent = '⚠ ' + (data.error.message || 'Unknown error');
+                show('error-banner');
+                return;
+            }
+
+            // Server cert
+            var s = data.server;
+            set('srv-subject',     s.subject);
+            set('srv-issuer',      s.issuer);
+            set('srv-serial',      s.serial);
+            set('srv-not-before',  s.not_before);
+            set('srv-not-after',   s.not_after);
+            set('srv-is-ca',       s.is_ca ? 'Yes' : 'No');
+            set('srv-self-signed', s.is_self_signed ? 'Yes' : 'No');
+            set('srv-key-algo',    s.key_algorithm);
+            set('srv-fp',          s.fingerprint_sha256);
+
+            // Client cert
+            if (data.client) {
+                var c = data.client;
+                hide('client-none');
+                show('client-fields');
+                set('cli-subject',    c.subject);
+                set('cli-issuer',     c.issuer);
+                set('cli-serial',     c.serial);
+                set('cli-not-before', c.not_before);
+                set('cli-not-after',  c.not_after);
+                set('cli-is-ca',      c.is_ca ? 'Yes' : 'No');
+                set('cli-key-algo',   c.key_algorithm);
+                set('cli-fp',         c.fingerprint_sha256);
+
+                setPill('client-trust-pill', c.trusted_by_server, 'Trusted by server', 'Not trusted by server');
+                setPill('cli-trusted-pill',  c.trusted_by_server);
+
+                if (c.issued_by_us !== null && c.issued_by_us !== undefined) {
+                    document.getElementById('cli-issued-row').style.display = 'flex';
+                    setPill('cli-issued-pill', c.issued_by_us, 'Yes', 'Not in registry');
+                }
+            } else {
+                hide('client-fields');
+                show('client-none');
+                show('howto-hint');
+            }
+
+            show('cert-grid');
+        })
+        .catch(function (e) {
+            hide('loader');
+            var banner = document.getElementById('error-banner');
+            banner.textContent = '⚠ Failed to load trust info: ' + e.message;
+            show('error-banner');
+        });
+
+    // Status badge ping
+    fetch('/ping/').then(function (r) {
+        var b = document.getElementById('status-badge');
+        if (!b) return;
+        if (r.ok) { b.textContent = 'ONLINE'; b.className = 'status-badge status-ok'; }
+        else       { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    }).catch(function () {
+        var b = document.getElementById('status-badge');
+        if (b) { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    });
+}());
+</script>
+</body>
+</html>

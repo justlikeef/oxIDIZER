@@ -7,6 +7,7 @@ use anyhow::Result;
 use clap::Parser;
 
 mod applier;
+mod bootstrap;
 mod config;
 mod db;
 mod fetcher;
@@ -32,11 +33,23 @@ async fn main() -> Result<()> {
         .init();
 
     let args = Args::parse();
-    let cfg = ClientConfig::load(&args.config)?;
+    let mut cfg = ClientConfig::load(&args.config)?;
+
+    // Check if initial trust exchange is needed
+    if cfg.client_enc_privkey_b64.is_none() || cfg.broker_signing_pubkeys_dir.is_none() {
+        if cfg.bootstrap_url.is_some() {
+            tracing::info!("trust not established; entering bootstrap mode");
+            bootstrap::run(&args.config, &cfg).await?;
+            // Reload config after successful bootstrap
+            cfg = ClientConfig::load(&args.config)?;
+        } else {
+            return Err(anyhow::anyhow!("trust not established and no bootstrap_url configured in {}", args.config));
+        }
+    }
 
     tracing::info!(
         client_id = %cfg.client_id,
-        manifest_url = %cfg.manifest_url,
+        manifest_url = ?cfg.manifest_url,
         "ox_cc_client starting"
     );
 

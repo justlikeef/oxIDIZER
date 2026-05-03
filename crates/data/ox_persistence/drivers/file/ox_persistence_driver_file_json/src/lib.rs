@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -37,18 +38,18 @@ impl PersistenceDriver for JsonPersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         use std::fs;
         use std::path::Path;
         use serde_json::{Value, Map, Number};
 
         let file_path = Path::new(location);
         let mut records: Vec<Value> = if file_path.exists() {
-            let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
+            let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
             if content.trim().is_empty() {
                 Vec::new()
             } else {
-                serde_json::from_str(&content).map_err(|e| e.to_string())?
+                serde_json::from_str(&content).map_err(|e| OxDataError::InternalError(e.to_string()))?
             }
         } else {
             Vec::new()
@@ -58,15 +59,15 @@ impl PersistenceDriver for JsonPersistenceDriver {
         for (key, (val_str, val_type, _)) in serializable_map {
             let json_val = match val_type {
                 ValueType::Integer => {
-                    let num = val_str.parse::<i64>().map_err(|e| e.to_string())?;
+                    let num = val_str.parse::<i64>().map_err(|e| OxDataError::InternalError(e.to_string()))?;
                     Value::Number(Number::from(num))
                 },
                 ValueType::Float => {
-                    let num = val_str.parse::<f64>().map_err(|e| e.to_string())?;
+                    let num = val_str.parse::<f64>().map_err(|e| OxDataError::InternalError(e.to_string()))?;
                     Number::from_f64(num).map(Value::Number).unwrap_or(Value::Null)
                 },
                 ValueType::Boolean => {
-                    let b = val_str.parse::<bool>().map_err(|e| e.to_string())?;
+                    let b = val_str.parse::<bool>().map_err(|e| OxDataError::InternalError(e.to_string()))?;
                     Value::Bool(b)
                 },
                 ValueType::List(_) | ValueType::Map => {
@@ -79,8 +80,8 @@ impl PersistenceDriver for JsonPersistenceDriver {
 
         records.push(Value::Object(new_record));
 
-        let new_content = serde_json::to_string_pretty(&records).map_err(|e| e.to_string())?;
-        fs::write(file_path, new_content).map_err(|e| e.to_string())?;
+        let new_content = serde_json::to_string_pretty(&records).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        fs::write(file_path, new_content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         Ok(())
     }
@@ -89,17 +90,17 @@ impl PersistenceDriver for JsonPersistenceDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         use std::fs;
         use std::path::Path;
         use serde_json::Value;
 
         let file_path = Path::new(location);
         if !file_path.exists() {
-            return Err(format!("File {} not found", location));
+            return Err(OxDataError::InternalError(format!("File {} not found", location)));
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let records: Vec<Value> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let records: Vec<Value> = serde_json::from_str(&content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         for record in records {
              if let Some(rec_id_val) = record.get("id") {
@@ -139,10 +140,10 @@ impl PersistenceDriver for JsonPersistenceDriver {
              }
         }
 
-        Err(format!("Object with id {} not found in {}", id, location))
+        Err(OxDataError::InternalError(format!("Object with id {} not found in {}", id, location)))
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
         use std::fs;
         use std::path::Path;
         use serde_json::Value;
@@ -151,8 +152,8 @@ impl PersistenceDriver for JsonPersistenceDriver {
         if !file_path.exists() {
              return Ok(Vec::new());
         }
-        let content = fs::read_to_string(file_path).map_err(|e| e.to_string())?;
-        let records: Vec<Value> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let records: Vec<Value> = serde_json::from_str(&content).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         let mut matching_ids = Vec::new();
 
@@ -213,16 +214,16 @@ impl PersistenceDriver for JsonPersistenceDriver {
         println!("JsonDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("Preparing JSON datastore: {:?}", connection_info);
         Ok(())
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
         Ok(vec!["default".to_string()])
     }
     
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
         Ok(DataSet { name: dataset_name.to_string(), columns: Vec::new() })
     }
 

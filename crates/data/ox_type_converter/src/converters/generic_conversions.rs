@@ -2,45 +2,47 @@
 //! 
 //! This module contains generic conversion functions that can work with any type.
 
+use ox_data_error::OxDataError;
 use crate::value_type::ValueType;
 use crate::HashMap;
 use std::fmt;
 
 /// Generic conversion function that routes to appropriate specific converter
-pub fn convert_value<T>(value: &str, value_type: &ValueType, _parameters: &HashMap<String, String>) -> Result<T, String>
+pub fn convert_value<T>(value: &str, value_type: &ValueType, _parameters: &HashMap<String, String>) -> Result<T, OxDataError>
 where
     T: std::str::FromStr,
     T::Err: fmt::Debug,
 {
     match value_type {
-        ValueType::String => {
+        ValueType::String | ValueType::Text => {
             // For string type, we need to handle this specially since we're already storing as string
             // This is a bit of a limitation of the current design
-            Err("String type conversion not implemented for generic get".to_string())
+            Err(OxDataError::ConversionError("String type conversion not implemented for generic get".to_string()))
         },
-        ValueType::Integer => {
-            value.parse::<T>().map_err(|e| format!("Failed to parse integer: {:?}", e))
+        ValueType::Integer | ValueType::BigInt => {
+            value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse integer: {:?}", e)))
         },
         ValueType::Float => {
-            value.parse::<T>().map_err(|e| format!("Failed to parse float: {:?}", e))
+            value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse float: {:?}", e)))
+        },
+        ValueType::Decimal => {
+            value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse decimal: {:?}", e)))
         },
         ValueType::Boolean => {
-            value.parse::<T>().map_err(|e| format!("Failed to parse boolean: {:?}", e))
+            value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse boolean: {:?}", e)))
         },
-        ValueType::DateTime => {
+        ValueType::DateTime | ValueType::Timestamp => {
              if chrono::DateTime::parse_from_rfc3339(&value).is_ok() {
-                 // If the target type is String, we can return the original value directly.
-                 // Otherwise, we rely on FromStr for T.
-                 // This assumes T can be constructed from a valid RFC3339 string.
-                 value.parse::<T>().map_err(|e| format!("Failed to parse DateTime: {:?}", e))
+                 value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse DateTime: {:?}", e)))
              } else {
-                 Err(format!("Value '{}' is not a valid ISO8601 DateTime", value))
+                 Err(OxDataError::ConversionError(format!("Value '{}' is not a valid ISO8601 DateTime", value)))
              }
         },
-        ValueType::List(_) => Err(format!("Cannot safely convert List '{}' blindly", value)),
-        ValueType::Map => Err(format!("Cannot safely convert Map '{}' blindly", value)),
-        ValueType::Binary => Err(format!("Cannot safely convert Binary '{}' blindly", value)),
-        ValueType::Custom(_) => Ok(value.parse::<T>().map_err(|e| format!("Failed to parse custom type: {:?}", e))?),
+        ValueType::List(_) => Err(OxDataError::ConversionError(format!("Cannot safely convert List '{}' blindly", value))),
+        ValueType::Map => Err(OxDataError::ConversionError(format!("Cannot safely convert Map '{}' blindly", value))),
+        ValueType::Json => Err(OxDataError::ConversionError(format!("Cannot safely convert Json '{}' blindly", value))),
+        ValueType::Binary => Err(OxDataError::ConversionError(format!("Cannot safely convert Binary '{}' blindly", value))),
+        ValueType::Custom(_) => Ok(value.parse::<T>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse custom type: {:?}", e)))?),
     }
 }
 

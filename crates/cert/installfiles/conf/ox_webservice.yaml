@@ -1,0 +1,8 @@
+# ox_cert — Certificate Authority Server
+# Production entry point installed at /etc/ox_webservice/ox_webservice.yaml
+
+merge:
+  - "/etc/ox_webservice/service/"
+  - "/etc/ox_webservice/servers/"
+  - "/etc/ox_webservice/modules/active/"
+  - "/usr/share/ox_webservice/modules/active/"

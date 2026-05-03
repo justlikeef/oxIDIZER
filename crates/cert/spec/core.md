@@ -18,7 +18,7 @@ common type, crypto helper, storage trait, and the CA key-material interface.
 | **Certificate Policy Engine** | Policy OIDs and CPS URI qualifiers per profile. Supports policy mapping for cross-certified CAs. |
 | **Certificate Profiles** | `short_lived`, `standard`, `long_lived`, `ca_intermediate`, `ca_root`. |
 | **Issuance Policy** | Domain allowlist/blocklist, max SAN count, wildcard flag, min key strength, RA-required flag. |
-| **Storage Trait** | `CertStore` — persistence abstraction backed by `ox_persistence`. |
+| **Storage Trait** | `CertStore` — persistence abstraction backed by `ox_data_object_manager`. |
 | **Serial Number Generation** | UUID v4 (`uuid::Uuid::new_v4()`). 16 bytes ≤ 20-byte RFC 5280 limit. |
 | **CA Key Rollover** | Dual-signing during rotation: `CaKeySet` holds `active` + optional `retiring` key. |
 | **SSH Certificate Builder** | OpenSSH user and host certs (not X.509). Ed25519 and ECDSA signing keys. |
@@ -51,7 +51,9 @@ common type, crypto helper, storage trait, and the CA key-material interface.
 | `hkdf` | Key derivation for private key encryption |
 | `sha2` | SHA-256 for HKDF, CT, fingerprints |
 | `regex` | Domain allowlist/blocklist pattern matching |
-| `ox_persistence` | `PersistenceDriver` + `GenericDataObject` for `CertStore` impl |
+| `ox_persistence` | lib | `ox_data_object`, `ox_type_converter` |
+| `ox_data_object_manager` | lib | `ox_data_object`, `ox_persistence`, `ox_type_converter` |
+| `GenericDataObject` | Core storage primitive for `CertStore` impl |
 
 ### EdDSA Note
 
@@ -74,9 +76,9 @@ Every `KeyStore` and `CertStore` operation carries a `tenant_id: &str` parameter
 {tenant_id}:{key_id}
 ```
 
-**CertStore:** tenant_id is included as a filter in every `fetch()` call and as a column
-in every row. Migrations apply globally (schema is shared); data is partitioned by
-tenant_id at the row level.
+**CertStore:** tenant_id is included as a filter in every `fetch()` call and as an attribute
+in every `GenericDataObject`. Migrations apply globally via `DataObjectManager` schemas;
+data is partitioned by tenant_id at the GDO level.
 
 Tenant lifecycle (create, delete, list) is managed by `ox_cert_admin`. Deleting a tenant
 does not immediately purge rows; it marks the tenant inactive and schedules a background
@@ -96,36 +98,7 @@ serial number (16 bytes of UUID binary, ≤ 20-byte RFC 5280 limit).
 
 CRL numbers must be monotonically increasing (RFC 5280 §5.2.3). Under active/active,
 only one node must generate a CRL for a given interval. Coordination uses an advisory
-lock table in the shared database:
-
-```sql
-CREATE TABLE IF NOT EXISTS crl_generation_locks (
-    tenant_id  TEXT        NOT NULL,
-    lock_key   TEXT        NOT NULL,   -- "full_crl" | "delta_crl"
-    locked_by  TEXT        NOT NULL,   -- "{hostname}:{pid}"
-    locked_at  TIMESTAMP   NOT NULL,
-    expires_at TIMESTAMP   NOT NULL,
-    crl_number BIGINT      NOT NULL DEFAULT 0,
-    PRIMARY KEY (tenant_id, lock_key)
-);
-```
-
-**Acquire pattern (PostgreSQL):**
-```sql
-INSERT INTO crl_generation_locks (tenant_id, lock_key, locked_by, locked_at, expires_at, crl_number)
-VALUES ($1, $2, $3, NOW(), NOW() + ($4 || ' seconds')::INTERVAL, 1)
-ON CONFLICT (tenant_id, lock_key) DO UPDATE
-    SET locked_by  = EXCLUDED.locked_by,
-        locked_at  = EXCLUDED.locked_at,
-        expires_at = EXCLUDED.expires_at,
-        crl_number = crl_generation_locks.crl_number + 1
-    WHERE crl_generation_locks.expires_at < NOW()
-RETURNING crl_number;
-```
-
-If the query returns a row, this node owns the lock and the returned `crl_number` is the
-next CRL sequence number. If no rows return, another node holds a valid lock; this node
-serves the cached CRL.
+lock table in the shared database via `ox_data_object_manager`.
 
 `CertStore` exposes `acquire_crl_lock` and `release_crl_lock` (see trait definition below).
 
@@ -736,7 +709,7 @@ pub struct KeyInfo {
 
 ```rust
 /// Persistence abstraction for all certificate data.
-/// Backed by OxPersistenceCertStore (wraps ox_persistence PersistenceDriver).
+/// Backed by OxPersistenceCertStore (wraps ox_data_object_manager DataObjectManager).
 /// Every method takes tenant_id explicitly; implementations enforce the partition.
 pub trait CertStore: Send + Sync {
     fn open(config: &CertStoreConfig) -> Result<Self, CertError> where Self: Sized;
@@ -838,520 +811,130 @@ pub struct CertStoreConfig {
 
 ---
 
-### `CertBuilder`
+## Data Dictionary Schemas (GDO)
 
-```rust
-pub struct CertBuilder { /* wraps rcgen::CertificateParams */ }
+All `ox_cert` data is stored as `GenericDataObject` instances. The following schemas
+must be registered in the `DataDictionary` at startup.
 
-impl CertBuilder {
-    pub fn new(profile: &EnrollmentProfile) -> Self;
-    pub fn subject(self, dn: DistinguishedName) -> Self;
-    pub fn add_san(self, san: SanType) -> Self;
-    pub fn validity(self, period: ValidityPeriod) -> Self;
-    pub fn add_extension(self, ext: CustomExtension) -> Self;
-
-    /// Build and sign. Embeds AIA, CDP, SKI, AKI, policy OIDs from profile + extensions_config.
-    /// Returns (rcgen::Certificate, DER bytes).
-    pub fn build_and_sign(
-        self,
-        issuer_cert: &rcgen::Certificate,
-        key_store: &dyn KeyStore,
-        tenant_id: &str,
-        issuer_key_id: &str,
-        extensions_config: &ExtensionsConfig,
-    ) -> Result<(rcgen::Certificate, Vec<u8>), CertError>;
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct ExtensionsConfig {
-    pub aia_ocsp_url: Option<String>,
-    pub aia_ca_issuer_url: Option<String>,
-    pub cdp_url: Option<String>,
-}
-```
-
----
-
-### `SshCertBuilder`
-
-```rust
-pub struct SshCertBuilder { /* fields omitted */ }
-
-impl SshCertBuilder {
-    pub fn new(cert_type: SshCertType) -> Self;
-    pub fn key_id(self, id: &str) -> Self;
-    pub fn add_principal(self, principal: &str) -> Self;
-    pub fn validity(self, valid_after: time::OffsetDateTime, valid_before: time::OffsetDateTime)
-        -> Self;
-    pub fn add_critical_option(self, name: &str, value: &str) -> Self;
-    pub fn add_extension(self, name: &str, value: &str) -> Self;
-    pub fn serial(self, serial: u64) -> Self;
-
-    /// Sign an SSH public key, returning a complete SshCertRecord.
-    pub fn sign(
-        self,
-        subject_pubkey: &[u8],
-        key_store: &dyn KeyStore,
-        tenant_id: &str,
-        ca_key_id: &str,
-    ) -> Result<SshCertRecord, CertError>;
-}
-```
-
----
-
-### `IssuancePolicy`
-
-```rust
-pub struct IssuancePolicy {
-    pub domain_allowlist: Vec<regex::Regex>,
-    pub domain_blocklist: Vec<regex::Regex>,
-    pub max_san_count: usize,
-    pub wildcard_allowed: bool,
-    pub min_rsa_bits: u32,
-    pub require_ra_approval: bool,
-}
-
-impl IssuancePolicy {
-    pub fn from_config(config: &IssuancePolicyConfig) -> Result<Self, CertError>;
-
-    /// Validate a parsed CSR against policy.
-    /// Returns Ok(()) or Err(CertError::PolicyViolation) with violation details.
-    pub fn validate_csr(&self, csr: &CsrInfo) -> Result<(), CertError>;
-}
-```
-
----
-
-### `CertError`
-
-```rust
-#[derive(Debug, thiserror::Error)]
-pub enum CertError {
-    #[error("CSR validation failed: {0}")]
-    InvalidCsr(String),
-    #[error("Policy violation: {0}")]
-    PolicyViolation(String),
-    #[error("Certificate not found: serial={0}")]
-    NotFound(String),
-    #[error("Certificate already revoked: serial={0}")]
-    AlreadyRevoked(String),
-    #[error("CA not initialized for tenant={0}")]
-    CaNotReady(String),
-    #[error("Key store error: {0}")]
-    KeyStoreError(String),
-    #[error("Storage error: {0}")]
-    StorageError(String),
-    #[error("Configuration error: {0}")]
-    ConfigError(String),
-    #[error("ACME protocol error: {0}")]
-    AcmeError(String),
-    #[error("CT submission failed: {0}")]
-    CtError(String),
-    #[error("Webhook rejected: {0}")]
-    WebhookRejected(String),
-    #[error("RA approval required")]
-    RaApprovalRequired { request_id: String },
-    #[error("Tenant not found: {0}")]
-    TenantNotFound(String),
-    #[error("Internal error: {0}")]
-    Internal(String),
-}
-
-impl CertError {
-    pub fn http_status(&self) -> u16 {
-        match self {
-            CertError::InvalidCsr(_)          => 400,
-            CertError::PolicyViolation(_)     => 403,
-            CertError::WebhookRejected(_)     => 403,
-            CertError::NotFound(_)            => 404,
-            CertError::TenantNotFound(_)      => 404,
-            CertError::AlreadyRevoked(_)      => 409,
-            CertError::RaApprovalRequired {..}=> 202,
-            CertError::CaNotReady(_)          => 503,
-            _                                 => 500,
-        }
-    }
-
-    pub fn error_code(&self) -> &'static str {
-        match self {
-            CertError::InvalidCsr(_)          => "INVALID_CSR",
-            CertError::PolicyViolation(_)     => "POLICY_VIOLATION",
-            CertError::WebhookRejected(_)     => "WEBHOOK_REJECTED",
-            CertError::NotFound(_)            => "NOT_FOUND",
-            CertError::TenantNotFound(_)      => "TENANT_NOT_FOUND",
-            CertError::AlreadyRevoked(_)      => "ALREADY_REVOKED",
-            CertError::RaApprovalRequired {..}=> "RA_APPROVAL_REQUIRED",
-            CertError::CaNotReady(_)          => "CA_NOT_READY",
-            CertError::CtError(_)             => "CT_FAILURE",
-            _                                 => "INTERNAL_ERROR",
-        }
-    }
-}
-```
-
----
-
-## OCSP Utility Functions
-
-```rust
-/// Convert an OCSP request serial (big-endian DER integer bytes) to a UUID string
-/// for database lookup. UUID serials are stored as TEXT ("xxxxxxxx-xxxx-...").
-/// The OCSP serial is exactly 16 bytes (the binary UUID representation).
-pub fn ocsp_serial_to_uuid(der_integer_bytes: &[u8]) -> Result<String, CertError>;
-
-/// Convert a UUID serial string back to big-endian DER bytes for OCSP responses.
-pub fn uuid_to_ocsp_serial(uuid_str: &str) -> Result<Vec<u8>, CertError>;
-```
-
-Both functions live in `ox_cert_core::ocsp` and must be used in `ox_cert_ocsp` whenever
-converting between the on-wire OCSP serial format and the database UUID string format.
-
-## CT Library Functions
-
-```rust
-/// ox_cert_core::ct — called by ox_cert_issue at signing time, not a pipeline stage.
-pub fn submit_to_ct_logs(
-    tbs_cert_der: &[u8],
-    issuer_cert_der: &[u8],
-    config: &CtConfig,
-) -> Result<Vec<Sct>, CertError>;
-```
-
----
-
-## Chain Builder
-
-```rust
-pub struct ChainBuilder {
-    root_cert_pem: String,
-    intermediate_cert_pem: String,
-}
-
-impl ChainBuilder {
-    pub fn from_paths(root: &std::path::Path, intermediate: &std::path::Path)
-        -> Result<Self, CertError>;
-    pub fn from_pem(root_pem: &str, intermediate_pem: &str)
-        -> Result<Self, CertError>;
-    /// issued_cert + intermediate + root
-    pub fn full_chain_pem(&self, issued_cert_pem: &str) -> String;
-    /// intermediate + root (no leaf)
-    pub fn ca_chain_pem(&self) -> String;
-}
-```
-
----
-
-## PKCS#12 Builder
-
-```rust
-pub struct Pkcs12Builder;
-
-impl Pkcs12Builder {
-    /// Build a password-protected PKCS#12 bundle.
-    /// `private_key_der` is the decrypted PKCS#8 DER of the server-generated key.
-    /// `cert_chain_pem` is the full PEM chain (leaf + intermediate + root).
-    /// Returns DER bytes of the .p12 file.
-    pub fn build(
-        private_key_der: &[u8],
-        cert_chain_pem: &str,
-        password: &str,
-        encryption: Pkcs12Encryption,
-    ) -> Result<Vec<u8>, CertError>;
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub enum Pkcs12Encryption { Aes256, TripleDes }
-```
-
----
-
-## ox_persistence Integration
-
-### How `CertStore` Wraps `PersistenceDriver`
-
-`OxPersistenceCertStore` is the concrete implementation of `CertStore`. It holds an
-`Arc<dyn PersistenceDriver>` obtained from the global `PERSISTENCE_DRIVER_REGISTRY`.
-
-```rust
-pub struct OxPersistenceCertStore {
-    driver: Arc<dyn ox_persistence::PersistenceDriver>,
-}
-
-impl OxPersistenceCertStore {
-    pub fn new(config: &CertStoreConfig) -> Result<Self, CertError> {
-        let driver = ox_persistence::PERSISTENCE_DRIVER_REGISTRY
-            .lock().unwrap()
-            .get_driver(&config.driver)
-            .ok_or_else(|| CertError::ConfigError(format!("unknown driver: {}", config.driver)))?;
-        Ok(Self { driver })
-    }
-}
-```
-
-### GenericDataObject Mapping
-
-Each struct is serialized to `HashMap<String, (String, ValueType, HashMap<String, String>)>`
-via a `to_gdo()` / `from_gdo()` pair. The `id` field of the `GenericDataObject` maps to
-`serial` for X.509 certs, `serial.to_string()` for SSH certs, and `id` for all others.
-
-| Table location | GDO id field |
-|---|---|
-| `certificates` | `serial` (UUID string) |
-| `ssh_certificates` | `serial` (u64 as string) |
-| `ca_keys` | `id` |
-| `acme_accounts` | `id` |
-| `acme_orders` | `id` |
-| `acme_authorizations` | `id` |
-| `ra_requests` | `id` |
-| `scep_challenges` | `id` |
-| `notification_log` | `id` (auto-increment as string) |
-| `audit_log` | `id` (auto-increment as string) |
-| `crl_generation_locks` | composite `{tenant_id}:{lock_key}` |
-
-All `fetch()` calls include `tenant_id` in the filter map.
-
-### Complex Queries
-
-Queries not expressible through basic `fetch()` filters (e.g., `list_expiring`,
-`list_revoked_since`) are executed via:
-
-```rust
-driver.call_action("raw_sql", &HashMap::from([
-    ("sql".into(), "SELECT serial FROM certificates WHERE tenant_id=$1 AND not_after < NOW() + INTERVAL '$2 days'".into()),
-    ("p1".into(), tenant_id.into()),
-    ("p2".into(), within_days.to_string()),
-]))
-```
-
-SQLite uses `?` placeholders; the implementation switches dialect based on `config.driver`.
-
-### Migration Strategy
-
-Migrations are embedded SQL strings in `ox_cert_core`:
-
-```rust
-const MIGRATIONS: &[(&str, &str)] = &[
-    ("001_initial", include_str!("migrations/001_initial.sql")),
-    ("002_add_crl_locks", include_str!("migrations/002_add_crl_locks.sql")),
-];
-```
-
-`CertStore::migrate()` calls `driver.call_action("run_sql", ...)` for each unapplied
-migration, tracking state in a `schema_migrations` table. All statements use
-`CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` — safe to re-run.
-
----
-
-## Storage Schema
-
-### `schema_migrations`
-| Column | Type | Description |
+### `certificate` (X.509)
+| Attribute | Type | Description |
 |---|---|---|
-| `version` | TEXT PK | Migration ID (e.g., `"001_initial"`) |
-| `applied_at` | TIMESTAMP | When this migration ran |
-
-### `certificates`
-| Column | Type | Description |
-|---|---|---|
-| `serial` | TEXT PK | UUID v4 — X.509 serial number |
-| `tenant_id` | TEXT NOT NULL | Tenant partition key |
-| `subject_cn` | TEXT | Common Name |
-| `subject_dn` | TEXT | Full Distinguished Name |
-| `sans` | TEXT | JSON array of SANs |
-| `issuer_dn` | TEXT | Issuing CA DN |
-| `not_before` | TIMESTAMP | Validity start |
-| `not_after` | TIMESTAMP | Validity end |
+| `serial` | TEXT | UUID v4 (Primary Key) |
+| `tenant_id` | TEXT | Partition key |
+| `subject_cn` | TEXT | |
+| `subject_dn` | TEXT | |
+| `sans` | JSON | List of `SanType` |
+| `issuer_dn` | TEXT | |
+| `not_before` | TIMESTAMP | |
+| `not_after` | TIMESTAMP | |
 | `key_type` | TEXT | `rsa-2048`, `ecc-p256`, etc. |
-| `profile` | TEXT | Certificate profile name |
-| `pem` | TEXT | PEM-encoded certificate |
-| `csr_pem` | TEXT NULL | Original CSR if provided |
-| `private_key_encrypted` | TEXT NULL | `base64(nonce\|\|ct\|\|tag)` for server-gen keys |
+| `profile` | TEXT | |
+| `pem` | TEXT | |
+| `csr_pem` | TEXT | Optional |
+| `private_key_encrypted` | TEXT | Optional (server-generated keys) |
 | `status` | TEXT | `active` \| `revoked` \| `expired` \| `pending_approval` |
-| `revoked_at` | TIMESTAMP NULL | Revocation timestamp |
-| `revocation_reason` | INTEGER NULL | RFC 5280 reason code |
-| `scts` | TEXT NULL | JSON array of SCT objects |
-| `policy_oids` | TEXT NULL | JSON array of OID strings |
-| `enrollment_protocol` | TEXT NULL | `rest` \| `acme` \| `est` \| `scep` \| `ad` \| `ssh` |
-| `created_at` | TIMESTAMP | Issuance timestamp |
-
-Indexes: `(tenant_id, status)`, `(tenant_id, not_after)`, `(tenant_id, subject_cn)`.
-
-### `ssh_certificates`
-| Column | Type | Description |
-|---|---|---|
-| `serial` | BIGINT PK | OpenSSH certificate serial |
-| `tenant_id` | TEXT NOT NULL | |
-| `cert_type` | TEXT | `user` \| `host` |
-| `key_id` | TEXT | Key identifier string |
-| `principals` | TEXT | JSON array |
-| `public_key` | TEXT | Subject public key (base64) |
-| `signing_key_fingerprint` | TEXT | SHA-256 fingerprint of CA signing key |
-| `valid_after` | TIMESTAMP | |
-| `valid_before` | TIMESTAMP | |
-| `critical_options` | TEXT NULL | JSON object |
-| `extensions` | TEXT NULL | JSON object |
-| `certificate` | TEXT | Full OpenSSH certificate (base64) |
+| `revoked_at` | TIMESTAMP | Optional |
+| `revocation_reason` | INTEGER | Optional (RevocationReason enum) |
+| `scts` | JSON | List of `Sct` objects |
+| `policy_oids` | JSON | |
+| `enrollment_protocol` | TEXT | `rest`, `acme`, `est`, `scep`, `ad`, `ssh` |
 | `created_at` | TIMESTAMP | |
 
-### `ssh_serial_counter`
-| Column | Type | Description |
+### `ssh_certificate`
+| Attribute | Type | Description |
 |---|---|---|
-| `tenant_id` | TEXT PK | |
-| `next_serial` | BIGINT | Atomically incremented via `UPDATE … RETURNING` |
+| `serial` | BIGINT | OpenSSH serial (u64) |
+| `tenant_id` | TEXT | |
+| `cert_type` | TEXT | `user` \| `host` |
+| `key_id` | TEXT | |
+| `principals` | JSON | List of strings |
+| `public_key` | TEXT | |
+| `signing_key_fingerprint` | TEXT | |
+| `valid_after` | TIMESTAMP | |
+| `valid_before` | TIMESTAMP | |
+| `critical_options` | JSON | Map<String, String> |
+| `extensions` | JSON | Map<String, String> |
+| `certificate` | TEXT | Full OpenSSH cert (base64) |
+| `created_at` | TIMESTAMP | |
 
-### `ca_keys`
-| Column | Type | Description |
+### `ca_key`
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | TEXT PK | e.g., `"acme-corp:intermediate-2026"` |
-| `tenant_id` | TEXT NOT NULL | |
-| `key_type` | TEXT | `rsa-4096`, `ecc-p384`, etc. |
-| `cert_pem` | TEXT | CA certificate PEM |
+| `id` | TEXT | PK: e.g., `"acme-corp:intermediate-2026"` |
+| `tenant_id` | TEXT | |
+| `key_type` | TEXT | |
+| `cert_pem` | TEXT | |
 | `key_ref` | TEXT | File path or PKCS#11 label |
 | `status` | TEXT | `active` \| `retiring` \| `retired` |
 | `not_before` | TIMESTAMP | |
 | `not_after` | TIMESTAMP | |
-| `name_constraints` | TEXT NULL | JSON |
-| `path_length` | INTEGER NULL | `basicConstraints` pathLen |
+| `name_constraints` | JSON | |
+| `path_length` | INTEGER | |
 | `created_at` | TIMESTAMP | |
 
-### `acme_accounts`
-| Column | Type | Description |
+### `acme_account`
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | TEXT PK | |
-| `tenant_id` | TEXT NOT NULL | |
+| `id` | TEXT | PK |
+| `tenant_id` | TEXT | |
 | `jwk` | TEXT | JSON Web Key |
-| `contact` | TEXT | JSON array of mailto: URIs |
+| `contact` | JSON | List of mailto: URIs |
 | `status` | TEXT | `valid` \| `deactivated` \| `revoked` |
-| `eab_kid` | TEXT NULL | External Account Binding key ID |
+| `eab_kid` | TEXT | Optional |
 | `created_at` | TIMESTAMP | |
 
-### `acme_orders`
-| Column | Type | Description |
+### `acme_order`
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | TEXT PK | |
-| `tenant_id` | TEXT NOT NULL | |
-| `account_id` | TEXT | FK → acme_accounts.id |
-| `status` | TEXT | `pending` \| `ready` \| `processing` \| `valid` \| `invalid` |
-| `identifiers` | TEXT | JSON array of `{type, value}` |
-| `not_before` | TIMESTAMP NULL | |
-| `not_after` | TIMESTAMP NULL | |
-| `certificate_serial` | TEXT NULL | UUID of issued cert |
-| `expires` | TIMESTAMP | Order expiry |
+| `id` | TEXT | PK |
+| `tenant_id` | TEXT | |
+| `account_id` | TEXT | FK → acme_account.id |
+| `status` | TEXT | |
+| `identifiers` | JSON | List of `{type, value}` |
+| `not_before` | TIMESTAMP | |
+| `not_after` | TIMESTAMP | |
+| `certificate_serial` | TEXT | |
+| `expires` | TIMESTAMP | |
 | `created_at` | TIMESTAMP | |
 
-### `acme_authorizations`
-| Column | Type | Description |
+### `acme_authorization`
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | TEXT PK | |
-| `tenant_id` | TEXT NOT NULL | |
-| `order_id` | TEXT | FK → acme_orders.id |
-| `identifier_type` | TEXT | `dns` |
-| `identifier_value` | TEXT | e.g., `example.com` |
-| `status` | TEXT | `pending` \| `valid` \| `invalid` \| `deactivated` \| `expired` \| `revoked` |
-| `challenges` | TEXT | JSON array of AcmeChallenge objects |
+| `id` | TEXT | PK |
+| `tenant_id` | TEXT | |
+| `order_id` | TEXT | FK → acme_order.id |
+| `identifier_type` | TEXT | |
+| `identifier_value` | TEXT | |
+| `status` | TEXT | |
+| `challenges` | JSON | List of `AcmeChallenge` |
 | `expires` | TIMESTAMP | |
 
-### `ra_requests`
-| Column | Type | Description |
+### `ra_request`
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | TEXT PK | |
-| `tenant_id` | TEXT NOT NULL | |
+| `id` | TEXT | PK |
+| `tenant_id` | TEXT | |
 | `csr_pem` | TEXT | |
 | `requester_identity` | TEXT | |
 | `profile` | TEXT | |
-| `sans` | TEXT | JSON array |
+| `sans` | JSON | |
 | `status` | TEXT | `pending` \| `approved` \| `denied` |
-| `reviewer` | TEXT NULL | |
-| `review_notes` | TEXT NULL | |
-| `reviewed_at` | TIMESTAMP NULL | |
-| `certificate_serial` | TEXT NULL | UUID of issued cert; written by ox_cert_issue post-issuance |
+| `reviewer` | TEXT | |
+| `review_notes` | TEXT | |
+| `reviewed_at` | TIMESTAMP | |
+| `certificate_serial` | TEXT | |
 | `created_at` | TIMESTAMP | |
-
-### `scep_challenges`
-| Column | Type | Description |
-|---|---|---|
-| `id` | TEXT PK | |
-| `tenant_id` | TEXT NOT NULL | |
-| `password_hash` | TEXT | bcrypt hash of challenge password |
-| `used` | BOOLEAN | Whether consumed |
-| `expires_at` | TIMESTAMP | |
-| `created_at` | TIMESTAMP | |
-
-### `notification_log`
-| Column | Type | Description |
-|---|---|---|
-| `id` | INTEGER PK | Auto-increment |
-| `tenant_id` | TEXT NOT NULL | |
-| `serial` | TEXT | Certificate serial |
-| `threshold_days` | INTEGER | e.g., 30 |
-| `channel` | TEXT | `webhook` \| `mqtt` \| `email` |
-| `sent_at` | TIMESTAMP | |
-| `status` | TEXT | `sent` \| `failed` |
-| `error` | TEXT NULL | Error message if failed |
 
 ### `audit_log`
-| Column | Type | Description |
+| Attribute | Type | Description |
 |---|---|---|
-| `id` | INTEGER PK | Auto-increment |
-| `tenant_id` | TEXT NOT NULL | |
+| `id` | BIGINT | Auto-increment PK |
+| `tenant_id` | TEXT | |
 | `timestamp` | TIMESTAMP | |
-| `action` | TEXT | See `AuditAction` variants |
-| `serial` | TEXT NULL | |
+| `action` | TEXT | |
+| `serial` | TEXT | |
 | `actor` | TEXT | |
-| `details` | TEXT | JSON object |
-
-### `est_credentials`
-
-Used by `ox_cert_est` for HTTP Basic auth fallback. Provisioned via `ox_cert_admin`
-(`POST /api/v1/est/credentials`).
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | TEXT PK | UUID |
-| `tenant_id` | TEXT NOT NULL | |
-| `username` | TEXT NOT NULL | |
-| `password_hash` | TEXT | bcrypt hash of one-time password |
-| `used` | BOOLEAN | Whether already consumed |
-| `expires_at` | TIMESTAMP | |
-| `created_at` | TIMESTAMP | |
-
-Unique constraint: `(tenant_id, username)`.
-
-### `acme_nonces`
-
-Only used when `acme.nonce_store = database` (multi-node deployments).
-
-| Column | Type | Description |
-|---|---|---|
-| `nonce` | TEXT PK | UUID v4 string |
-| `tenant_id` | TEXT NOT NULL | |
-| `expires_at` | TIMESTAMP | `now + 1 hour` at creation |
-
-Cleanup: `DELETE FROM acme_nonces WHERE expires_at < NOW()` run in the `ox_cert_acme`
-background thread every 5 minutes, or on each request (lazy cleanup).
-
-### `tenants`
-
-Managed by `ox_cert_admin` super-admin endpoints.
-
-| Column | Type | Description |
-|---|---|---|
-| `tenant_id` | TEXT PK | |
-| `display_name` | TEXT NULL | |
-| `status` | TEXT | `active` \| `inactive` (default `active`) |
-| `created_at` | TIMESTAMP | |
-
-### `crl_generation_locks`
-| Column | Type | Description |
-|---|---|---|
-| `tenant_id` | TEXT NOT NULL | |
-| `lock_key` | TEXT NOT NULL | `full_crl` \| `delta_crl` |
-| `locked_by` | TEXT | `{hostname}:{pid}` |
-| `locked_at` | TIMESTAMP | |
-| `expires_at` | TIMESTAMP | |
-| `crl_number` | BIGINT | Monotonically increasing CRL sequence number |
-| PK | `(tenant_id, lock_key)` | |
+| `details` | JSON | |
 
 ---
 

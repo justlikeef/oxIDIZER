@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use crate::dictionary::{JoinType, JoinCondition};
 use std::collections::HashMap;
 use ox_persistence::PERSISTENCE_DRIVER_REGISTRY;
-use anyhow::Result;
+
 use ox_type_converter::ValueType;
+use ox_data_error::OxDataError;
 
 /// A node in the execution plan for a data query.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,26 +39,25 @@ impl QueryEngine {
     }
 
     /// Executes a query plan and returns the result as a list of flat maps (rows).
-    pub fn execute_plan(&self, plan: &QueryPlan) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>> {
+    pub fn execute_plan(&self, plan: &QueryPlan) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, OxDataError> {
         self.execute_node(&plan.root)
     }
 
-    fn execute_node(&self, node: &QueryNode) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>> {
+    fn execute_node(&self, node: &QueryNode) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, OxDataError> {
         match node {
             QueryNode::Fetch { datasource_id, location, .. } => {
                 let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
-                if let Some((driver, _)) = registry.get_driver(datasource_id) {
-                    // Fetch all IDs first.
-                    // This is a simplified fetch. In reality, we'd pass filters.
-                    let ids = driver.fetch(&HashMap::new(), location).map_err(|e| anyhow::anyhow!(e))?;
+                if let Some(driver) = registry.get_driver(datasource_id) {
                     let mut results = Vec::new();
-                    for id in ids {
-                        let map = driver.restore(location, &id).map_err(|e| anyhow::anyhow!(e))?;
-                        results.push(map);
+                    let fetched = driver.0.fetch(&HashMap::new(), location)?;
+                    for obj in fetched {
+                        if let Ok(map) = serde_json::from_str::<HashMap<String, (String, ValueType, HashMap<String, String>)>>(&obj) {
+                            results.push(map);
+                        }
                     }
                     Ok(results)
                 } else {
-                    Err(anyhow::anyhow!("Driver {} not found", datasource_id))
+                    Err(OxDataError::DriverError(format!("Driver {} not found", datasource_id)))
                 }
             }
             QueryNode::Join { left, right, join_type, conditions } => {
@@ -74,7 +74,7 @@ impl QueryEngine {
         right: Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>,
         join_type: &JoinType,
         conditions: &[JoinCondition],
-    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>> {
+    ) -> Result<Vec<HashMap<String, (String, ValueType, HashMap<String, String>)>>, OxDataError> {
         let mut results = Vec::new();
 
         match join_type {
@@ -101,7 +101,7 @@ impl QueryEngine {
                     }
                 }
             }
-            _ => return Err(anyhow::anyhow!("Join type {:?} not yet implemented", join_type)),
+            _ => return Err(OxDataError::InternalError(format!("Join type {:?} not yet implemented", join_type))),
         }
 
         Ok(results)

@@ -1,0 +1,44 @@
+# ox_cert_ca_init — CA Hierarchy Initialisation
+#
+# Run scripts/generate-root-ca.sh first to generate the root key and cert at
+# the paths below.  With auto_generate: true the intermediate CA key and cert
+# are created automatically on first startup if they do not already exist.
+# Set auto_generate: false once the hierarchy has been established.
+
+tenant_id: "default"
+auto_generate: true
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca:
+  root:
+    # key_path is the key ID within the keystore (filename inside key_dir).
+    # The generate-root-ca.sh script writes the key here.
+    key_path: "ca-root"
+    cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+    key_type: "ecc-p384"
+    validity_years: 25
+    subject: "CN=ox Root CA,O=oxIDIZER,C=US"
+    path_length: 1
+
+  intermediate:
+    key_path: "ca-intermediate"
+    cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+    key_type: "ecc-p384"
+    validity_years: 10
+    subject: "CN=ox Intermediate CA,O=oxIDIZER,C=US"
+    path_length: 0
+
+extensions:
+  aia:
+    ocsp_url: "http://localhost:8080/ocsp"
+    ca_issuer_url: "http://localhost:8080/ca/intermediate.crt"
+  cdp:
+    url: "http://localhost:8080/crl.der"

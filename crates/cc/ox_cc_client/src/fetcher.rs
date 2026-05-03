@@ -40,8 +40,11 @@ impl Notifier for Fetcher {
             "detail": detail
         });
 
+        let report_url = cfg.report_url.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("report_url is not configured"))?;
+
         let resp = self.client
-            .post(&cfg.report_url)
+            .post(report_url)
             .json(&body)
             .send()
             .await?;
@@ -57,9 +60,12 @@ impl Notifier for Fetcher {
 
 impl Fetcher {
     pub fn new(cfg: &ClientConfig) -> Result<Self> {
-        let ca_cert_pem = std::fs::read(&cfg.tls.ca_cert)?;
-        let client_cert_pem = std::fs::read(&cfg.tls.client_cert)?;
-        let client_key_pem = std::fs::read(&cfg.tls.client_key)?;
+        let tls = cfg.tls.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("TLS is not configured; cannot create mTLS Fetcher"))?;
+
+        let ca_cert_pem = std::fs::read(&tls.ca_cert)?;
+        let client_cert_pem = std::fs::read(&tls.client_cert)?;
+        let client_key_pem = std::fs::read(&tls.client_key)?;
 
         let ca_cert = ReqwestCert::from_pem(&ca_cert_pem)?;
         // reqwest::Identity::from_pem expects cert + key concatenated in one PEM buffer
@@ -81,7 +87,9 @@ impl Fetcher {
     /// Fetch the latest envelope wire string for this client from the manifest instance.
     /// Returns None if the response is 304 Not Modified or 404 (no manifest).
     pub async fn fetch_latest(&self, cfg: &ClientConfig) -> Result<Option<String>> {
-        let url = format!("{}/cc/manifest/{}/latest", cfg.manifest_url, cfg.client_id);
+        let manifest_url = cfg.manifest_url.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("manifest_url is not configured"))?;
+        let url = format!("{}/cc/manifest/{}/latest", manifest_url, cfg.client_id);
         let resp = self.client.get(&url).send().await?;
 
         match resp.status().as_u16() {

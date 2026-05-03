@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ox Certificate Authority</title>
+    <link rel="stylesheet" href="/ca/css/style.css">
+    <style>
+        .function-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .function-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .function-card:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.05);
+            text-decoration: none;
+        }
+
+        .function-card .card-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.25rem;
+        }
+        .function-card .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .function-card .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .function-card .card-meta {
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--accent);
+            opacity: 0.75;
+            margin-top: auto;
+            padding-top: 0.5rem;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            margin: 2rem 0 0.25rem;
+        }
+
+        a { color: var(--accent); }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-content">
+            <div class="logo-area">
+                <div>
+                    <h1>Certificate Authority</h1>
+                    <p class="subtitle">Internal PKI Services</p>
+                </div>
+            </div>
+            <a href="/status" class="status-badge status-unknown" id="status-badge" title="System Status">CHECKING&hellip;</a>
+        </div>
+    </header>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <p>
+            This is the internal Certificate Authority for your organisation. Use the
+            functions below to enroll, manage, and verify certificates, or to set up
+            trust on a new device.
+        </p>
+    </div>
+
+    <!-- Trust & Setup -->
+    <div class="section-label">Trust &amp; Setup</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/ca/trust/">
+            <div class="card-icon">&#128274;</div>
+            <div class="card-title">Install Trusted Root Certificate</div>
+            <div class="card-desc">
+                Add this CA&rsquo;s root certificate to your device&rsquo;s trusted store.
+                Required once per device to avoid browser warnings on services signed by this CA.
+            </div>
+            <div class="card-meta">/ca/trust/ &mdash; Windows &middot; macOS &middot; Linux &middot; Firefox</div>
+        </a>
+
+        <a class="function-card" href="/ca/root.crt" download="ox-root-ca.crt">
+            <div class="card-icon">&#128196;</div>
+            <div class="card-title">Download Root Certificate</div>
+            <div class="card-desc">
+                Download the root CA certificate in PEM format for scripted deployments,
+                server configuration, or manual trust store import.
+            </div>
+            <div class="card-meta">/ca/root.crt &mdash; PEM format</div>
+        </a>
+
+    </div>
+
+    <!-- Certificate Lifecycle -->
+    <div class="section-label">Certificate Lifecycle</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128221;</div>
+            <div class="card-title">Issue Certificate</div>
+            <div class="card-desc">
+                Request a new TLS, client, or server certificate. Supports RSA and ECC
+                key types, SANs, custom validity periods, and certificate profiles.
+            </div>
+            <div class="card-meta">POST /api/v1/certificates</div>
+        </a>
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128260;</div>
+            <div class="card-title">Renew Certificate</div>
+            <div class="card-desc">
+                Renew an existing certificate before it expires. Preserves the subject
+                and SANs while issuing a fresh validity period and optionally a new key.
+            </div>
+            <div class="card-meta">POST /api/v1/certificates/{id}/renew</div>
+        </a>
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128683;</div>
+            <div class="card-title">Revoke Certificate</div>
+            <div class="card-desc">
+                Immediately revoke a compromised or decommissioned certificate.
+                Updates the CRL and OCSP responder within seconds.
+            </div>
+            <div class="card-meta">POST /api/v1/certificates/{id}/revoke</div>
+        </a>
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128203;</div>
+            <div class="card-title">Certificate Inventory</div>
+            <div class="card-desc">
+                Browse all issued certificates, filter by status, expiry, or subject,
+                and view the full audit trail for each certificate.
+            </div>
+            <div class="card-meta">GET /api/v1/certificates</div>
+        </a>
+
+    </div>
+
+    <!-- Revocation -->
+    <div class="section-label">Revocation &amp; Status</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/api/v1/ca/ocsp">
+            <div class="card-icon">&#9989;</div>
+            <div class="card-title">Certificate Status (OCSP)</div>
+            <div class="card-desc">
+                Check in real time whether a certificate has been revoked using the
+                Online Certificate Status Protocol. Used automatically by browsers
+                and TLS clients.
+            </div>
+            <div class="card-meta">/api/v1/ca/ocsp &mdash; RFC 6960</div>
+        </a>
+
+        <a class="function-card" href="/api/v1/ca/crl">
+            <div class="card-icon">&#128462;</div>
+            <div class="card-title">Certificate Revocation List</div>
+            <div class="card-desc">
+                Download the current CRL listing all revoked certificates. Published
+                on a regular schedule and available for offline or policy-based
+                revocation checking.
+            </div>
+            <div class="card-meta">/api/v1/ca/crl &mdash; RFC 5280</div>
+        </a>
+
+    </div>
+
+    <!-- Automated Enrollment -->
+    <div class="section-label">Automated Enrollment</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/acme/directory">
+            <div class="card-icon">&#129302;</div>
+            <div class="card-title">ACME Protocol</div>
+            <div class="card-desc">
+                Automate certificate issuance and renewal using the ACME protocol
+                (RFC 8555). Compatible with certbot, acme.sh, Caddy, and other
+                ACME clients. Supports http-01 and dns-01 challenges.
+            </div>
+            <div class="card-meta">/acme/directory &mdash; RFC 8555</div>
+        </a>
+
+        <a class="function-card" href="/.well-known/est/cacerts">
+            <div class="card-icon">&#127760;</div>
+            <div class="card-title">EST &mdash; Enrollment over Secure Transport</div>
+            <div class="card-desc">
+                Enroll for certificates using EST (RFC 7030). Supports simple enroll,
+                re-enroll, and CA certificate retrieval for compliant devices
+                and infrastructure.
+            </div>
+            <div class="card-meta">/.well-known/est/ &mdash; RFC 7030</div>
+        </a>
+
+        <a class="function-card" href="/api/v1/scep">
+            <div class="card-icon">&#128268;</div>
+            <div class="card-title">SCEP &mdash; Simple Certificate Enrollment Protocol</div>
+            <div class="card-desc">
+                Issue certificates to network devices, routers, and MDM-managed
+                endpoints using SCEP. Widely supported by Cisco, Juniper, and
+                mobile device management systems.
+            </div>
+            <div class="card-meta">/api/v1/scep &mdash; RFC 8894</div>
+        </a>
+
+        <a class="function-card" href="/api/v1/certificates/ssh">
+            <div class="card-icon">&#128290;</div>
+            <div class="card-title">SSH Certificates</div>
+            <div class="card-desc">
+                Issue OpenSSH certificates for user and host identity. Enables
+                short-lived SSH access without distributing individual public
+                keys across servers.
+            </div>
+            <div class="card-meta">/api/v1/certificates/ssh &mdash; OpenSSH format</div>
+        </a>
+
+    </div>
+
+    <!-- Export & Integration -->
+    <div class="section-label">Export &amp; Integration</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128230;</div>
+            <div class="card-title">PKCS#12 Export</div>
+            <div class="card-desc">
+                Export a certificate and its private key as a password-protected
+                PKCS#12 (.p12 / .pfx) bundle for use in browsers, Java keystores,
+                or Windows certificate stores.
+            </div>
+            <div class="card-meta">POST /api/v1/certificates/{id}/p12</div>
+        </a>
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#128241;</div>
+            <div class="card-title">Registration Authority</div>
+            <div class="card-desc">
+                Submit certificate requests that require manual approval before
+                issuance. Administrators review and approve or deny pending requests
+                via the admin interface.
+            </div>
+            <div class="card-meta">/api/v1/certificates &mdash; RA workflow</div>
+        </a>
+
+    </div>
+
+    <!-- Administration -->
+    <div class="section-label">Administration</div>
+    <div class="function-grid">
+
+        <a class="function-card" href="/ca/admin/">
+            <div class="card-icon">&#9881;&#65039;</div>
+            <div class="card-title">CA Administration</div>
+            <div class="card-desc">
+                Manage the CA hierarchy, view issued certificates, inspect the audit
+                log, configure profiles and policies, and manage the CA key material.
+            </div>
+            <div class="card-meta">/ca/admin/ &mdash; full management interface</div>
+        </a>
+
+        <a class="function-card" href="/api/v1/trust">
+            <div class="card-icon">&#128101;</div>
+            <div class="card-title">Trust Management</div>
+            <div class="card-desc">
+                Configure cross-certification, trust anchors, and external CA
+                relationships. Manage which CAs are trusted for policy enforcement.
+            </div>
+            <div class="card-meta">/api/v1/trust</div>
+        </a>
+
+        <a class="function-card" href="/api/v1/audit">
+            <div class="card-icon">&#128270;</div>
+            <div class="card-title">Audit Log</div>
+            <div class="card-desc">
+                Review the complete audit trail of all CA operations: issuance,
+                renewal, revocation, key access, and administrator actions.
+            </div>
+            <div class="card-meta">/api/v1/audit</div>
+        </a>
+
+        <a class="function-card" href="/status">
+            <div class="card-icon">&#128200;</div>
+            <div class="card-title">System Status</div>
+            <div class="card-desc">
+                View the health and operational status of the CA service, including
+                key store accessibility, database connectivity, and CRL freshness.
+            </div>
+            <div class="card-meta">/status</div>
+        </a>
+
+    </div>
+
+    <footer>
+        <p>ox Certificate Authority &mdash; powered by <strong>oxIDIZER</strong></p>
+    </footer>
+
+</div>
+<script>
+(function() {
+    function updateBadge(ok) {
+        var b = document.getElementById('status-badge');
+        if (!b) return;
+        if (ok) { b.textContent = 'ONLINE'; b.className = 'status-badge status-ok'; }
+        else     { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    }
+    fetch('/ping/').then(function(r) { updateBadge(r.ok); }).catch(function() { updateBadge(false); });
+})();
+</script>
+</body>
+</html>

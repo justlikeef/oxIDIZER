@@ -1,0 +1,11 @@
+modules:
+  - id: "cert_renew"
+    name: "ox_cert_renew"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/renew.yaml"
+routes:
+  - url: "^/api/v1/certificates/[^/]+/renew$"
+    method: POST
+    module_id: "cert_renew"
+    priority: 200

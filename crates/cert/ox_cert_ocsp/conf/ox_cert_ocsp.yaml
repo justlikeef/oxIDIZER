@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_ocsp"
+    name: "ox_cert_ocsp"
+    phase: Content
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_ocsp/conf/plugin.yaml"
+routes:
+  - url: "^/ocsp(/.*)?$"
+    module_id: "cert_ocsp"
+    priority: 100

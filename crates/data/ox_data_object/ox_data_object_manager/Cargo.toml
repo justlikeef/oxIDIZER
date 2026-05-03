@@ -8,6 +8,7 @@ edition = "2021"
 ox_data_object = { path = ".." }
 ox_callback_manager = { path = "../../../util/ox_callback_manager" }
 ox_type_converter = { path = "../../ox_type_converter" }
+ox_data_error = { path = "../../ox_data_error" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 libc = "0.2"

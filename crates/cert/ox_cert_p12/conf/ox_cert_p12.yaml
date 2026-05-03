@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_p12"
+    name: "ox_cert_p12"
+    phase: Content
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_p12/conf/plugin.yaml"
+routes:
+  - url: "^/api/v1/certificates/[^/]+/p12$"
+    module_id: "cert_p12"
+    priority: 200

@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DataSet, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
@@ -15,7 +16,7 @@ impl PersistenceDriver for OxPersistenceApiDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         let client = reqwest::blocking::Client::new();
         // Assume location is the API endpoint. If not, use self.api_endpoint which is loaded from config on init.
         // Actually, PersistenceDriver `persist` location argument implies specific location (e.g. file, table).
@@ -38,12 +39,12 @@ impl PersistenceDriver for OxPersistenceApiDriver {
             .header("Authorization", &self.api_key)
             .json(serializable_map)
             .send()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         if res.status().is_success() {
             Ok(())
         } else {
-            Err(format!("API Request failed: {}", res.status()))
+            Err(OxDataError::InternalError(format!("API Request failed: {}", res.status())))
         }
     }
 
@@ -51,7 +52,7 @@ impl PersistenceDriver for OxPersistenceApiDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         let client = reqwest::blocking::Client::new();
         let url = if location.starts_with("http") {
              location.to_string()
@@ -62,18 +63,18 @@ impl PersistenceDriver for OxPersistenceApiDriver {
         let res = client.get(&url)
             .header("Authorization", &self.api_key)
             .send()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         if res.status().is_success() {
              let map = res.json::<HashMap<String, (String, ValueType, HashMap<String, String>)>>()
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| OxDataError::InternalError(e.to_string()))?;
              Ok(map)
         } else {
-             Err(format!("API Request failed: {}", res.status()))
+             Err(OxDataError::InternalError(format!("API Request failed: {}", res.status())))
         }
     }
 
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String> {
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError> {
         let client = reqwest::blocking::Client::new();
         let url = if location.starts_with("http") {
              location.to_string()
@@ -87,13 +88,13 @@ impl PersistenceDriver for OxPersistenceApiDriver {
             .header("X-Action", "fetch") 
             .json(filter)
             .send()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         if res.status().is_success() {
-             let ids = res.json::<Vec<String>>().map_err(|e| e.to_string())?;
+             let ids = res.json::<Vec<String>>().map_err(|e| OxDataError::InternalError(e.to_string()))?;
              Ok(ids)
         } else {
-             Err(format!("API Request failed: {}", res.status()))
+             Err(OxDataError::InternalError(format!("API Request failed: {}", res.status())))
         }
     }
 
@@ -101,15 +102,15 @@ impl PersistenceDriver for OxPersistenceApiDriver {
         println!("ApiDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), String> {
-        Err("Not implemented".to_string())
+    fn prepare_datastore(&self, _connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
+        Err(OxDataError::InternalError("Not implemented".to_string()))
     }
 
-    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
-        Err("Not implemented".to_string())
+    fn list_datasets(&self, _connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
+        Err(OxDataError::InternalError("Not implemented".to_string()))
     }
-    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, String> {
-        Err("Not implemented".to_string())
+    fn describe_dataset(&self, _connection_info: &HashMap<String, String>, _dataset_name: &str) -> Result<DataSet, OxDataError> {
+        Err(OxDataError::InternalError("Not implemented".to_string()))
     }
 
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter> {

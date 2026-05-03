@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_acme"
+    name: "ox_cert_acme"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/acme.yaml"
+routes:
+  - url: "^/acme(/.*)?$"
+    module_id: "cert_acme"
+    priority: 100

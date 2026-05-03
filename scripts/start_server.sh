@@ -9,14 +9,26 @@ WORKSPACE_DIR=${6:-$DEFAULT_WORKSPACE_DIR}
 DEFAULT_TARGET="debug"
 DEFAULT_LOG_LEVEL="notice"
 DEFAULT_LOG_FILE="$WORKSPACE_DIR/logs/ox_webservice.log"
-DEFAULT_CONFIG_FILE="$WORKSPACE_DIR/conf/ox_webservice.yaml"
+DEFAULT_PERSONA="all-services"
 DEFAULT_SERVER_PID_FILE="$WORKSPACE_DIR/ox_webservice.pid"
 
 LOG_LEVEL=${1:-$DEFAULT_LOG_LEVEL}
 TARGET=${2:-$DEFAULT_TARGET}
-CONFIG_FILE=${3:-$DEFAULT_CONFIG_FILE}
+PERSONA=${3:-$DEFAULT_PERSONA}
 LOG_FILE=${4:-$DEFAULT_LOG_FILE}
 PID_FILE=${5:-$DEFAULT_SERVER_PID_FILE}
+
+# When TARGET=installed, use system paths instead of the workspace build tree.
+if [[ "$TARGET" == "installed" ]]; then
+    SERVER_BIN="/usr/bin/ox_webservice"
+    export LD_LIBRARY_PATH="/usr/lib/ox_webservice"
+    export OX_PLUGIN_DIR="/usr/lib/ox_webservice"
+    CONFIG_FILE="/etc/ox_webservice/ox_webservice.yaml"
+else
+    SERVER_BIN="$WORKSPACE_DIR/target/$TARGET/ox_webservice"
+    export LD_LIBRARY_PATH="$WORKSPACE_DIR/target/$TARGET"
+    CONFIG_FILE="$WORKSPACE_DIR/personas/${PERSONA}/ox_webservice.yaml"
+fi
 
 # Simple log function to replace the sourced one
 log_message() {
@@ -45,7 +57,7 @@ log_message() {
 
 log_message "$LOG_LEVEL" "notice" "Starting server process..."
 log_message "$LOG_LEVEL" "debug" "Server Executable Target: $TARGET"
-log_message "$LOG_LEVEL" "debug" "Config file: $CONFIG_FILE"
+log_message "$LOG_LEVEL" "debug" "Persona: $PERSONA"
 log_message "$LOG_LEVEL" "debug" "Log file: $LOG_FILE"
 log_message "$LOG_LEVEL" "debug" "Log level: $LOG_LEVEL"
 log_message "$LOG_LEVEL" "debug" "PID File: $PID_FILE"
@@ -72,10 +84,7 @@ rm -f "$LOG_FILE" "$PID_FILE"
 log_message "$LOG_LEVEL" "debug" "Cleaned up old log and PID file."
 
 # Start the server in the background
-export LD_LIBRARY_PATH="$WORKSPACE_DIR/target/$TARGET"
 log_message "$LOG_LEVEL" "debug" "LD_LIBRARY_PATH set to $LD_LIBRARY_PATH"
-
-SERVER_BIN="$WORKSPACE_DIR/target/$TARGET/ox_webservice"
 
 if [ ! -f "$SERVER_BIN" ]; then
     log_message "$LOG_LEVEL" "error" "Server binary not found at $SERVER_BIN. Did you build it?"

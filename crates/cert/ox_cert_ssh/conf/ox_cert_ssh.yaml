@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_ssh"
+    name: "ox_cert_ssh"
+    phase: Content
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_ssh/conf/plugin.yaml"
+routes:
+  - url: "^/api/v1/ssh(/.*)?$"
+    module_id: "cert_ssh"
+    priority: 100

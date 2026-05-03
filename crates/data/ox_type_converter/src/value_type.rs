@@ -6,16 +6,25 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValueType {
     String,
+    /// Alias for String, commonly used in SQL schemas
+    Text,
     Integer,
+    /// A large integer (i64), commonly used for auto-increment PKs in SQL schemas
+    BigInt,
     Float,
+    Decimal,
     Boolean,
     Binary,
     /// A list of items, where all items share the same type
     List(Box<ValueType>),
     /// A map (key-value pairs), representing a nested object structure
     Map,
+    /// A JSON value, structured data stored as serialized JSON
+    Json,
     /// A timestamp or date-time value
     DateTime,
+    /// Alias for DateTime, commonly used in SQL schemas
+    Timestamp,
     /// Fallback for custom or unknown types, storing the type name as a string
     Custom(String),
 }
@@ -26,12 +35,17 @@ impl ValueType {
     pub fn new(type_name: &str) -> Self {
         match type_name.to_lowercase().as_str() {
             "string" => ValueType::String,
+            "text" => ValueType::Text,
             "integer" | "int" => ValueType::Integer,
+            "bigint" | "biginteger" => ValueType::BigInt,
             "float" | "double" => ValueType::Float,
+            "decimal" => ValueType::Decimal,
             "boolean" | "bool" => ValueType::Boolean,
             "binary" | "blob" => ValueType::Binary,
             "map" | "object" => ValueType::Map,
-            "datetime" | "date" | "timestamp" => ValueType::DateTime,
+            "json" | "jsonb" => ValueType::Json,
+            "datetime" | "date" => ValueType::DateTime,
+            "timestamp" => ValueType::Timestamp,
             _ => ValueType::Custom(type_name.to_string()),
         }
     }
@@ -58,13 +72,18 @@ impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValueType::String => write!(f, "string"),
+            ValueType::Text => write!(f, "text"),
             ValueType::Integer => write!(f, "integer"),
+            ValueType::BigInt => write!(f, "bigint"),
             ValueType::Float => write!(f, "float"),
+            ValueType::Decimal => write!(f, "decimal"),
             ValueType::Boolean => write!(f, "boolean"),
             ValueType::Binary => write!(f, "binary"),
             ValueType::List(inner) => write!(f, "list<{}>", inner),
             ValueType::Map => write!(f, "map"),
+            ValueType::Json => write!(f, "json"),
             ValueType::DateTime => write!(f, "datetime"),
+            ValueType::Timestamp => write!(f, "timestamp"),
             ValueType::Custom(s) => write!(f, "{}", s),
         }
     }

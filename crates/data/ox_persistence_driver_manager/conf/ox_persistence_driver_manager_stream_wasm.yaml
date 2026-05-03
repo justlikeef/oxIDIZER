@@ -7,7 +7,7 @@
 content_root: "/var/repos/oxIDIZER/crates/data/ox_persistence_driver_manager/ox_persistence_driver_manager_wasm/pkg/"
 
 # mimetypes_file: Path to the mapping file for file extensions to MIME types.
-mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
 
 # default_documents: List of filenames to look for if a directory is requested.
 default_documents:

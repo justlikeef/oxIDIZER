@@ -12,7 +12,15 @@ const MODULE_NAME: &str = "ox_webservice_redirect";
 #[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RedirectRule {
     pub match_pattern: String,
-    pub replace_string: String,
+    /// Replacement string. Supports regex capture groups ($1, $2, …) and {host}
+    /// placeholder (substituted with the request Host header before regex replace).
+    /// Required unless `skip` is true.
+    pub replace_string: Option<String>,
+    /// When true, matching this rule suppresses any further rule evaluation and
+    /// allows the request to pass through without redirecting. Use to exclude paths
+    /// (e.g. ACME http-01 challenge paths) from a catch-all rule below.
+    #[serde(default)]
+    pub skip: bool,
 }
 
 #[derive(Debug, Deserialize, serde::Serialize)]
@@ -20,9 +28,14 @@ pub struct RedirectConfig {
     pub rules: Vec<RedirectRule>,
 }
 
+pub struct CompiledRule {
+    regex: Regex,
+    replace_string: Option<String>,
+    skip: bool,
+}
+
 pub struct ModuleContext {
-    config: RedirectConfig,
-    regexes: Vec<Regex>,
+    rules: Vec<CompiledRule>,
     api: CoreHostApi,
 }
 
@@ -70,16 +83,30 @@ pub unsafe extern "C" fn ox_plugin_init(
         Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Failed to read config: {}", e)); return std::ptr::null_mut(); }
     };
 
-    let mut regexes = Vec::new();
+    let mut compiled = Vec::new();
     for rule in &config.rules {
+        if !rule.skip && rule.replace_string.is_none() {
+            log(&api, std::ptr::null_mut(), OX_LOG_ERROR,
+                &format!("Rule '{}' must have replace_string or skip: true", rule.match_pattern));
+            return std::ptr::null_mut();
+        }
         match Regex::new(&rule.match_pattern) {
-            Ok(r) => regexes.push(r),
-            Err(e) => { log(&api, std::ptr::null_mut(), OX_LOG_ERROR, &format!("Invalid regex '{}': {}", rule.match_pattern, e)); return std::ptr::null_mut(); }
+            Ok(r) => compiled.push(CompiledRule {
+                regex: r,
+                replace_string: rule.replace_string.clone(),
+                skip: rule.skip,
+            }),
+            Err(e) => {
+                log(&api, std::ptr::null_mut(), OX_LOG_ERROR,
+                    &format!("Invalid regex '{}': {}", rule.match_pattern, e));
+                return std::ptr::null_mut();
+            }
         }
     }
 
-    log(&api, std::ptr::null_mut(), OX_LOG_INFO, &format!("{} initialized with {} rules", MODULE_NAME, regexes.len()));
-    let ctx = Box::new(ModuleContext { config, regexes, api });
+    log(&api, std::ptr::null_mut(), OX_LOG_INFO,
+        &format!("{} initialized with {} rules", MODULE_NAME, compiled.len()));
+    let ctx = Box::new(ModuleContext { rules: compiled, api });
     Box::into_raw(ctx) as *mut c_void
 }
 
@@ -94,22 +121,29 @@ pub unsafe extern "C" fn ox_plugin_process(
     let context = unsafe { &*(plugin_config_ctx as *mut ModuleContext) };
     let api = &context.api;
 
-    let path_str = get_field(api, task_ctx, "request.path");
+    let path = get_field(api, task_ctx, "request.path");
+    let host = get_field(api, task_ctx, "request.header.host");
 
-    for (i, regex) in context.regexes.iter().enumerate() {
-        if regex.is_match(&path_str) {
-            let rule = &context.config.rules[i];
-            let redirect_to = regex.replace(&path_str, rule.replace_string.as_str()).to_string();
-            log(api, task_ctx, OX_LOG_INFO, &format!("Redirecting '{}' -> '{}'", path_str, redirect_to));
+    for rule in &context.rules {
+        if rule.regex.is_match(&path) {
+            if rule.skip {
+                // Matched an exclusion rule — pass through without redirecting.
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            }
 
-            let html_content = format!(
-                "<html><head><meta http-equiv=\"refresh\" content=\"0;url={}\"></head><body>Redirecting...</body></html>",
-                redirect_to
-            );
-            set_field(api, task_ctx, "response.header.Content-Type", "text/html");
-            set_field(api, task_ctx, "response.body", &html_content);
+            let replace_template = rule.replace_string.as_deref().unwrap_or("");
+            // Substitute {host} placeholder before the regex capture-group replace.
+            let replace_with_host = replace_template.replace("{host}", &host);
+            let redirect_to = rule.regex.replace(&path, replace_with_host.as_str()).to_string();
+
+            log(api, task_ctx, OX_LOG_INFO,
+                &format!("Redirecting '{}' -> '{}'", path, redirect_to));
+
             set_field(api, task_ctx, "response.status", "301");
-            return FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() }; // Halt the flow
+            set_field(api, task_ctx, "response.header.Location", &redirect_to);
+            set_field(api, task_ctx, "response.header.Content-Type", "text/plain");
+            set_field(api, task_ctx, "response.body", "301 Moved Permanently");
+            return FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() };
         }
     }
 
@@ -134,12 +168,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_regex_replacement() {
-        let rules = vec![
-            RedirectRule { match_pattern: "^/old/(.*)$".to_string(), replace_string: "/new/$1".to_string() },
-        ];
-        let regexes: Vec<Regex> = rules.iter().map(|r| Regex::new(&r.match_pattern).unwrap()).collect();
-        let new_path = regexes[0].replace("/old/page", rules[0].replace_string.as_str()).to_string();
-        assert_eq!(new_path, "/new/page");
+    fn test_path_redirect() {
+        let regex = Regex::new("^(.*)$").unwrap();
+        let replace = "https://ca.example.com$1";
+        let result = regex.replace("/api/v1/certs", replace).to_string();
+        assert_eq!(result, "https://ca.example.com/api/v1/certs");
+    }
+
+    #[test]
+    fn test_host_placeholder_substitution() {
+        let template = "https://{host}$1";
+        let host = "ca.example.com";
+        let replaced = template.replace("{host}", host);
+        let regex = Regex::new("^(.*)$").unwrap();
+        let result = regex.replace("/api/v1/certs", replaced.as_str()).to_string();
+        assert_eq!(result, "https://ca.example.com/api/v1/certs");
+    }
+
+    #[test]
+    fn test_skip_rule_does_not_produce_redirect_string() {
+        let rule = CompiledRule {
+            regex: Regex::new("^/.well-known/acme-challenge/").unwrap(),
+            replace_string: None,
+            skip: true,
+        };
+        let path = "/.well-known/acme-challenge/abc123";
+        assert!(rule.regex.is_match(path));
+        assert!(rule.skip);
     }
 }

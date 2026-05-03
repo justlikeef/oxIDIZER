@@ -2,51 +2,52 @@
 //! 
 //! This module contains all conversion functions that involve strings.
 
+use ox_data_error::OxDataError;
 use crate::HashMap;
 
 /// Convert string to integer
-pub fn string_to_integer(value: &str, _parameters: &HashMap<String, String>) -> Result<i64, String> {
-    value.parse::<i64>().map_err(|e| format!("Failed to parse integer: {:?}", e))
+pub fn string_to_integer(value: &str, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
+    value.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse integer: {:?}", e)))
 }
 
 /// Convert string to float
-pub fn string_to_float(value: &str, _parameters: &HashMap<String, String>) -> Result<f64, String> {
-    value.parse::<f64>().map_err(|e| format!("Failed to parse float: {:?}", e))
+pub fn string_to_float(value: &str, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
+    value.parse::<f64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse float: {:?}", e)))
 }
 
 /// Convert string to boolean
-pub fn string_to_boolean(value: &str, _parameters: &HashMap<String, String>) -> Result<bool, String> {
-    value.parse::<bool>().map_err(|e| format!("Failed to parse boolean: {:?}", e))
+pub fn string_to_boolean(value: &str, _parameters: &HashMap<String, String>) -> Result<bool, OxDataError> {
+    value.parse::<bool>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse boolean: {:?}", e)))
 }
 
 /// Convert string to string (identity conversion)
-pub fn string_to_string(value: &str, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn string_to_string(value: &str, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert string to unsigned integer
-pub fn string_to_uinteger(value: &str, _parameters: &HashMap<String, String>) -> Result<u64, String> {
-    value.parse::<u64>().map_err(|e| format!("Failed to parse unsigned integer: {:?}", e))
+pub fn string_to_uinteger(value: &str, _parameters: &HashMap<String, String>) -> Result<u64, OxDataError> {
+    value.parse::<u64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse unsigned integer: {:?}", e)))
 }
 
 /// Convert string to 32-bit integer
-pub fn string_to_i32(value: &str, _parameters: &HashMap<String, String>) -> Result<i32, String> {
-    value.parse::<i32>().map_err(|e| format!("Failed to parse i32: {:?}", e))
+pub fn string_to_i32(value: &str, _parameters: &HashMap<String, String>) -> Result<i32, OxDataError> {
+    value.parse::<i32>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse i32: {:?}", e)))
 }
 
 /// Convert string to 64-bit integer
-pub fn string_to_i64(value: &str, _parameters: &HashMap<String, String>) -> Result<i64, String> {
-    value.parse::<i64>().map_err(|e| format!("Failed to parse i64: {:?}", e))
+pub fn string_to_i64(value: &str, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
+    value.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse i64: {:?}", e)))
 }
 
 /// Convert string to 32-bit float
-pub fn string_to_f32(value: &str, _parameters: &HashMap<String, String>) -> Result<f32, String> {
-    value.parse::<f32>().map_err(|e| format!("Failed to parse f32: {:?}", e))
+pub fn string_to_f32(value: &str, _parameters: &HashMap<String, String>) -> Result<f32, OxDataError> {
+    value.parse::<f32>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse f32: {:?}", e)))
 }
 
 /// Convert string to 64-bit float
-pub fn string_to_f64(value: &str, _parameters: &HashMap<String, String>) -> Result<f64, String> {
-    value.parse::<f64>().map_err(|e| format!("Failed to parse f64: {:?}", e))
+pub fn string_to_f64(value: &str, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
+    value.parse::<f64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse f64: {:?}", e)))
 }
 
 #[cfg(test)]

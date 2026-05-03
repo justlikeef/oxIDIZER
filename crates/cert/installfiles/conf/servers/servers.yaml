@@ -1,0 +1,21 @@
+servers:
+  # HTTP — port 80; redirect plugin sends all traffic to HTTPS
+  # [::] covers both IPv4 and IPv6 on Linux (net.ipv6.bindv6only=0 default)
+  - id: "cert_http"
+    protocol: "http"
+    port: 80
+    bind_address: "::"
+    hosts:
+      - name: "localhost"
+
+  # HTTPS — port 443
+  # The server certificate must be issued by a trusted CA (not this ox_cert CA)
+  # to avoid a circular trust dependency on startup.
+  - id: "cert_https"
+    protocol: "https"
+    port: 443
+    bind_address: "::"
+    hosts:
+      - name: "YOUR_CA_HOSTNAME"
+        tls_cert_path: "/etc/pki/ox_webservice/tls/server.crt"
+        tls_key_path:  "/etc/pki/ox_webservice/tls/server.key"

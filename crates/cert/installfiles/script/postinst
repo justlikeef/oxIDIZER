@@ -1,0 +1,286 @@
+#!/bin/bash
+set -e
+
+ACTION="${1:-configure}"
+OLD_VERSION="${2:-}"
+
+# ---------------------------------------------------------------------------
+# System setup — runs on every install/upgrade
+# ---------------------------------------------------------------------------
+setup_system() {
+    if ! getent group ox_webservice >/dev/null; then
+        groupadd --system ox_webservice
+    fi
+    if ! getent passwd ox_webservice >/dev/null; then
+        useradd --system \
+                -g ox_webservice \
+                -d /var/lib/ox_webservice \
+                -s /usr/sbin/nologin \
+                ox_webservice
+    fi
+
+    mkdir -p /etc/pki/ox_webservice/private \
+             /etc/pki/ox_webservice/ca \
+             /etc/pki/ox_webservice/tls
+    chmod 750 /etc/pki/ox_webservice/private /etc/pki/ox_webservice/tls
+    chmod 755 /etc/pki/ox_webservice/ca
+    chown root:ox_webservice /etc/pki/ox_webservice/private \
+                             /etc/pki/ox_webservice/tls
+
+    chown -R root:ox_webservice /etc/ox_webservice
+    chmod 750 /etc/ox_webservice
+    find /etc/ox_webservice -type f -exec chmod 640 {} \;
+
+    mkdir -p /var/lib/ox_webservice /var/log/ox_webservice /var/run/ox_webservice
+    chown ox_webservice:ox_webservice /var/lib/ox_webservice /var/log/ox_webservice /var/run/ox_webservice
+    chmod 750 /var/lib/ox_webservice /var/log/ox_webservice
+    chmod 755 /var/run/ox_webservice
+
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable ox_webservice.service || true
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Interactive CA setup — fresh install only
+# ---------------------------------------------------------------------------
+setup_ca() {
+    if [ ! -t 0 ] || [ "${DEBIAN_FRONTEND:-}" = "noninteractive" ]; then
+        echo ""
+        echo "Non-interactive install: run 'sudo /usr/share/ox_webservice/setup-ca.sh' to complete CA setup."
+        echo ""
+        return 0
+    fi
+
+    echo ""
+    echo "ox Certificate Authority Setup"
+    echo "================================"
+    echo ""
+
+    # Input collection loop — repeats until user confirms all settings
+    CERT_TYPE="" CA_HOSTNAME="" CN="" O="" OU="" L="" ST="" C="" DC_COMPONENTS="" SUBJECT="" PASSPHRASE=""
+    while true; do
+
+    # Certificate type
+    echo "Certificate type:"
+    echo "  1) Self-signed root CA  (standalone, no external CA required)"
+    echo "  2) Certificate signing request (CSR)  (subordinate CA signed by an existing root CA)"
+    echo ""
+    CERT_TYPE=""
+    while [[ "$CERT_TYPE" != "1" && "$CERT_TYPE" != "2" ]]; do
+        read -rp "Choice [1/2]: " CERT_TYPE
+    done
+
+    # CA hostname (FQDN — used to configure plugin URLs, not part of the cert subject)
+    echo ""
+    while true; do
+        read -rp "CA fully qualified domain name (e.g. ca.example.com): " CA_HOSTNAME
+        [[ -n "$CA_HOSTNAME" ]] && break
+        echo "  Hostname is required."
+    done
+
+    # Derive CN and domain from FQDN
+    CN_DEFAULT="${CA_HOSTNAME%%.*}"
+    if [[ "$CA_HOSTNAME" == *"."* ]]; then
+        DC_DEFAULT="${CA_HOSTNAME#*.}"
+    else
+        DC_DEFAULT=""
+    fi
+
+    # Certificate fields
+    echo ""
+    echo "Certificate information:"
+
+    echo ""
+    echo "  (Common Name) Name of the person, server, or device."
+    read -rp "Host name without domain [${CN_DEFAULT}]: " CN_INPUT
+    CN="${CN_INPUT:-$CN_DEFAULT}"
+
+    echo ""
+    echo "  (Organization) The legal name of the company or entity."
+    read -rp "Organization Name: " O
+
+    echo ""
+    echo "  (Organizational Unit) The specific department or division (e.g., 'IT Support' or 'Engineering')."
+    read -rp "Department or Division: " OU
+
+    echo ""
+    echo "  (Locality) The city or local area where the entity is located."
+    read -rp "City: " L
+
+    echo ""
+    echo "  (State or Province) The full name of the state or province (not abbreviated)."
+    read -rp "Full name of state or province: " ST
+
+    echo ""
+    echo "  (Country) A two-letter country code (e.g., US or UK)."
+    C="US"
+    while true; do
+        read -rp "2 Letter Country Code [US]: " C_INPUT
+        C="${C_INPUT:-US}"
+        [[ "${#C}" -eq 2 ]] && break
+        echo "  Country must be exactly 2 letters."
+    done
+
+    echo ""
+    echo "  (Domain Component) The domain name is split into dc= components for directory lookups."
+    echo "  Example: 'justlikeef.com' becomes DC=justlikeef,DC=com — leave blank to omit."
+    if [[ -n "$DC_DEFAULT" ]]; then
+        echo "  Derived from your hostname: ${DC_DEFAULT}"
+    fi
+    read -rp "Domain Name [${DC_DEFAULT}]: " DC_INPUT_ENTERED
+    DC_INPUT="${DC_INPUT_ENTERED:-$DC_DEFAULT}"
+
+    # Parse DC into components
+    DC_COMPONENTS=""
+    if [[ -n "$DC_INPUT" ]]; then
+        IFS='.' read -ra DC_PARTS <<< "$DC_INPUT"
+        for PART in "${DC_PARTS[@]}"; do
+            [[ -n "$PART" ]] && DC_COMPONENTS="${DC_COMPONENTS:+${DC_COMPONENTS},}DC=${PART}"
+        done
+    fi
+
+    # Build subject DN
+    SUBJECT="CN=${CN}"
+    [[ -n "$O" ]]             && SUBJECT="${SUBJECT},O=${O}"
+    [[ -n "$OU" ]]            && SUBJECT="${SUBJECT},OU=${OU}"
+    [[ -n "$L" ]]             && SUBJECT="${SUBJECT},L=${L}"
+    [[ -n "$ST" ]]            && SUBJECT="${SUBJECT},ST=${ST}"
+    SUBJECT="${SUBJECT},C=${C}"
+    [[ -n "$DC_COMPONENTS" ]] && SUBJECT="${SUBJECT},${DC_COMPONENTS}"
+
+    # Passphrase
+    echo ""
+    echo "CA key passphrase (press Enter for no passphrase):"
+    PASSPHRASE=""
+    while true; do
+        read -rsp "  Passphrase: " PASSPHRASE; echo
+        [[ -z "$PASSPHRASE" ]] && break
+        read -rsp "  Confirm:    " PASSPHRASE2; echo
+        [[ "$PASSPHRASE" == "$PASSPHRASE2" ]] && break
+        echo "  Passphrases do not match — try again."
+    done
+
+    # Summary and confirmation
+    echo ""
+    echo "----------------------------------------"
+    echo "Certificate Authority Configuration"
+    echo "----------------------------------------"
+    if [[ "$CERT_TYPE" == "1" ]]; then
+        echo "  Type:             Self-signed root CA"
+    else
+        echo "  Type:             Certificate signing request (subordinate CA)"
+    fi
+    echo "  CA FQDN:          ${CA_HOSTNAME}"
+    echo ""
+    echo "  Common Name:      ${CN}"
+    echo "  Organization:     ${O:-<not set>}"
+    echo "  Department:       ${OU:-<not set>}"
+    echo "  City:             ${L:-<not set>}"
+    echo "  State/Province:   ${ST:-<not set>}"
+    echo "  Country:          ${C}"
+    if [[ -n "$DC_COMPONENTS" ]]; then
+        echo "  Domain (DC):      ${DC_COMPONENTS}"
+    else
+        echo "  Domain (DC):      <not set>"
+    fi
+    echo ""
+    echo "  Subject DN:       ${SUBJECT}"
+    echo ""
+    if [[ -n "$PASSPHRASE" ]]; then
+        echo "  Passphrase:       set"
+    else
+        echo "  Passphrase:       none"
+    fi
+    echo "----------------------------------------"
+    echo ""
+    read -rp "Proceed with these settings? [Y/n]: " CONFIRM
+    case "${CONFIRM,,}" in
+        ""|y|yes) break ;;
+        *)
+            echo ""
+            echo "Starting over..."
+            echo ""
+            ;;
+    esac
+
+    done  # end confirmation loop
+
+    # Configure hostname in plugin configs
+    echo ""
+    echo "Configuring CA hostname in plugin configs..."
+    sed -i "s|YOUR_CA_HOSTNAME|${CA_HOSTNAME}|g" /etc/ox_webservice/*.yaml
+
+    # Generate self-signed TLS certificate for the HTTPS listener
+    # (Replace with a cert from a trusted CA after initial setup)
+    echo "Generating self-signed TLS certificate for HTTPS listener..."
+    openssl req -x509 -newkey rsa:2048 -nodes \
+        -keyout /etc/pki/ox_webservice/tls/server.key \
+        -out    /etc/pki/ox_webservice/tls/server.crt \
+        -days 3650 \
+        -subj "/CN=${CA_HOSTNAME}" \
+        -addext "subjectAltName=DNS:${CA_HOSTNAME}" \
+        2>/dev/null
+    chmod 640 /etc/pki/ox_webservice/tls/server.crt \
+              /etc/pki/ox_webservice/tls/server.key
+    chown root:ox_webservice /etc/pki/ox_webservice/tls/server.crt \
+                             /etc/pki/ox_webservice/tls/server.key
+
+    # Write env file — passphrase via env var, never on the command line
+    if [[ -n "$PASSPHRASE" ]]; then
+        printf 'OX_CA_KEY_PASS=%s\n' "$PASSPHRASE" > /etc/ox_webservice/env
+    else
+        printf '# OX_CA_KEY_PASS=\n' > /etc/ox_webservice/env
+    fi
+    chmod 600 /etc/ox_webservice/env
+    chown root:ox_webservice /etc/ox_webservice/env
+
+    export OX_CA_KEY_PASS="$PASSPHRASE"
+
+    if [[ "$CERT_TYPE" == "2" ]]; then
+        echo "Generating CA key and certificate signing request..."
+        /usr/share/ox_webservice/generate-root-ca.sh \
+            --subject     "$SUBJECT" \
+            --content-dir "/usr/share/ox_webservice/content/www/ca" \
+            --csr-only
+        unset OX_CA_KEY_PASS
+        echo ""
+        echo "CSR generated. Next steps:"
+        echo "  1. Submit the CSR to your root CA:"
+        echo "       /etc/pki/ox_webservice/ca/root.csr"
+        echo "  2. Copy the signed certificate to:"
+        echo "       /etc/pki/ox_webservice/ca/root.crt"
+        echo "  3. Start the service:"
+        echo "       sudo systemctl start ox_webservice"
+        echo ""
+    else
+        echo "Generating self-signed root CA..."
+        /usr/share/ox_webservice/generate-root-ca.sh \
+            --subject     "$SUBJECT" \
+            --content-dir "/usr/share/ox_webservice/content/www/ca"
+        unset OX_CA_KEY_PASS
+        echo "Starting ox_webservice..."
+        if [ -d /run/systemd/system ]; then
+            systemctl start ox_webservice.service
+        fi
+        echo ""
+        echo "ox Certificate Authority is running."
+        echo "  Root CA certificate: https://${CA_HOSTNAME}/ca/root.crt"
+        echo "  Note: HTTPS uses a self-signed certificate — accept the browser warning"
+        echo "        or replace /etc/pki/ox_webservice/tls/ with a trusted certificate."
+        echo ""
+    fi
+}
+
+# ---------------------------------------------------------------------------
+case "$ACTION" in
+    configure)
+        setup_system
+        [[ -z "$OLD_VERSION" ]] && setup_ca
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+esac
+
+exit 0

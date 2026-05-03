@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_crl"
+    name: "ox_cert_crl"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/crl.yaml"
+routes:
+  - url: "^/crl(\\.der|/delta)?$"
+    module_id: "cert_crl"
+    priority: 100

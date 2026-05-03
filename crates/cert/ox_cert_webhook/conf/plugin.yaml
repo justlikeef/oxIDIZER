@@ -1,0 +1,13 @@
+# ox_cert_webhook — Issuance Authorization / Enrichment Webhooks
+
+tenant_id: "default"
+
+hooks: []
+# hooks:
+#   - name: "authz-service"
+#     url: "https://authz.internal.example.com/cert/authorize"
+#     hook_type: Authorize
+#     secret_env: "WEBHOOK_SECRET_AUTHZ"
+#     timeout_secs: 5
+#     retries: 1
+#     on_failure: Block

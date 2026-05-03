@@ -2,70 +2,71 @@
 //! 
 //! This module contains all conversion functions that involve numeric types.
 
-use crate::HashMap;
+use ox_data_error::OxDataError;
+use std::collections::HashMap;
 
 /// Convert integer to string
-pub fn integer_to_string(value: i64, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn integer_to_string(value: i64, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert float to string
-pub fn float_to_string(value: f64, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn float_to_string(value: f64, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert float to integer (truncates)
-pub fn float_to_integer(value: f64, _parameters: &HashMap<String, String>) -> Result<i64, String> {
+pub fn float_to_integer(value: f64, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
     Ok(value as i64)
 }
 
 /// Convert integer to float
-pub fn integer_to_float(value: i64, _parameters: &HashMap<String, String>) -> Result<f64, String> {
+pub fn integer_to_float(value: i64, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
     Ok(value as f64)
 }
 
 /// Convert unsigned integer to string
-pub fn uinteger_to_string(value: u64, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn uinteger_to_string(value: u64, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert 32-bit integer to string
-pub fn i32_to_string(value: i32, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn i32_to_string(value: i32, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert 64-bit integer to string
-pub fn i64_to_string(value: i64, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn i64_to_string(value: i64, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert 32-bit float to string
-pub fn f32_to_string(value: f32, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn f32_to_string(value: f32, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert 64-bit float to string
-pub fn f64_to_string(value: f64, _parameters: &HashMap<String, String>) -> Result<String, String> {
+pub fn f64_to_string(value: f64, _parameters: &HashMap<String, String>) -> Result<String, OxDataError> {
     Ok(value.to_string())
 }
 
 /// Convert 32-bit float to integer
-pub fn f32_to_integer(value: f32, _parameters: &HashMap<String, String>) -> Result<i64, String> {
+pub fn f32_to_integer(value: f32, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
     Ok(value as i64)
 }
 
 /// Convert 64-bit float to integer
-pub fn f64_to_integer(value: f64, _parameters: &HashMap<String, String>) -> Result<i64, String> {
+pub fn f64_to_integer(value: f64, _parameters: &HashMap<String, String>) -> Result<i64, OxDataError> {
     Ok(value as i64)
 }
 
 /// Convert 32-bit integer to float
-pub fn i32_to_float(value: i32, _parameters: &HashMap<String, String>) -> Result<f64, String> {
+pub fn i32_to_float(value: i32, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
     Ok(value as f64)
 }
 
 /// Convert 64-bit integer to float
-pub fn i64_to_float(value: i64, _parameters: &HashMap<String, String>) -> Result<f64, String> {
+pub fn i64_to_float(value: i64, _parameters: &HashMap<String, String>) -> Result<f64, OxDataError> {
     Ok(value as f64)
 }
 

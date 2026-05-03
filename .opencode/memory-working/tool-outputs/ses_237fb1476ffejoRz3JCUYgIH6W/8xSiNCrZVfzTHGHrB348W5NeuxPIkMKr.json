@@ -1,0 +1,7 @@
+{
+  "callID": "8xSiNCrZVfzTHGHrB348W5NeuxPIkMKr",
+  "sessionID": "ses_237fb1476ffejoRz3JCUYgIH6W",
+  "tool": "read",
+  "fullOutput": "<path>/var/repos/oxIDIZER/crates/util/ox_callback_manager/src/lib.rs</path>\n<type>file</type>\n<content>\n1: //! ox_callback_manager - A modular callback management system\n2: \n3: pub mod registry;\n4: \n5: pub use registry::{CallbackManager, EventType, CallbackFn, CallbackParams};\n\n(End of file - total 5 lines)\n</content>",
+  "timestamp": 1777205578531
+}

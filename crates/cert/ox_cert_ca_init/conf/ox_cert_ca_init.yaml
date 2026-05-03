@@ -1,0 +1,6 @@
+modules:
+  - id: "cert_ca_init"
+    name: "ox_cert_ca_init"
+    phase: Init
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_ca_init/conf/plugin.yaml"

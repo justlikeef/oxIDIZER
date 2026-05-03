@@ -1,0 +1,32 @@
+# ox_cert_acme — ACME Protocol Server (RFC 8555)
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca_intermediate_key_id: "ca-intermediate"
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+ca_root_cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+
+base_url: "http://localhost:8080"
+# tos_url: "https://ca.example.com/tos"
+external_account_required: false
+nonce_store: Memory
+
+rate_limit:
+  orders_per_account_per_hour: 10
+  certs_per_domain_per_week: 50
+
+validation_timeout_secs: 30
+
+extensions:
+  aia_ocsp_url: "http://localhost:8080/ocsp"
+  aia_ca_issuer_url: "http://localhost:8080/ca/intermediate.crt"
+  cdp_url: "http://localhost:8080/crl.der"

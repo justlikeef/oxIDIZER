@@ -3,6 +3,7 @@ mod tests {
     use crate::dictionary::*;
     use crate::query::*;
     use ox_type_converter::ValueType;
+    use ox_data_error::OxDataError;
     use ox_persistence::{PersistenceDriver, register_persistence_driver, DriverMetadata, DataSet};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -12,19 +13,21 @@ mod tests {
     }
 
     impl PersistenceDriver for MockDriver {
-        fn persist(&self, _data: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<(), String> {
+        fn persist(&self, _data: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<(), OxDataError> {
             Ok(())
         }
-        fn restore(&self, _location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
-            self.data.get(id).cloned().ok_or("Not found".to_string())
+        fn restore(&self, _location: &str, id: &str) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
+            self.data.get(id).cloned().ok_or(OxDataError::InternalError("Not found".to_string()))
         }
-        fn fetch(&self, _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<Vec<String>, String> {
-            Ok(self.data.keys().cloned().collect())
+        fn fetch(&self, _filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, _location: &str) -> Result<Vec<String>, OxDataError> {
+            self.data.values()
+                .map(|row| serde_json::to_string(row).map_err(|e| OxDataError::InternalError(e.to_string())))
+                .collect()
         }
         fn notify_lock_status_change(&self, _status: &str, _id: &str) {}
-        fn prepare_datastore(&self, _info: &HashMap<String, String>) -> Result<(), String> { Ok(()) }
-        fn list_datasets(&self, _info: &HashMap<String, String>) -> Result<Vec<String>, String> { Ok(vec![]) }
-        fn describe_dataset(&self, _info: &HashMap<String, String>, _name: &str) -> Result<DataSet, String> { Err("Not implemented".to_string()) }
+        fn prepare_datastore(&self, _info: &HashMap<String, String>) -> Result<(), OxDataError> { Ok(()) }
+        fn list_datasets(&self, _info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> { Ok(vec![]) }
+        fn describe_dataset(&self, _info: &HashMap<String, String>, _name: &str) -> Result<DataSet, OxDataError> { Err(OxDataError::InternalError("Not implemented".to_string())) }
         fn get_connection_parameters(&self) -> Vec<ox_persistence::ConnectionParameter> { vec![] }
     }
 

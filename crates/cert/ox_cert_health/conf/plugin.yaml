@@ -1,0 +1,18 @@
+# ox_cert_health — Health and Readiness Checks
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca_intermediate_key_id: "ca-intermediate"
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+ca_root_cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+
+ca_cert_warn_days: 365

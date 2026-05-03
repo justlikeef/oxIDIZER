@@ -8,12 +8,14 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use libloading::Library;
 use std::path::Path;
+use ox_data_error::OxDataError;
 
 type InitFn = unsafe extern "C" fn(*const c_char) -> *mut c_void;
 type DestroyFn = unsafe extern "C" fn(*mut c_void);
 type PersistFn = unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> c_int;
 type RestoreFn = unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> OxBuffer;
 type FetchFn = unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> OxBuffer;
+type DeleteFn = unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> c_int;
 type FreeBufferFn = unsafe extern "C" fn(OxBuffer);
 type GetMetadataFn = unsafe extern "C" fn() -> *mut c_char;
 
@@ -25,6 +27,7 @@ struct LoadedDriver {
     persist_fn: PersistFn,
     restore_fn: RestoreFn,
     fetch_fn: FetchFn,
+    delete_fn: Option<DeleteFn>,
     free_buffer_fn: FreeBufferFn,
     metadata: DriverMetadata,
 }
@@ -33,21 +36,23 @@ unsafe impl Send for LoadedDriver {}
 unsafe impl Sync for LoadedDriver {}
 
 impl LoadedDriver {
-    unsafe fn load(path: &str) -> Result<Self, String> {
-        let lib = Library::new(path).map_err(|e| format!("Failed to load library: {}", e))?;
-        let init: InitFn = *lib.get(b"ox_driver_init").map_err(|e| e.to_string())?;
-        let destroy: DestroyFn = *lib.get(b"ox_driver_destroy").map_err(|e| e.to_string())?;
-        let persist: PersistFn = *lib.get(b"ox_driver_persist").map_err(|e| e.to_string())?;
-        let restore: RestoreFn = *lib.get(b"ox_driver_restore").map_err(|e| e.to_string())?;
-        let fetch: FetchFn = *lib.get(b"ox_driver_fetch").map_err(|e| e.to_string())?;
-        let free_buf: FreeBufferFn = *lib.get(b"ox_driver_free_buffer").map_err(|e| e.to_string())?;
-        let get_meta: GetMetadataFn = *lib.get(b"ox_driver_get_driver_metadata").map_err(|e| e.to_string())?;
+    unsafe fn load(path: &str) -> Result<Self, OxDataError> {
+        let lib = Library::new(path).map_err(|e| OxDataError::DriverError(format!("Failed to load library: {}", e)))?;
+        let init: InitFn = *lib.get(b"ox_driver_init").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let destroy: DestroyFn = *lib.get(b"ox_driver_destroy").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let persist: PersistFn = *lib.get(b"ox_driver_persist").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let restore: RestoreFn = *lib.get(b"ox_driver_restore").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let fetch: FetchFn = *lib.get(b"ox_driver_fetch").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let free_buf: FreeBufferFn = *lib.get(b"ox_driver_free_buffer").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let get_meta: GetMetadataFn = *lib.get(b"ox_driver_get_driver_metadata").map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        // ox_driver_delete is optional — drivers that don't support it omit the symbol.
+        let delete_fn: Option<DeleteFn> = lib.get::<DeleteFn>(b"ox_driver_delete").ok().map(|sym| *sym);
         let config = CString::new("{}").unwrap();
         let ctx = init(config.as_ptr());
         let meta_ptr = get_meta();
         let meta_str = CStr::from_ptr(meta_ptr).to_string_lossy();
-        let metadata: DriverMetadata = serde_json::from_str(&meta_str).map_err(|e| e.to_string())?;
-        Ok(LoadedDriver { library: lib, context: ctx, destroy_fn: destroy, persist_fn: persist, restore_fn: restore, fetch_fn: fetch, free_buffer_fn: free_buf, metadata })
+        let metadata: DriverMetadata = serde_json::from_str(&meta_str).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        Ok(LoadedDriver { library: lib, context: ctx, destroy_fn: destroy, persist_fn: persist, restore_fn: restore, fetch_fn: fetch, delete_fn, free_buffer_fn: free_buf, metadata })
     }
 }
 
@@ -78,19 +83,6 @@ fn set_field(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, value: &str) {
 
 fn log(api: &CoreHostApi, task_ctx: *mut c_void, level: u8, msg: &str) {
     if let Ok(c) = CString::new(msg) { (api.log)(task_ctx, level, c.as_ptr()); }
-}
-
-fn get_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str) -> Option<Vec<u8>> {
-    let c_key = CString::new(key).unwrap();
-    let mut len: usize = 0;
-    let ptr = (api.get_field_bytes)(task_ctx, c_key.as_ptr(), &mut len as *mut usize);
-    if ptr.is_null() || len == 0 { return None; }
-    Some(unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec())
-}
-
-fn set_field_bytes_data(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, data: &[u8]) {
-    let c_key = CString::new(key).unwrap();
-    (api.set_field_bytes)(task_ctx, c_key.as_ptr(), data.as_ptr(), data.len());
 }
 
 fn json_response(api: &CoreHostApi, task_ctx: *mut c_void, status: u16, body: &str) {
@@ -187,6 +179,7 @@ pub unsafe extern "C" fn ox_plugin_process(
 
     if request_path.starts_with("/data/") {
         let parts: Vec<&str> = request_path.split('/').collect();
+        // Minimum: /data/{driver}/{operation}  → parts [0]="" [1]="data" [2]=driver [3]=op
         if parts.len() < 4 {
             json_response(api, task_ctx, 400, r#"{"error":"Invalid path"}"#);
             return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
@@ -194,6 +187,34 @@ pub unsafe extern "C" fn ox_plugin_process(
         let driver_name = parts[2];
         let operation = parts[3];
         let body = get_field(api, task_ctx, "request.body");
+
+        // DELETE /data/{driver_name}/record/{id}
+        if operation == "record" && method == "DELETE" {
+            let id = parts.get(4).copied().unwrap_or("");
+            if id.is_empty() {
+                json_response(api, task_ctx, 400, r#"{"error":"Record ID required"}"#);
+                return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+            }
+            let manager = DRIVER_MANAGER.lock().unwrap();
+            if let Some(driver) = manager.drivers.get(driver_name) {
+                if let Some(delete_fn) = driver.delete_fn {
+                    let location = CString::new("data.csv").unwrap();
+                    let id_c = CString::new(id).unwrap_or_default();
+                    let result = unsafe { delete_fn(driver.context, location.as_ptr(), id_c.as_ptr()) };
+                    match result {
+                        0 => json_response(api, task_ctx, 200, r#"{"ok":true}"#),
+                        404 => json_response(api, task_ctx, 404, r#"{"error":"Not found"}"#),
+                        _ => json_response(api, task_ctx, 500, r#"{"error":"delete failed"}"#),
+                    }
+                } else {
+                    json_response(api, task_ctx, 501, r#"{"error":"Driver does not support delete"}"#);
+                }
+            } else {
+                json_response(api, task_ctx, 404, &format!("{{\"error\":\"Driver {} not found\"}}", driver_name));
+            }
+            return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+        }
+
         let manager = DRIVER_MANAGER.lock().unwrap();
         if let Some(driver) = manager.drivers.get(driver_name) {
             let location = CString::new("data.csv").unwrap();

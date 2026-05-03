@@ -171,21 +171,22 @@ mod tests {
     fn stub_config() -> ClientConfig {
         ClientConfig {
             client_id: "test-client".to_string(),
-            manifest_url: "https://manifest.example.com".to_string(),
-            report_url: "https://manifest.example.com/cc/report/test-client".to_string(),
+            manifest_url: Some("https://manifest.example.com".to_string()),
+            bootstrap_url: None,
+            report_url: Some("https://manifest.example.com/cc/report/test-client".to_string()),
             db_path: ":memory:".to_string(),
             db_encryption_key: "testkey".to_string(),
             poll_interval_secs: 60,
             max_manifest_window_secs: 90 * 24 * 3600,
-            broker_signing_pubkeys_dir: "/tmp".to_string(),
-            client_enc_privkey_b64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_string(),
+            broker_signing_pubkeys_dir: Some("/tmp".to_string()),
+            client_enc_privkey_b64: Some("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_string()),
             consumer_dirs: HashMap::new(),
             plugin_dir: None,
-            tls: ClientTlsConfig {
+            tls: Some(ClientTlsConfig {
                 client_cert: "/dev/null".to_string(),
                 client_key: "/dev/null".to_string(),
                 ca_cert: "/dev/null".to_string(),
-            },
+            }),
         }
     }
 

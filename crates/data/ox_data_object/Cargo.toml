@@ -7,5 +7,8 @@ edition = "2024"
 [dependencies]
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 ox_type_converter = { path = "../ox_type_converter" }
+ox_data_error = { path = "../ox_data_error" }
 serde = { version = "1.0", features = ["derive"] }
 ox_callback_manager = { path = "../../util/ox_callback_manager" }
+serde_json = "1.0.149"
+lazy_static = "1.5.0"

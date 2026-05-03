@@ -1,0 +1,12 @@
+# ------------------------------------------------------------------------------
+# ox_cert — Certificate Authority Server Configuration
+# ------------------------------------------------------------------------------
+# Entry point for the certificate server.  Merges sub-directories in order:
+#   service/  — workflow pipeline and logging
+#   servers/  — listening sockets
+#   modules/  — plugin registration and route tables
+
+merge:
+  - "/var/repos/oxIDIZER/personas/ca/service/"
+  - "/var/repos/oxIDIZER/personas/ca/servers/"
+  - "/var/repos/oxIDIZER/personas/ca/modules/active/"

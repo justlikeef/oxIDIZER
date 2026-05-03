@@ -31,9 +31,9 @@ YAML example, and all resolved design decisions.
    `tenant_id`. Each tenant has its own CA hierarchy, policy set, and storage partition.
 5. **Active/active HA** — multiple CA nodes may serve write traffic simultaneously.
    Serials are UUID v4 (collision-safe). CRL number sequencing uses an advisory lock table.
-6. **Persistence via `ox_persistence`** — all structured data goes through the
-   `PersistenceDriver` abstraction. No plugin owns a raw database connection string
-   outside the `CertStoreConfig`.
+6. **Persistence via `ox_data`** — all structured data goes through the
+   `GenericDataObject` and `DataObjectManager` abstractions. No plugin owns a raw
+   database connection string outside the `CertStoreConfig`.
 
 ---
 
@@ -189,13 +189,13 @@ modules:
       tenant_id: acme-corp
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      ca.root.key_path: /etc/ox_cert/keys/acme-corp/root.key
-      ca.root.cert_path: /etc/ox_cert/ca/acme-corp/root.crt
+      ca.root.key_path: /etc/pki/ox_cert/private/acme-corp/root.key
+      ca.root.cert_path: /etc/pki/ox_cert/ca/acme-corp/root.crt
       ca.root.key_type: ecc-p384
       ca.root.validity_years: 25
       ca.root.subject: "CN=ACME Root CA,O=ACME Corp,C=US"
-      ca.intermediate.key_path: /etc/ox_cert/keys/acme-corp/intermediate.key
-      ca.intermediate.cert_path: /etc/ox_cert/ca/acme-corp/intermediate.crt
+      ca.intermediate.key_path: /etc/pki/ox_cert/private/acme-corp/intermediate.key
+      ca.intermediate.cert_path: /etc/pki/ox_cert/ca/acme-corp/intermediate.crt
       ca.intermediate.key_type: ecc-p384
       ca.intermediate.validity_years: 10
       ca.intermediate.subject: "CN=ACME Intermediate CA,O=ACME Corp,C=US"
@@ -256,7 +256,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       default_profile: standard
       policy.domain_allowlist: [".*\\.example\\.com$", ".*\\.internal\\.local$"]
       policy.domain_blocklist: [".*\\.test$"]
@@ -280,7 +280,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       auto_revoke_on_renew: true
 
   - name: ox_cert_revoke
@@ -303,7 +303,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       acme.tos_url: "https://example.com/tos"
       acme.external_account_required: false
       acme.rate_limit.orders_per_account_per_hour: 50
@@ -340,7 +340,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       est.require_client_cert: true
       est.basic_auth_enabled: false
       est.labels:
@@ -358,7 +358,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       scep.challenge_ttl: "1h"
       scep.encryption_algorithm: aes-256-cbc
 
@@ -373,7 +373,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       ad.domain: "corp.example.com"
       ad.ldap_uri: "ldaps://dc.corp.example.com"
       ad.auth_mode: client_cert          # client_cert | kerberos (kerberos = deferred)
@@ -395,7 +395,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       ssh.user_ca.key_id: ssh-user-ca
       ssh.user_ca.key_type: ed25519
       ssh.host_ca.key_id: ssh-host-ca
@@ -435,7 +435,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       ocsp.responder_key_id: intermediate    # use intermediate CA key; or set ocsp.delegated_key_id
 
   - name: ox_cert_crl
@@ -448,7 +448,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       crl.update_interval: "1h"
       crl.delta_interval: "10m"
       crl.cache_ttl: "30m"
@@ -465,7 +465,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       p12.encryption: aes256
 
   - name: ox_cert_admin
@@ -478,7 +478,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
 
   - name: ox_cert_health
     phase: Content
@@ -490,7 +490,7 @@ modules:
       store.url: "postgresql://ca@db:5432/ox_cert"
       keystore.type: software
       keystore.passphrase_env: OX_CA_KEY_PASS
-      keystore.key_dir: /etc/ox_cert/keys
+      keystore.key_dir: /etc/pki/ox_cert/private
       health.ca_cert_warn_days: 365
       health.crl_staleness_threshold: "2h"
 
@@ -513,7 +513,7 @@ modules:
 |---|---|
 | 1 | **Multi-tenancy:** Full multi-tenant from the start. `tenant_id` is a required field on every `KeyStore` and `CertStore` call and a column on every table. |
 | 2 | **HA model:** Active/active. UUID v4 serials (collision-safe by construction). CRL number sequencing uses an advisory lock table via `CertStore::acquire_crl_lock`. |
-| 3 | **Persistence:** All structured data goes through `ox_persistence` (`PersistenceDriver` + `GenericDataObject`). `CertStore` is a trait; `OxPersistenceCertStore` is the concrete implementation. |
+| 3 | **Persistence:** All structured data goes through the `GenericDataObject` and `DataObjectManager` abstractions. `CertStore` is a high-level wrapper trait; `OxPersistenceCertStore` is the concrete implementation utilizing GDOs. |
 | 4 | **CA key sharing:** Each plugin loads the CA key independently via `KeyStore`. `ox_cert_ca_init` validates and optionally generates keys at startup; subsequent plugins open their own `KeyStore` handle using the same config. No shared Arc across plugins. |
 | 5 | **Serial numbers:** UUID v4 (`uuid::Uuid::new_v4()`), stored as TEXT. The 16 UUID bytes satisfy the RFC 5280 ≤20 byte serial requirement. SSH certs retain u64 serials per the OpenSSH specification. |
 | 6 | **Certificate Transparency:** Issuance-time SCT submission is a library call in `ox_cert_core::ct::submit_to_ct_logs()` — not a pipeline stage. `ox_cert_ct` plugin exists solely to serve SCT query endpoints (`GET /api/v1/ct/scts/{serial}`). |

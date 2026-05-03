@@ -5,7 +5,7 @@
 modules:
   - id: "ox_cc_manifest"
     name: "ox_cc_manifest_plugin"
-    config_file: "/etc/ox_cc/manifest_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_manifest_plugin/conf/plugin.yaml"
 
 routes:
   - url: "^/cc/manifest(/.*)?$"

@@ -20,6 +20,7 @@ regex = "1.10"
 ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
 ox_fileproc = { path = "../../util/ox_fileproc" }
 ox_persistence = { path = "../ox_persistence" }
+ox_data_error = { path = "../ox_data_error" }
 lazy_static = "1.4"
 prost = "0.13"
 

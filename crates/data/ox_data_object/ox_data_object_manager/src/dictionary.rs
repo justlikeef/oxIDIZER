@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use ox_type_converter::ValueType;
+use ox_data_error::OxDataError;
 
 /// Physical representation of a data storage unit (table, view, file, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -117,15 +118,128 @@ impl DataDictionary {
         }
     }
 
-    pub fn save_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()> {
-        let json = serde_json::to_string_pretty(self)?;
-        std::fs::write(path, json)?;
+    pub fn save_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> Result<(), OxDataError> {
+        let json = serde_json::to_string_pretty(self).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        std::fs::write(path, json).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         Ok(())
     }
 
-    pub fn load_from_file<P: AsRef<std::path::Path>>(path: P) -> anyhow::Result<Self> {
-        let data = std::fs::read_to_string(path)?;
-        let dict = serde_json::from_str(&data)?;
+    pub fn load_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, OxDataError> {
+        let data = std::fs::read_to_string(path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        let dict = serde_json::from_str(&data).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         Ok(dict)
+    }
+
+    /// Register a schema builder, converting it into the appropriate
+    /// DataStoreContainer and DataObjectDefinition entries.
+    pub fn register_schema(&mut self, schema: DataObjectSchema) -> Result<(), OxDataError> {
+        let container_id = schema.name.clone();
+        
+        let fields: Vec<DataStoreField> = schema.fields.iter().map(|fd| {
+            let mut parameters = HashMap::new();
+            if fd.is_primary_key { parameters.insert("primary_key".to_string(), "true".to_string()); }
+            if fd.is_indexed { parameters.insert("indexed".to_string(), "true".to_string()); }
+            if fd.is_auto_increment { parameters.insert("auto_increment".to_string(), "true".to_string()); }
+            DataStoreField {
+                name: fd.name.clone(),
+                data_type: fd.data_type.clone(),
+                parameters,
+                description: None,
+            }
+        }).collect();
+
+        let container = DataStoreContainer {
+            id: container_id.clone(),
+            datasource_id: "default".to_string(),
+            name: schema.name.clone(),
+            container_type: "table".to_string(),
+            fields,
+            metadata: HashMap::new(),
+        };
+
+        let attributes: Vec<DataObjectAttribute> = schema.fields.iter().map(|fd| {
+            DataObjectAttribute {
+                name: fd.name.clone(),
+                data_type: fd.data_type.clone(),
+                mapping: AttributeMapping::Direct {
+                    container_id: container_id.clone(),
+                    field_name: fd.name.clone(),
+                },
+                description: None,
+                validation: None,
+            }
+        }).collect();
+
+        let object = DataObjectDefinition {
+            id: schema.name.clone(),
+            name: schema.name.clone(),
+            description: None,
+            attributes,
+            relationships: vec![],
+        };
+
+        self.add_container(container);
+        self.add_object(object);
+        Ok(())
+    }
+}
+
+/// A builder for defining a data object schema (table-like structure).
+/// Used by subsystems (e.g. ox_cert) to declaratively register their schemas
+/// with the DataDictionary.
+#[derive(Debug, Clone)]
+pub struct DataObjectSchema {
+    pub name: String,
+    pub fields: Vec<FieldDescriptor>,
+}
+
+impl DataObjectSchema {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            fields: Vec::new(),
+        }
+    }
+
+    pub fn add_field(&mut self, field: FieldDescriptor) {
+        self.fields.push(field);
+    }
+}
+
+/// Describes a single field/column in a DataObjectSchema.
+/// Supports builder-pattern methods for common constraints.
+#[derive(Debug, Clone)]
+pub struct FieldDescriptor {
+    pub name: String,
+    pub data_type: ValueType,
+    pub is_primary_key: bool,
+    pub is_indexed: bool,
+    pub is_auto_increment: bool,
+}
+
+impl FieldDescriptor {
+    pub fn new(name: &str, data_type: ValueType) -> Self {
+        Self {
+            name: name.to_string(),
+            data_type,
+            is_primary_key: false,
+            is_indexed: false,
+            is_auto_increment: false,
+        }
+    }
+
+    pub fn primary_key(mut self) -> Self {
+        self.is_primary_key = true;
+        self
+    }
+
+    pub fn indexed(mut self) -> Self {
+        self.is_indexed = true;
+        self
+    }
+
+    pub fn auto_increment(mut self) -> Self {
+        self.is_auto_increment = true;
+        self
     }
 }

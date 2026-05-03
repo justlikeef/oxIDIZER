@@ -1,3 +1,4 @@
+use ox_data_error::OxDataError;
 use ox_persistence::{PersistenceDriver, DriverMetadata, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, ModuleCompatibility};
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -15,7 +16,7 @@ impl PersistenceDriver for FlatfileDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), OxDataError> {
         // location is the directory. We need to find the dataset name from the serializable_map?
         // Or wait, PersistenceDriver::persist takes a map. 
         // The map corresponds to a GenericDataObject. 
@@ -34,16 +35,16 @@ impl PersistenceDriver for FlatfileDriver {
         let file_path = Path::new(location);
         
         // We need to read the header first to know column order
-        let file = fs::File::open(file_path).map_err(|e| format!("Failed to open file {}: {}", location, e))?;
+        let file = fs::File::open(file_path).map_err(|e| OxDataError::InternalError(format!("Failed to open file {}: {}", location, e)))?;
         let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(&file);
-        let headers = reader.headers().map_err(|e| e.to_string())?.clone();
+        let headers = reader.headers().map_err(|e| OxDataError::InternalError(e.to_string()))?.clone();
 
         // Re-open in append mode
         let file_append = fs::OpenOptions::new()
             .write(true)
             .append(true)
             .open(file_path)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         let mut writer = csv::WriterBuilder::new().from_writer(file_append);
 
@@ -58,8 +59,8 @@ impl PersistenceDriver for FlatfileDriver {
             row.push(val);
         }
 
-        writer.write_record(&row).map_err(|e| e.to_string())?;
-        writer.flush().map_err(|e| e.to_string())?;
+        writer.write_record(&row).map_err(|e| OxDataError::InternalError(e.to_string()))?;
+        writer.flush().map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         Ok(())
     }
@@ -68,19 +69,19 @@ impl PersistenceDriver for FlatfileDriver {
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String> {
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         let file_path = Path::new(location);
-        let file = fs::File::open(file_path).map_err(|e| e.to_string())?;
+        let file = fs::File::open(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
-        let headers = reader.headers().map_err(|e| e.to_string())?.clone();
+        let headers = reader.headers().map_err(|e| OxDataError::InternalError(e.to_string()))?.clone();
         
         // We assume the first column is always the ID? Or look for "id" column?
         // Let's assume "id" column exists.
         let id_idx = headers.iter().position(|h| h.eq_ignore_ascii_case("id"))
-            .ok_or("Dataset does not have an 'id' column")?;
+            .ok_or_else(|| OxDataError::InternalError("Dataset does not have an 'id' column".to_string()))?;
 
         for result in reader.records() {
-            let record = result.map_err(|e| e.to_string())?;
+            let record = result.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             if let Some(record_id) = record.get(id_idx) {
                 if record_id == id {
                     // Found it
@@ -97,26 +98,26 @@ impl PersistenceDriver for FlatfileDriver {
             }
         }
 
-        Err(format!("Object with id {} not found in {}", id, location))
+        Err(OxDataError::InternalError(format!("Object with id {} not found in {}", id, location)))
     }
 
     fn fetch(
         &self, 
         filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str
-    ) -> Result<Vec<String>, String> {
+    ) -> Result<Vec<String>, OxDataError> {
         let file_path = Path::new(location);
-        let file = fs::File::open(file_path).map_err(|e| e.to_string())?;
+        let file = fs::File::open(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
-        let headers = reader.headers().map_err(|e| e.to_string())?.clone();
+        let headers = reader.headers().map_err(|e| OxDataError::InternalError(e.to_string()))?.clone();
         
         let id_idx = headers.iter().position(|h| h.eq_ignore_ascii_case("id"))
-            .ok_or("Dataset does not have an 'id' column")?;
+            .ok_or_else(|| OxDataError::InternalError("Dataset does not have an 'id' column".to_string()))?;
 
         let mut matching_ids = Vec::new();
 
         for result in reader.records() {
-            let record = result.map_err(|e| e.to_string())?;
+            let record = result.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let mut matches = true;
 
             // Check all filter conditions
@@ -151,20 +152,20 @@ impl PersistenceDriver for FlatfileDriver {
         println!("FlatfileDriver: GDO {} lock status changed to {}", gdo_id, lock_status);
     }
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String> {
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError> {
         println!("\n--- Preparing Flatfile Datastore ---");
         println!("Connection Info: {:?}", connection_info);
         println!("--- Flatfile Datastore Prepared ---\n");
         Ok(())
     }
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String> {
-        let path = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
-        let entries = fs::read_dir(path).map_err(|e| e.to_string())?;
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError> {
+        let path = connection_info.get("path").ok_or_else(|| OxDataError::InternalError("Missing 'path' in connection_info".to_string()))?;
+        let entries = fs::read_dir(path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         
         let mut datasets = Vec::new();
         for entry in entries {
-            let entry = entry.map_err(|e| e.to_string())?;
+            let entry = entry.map_err(|e| OxDataError::InternalError(e.to_string()))?;
             let path = entry.path();
             if path.is_file() {
                 if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
@@ -175,15 +176,15 @@ impl PersistenceDriver for FlatfileDriver {
         Ok(datasets)
     }
 
-    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String> {
-        let dir_path = connection_info.get("path").ok_or("Missing 'path' in connection_info")?;
+    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError> {
+        let dir_path = connection_info.get("path").ok_or_else(|| OxDataError::InternalError("Missing 'path' in connection_info".to_string()))?;
         let file_path = Path::new(dir_path).join(dataset_name);
 
-        let file = fs::File::open(file_path).map_err(|e| e.to_string())?;
+        let file = fs::File::open(file_path).map_err(|e| OxDataError::InternalError(e.to_string()))?;
         let mut reader = BufReader::new(file);
         
         let mut first_line = String::new();
-        reader.read_line(&mut first_line).map_err(|e| e.to_string())?;
+        reader.read_line(&mut first_line).map_err(|e| OxDataError::InternalError(e.to_string()))?;
 
         let columns: Vec<ColumnDefinition> = first_line.trim()
             .split(',')
@@ -197,7 +198,7 @@ impl PersistenceDriver for FlatfileDriver {
             .collect();
 
         if columns.is_empty() {
-            return Err(format!("Could not parse headers from file '{}'. It might be empty or not comma-delimited.", dataset_name));
+            return Err(OxDataError::InternalError(format!("Could not parse headers from file '{}'. It might be empty or not comma-delimited.", dataset_name)));
         }
 
         Ok(DataSet {

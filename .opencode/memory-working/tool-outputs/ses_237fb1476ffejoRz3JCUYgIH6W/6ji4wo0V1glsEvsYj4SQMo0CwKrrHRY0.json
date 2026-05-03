@@ -1,0 +1,7 @@
+{
+  "callID": "6ji4wo0V1glsEvsYj4SQMo0CwKrrHRY0",
+  "sessionID": "ses_237fb1476ffejoRz3JCUYgIH6W",
+  "tool": "todowrite",
+  "fullOutput": "[\n  {\n    \"content\": \"Refactor all crates in crates/data to use OxDataError instead of String for errors\",\n    \"status\": \"in_progress\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_type_converter internal converters to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_data_object to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_persistence and its drivers to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_persistence_driver_manager and related crates to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_data_object_manager to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Update ox_data_broker to return OxDataError\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Rename ox_locking to ox_transaction and update its error types\",\n    \"status\": \"pending\",\n    \"priority\": \"medium\"\n  },\n  {\n    \"content\": \"Verify all changes with cargo check/test across crates/data\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]",
+  "timestamp": 1777179142237
+}

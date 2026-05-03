@@ -1,0 +1,24 @@
+[package]
+name = "ox_cert_core"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[dependencies]
+ox_data_object = { path = "../../data/ox_data_object" }
+ox_data_object_manager = { path = "../../data/ox_data_object/ox_data_object_manager" }
+ox_persistence = { path = "../../data/ox_persistence" }
+ox_type_converter = { path = "../../data/ox_type_converter" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+time = { version = "0.3", features = ["serde", "parsing", "formatting"] }
+thiserror = "1"
+rcgen = { version = "0.14", features = ["x509-parser"] }
+ring = "0.17"
+x509-parser = "0.16"
+pem = "3"
+base64 = "0.22"
+regex = "1"
+tracing = "0.1"

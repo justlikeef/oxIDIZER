@@ -82,14 +82,17 @@ impl TypeConverter {
         }
 
         match target_type {
-            ValueType::String => true, // Everything can be a string
+            ValueType::String | ValueType::Text => true, // Everything can be a string
             ValueType::Integer => value.parse::<i64>().is_ok(),
+            ValueType::BigInt => value.parse::<i64>().is_ok(),
             ValueType::Float => value.parse::<f64>().is_ok(),
             ValueType::Boolean => value.parse::<bool>().is_ok(),
-            ValueType::DateTime => chrono::DateTime::parse_from_rfc3339(value).is_ok(),
+            ValueType::DateTime | ValueType::Timestamp => chrono::DateTime::parse_from_rfc3339(value).is_ok(),
             ValueType::Binary => false, // Cannot easily check binary validness from string without context
             ValueType::List(_) => false, // Complex types handled separately
             ValueType::Map => false,
+            ValueType::Json => true, // JSON accepts any valid JSON string
+            ValueType::Decimal => value.parse::<f64>().is_ok(),
             ValueType::Custom(_) => true, // Custom types assume flexible conversion for now
         }
     }

@@ -1,0 +1,6 @@
+modules:
+  - id: "cert_ca_init"
+    name: "ox_cert_ca_init"
+    phase: Init
+    params:
+      config_file: "/etc/ox_webservice/ca_init.yaml"

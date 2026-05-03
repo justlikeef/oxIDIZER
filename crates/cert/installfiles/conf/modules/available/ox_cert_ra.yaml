@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_ra"
+    name: "ox_cert_ra"
+    phase: Content
+    params:
+      config_file: "/etc/ox_webservice/ra.yaml"
+routes:
+  - url: "^/api/v1/ra(/.*)?$"
+    module_id: "cert_ra"
+    priority: 100

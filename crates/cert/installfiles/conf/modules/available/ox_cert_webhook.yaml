@@ -1,0 +1,10 @@
+modules:
+  - id: "cert_webhook"
+    name: "ox_cert_webhook"
+    phase: PreContent
+    params:
+      config_file: "/etc/ox_webservice/webhook.yaml"
+routes:
+  - url: "^/api/v1/certificates(/.*)?$"
+    module_id: "cert_webhook"
+    priority: 10

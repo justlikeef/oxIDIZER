@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use ox_data_object::{GenericDataObject};
 use ox_type_converter::ValueType;
 use serde::{Deserialize, Serialize};
+use ox_data_error::OxDataError;
 
 /// A C-compatible buffer for passing data across FFI boundaries.
 /// The `ptr` points to the data, `len` is the valid length, and `cap` is the capacity (if managed by Rust Vec).
@@ -166,11 +167,11 @@ pub fn unregister_persistence_driver(driver_name: &str) {
 
 /// A trait for objects that can be persisted.
 pub trait Persistent {
-    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
-    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String>;
+    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), OxDataError>;
+    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, OxDataError>;
 
     /// Hydrates the object by loading its full data from the datastore.
-    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), String>;
+    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), OxDataError>;
 }
 
 /// A trait for drivers that can persist and restore a GenericDataObject
@@ -179,36 +180,36 @@ pub trait PersistenceDriver {
         &self,
         serializable_map: &HashMap<String, (String, ValueType, HashMap<String, String>)>, 
         location: &str,
-    ) -> Result<(), String>;
+    ) -> Result<(), OxDataError>;
 
     /// Restores a single object by its unique ID.
     fn restore(
         &self,
         location: &str,
         id: &str,
-    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, String>;
+    ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError>;
 
     /// Fetches the unique IDs of objects matching a filter.
-    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, String>;
+    fn fetch(&self, filter: &HashMap<String, (String, ValueType, HashMap<String, String>)>, location: &str) -> Result<Vec<String>, OxDataError>;
 
     fn notify_lock_status_change(&self, lock_status: &str, gdo_id: &str);
 
-    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), String>;
+    fn prepare_datastore(&self, connection_info: &HashMap<String, String>) -> Result<(), OxDataError>;
 
-    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, String>;
-    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, String>;
+    fn list_datasets(&self, connection_info: &HashMap<String, String>) -> Result<Vec<String>, OxDataError>;
+    fn describe_dataset(&self, connection_info: &HashMap<String, String>, dataset_name: &str) -> Result<DataSet, OxDataError>;
 
     /// Gets the definition of connection parameters required by the driver.
     fn get_connection_parameters(&self) -> Vec<ConnectionParameter>;
 
     /// Executes a generic action defined by the driver (e.g., "discover_local", "validate_connection").
-    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, String> {
-        Err(format!("Action '{}' not supported by this driver", action))
+    fn call_action(&self, action: &str, _params: &serde_json::Value) -> Result<serde_json::Value, OxDataError> {
+        Err(OxDataError::DriverError(format!("Action '{}' not supported by this driver", action)))
     }
 }
 
 impl Persistent for GenericDataObject {
-    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), String> {
+    fn persist(&mut self, driver_name: &str, location: &str) -> Result<(), OxDataError> {
         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         if let Some((driver, _)) = registry.get_driver(driver_name) {
             let map = self.to_serializable_map();
@@ -216,11 +217,11 @@ impl Persistent for GenericDataObject {
             // Implicitly consistent after persist
             Ok(())
         } else {
-            Err(format!("Driver '{}' not found", driver_name))
+            Err(OxDataError::DriverError(format!("Driver '{}' not found", driver_name)))
         }
     }
 
-    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, String> {
+    fn fetch(&self, driver_name: &str, location: &str) -> Result<Vec<GenericDataObject>, OxDataError> {
          let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         if let Some((driver, _)) = registry.get_driver(driver_name) {
              let filter = self.to_serializable_map();
@@ -230,50 +231,32 @@ impl Persistent for GenericDataObject {
              for id in ids {
                  // We can call restore on driver directly.
                  let restored_map = driver.restore(location, &id)?;
-                 let obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
+                 let obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name)?;
                  results.push(obj);
              }
              Ok(results)
         } else {
-            Err(format!("Driver '{}' not found", driver_name))
+            Err(OxDataError::DriverError(format!("Driver '{}' not found", driver_name)))
         }
     }
 
     /// Hydrates the object by loading its full data from the datastore.
-    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), String> {
+    fn hydrate_object(&mut self, driver_name: &str, location: &str) -> Result<(), OxDataError> {
         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         if let Some((driver, _)) = registry.get_driver(driver_name) {
             let id = self.get::<String>(&self.identifier_name)
-                .ok_or_else(|| format!("Object missing identifier '{}'", self.identifier_name))?;
+                .ok_or_else(|| OxDataError::InternalError(format!("Object missing identifier '{}'", self.identifier_name)))?;
                 
             let restored_map = driver.restore(location, &id)?;
-            // Update self from map
-            // GenericDataObject doesn't have a "update from map" method that preserves identity?
-            // Actually from_serializable_map creates new.
-            // We can replace our attributes.
-            let new_obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name);
-            // Assuming we can access fields or use a helper
-            // We can iterate the map and set.
-            // But we already have from_serializable_map logic. 
-            // Let's rely on set_attributes if possible, or just hack it with a temporary obj.
-            // We can't move out of new_obj easily if fields are private.
-            // Wait, GenericDataObject fields are: attributes (private), identifier_name (public).
-            // But to_serializable_map is public.
-            // We need a way to bulk update.
-            // GenericDataObject has `from_serializable_map` static method.
-            // And `attributes` is private.
-            // But `set` is public.
-            // I'll assume we iterate the restored map and set fields.
-            // Actually `PersistenceDriver::restore` returns the map.
-            // I will iterate the map and call set_with_type.
+            let new_obj = GenericDataObject::from_serializable_map(restored_map, &self.identifier_name)?;
             
              for (key, (value_str, value_type, params)) in new_obj.to_serializable_map() {
-                 self.set_with_type(&key, value_str, value_type, Some(params));
+                 let _ = self.set_with_type(&key, value_str, value_type, Some(params));
              }
              Ok(())
 
         } else {
-            Err(format!("Driver '{}' not found", driver_name))
+            Err(OxDataError::DriverError(format!("Driver '{}' not found", driver_name)))
         }
     }
 }

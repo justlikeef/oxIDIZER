@@ -1,0 +1,6 @@
+modules:
+  - id: "cert_notify"
+    name: "ox_cert_notify"
+    phase: Init
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_notify/conf/plugin.yaml"

@@ -1,0 +1,5 @@
+content_root: "/var/repos/oxIDIZER/crates/cert/ox_cert_admin/content/www"
+mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
+default_documents:
+  - document: "index.html"
+on_content_conflict: "skip"

@@ -1,0 +1,109 @@
+log4rs_config: "/var/repos/oxIDIZER/personas/all-services/log4rs.yaml"
+workflow:
+  name: "ox_webservice"
+  stages:
+    - name: PreEarlyRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: EarlyRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostEarlyRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreAuthentication
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: Authentication
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostAuthentication
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreAuthorization
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: Authorization
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostAuthorization
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreContent
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: Content
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostContent
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreAccounting
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: Accounting
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostAccounting
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreErrorHandling
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: ErrorHandling
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostErrorHandling
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PreLateRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: LateRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue
+    - name: PostLateRequest
+      runner: sequential
+      plugins:
+        - name: ox_webservice_router
+      on_error: continue

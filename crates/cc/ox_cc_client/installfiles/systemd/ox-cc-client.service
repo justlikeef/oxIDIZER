@@ -1,0 +1,18 @@
+[Unit]
+Description=ox_cc secure configuration client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ox_cc
+Group=ox_cc
+ExecStart=/usr/bin/ox_cc_client --config /etc/ox_cc/client.yaml
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=/var/lib/ox_cc
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

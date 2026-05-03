@@ -1,7 +1,7 @@
 # ox_webservice_stream Configuration for Data Source Manager UI
 
 content_root: "/var/repos/oxIDIZER/crates/data/ox_persistence_datasource_manager/content/www/"
-mimetypes_file: "/var/repos/oxIDIZER/conf/mimetypes.yaml"
+mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
 
 default_documents:
   - document: "index.html"

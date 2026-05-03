@@ -1,0 +1,25 @@
+# ox_cert_renew — Certificate Renewal
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+ca_intermediate_key_id: "ca-intermediate"
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+ca_root_cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+
+auto_revoke_on_renew: false
+
+extensions:
+  aia:
+    ocsp_url: "http://localhost:8080/ocsp"
+    ca_issuer_url: "http://localhost:8080/ca/intermediate.crt"
+  cdp:
+    url: "http://localhost:8080/crl.der"

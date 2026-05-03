@@ -1,0 +1,25 @@
+# ox_cert_notify — Certificate Expiry Notifications
+
+tenant_id: "default"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+schedule: "0 0 6 * * *"
+thresholds_days: [90, 60, 30, 14, 7, 1]
+include_ca_certs: true
+
+channels: []
+# channels:
+#   - type: webhook
+#     url: "https://hooks.example.com/cert-expiry"
+#     secret_env: "NOTIFY_WEBHOOK_SECRET"
+#     timeout_secs: 10
+#   - type: email
+#     smtp_host: "smtp.example.com"
+#     smtp_port: 587
+#     from: "ca-noreply@example.com"
+#     to:
+#       - "ops@example.com"
+#     password_env: "SMTP_PASSWORD"

@@ -10,6 +10,7 @@ license = "GPL-3.0-only"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
+ox_data_error = { path = "../ox_data_error" }
 
 [lib]
 name = "ox_type_converter"

@@ -2,9 +2,10 @@ use crate::HashMap;
 use crate::converters::*;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use ox_data_error::OxDataError;
 
 /// Conversion function type that can convert from string to any type
-pub type ConversionFn = fn(&str, &HashMap<String, String>) -> Result<Box<dyn crate::Any + Send + Sync>, String>;
+pub type ConversionFn = fn(&str, &HashMap<String, String>) -> Result<Box<dyn crate::Any + Send + Sync>, OxDataError>;
 
 /// Registry for managing conversion functions
 pub struct ConversionRegistry {
@@ -51,11 +52,11 @@ impl ConversionRegistry {
         to_type: &str, 
         value: &str, 
         parameters: &HashMap<String, String>
-    ) -> Result<Box<dyn crate::Any + Send + Sync>, String> {
+    ) -> Result<Box<dyn crate::Any + Send + Sync>, OxDataError> {
         if let Some(converter) = self.get_converter(from_type, to_type) {
             converter(value, parameters)
         } else {
-            Err(format!("No converter available from '{}' to '{}'", from_type, to_type))
+            Err(OxDataError::RegistryError(format!("No converter available from '{}' to '{}'", from_type, to_type)))
         }
     }
 
@@ -108,37 +109,37 @@ impl ConversionRegistry {
 
         // Numeric conversions
         self.register_conversion("integer", "string", |v, p| {
-            v.parse::<i64>().map_err(|e| format!("Failed to parse integer: {:?}", e))
+            v.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse integer: {:?}", e)))
                 .and_then(|val| integer_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("float", "string", |v, p| {
-            v.parse::<f64>().map_err(|e| format!("Failed to parse float: {:?}", e))
+            v.parse::<f64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse float: {:?}", e)))
                 .and_then(|val| float_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("uinteger", "string", |v, p| {
-            v.parse::<u64>().map_err(|e| format!("Failed to parse unsigned integer: {:?}", e))
+            v.parse::<u64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse unsigned integer: {:?}", e)))
                 .and_then(|val| uinteger_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("i32", "string", |v, p| {
-            v.parse::<i32>().map_err(|e| format!("Failed to parse i32: {:?}", e))
+            v.parse::<i32>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse i32: {:?}", e)))
                 .and_then(|val| i32_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("i64", "string", |v, p| {
-            v.parse::<i64>().map_err(|e| format!("Failed to parse i64: {:?}", e))
+            v.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse i64: {:?}", e)))
                 .and_then(|val| i64_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("f32", "string", |v, p| {
-            v.parse::<f32>().map_err(|e| format!("Failed to parse f32: {:?}", e))
+            v.parse::<f32>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse f32: {:?}", e)))
                 .and_then(|val| f32_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("f64", "string", |v, p| {
-            v.parse::<f64>().map_err(|e| format!("Failed to parse f64: {:?}", e))
+            v.parse::<f64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse f64: {:?}", e)))
                 .and_then(|val| f64_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
@@ -162,29 +163,29 @@ impl ConversionRegistry {
 
         // Boolean conversions
         self.register_conversion("boolean", "string", |v, p| {
-            v.parse::<bool>().map_err(|e| format!("Failed to parse boolean: {:?}", e))
+            v.parse::<bool>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse boolean: {:?}", e)))
                 .and_then(|val| boolean_to_string(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
 
         // Cross-type conversions
         self.register_conversion("float", "integer", |v, p| {
-            v.parse::<f64>().map_err(|e| format!("Failed to parse float: {:?}", e))
+            v.parse::<f64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse float: {:?}", e)))
                 .and_then(|val| float_to_integer(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("integer", "float", |v, p| {
-            v.parse::<i64>().map_err(|e| format!("Failed to parse integer: {:?}", e))
+            v.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse integer: {:?}", e)))
                 .and_then(|val| integer_to_float(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("boolean", "integer", |v, p| {
-            v.parse::<bool>().map_err(|e| format!("Failed to parse boolean: {:?}", e))
+            v.parse::<bool>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse boolean: {:?}", e)))
                 .and_then(|val| boolean_to_integer(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });
         self.register_conversion("integer", "boolean", |v, p| {
-            v.parse::<i64>().map_err(|e| format!("Failed to parse integer: {:?}", e))
+            v.parse::<i64>().map_err(|e| OxDataError::ConversionError(format!("Failed to parse integer: {:?}", e)))
                 .and_then(|val| integer_to_boolean(val, p))
                 .map(|val| Box::new(val) as Box<dyn crate::Any + Send + Sync>)
         });

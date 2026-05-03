@@ -14,19 +14,19 @@
 modules:
   - id: "ox_cc_broker"
     name: "ox_cc_broker_plugin"
-    config_file: "/etc/ox_cc/broker_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_broker_plugin/conf/plugin.yaml"
 
   - id: "ox_cc_manifest"
     name: "ox_cc_manifest_plugin"
-    config_file: "/etc/ox_cc/manifest_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_manifest_plugin/conf/plugin.yaml"
 
   - id: "ox_cc_report"
     name: "ox_cc_report_plugin"
-    config_file: "/etc/ox_cc/report_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_report_plugin/conf/plugin.yaml"
 
   - id: "ox_cc_admin"
     name: "ox_cc_admin_plugin"
-    config_file: "/etc/ox_cc/admin_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_admin_plugin/conf/plugin.yaml"
 
 routes:
   # Broker routes

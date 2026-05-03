@@ -1,0 +1,10 @@
+modules:
+  - id: "https_redirect"
+    name: "ox_webservice_redirect"
+    phase: EarlyRequest
+    params:
+      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_redirect/conf/https_redirect.yaml"
+routes:
+  - url: ".*"
+    module_id: "https_redirect"
+    priority: 1000

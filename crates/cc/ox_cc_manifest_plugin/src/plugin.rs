@@ -188,6 +188,9 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) -> FlowControl {
         ("POST", ["cc", "manifest", client_id]) => {
             handlers::deploy_envelope(&db, client_id, &body)
         }
+        ("POST", ["cc", "bootstrap"]) => {
+            handlers::bootstrap_checkin(&db, &state.config, &body)
+        }
         ("GET", ["cc", "manifest", client_id, "latest"]) => {
             handlers::get_latest(&db, client_id)
         }
@@ -198,6 +201,10 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) -> FlowControl {
             handlers::expire_manifest(&db, client_id)
         }
         ("GET", ["cc", "clients"]) => handlers::list_clients(&db),
+        ("GET", ["cc", "clients", "pending"]) => handlers::list_pending_clients(&db),
+        ("POST", ["cc", "clients", client_id, "trust"]) => {
+            handlers::trust_client(&db, client_id)
+        }
         ("GET", ["cc", "clients", client_id, "status"]) => {
             handlers::get_client_status(&db, client_id)
         }

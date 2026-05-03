@@ -1,6 +1,7 @@
 use crate::dictionary::{DataStoreContainer, DataStoreField};
 use ox_persistence::PERSISTENCE_DRIVER_REGISTRY;
 use ox_type_converter::ValueType;
+use ox_data_error::OxDataError;
 use std::collections::HashMap;
 
 pub struct IntrospectionService;
@@ -8,7 +9,7 @@ pub struct IntrospectionService;
 impl IntrospectionService {
     /// Introspects a specific driver to build DataStoreContainer definitions.
     /// Requires connection_info to connect to the physical data source.
-    pub fn introspect_driver(driver_name: &str, connection_info: &HashMap<String, String>) -> Result<Vec<DataStoreContainer>, String> {
+    pub fn introspect_driver(driver_name: &str, connection_info: &HashMap<String, String>) -> Result<Vec<DataStoreContainer>, OxDataError> {
         let registry = PERSISTENCE_DRIVER_REGISTRY.lock().unwrap();
         if let Some((driver, _metadata)) = registry.get_driver(driver_name) {
             let datasets = driver.list_datasets(connection_info)?;
@@ -38,7 +39,7 @@ impl IntrospectionService {
             }
             Ok(containers)
         } else {
-            Err(format!("Driver {} not found", driver_name))
+            Err(OxDataError::DriverError(format!("Driver {} not found", driver_name)))
         }
     }
 }

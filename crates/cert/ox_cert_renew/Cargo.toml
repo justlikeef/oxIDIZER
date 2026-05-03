@@ -1,0 +1,21 @@
+[package]
+name = "ox_cert_renew"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_cert_core = { path = "../ox_cert_core" }
+ox_fileproc = { path = "../../util/ox_fileproc" }
+ox_workflow_abi = { path = "../../workflow/ox_workflow_abi" }
+
+rcgen = { version = "0.14", features = ["x509-parser"] }
+x509-parser = "0.16"
+pem = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["serde", "formatting"] }
+uuid = { version = "1", features = ["v4"] }

@@ -1,0 +1,11 @@
+# ox_cc_report_plugin — Command and Control Report Plugin
+
+# Shared SQLite database — SAME path as manifest_plugin.yaml.
+db_path: "/var/lib/ox_cc/manifest_instance.db"
+
+# SQLCipher encryption key — must match manifest_plugin.yaml (shared file).
+# Store securely (e.g. vault, systemd credential). Do not commit to SCM.
+db_encryption_key: "<strong-random-passphrase>"
+
+rate_limits:
+  reports_per_client_per_minute: 60

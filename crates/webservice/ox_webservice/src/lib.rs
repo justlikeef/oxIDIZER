@@ -50,7 +50,7 @@ pub struct UrlRoute {
     pub query: Option<HashMap<String, String>>,
     #[serde(default)]
     pub priority: u16,
-    pub phase: Option<String>,
+    pub stage: Option<String>,
     pub module_id: Option<String>,
     pub status_code: Option<String>,
 }

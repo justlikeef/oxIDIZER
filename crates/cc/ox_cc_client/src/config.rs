@@ -14,10 +14,14 @@ pub struct ClientConfig {
     pub client_id: String,
 
     /// URL of the Manifest instance (e.g. "https://manifest.example.com").
-    pub manifest_url: String,
+    /// May be missing initially if bootstrap_url is provided.
+    pub manifest_url: Option<String>,
+
+    /// URL of the Bootstrap instance for initial trust exchange.
+    pub bootstrap_url: Option<String>,
 
     /// mTLS credentials used to authenticate to the Manifest instance.
-    pub tls: ClientTlsConfig,
+    pub tls: Option<ClientTlsConfig>,
 
     /// Path to the SQLite state database. Created if absent.
     pub db_path: String,
@@ -37,10 +41,10 @@ pub struct ClientConfig {
     /// Each `.pub` file must contain 32 raw bytes. All files are loaded and tried
     /// in sequence; a signature is accepted if any key validates it. This supports
     /// key rotation with overlapping trust windows.
-    pub broker_signing_pubkeys_dir: String,
+    pub broker_signing_pubkeys_dir: Option<String>,
 
     /// Client X25519 encryption private key, base64url-encoded.
-    pub client_enc_privkey_b64: String,
+    pub client_enc_privkey_b64: Option<String>,
 
     /// Map of consumer name → directory where manifest.json is written.
     /// E.g. { "arcnition": "/var/lib/arcnition/manifest" }
@@ -49,7 +53,7 @@ pub struct ClientConfig {
 
     /// URL to POST the "applied" notification after successful apply.
     /// Usually the manifest instance's /cc/report/{client_id} endpoint.
-    pub report_url: String,
+    pub report_url: Option<String>,
 
     /// Directory to search for external command plugin binaries.
     /// Commands not matching a built-in are looked up as `{plugin_dir}/{command_name}`.
@@ -83,10 +87,14 @@ impl ClientConfig {
     /// single corrupt file does not prevent the client from starting.
     /// Returns an error only if the directory cannot be read at all.
     pub fn load_broker_verifying_keys(&self) -> Result<Vec<VerifyingKey>> {
-        let dir = std::fs::read_dir(&self.broker_signing_pubkeys_dir).map_err(|e| {
+        let dir_path = self.broker_signing_pubkeys_dir.as_ref().ok_or_else(|| {
+            anyhow::anyhow!("broker_signing_pubkeys_dir is not configured")
+        })?;
+
+        let dir = std::fs::read_dir(dir_path).map_err(|e| {
             anyhow::anyhow!(
                 "failed to read broker_signing_pubkeys_dir '{}': {}",
-                self.broker_signing_pubkeys_dir,
+                dir_path,
                 e
             )
         })?;
@@ -124,7 +132,7 @@ impl ClientConfig {
         if keys.is_empty() {
             return Err(anyhow::anyhow!(
                 "no valid broker verifying keys found in '{}'",
-                self.broker_signing_pubkeys_dir
+                dir_path
             ));
         }
 
@@ -133,7 +141,10 @@ impl ClientConfig {
 
     /// Decode and return the client's X25519 static encryption private key.
     pub fn client_enc_privkey(&self) -> Result<StaticSecret> {
-        let bytes = URL_SAFE_NO_PAD.decode(&self.client_enc_privkey_b64)?;
+        let b64 = self.client_enc_privkey_b64.as_ref().ok_or_else(|| {
+            anyhow::anyhow!("client_enc_privkey_b64 is not configured")
+        })?;
+        let bytes = URL_SAFE_NO_PAD.decode(b64)?;
         let arr: [u8; 32] = bytes
             .try_into()
             .map_err(|_| anyhow::anyhow!("client enc privkey must be 32 bytes"))?;
@@ -180,7 +191,7 @@ mod tests {
         write_pub_file(&dir, "broker.pub", &gen_ed25519_pubkey_bytes());
 
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: dir.path().to_str().unwrap().to_string(),
+            broker_signing_pubkeys_dir: Some(dir.path().to_str().unwrap().to_string()),
             ..stub_cfg()
         };
         let keys = cfg.load_broker_verifying_keys().unwrap();
@@ -194,7 +205,7 @@ mod tests {
         write_pub_file(&dir, "key2.pub", &gen_ed25519_pubkey_bytes());
 
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: dir.path().to_str().unwrap().to_string(),
+            broker_signing_pubkeys_dir: Some(dir.path().to_str().unwrap().to_string()),
             ..stub_cfg()
         };
         let keys = cfg.load_broker_verifying_keys().unwrap();
@@ -209,7 +220,7 @@ mod tests {
         write_pub_file(&dir, "broker.key", &[0u8; 32]);
 
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: dir.path().to_str().unwrap().to_string(),
+            broker_signing_pubkeys_dir: Some(dir.path().to_str().unwrap().to_string()),
             ..stub_cfg()
         };
         let keys = cfg.load_broker_verifying_keys().unwrap();
@@ -223,7 +234,7 @@ mod tests {
         write_pub_file(&dir, "bad.pub", &[0u8; 16]); // wrong size
 
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: dir.path().to_str().unwrap().to_string(),
+            broker_signing_pubkeys_dir: Some(dir.path().to_str().unwrap().to_string()),
             ..stub_cfg()
         };
         // Should not error — bad file is skipped; good file is loaded
@@ -235,7 +246,7 @@ mod tests {
     fn test_load_verifying_keys_empty_dir_returns_error() {
         let dir = TempDir::new().unwrap();
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: dir.path().to_str().unwrap().to_string(),
+            broker_signing_pubkeys_dir: Some(dir.path().to_str().unwrap().to_string()),
             ..stub_cfg()
         };
         let result = cfg.load_broker_verifying_keys();
@@ -246,7 +257,7 @@ mod tests {
     #[test]
     fn test_load_verifying_keys_missing_dir_returns_error() {
         let cfg = ClientConfig {
-            broker_signing_pubkeys_dir: "/nonexistent/dir/that/does/not/exist".to_string(),
+            broker_signing_pubkeys_dir: Some("/nonexistent/dir/that/does/not/exist".to_string()),
             ..stub_cfg()
         };
         let result = cfg.load_broker_verifying_keys();
@@ -260,7 +271,7 @@ mod tests {
         let raw = [0x11u8; 32];
         let b64 = URL_SAFE_NO_PAD.encode(raw);
         let cfg = ClientConfig {
-            client_enc_privkey_b64: b64,
+            client_enc_privkey_b64: Some(b64),
             ..stub_cfg()
         };
         let key = cfg.client_enc_privkey().unwrap();
@@ -270,7 +281,7 @@ mod tests {
     #[test]
     fn test_client_enc_privkey_invalid_base64() {
         let cfg = ClientConfig {
-            client_enc_privkey_b64: "!!!not-base64!!!".to_string(),
+            client_enc_privkey_b64: Some("!!!not-base64!!!".to_string()),
             ..stub_cfg()
         };
         assert!(cfg.client_enc_privkey().is_err());
@@ -281,7 +292,7 @@ mod tests {
         // Valid base64 but only 16 bytes
         let b64 = URL_SAFE_NO_PAD.encode([0u8; 16]);
         let cfg = ClientConfig {
-            client_enc_privkey_b64: b64,
+            client_enc_privkey_b64: Some(b64),
             ..stub_cfg()
         };
         assert!(cfg.client_enc_privkey().is_err());
@@ -293,21 +304,22 @@ mod tests {
         use std::collections::HashMap;
         ClientConfig {
             client_id: "test".to_string(),
-            manifest_url: "https://x.example.com".to_string(),
-            report_url: "https://x.example.com/report".to_string(),
+            manifest_url: Some("https://x.example.com".to_string()),
+            bootstrap_url: None,
+            report_url: Some("https://x.example.com/report".to_string()),
             db_path: ":memory:".to_string(),
             db_encryption_key: "k".to_string(),
             poll_interval_secs: 60,
             max_manifest_window_secs: 90 * 24 * 3600,
-            broker_signing_pubkeys_dir: "/tmp".to_string(),
-            client_enc_privkey_b64: URL_SAFE_NO_PAD.encode([0u8; 32]),
+            broker_signing_pubkeys_dir: Some("/tmp".to_string()),
+            client_enc_privkey_b64: Some(URL_SAFE_NO_PAD.encode([0u8; 32])),
             consumer_dirs: HashMap::new(),
             plugin_dir: None,
-            tls: ClientTlsConfig {
+            tls: Some(ClientTlsConfig {
                 client_cert: "/dev/null".to_string(),
                 client_key: "/dev/null".to_string(),
                 ca_cert: "/dev/null".to_string(),
-            },
+            }),
         }
     }
 }

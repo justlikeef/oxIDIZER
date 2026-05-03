@@ -5,7 +5,7 @@
 modules:
   - id: "ox_cc_admin"
     name: "ox_cc_admin_plugin"
-    config_file: "/etc/ox_cc/admin_plugin.yaml"
+    config_file: "/var/repos/oxIDIZER/crates/cc/ox_cc_admin_plugin/conf/plugin.yaml"
 
 routes:
   - url: "^/admin/api(/.*)?$"
