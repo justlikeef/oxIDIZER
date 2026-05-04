@@ -169,20 +169,66 @@ for CRATE in "${WS_CRATES[@]}"; do
   fi
 
   # Module conf templates (replace dev paths with production equivalents)
+  # Only process files that are module registration files (top-level 'modules:' key).
+  # Rules files, stream configs, and other data files are excluded here and handled
+  # per-crate below where needed.
+  #
+  # content_jinja2_default.yaml is skipped: its referenced data config has no
+  # corresponding installed content in a basic deployment.
+  SKIP_MODULES='content_jinja2_default.yaml'
   if [[ -d "$WS_CRATES_DIR/$CRATE/conf" ]]; then
     for YAML in "$WS_CRATES_DIR/$CRATE/conf/"*.yaml; do
       [[ -f "$YAML" ]] || continue
-      # Skip stream plugin configs (not module registrations) and CA-specific overrides
-      case "$(basename "$YAML")" in
-        content_stream_default.yaml|layout.yaml|theme.yaml) continue ;;
-      esac
+      grep -q '^modules:' "$YAML" || continue
       YAML_NAME="$(basename "$YAML")"
-      sed "s|$WS_CRATES_DIR/$CRATE/conf/|/etc/ox_webservice/|g;
-           s|/var/repos/oxIDIZER/personas/common/mimetypes\.yaml|/etc/ox_webservice/mimetypes.yaml|g" \
+      echo "$YAML_NAME" | grep -qE "^($SKIP_MODULES)$" && continue
+      sed 's|\${{OX_BASE}}/crates/webservice/'"$CRATE"'/conf/|/etc/ox_webservice/|g;
+           s|\${{OX_BASE}}/personas/common/mimetypes\.yaml|/etc/ox_webservice/mimetypes.yaml|g' \
         "$YAML" > "$S/usr/share/ox_webservice/modules/available/${YAML_NAME}"
       ln -s "../available/${YAML_NAME}" \
          "$S/usr/share/ox_webservice/modules/active/${YAML_NAME}"
     done
+  fi
+
+  # ox_webservice_stream: install default layout/theme content and generate the
+  # data configs that content_stream_default.yaml references at runtime.
+  if [[ "$CRATE" == "ox_webservice_stream" ]]; then
+    mkdir -p "$S/usr/share/ox_webservice/content/layouts/default/www" \
+             "$S/usr/share/ox_webservice/content/themes/brown/www" \
+             "$S/etc/ox_webservice"
+    cp -r "$ROOT_DIR/content/layouts/default/www/." \
+          "$S/usr/share/ox_webservice/content/layouts/default/www/"
+    cp -r "$ROOT_DIR/content/themes/brown/www/." \
+          "$S/usr/share/ox_webservice/content/themes/brown/www/"
+    cat > "$S/etc/ox_webservice/layout.yaml" <<'EOF'
+content_root: "/usr/share/ox_webservice/content/layouts/default/www"
+mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
+default_documents:
+  - document: "index.html"
+on_content_conflict: "skip"
+EOF
+    cat > "$S/etc/ox_webservice/theme.yaml" <<'EOF'
+content_root: "/usr/share/ox_webservice/content/themes/brown/www"
+mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
+default_documents: []
+on_content_conflict: skip
+EOF
+  fi
+
+  # ox_webservice_status: install the status HTML content and generate a
+  # stream config that points to the installed path
+  if [[ "$CRATE" == "ox_webservice_status" ]]; then
+    mkdir -p "$S/usr/share/ox_webservice/status" \
+             "$S/etc/ox_webservice"
+    cp -r "$WS_CRATES_DIR/$CRATE/content/www/status/." \
+          "$S/usr/share/ox_webservice/status/"
+    cat > "$S/etc/ox_webservice/ox_webservice_status_stream.yaml" <<'EOF'
+content_root: "/usr/share/ox_webservice/status"
+mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
+default_documents:
+  - document: "index.html"
+on_content_conflict: "skip"
+EOF
   fi
 
   EXTRA="${WS_EXTRA_DEPS[$CRATE]:-}"

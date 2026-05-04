@@ -24,6 +24,8 @@ pub struct UriMatcher {
     #[serde(alias = "url")]
     pub path: String,
     #[serde(default)]
+    pub method: Option<String>,
+    #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
     #[serde(default)]
     pub query: Option<HashMap<String, String>>,

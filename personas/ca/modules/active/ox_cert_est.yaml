@@ -1,0 +1,11 @@
+modules:
+  - id: "cert_est"
+    name: "ox_cert_est"
+    phase: Content
+    params:
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_est/conf/plugin.yaml"
+
+routes:
+  - url: "^/.well-known/est(/.*)?$"
+    module_id: cert_est
+    priority: 100

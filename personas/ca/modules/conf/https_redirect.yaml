@@ -1,0 +1,11 @@
+https_port: ":8443"
+
+rules:
+  - match_pattern: "^/.well-known/acme-challenge/"
+    skip: true
+
+  - match_pattern: "^/api/"
+    skip: true
+
+  - match_pattern: "^(.*)$"
+    replace_string: "https://{host_noport}{https_port}$1"

@@ -1,5 +1,5 @@
 use ox_workflow_abi::{
-    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_ERROR, OX_LOG_INFO, OX_LOG_ERROR,
+    CoreHostApi, FlowControl, FLOW_CONTROL_CONTINUE, FLOW_CONTROL_END, OX_LOG_INFO, OX_LOG_ERROR,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -25,8 +25,18 @@ pub struct RedirectRule {
 
 #[derive(Debug, Deserialize, serde::Serialize)]
 pub struct RedirectConfig {
+    /// Port suffix for HTTPS redirects, e.g. ":8443". Empty string (default) means
+    /// standard port 443 is used (no explicit port in the redirect URL).
+    #[serde(default)]
+    pub https_port: String,
+    /// HTTP status code for redirects. Use 301 for permanent (production),
+    /// 302 for temporary (avoids browser caching during development). Default: 302.
+    #[serde(default = "default_status_code")]
+    pub status_code: u16,
     pub rules: Vec<RedirectRule>,
 }
+
+fn default_status_code() -> u16 { 302 }
 
 pub struct CompiledRule {
     regex: Regex,
@@ -36,6 +46,8 @@ pub struct CompiledRule {
 
 pub struct ModuleContext {
     rules: Vec<CompiledRule>,
+    https_port: String,
+    status_code: u16,
     api: CoreHostApi,
 }
 
@@ -106,7 +118,7 @@ pub unsafe extern "C" fn ox_plugin_init(
 
     log(&api, std::ptr::null_mut(), OX_LOG_INFO,
         &format!("{} initialized with {} rules", MODULE_NAME, compiled.len()));
-    let ctx = Box::new(ModuleContext { rules: compiled, api });
+    let ctx = Box::new(ModuleContext { rules: compiled, https_port: config.https_port, status_code: config.status_code, api });
     Box::into_raw(ctx) as *mut c_void
 }
 
@@ -123,6 +135,7 @@ pub unsafe extern "C" fn ox_plugin_process(
 
     let path = get_field(api, task_ctx, "request.path");
     let host = get_field(api, task_ctx, "request.header.host");
+    let host_noport = host.split(':').next().unwrap_or(&host).to_string();
 
     for rule in &context.rules {
         if rule.regex.is_match(&path) {
@@ -132,18 +145,22 @@ pub unsafe extern "C" fn ox_plugin_process(
             }
 
             let replace_template = rule.replace_string.as_deref().unwrap_or("");
-            // Substitute {host} placeholder before the regex capture-group replace.
-            let replace_with_host = replace_template.replace("{host}", &host);
-            let redirect_to = rule.regex.replace(&path, replace_with_host.as_str()).to_string();
+            let replaced = replace_template
+                .replace("{host_noport}", &host_noport)
+                .replace("{https_port}", &context.https_port)
+                .replace("{host}", &host);
+            let redirect_to = rule.regex.replace(&path, replaced.as_str()).to_string();
 
-            log(api, task_ctx, OX_LOG_INFO,
-                &format!("Redirecting '{}' -> '{}'", path, redirect_to));
+            log(api, task_ctx, OX_LOG_INFO, &format!("Redirecting '{}' -> '{}'", path, redirect_to));
 
-            set_field(api, task_ctx, "response.status", "301");
+            let status_str = context.status_code.to_string();
+            let body = format!("{} {}", context.status_code,
+                if context.status_code == 301 { "Moved Permanently" } else { "Found" });
+            set_field(api, task_ctx, "response.status", &status_str);
             set_field(api, task_ctx, "response.header.Location", &redirect_to);
             set_field(api, task_ctx, "response.header.Content-Type", "text/plain");
-            set_field(api, task_ctx, "response.body", "301 Moved Permanently");
-            return FlowControl { code: FLOW_CONTROL_ERROR, payload: std::ptr::null() };
+            set_field(api, task_ctx, "response.body", &body);
+            return FlowControl { code: FLOW_CONTROL_END, payload: std::ptr::null() };
         }
     }
 
@@ -183,6 +200,36 @@ mod tests {
         let regex = Regex::new("^(.*)$").unwrap();
         let result = regex.replace("/api/v1/certs", replaced.as_str()).to_string();
         assert_eq!(result, "https://ca.example.com/api/v1/certs");
+    }
+
+    #[test]
+    fn test_host_noport_strips_port() {
+        let host = "localhost:8091";
+        let host_noport = host.split(':').next().unwrap_or(host);
+        let https_port = ":8443";
+        let template = "https://{host_noport}{https_port}$1";
+        let replaced = template
+            .replace("{host_noport}", host_noport)
+            .replace("{https_port}", https_port)
+            .replace("{host}", host);
+        let regex = Regex::new("^(.*)$").unwrap();
+        let result = regex.replace("/path", replaced.as_str()).to_string();
+        assert_eq!(result, "https://localhost:8443/path");
+    }
+
+    #[test]
+    fn test_host_noport_standard_port() {
+        let host = "example.com";
+        let host_noport = host.split(':').next().unwrap_or(host);
+        let https_port = "";
+        let template = "https://{host_noport}{https_port}$1";
+        let replaced = template
+            .replace("{host_noport}", host_noport)
+            .replace("{https_port}", https_port)
+            .replace("{host}", host);
+        let regex = Regex::new("^(.*)$").unwrap();
+        let result = regex.replace("/path", replaced.as_str()).to_string();
+        assert_eq!(result, "https://example.com/path");
     }
 
     #[test]

@@ -1,4 +1,4 @@
-log4rs_config: "/var/repos/oxIDIZER/personas/all-services/log4rs.yaml"
+log4rs_config: "${{OX_BASE}}/personas/all-services/log4rs.yaml"
 workflow:
   name: "ox_webservice"
   stages:

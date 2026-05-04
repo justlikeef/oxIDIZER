@@ -8,10 +8,13 @@
 # merge: [Path to directory]
 # Specifies a directory containing configuration files (e.g., .yaml) to merge.
 # Keys in these files will be added to the configuration.
+substitutions:
+  OX_BASE: "/var/repos/oxIDIZER"
+
 merge:
-  - "/var/repos/oxIDIZER/personas/all-services/service/active/"
-  - "/var/repos/oxIDIZER/personas/all-services/servers/active/"
-  - "/var/repos/oxIDIZER/personas/all-services/modules/active/"
+  - "${{OX_BASE}}/personas/all-services/service/active/"
+  - "${{OX_BASE}}/personas/all-services/servers/active/"
+  - "${{OX_BASE}}/personas/all-services/modules/active/"
 
 # ------------------------------------------------------------------------------
 # Server Definitions

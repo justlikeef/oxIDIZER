@@ -64,6 +64,18 @@
         }
         textarea.csr-input:focus { outline: none; border-color: var(--accent); }
 
+        input[type="text"], select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+        input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+        select option { background: #1e293b; }
+
         .btn {
             display: inline-block;
             padding: 0.55rem 1.2rem;
@@ -137,6 +149,19 @@
         table.queue tr:last-child td { border-bottom: none; }
         table.queue .actions { display: flex; gap: 0.5rem; }
 
+        .status-pill {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .status-active  { background: rgba(34,197,94,0.15);  color: #86efac; }
+        .status-revoked { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+        .status-expired { background: rgba(156,163,175,0.15); color: #9ca3af; }
+
         .empty-state {
             text-align: center;
             padding: 2.5rem 1rem;
@@ -200,6 +225,16 @@
         }
         .modal textarea:focus { outline: none; border-color: var(--accent); }
         .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+        .form-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .form-row input[type="text"] { flex: 1; min-width: 220px; }
+        .label { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -210,12 +245,12 @@
             <div class="logo-area">
                 <div>
                     <h1>Certificate Authority</h1>
-                    <p class="subtitle">Admin &mdash; CSR Management</p>
+                    <p class="subtitle">Admin &mdash; Certificate Management</p>
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:1rem;">
                 <nav style="margin-top:0.25rem;">
-                    <a href="/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Back to Trust Setup</a>
+                    <a href="/ca/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Dashboard</a>
                 </nav>
                 <a href="/status" class="status-badge status-ok" id="status-badge" title="System Status">ONLINE</a>
             </div>
@@ -224,15 +259,18 @@
 
     <div class="card" style="margin-bottom:1.5rem;">
         <div class="tab-bar" role="tablist">
-            <button class="tab active" data-target="sign"  role="tab">Sign CSR</button>
-            <button class="tab"        data-target="queue" role="tab">Pending Queue
+            <button class="tab" data-target="sign" role="tab">Sign CSR</button>
+            <button class="tab" data-target="inventory" role="tab">Inventory</button>
+            <button class="tab" data-target="renew" role="tab">Renew</button>
+            <button class="tab" data-target="revoke" role="tab">Revoke</button>
+            <button class="tab" data-target="queue" role="tab">Pending Queue
                 <span id="queue-badge" style="display:none; background:var(--accent); color:var(--bg-color); border-radius:9px; font-size:0.75rem; font-weight:700; padding:0 0.45rem; margin-left:0.3rem;"></span>
             </button>
-            <button class="tab"        data-target="api"   role="tab">API Reference</button>
+            <button class="tab" data-target="api" role="tab">API Reference</button>
         </div>
 
         <!-- Sign CSR -->
-        <div class="tab-panel active" id="sign">
+        <div class="tab-panel" id="sign">
             <h2>Sign a Certificate Signing Request</h2>
             <p class="label">Paste a PEM-encoded CSR or upload a <code>.csr</code> / <code>.pem</code> file.
                The certificate is signed immediately without queuing.</p>
@@ -258,6 +296,47 @@
                     <button class="btn btn-sm btn-outline" id="download-btn" style="margin-left:0.4rem;">Download .crt</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Inventory -->
+        <div class="tab-panel" id="inventory">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                <h2 style="margin:0;">Certificate Inventory</h2>
+                <button class="btn btn-sm btn-outline" id="inv-refresh-btn">&#8635; Refresh</button>
+            </div>
+            <div class="queue-table-wrap">
+                <div id="inv-content"></div>
+            </div>
+        </div>
+
+        <!-- Renew -->
+        <div class="tab-panel" id="renew">
+            <h2>Renew Certificate</h2>
+            <p class="label">Enter the certificate serial number or ID to issue a renewal with a fresh validity period.</p>
+            <div class="form-row">
+                <input type="text" id="renew-id" placeholder="Certificate serial or ID">
+                <button class="btn btn-primary" id="renew-btn">Renew</button>
+            </div>
+            <div id="renew-result"></div>
+        </div>
+
+        <!-- Revoke -->
+        <div class="tab-panel" id="revoke">
+            <h2>Revoke Certificate</h2>
+            <p class="label">Revoking a certificate updates the CRL and OCSP responder immediately. This action cannot be undone.</p>
+            <div class="form-row">
+                <input type="text" id="revoke-id" placeholder="Certificate serial or ID">
+                <select id="revoke-reason">
+                    <option value="unspecified">Unspecified</option>
+                    <option value="keyCompromise">Key Compromise</option>
+                    <option value="caCompromise">CA Compromise</option>
+                    <option value="affiliationChanged">Affiliation Changed</option>
+                    <option value="superseded">Superseded</option>
+                    <option value="cessationOfOperation">Cessation of Operation</option>
+                </select>
+                <button class="btn btn-deny" id="revoke-btn">Revoke</button>
+            </div>
+            <div id="revoke-result"></div>
         </div>
 
         <!-- Pending Queue -->
@@ -288,6 +367,20 @@ Content-Type: application/json
             <p class="label">Or send the raw PEM body with <code>Content-Type: application/pkcs10</code>.</p>
             <p class="label">Returns <code>201 Created</code> with the signed certificate, or <code>202 Accepted</code>
                with a <code>request_id</code> when RA approval is required.</p>
+
+            <h3>Renew a certificate</h3>
+            <pre><code>POST /api/v1/certificates/{id}/renew</code></pre>
+
+            <h3>Revoke a certificate</h3>
+            <pre><code>POST /api/v1/certificates/{id}/revoke
+Content-Type: application/json
+
+{
+  "reason": "keyCompromise"
+}</code></pre>
+
+            <h3>List all certificates</h3>
+            <pre><code>GET /api/v1/certificates</code></pre>
 
             <h3>Poll for an approved certificate</h3>
             <pre><code>GET /api/v1/ra/requests/{request_id}/certificate</code></pre>
@@ -350,15 +443,56 @@ var _signedPem = '';
 var _signedSubject = '';
 var _pendingActionId = '';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function clearEl(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function setText(el, t) { el.textContent = t; }
+
+function makeSpinner() {
+    var d = document.createElement('div');
+    d.className = 'empty-state';
+    var s = document.createElement('span');
+    s.className = 'spinner';
+    d.appendChild(s);
+    d.appendChild(document.createTextNode(' Loading…'));
+    return d;
+}
+
+function makeAlert(msg, ok) {
+    var el = document.createElement('div');
+    el.className = 'alert ' + (ok ? 'alert-ok' : 'alert-error');
+    el.textContent = msg;
+    return el;
+}
+
+function statusPill(status) {
+    var el = document.createElement('span');
+    el.className = 'status-pill status-' + (status || 'active').toLowerCase();
+    el.textContent = status || 'Active';
+    return el;
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
+function activateTab(id) {
+    var btn = document.querySelector('.tab[data-target="' + id + '"]');
+    if (!btn) return;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById(id).classList.add('active');
+    if (id === 'queue')     loadQueue();
+    if (id === 'inventory') loadInventory();
+}
+
 document.querySelectorAll('.tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-        document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.target).classList.add('active');
-        if (btn.dataset.target === 'queue') loadQueue();
+        var target = btn.dataset.target;
+        history.replaceState(null, '', '#' + target);
+        activateTab(target);
     });
+});
+
+window.addEventListener('hashchange', function() {
+    activateTab(window.location.hash.slice(1) || 'sign');
 });
 
 // ── File upload → textarea ────────────────────────────────────────────────────
@@ -366,9 +500,7 @@ document.getElementById('csr-file').addEventListener('change', function() {
     var file = this.files[0];
     if (!file) return;
     var reader = new FileReader();
-    reader.onload = function(e) {
-        document.getElementById('csr-text').value = e.target.result;
-    };
+    reader.onload = function(e) { document.getElementById('csr-text').value = e.target.result; };
     reader.readAsText(file);
 });
 
@@ -424,11 +556,11 @@ function signCsr() {
             var strong = document.createElement('strong');
             strong.textContent = d.subject_cn || d.subject_dn || '';
             meta.appendChild(strong);
-            meta.appendChild(document.createTextNode(' ·  Serial: '));
+            meta.appendChild(document.createTextNode(' ·  Serial: '));
             var c = document.createElement('code');
             c.textContent = d.serial || '';
             meta.appendChild(c);
-            meta.appendChild(document.createTextNode(' ·  Expires: ' + (d.not_after || '').substring(0, 10)));
+            meta.appendChild(document.createTextNode(' ·  Expires: ' + (d.not_after || '').substring(0, 10)));
 
             document.getElementById('sign-cert').textContent = _signedPem;
             document.getElementById('sign-result').classList.add('visible');
@@ -461,19 +593,160 @@ function showSignAlert(msg, ok) {
     a.textContent = msg;
 }
 
+// ── Inventory ─────────────────────────────────────────────────────────────────
+document.getElementById('inv-refresh-btn').addEventListener('click', loadInventory);
+
+function loadInventory() {
+    var content = document.getElementById('inv-content');
+    clearEl(content);
+    content.appendChild(makeSpinner());
+
+    fetch('/api/v1/certificates')
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        var items = res.data || [];
+        clearEl(content);
+        if (items.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'empty-state';
+            var icon = document.createElement('div');
+            icon.className = 'icon';
+            icon.textContent = '✓';
+            empty.appendChild(icon);
+            var p = document.createElement('p');
+            p.textContent = 'No certificates issued yet';
+            empty.appendChild(p);
+            content.appendChild(empty);
+            return;
+        }
+        content.appendChild(buildInvTable(items));
+    })
+    .catch(function(err) {
+        clearEl(content);
+        content.appendChild(makeAlert('Failed to load inventory: ' + err.message, false));
+    });
+}
+
+function buildInvTable(items) {
+    var table = document.createElement('table');
+    table.className = 'queue';
+    var thead = table.createTHead();
+    var hrow = thead.insertRow();
+    ['Subject', 'Serial', 'Profile', 'Issued', 'Expires', 'Status'].forEach(function(h) {
+        var th = document.createElement('th');
+        th.textContent = h;
+        hrow.appendChild(th);
+    });
+    var tbody = table.createTBody();
+    items.forEach(function(cert) {
+        var row = tbody.insertRow();
+
+        var tdCn = row.insertCell();
+        tdCn.className = 'cn';
+        tdCn.textContent = cert.subject_cn || cert.subject_dn || cert.id || '—';
+
+        var tdSerial = row.insertCell();
+        var c = document.createElement('code');
+        c.textContent = (cert.serial || cert.id || '').substring(0, 16);
+        tdSerial.appendChild(c);
+
+        var tdProf = row.insertCell();
+        tdProf.textContent = cert.profile || '—';
+
+        var tdIssued = row.insertCell();
+        tdIssued.textContent = (cert.not_before || cert.issued_at || '').substring(0, 10);
+
+        var tdExp = row.insertCell();
+        tdExp.textContent = (cert.not_after || cert.expires_at || '').substring(0, 10);
+
+        var tdStatus = row.insertCell();
+        tdStatus.appendChild(statusPill(cert.status));
+    });
+    return table;
+}
+
+// ── Renew ─────────────────────────────────────────────────────────────────────
+document.getElementById('renew-btn').addEventListener('click', function() {
+    var id = document.getElementById('renew-id').value.trim();
+    var result = document.getElementById('renew-result');
+    clearEl(result);
+    if (!id) { result.appendChild(makeAlert('Enter a certificate serial or ID.', false)); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    setText(btn, 'Renewing…');
+
+    fetch('/api/v1/certificates/' + encodeURIComponent(id) + '/renew', { method: 'POST' })
+    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+    .then(function(res) {
+        btn.disabled = false;
+        setText(btn, 'Renew');
+        clearEl(result);
+        if (res.status === 201 && res.body.data) {
+            var d = res.body.data;
+            result.appendChild(makeAlert('Renewed: ' + (d.subject_cn || d.subject_dn || id) + ' · Expires: ' + (d.not_after || '').substring(0, 10), true));
+            var box = document.createElement('div');
+            box.className = 'result-cert';
+            box.style.marginTop = '0.75rem';
+            box.textContent = d.certificate || '';
+            result.appendChild(box);
+        } else {
+            var msg = (res.body.error && res.body.error.message) || 'Error ' + res.status;
+            result.appendChild(makeAlert(msg, false));
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        setText(btn, 'Renew');
+        clearEl(result);
+        result.appendChild(makeAlert('Network error: ' + err.message, false));
+    });
+});
+
+// ── Revoke ────────────────────────────────────────────────────────────────────
+document.getElementById('revoke-btn').addEventListener('click', function() {
+    var id = document.getElementById('revoke-id').value.trim();
+    var reason = document.getElementById('revoke-reason').value;
+    var result = document.getElementById('revoke-result');
+    clearEl(result);
+    if (!id) { result.appendChild(makeAlert('Enter a certificate serial or ID.', false)); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    setText(btn, 'Revoking…');
+
+    fetch('/api/v1/certificates/' + encodeURIComponent(id) + '/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+    .then(function(res) {
+        btn.disabled = false;
+        setText(btn, 'Revoke');
+        clearEl(result);
+        if (res.status === 200) {
+            result.appendChild(makeAlert('Certificate ' + id + ' has been revoked.', true));
+        } else {
+            var msg = (res.body.error && res.body.error.message) || 'Error ' + res.status;
+            result.appendChild(makeAlert(msg, false));
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        setText(btn, 'Revoke');
+        clearEl(result);
+        result.appendChild(makeAlert('Network error: ' + err.message, false));
+    });
+});
+
 // ── Queue ─────────────────────────────────────────────────────────────────────
 document.getElementById('refresh-btn').addEventListener('click', loadQueue);
 
 function loadQueue() {
     var content = document.getElementById('queue-content');
     clearEl(content);
-    var spinner = document.createElement('div');
-    spinner.className = 'empty-state';
-    var s = document.createElement('span');
-    s.className = 'spinner';
-    spinner.appendChild(s);
-    spinner.appendChild(document.createTextNode(' Loading…'));
-    content.appendChild(spinner);
+    content.appendChild(makeSpinner());
 
     fetch('/api/v1/ra/pending')
     .then(function(r) { return r.json(); })
@@ -498,10 +771,7 @@ function loadQueue() {
     })
     .catch(function(err) {
         clearEl(content);
-        var alert = document.createElement('div');
-        alert.className = 'alert alert-error';
-        alert.textContent = 'Failed to load queue: ' + err.message;
-        content.appendChild(alert);
+        content.appendChild(makeAlert('Failed to load queue: ' + err.message, false));
     });
 }
 
@@ -650,11 +920,9 @@ function raAction(id, action, payload) {
     .catch(function(err) { alert('Network error: ' + err.message); });
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function clearEl(el) { while (el.firstChild) el.removeChild(el.firstChild); }
-function setText(el, t) { el.textContent = t; }
+// ── Init ──────────────────────────────────────────────────────────────────────
+activateTab(window.location.hash.slice(1) || 'sign');
 
-// Load queue count for badge on initial page load
 fetch('/api/v1/ra/pending')
 .then(function(r) { return r.json(); })
 .then(function(res) {

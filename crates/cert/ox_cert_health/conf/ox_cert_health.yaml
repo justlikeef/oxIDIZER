@@ -3,7 +3,7 @@ modules:
     name: "ox_cert_health"
     phase: Content
     params:
-      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_health/conf/plugin.yaml"
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_health/conf/plugin.yaml"
 routes:
   - url: "^/api/v1/health(/ca)?$"
     method: GET

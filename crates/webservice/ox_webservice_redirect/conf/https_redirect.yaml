@@ -1,10 +1,19 @@
+# https_port: ":8443"  # uncomment and set for non-standard HTTPS ports; leave
+#                       # unset (default "") for standard port 443.
+
 rules:
   # ACME http-01 challenge requests MUST be served over plain HTTP on port 80.
   # This exclusion rule passes them through without redirecting.
   - match_pattern: "^/.well-known/acme-challenge/"
     skip: true
 
-  # Redirect all other HTTP requests to HTTPS. {host} is substituted with the
-  # value of the incoming Host header at request time.
+  # API endpoints are served directly over HTTP for local development /
+  # automation that doesn't follow redirects.
+  - match_pattern: "^/api/"
+    skip: true
+
+  # Redirect all other HTTP requests to HTTPS.
+  # {host_noport} strips any port suffix from the Host header.
+  # {https_port}  expands to the configured https_port value (e.g. ":8443").
   - match_pattern: "^(.*)$"
-    replace_string: "https://{host}$1"
+    replace_string: "https://{host_noport}{https_port}$1"

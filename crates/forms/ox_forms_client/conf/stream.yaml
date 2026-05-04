@@ -1,0 +1,3 @@
+content_root: "/var/repos/oxIDIZER/crates/forms/ox_forms_client/content"
+mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
+on_content_conflict: "skip"

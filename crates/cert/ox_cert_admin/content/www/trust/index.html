@@ -56,7 +56,7 @@
             </div>
             <div style="display:flex; align-items:center; gap:1rem;">
                 <nav style="margin-top:0.25rem;">
-                    <a href="/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Trust Setup</a>
+                    <a href="/ca/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Dashboard</a>
                 </nav>
                 <a href="/status" class="status-badge status-ok" id="status-badge" title="System Status">ONLINE</a>
             </div>
@@ -170,7 +170,13 @@
     function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
 
     fetch('/api/v1/trust/info')
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (!r.ok) return Promise.reject(new Error('HTTP ' + r.status));
+            return r.text().then(function(t) {
+                if (!t) return Promise.reject(new Error('Trust info endpoint not yet implemented'));
+                return JSON.parse(t);
+            });
+        })
         .then(function (data) {
             hide('loader');
 

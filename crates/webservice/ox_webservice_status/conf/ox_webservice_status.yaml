@@ -2,11 +2,11 @@ modules:
   - id: "status_module"
     name: "ox_webservice_status"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/conf/status.yaml"
+      config_file: "${{OX_BASE}}/crates/webservice/ox_webservice_status/conf/status.yaml"
   - id: "stream_status"
     name: "ox_webservice_stream"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
+      config_file: "${{OX_BASE}}/crates/webservice/ox_webservice_status/conf/ox_webservice_status_stream.yaml"
 routes:
   - url: "^/status/?(.*)$"
     headers:

@@ -7,7 +7,7 @@ modules:
       # Since the module is loaded, relative paths might be relative to the binary or config loading context.
       # safely typically we use valid paths.
       # If executed from root, "ox_webservice_wsgi/conf/wsgi_app.yaml" works.
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_wsgi/conf/wsgi_app.yaml"
+      config_file: "${{OX_BASE}}/crates/webservice/ox_webservice_wsgi/conf/wsgi_app.yaml"
       
 routes:
   - url: "/wsgi/(.*)"

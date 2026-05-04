@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tokio::net::TcpSocket;
 
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
-use rustls_pemfile::{certs, pkcs8_private_keys};
+use rustls_pemfile::{certs, private_key};
 use rustls::server::{ClientHello, ResolvesServerCert, ResolvesServerCertUsingSni};
 use rustls::sign::CertifiedKey;
 use rustls::server::ServerConfig as RustlsServerConfig;
@@ -231,8 +231,9 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                       
                       let certs_parsed_res: Result<Vec<CertificateDer<'static>>, _> = certs(&mut BufReader::new(&cert_content[..])).collect();
                       let certs_parsed = certs_parsed_res.unwrap();
-                      let key_parsed = pkcs8_private_keys(&mut BufReader::new(&key_content[..])).next().unwrap().unwrap();
-                      let key_der: PrivateKeyDer<'static> = key_parsed.into();
+                      let key_der = private_key(&mut BufReader::new(&key_content[..]))
+                          .expect("failed to parse TLS private key")
+                          .expect("no private key found in TLS key file");
                       let signing_key = rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der).unwrap();
                       let certified_key = CertifiedKey::new(certs_parsed, signing_key);
 
@@ -303,6 +304,38 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
                  }
              }));
         } else {
+            // HTTP listener — if hosts have TLS certs, also accept TLS ClientHellos on this port.
+            // This lets browsers that try https:// on the same port (Chrome HTTPS-First mode)
+            // get a valid TLS handshake followed by the redirect to the real HTTPS port.
+            // The protocol reported to the workflow stays "http" so http-only routes fire.
+            let tls_upgrade_acceptor: Option<tokio_rustls::TlsAcceptor> = {
+                let has_certs = servers.iter().any(|h| h.tls_cert_path.is_some() && h.tls_key_path.is_some());
+                if has_certs {
+                    let mut cert_resolver = ResolvesServerCertUsingSni::new();
+                    let mut default_cert = None;
+                    for (i, host) in servers.iter().enumerate() {
+                        if let (Some(cert_path), Some(key_path)) = (&host.tls_cert_path, &host.tls_key_path) {
+                            let cert_content = std::fs::read(cert_path).unwrap();
+                            let key_content = std::fs::read(key_path).unwrap();
+                            let certs_parsed: Vec<CertificateDer<'static>> = certs(&mut BufReader::new(&cert_content[..])).collect::<Result<_, _>>().unwrap();
+                            let key_der = private_key(&mut BufReader::new(&key_content[..])).expect("parse TLS private key").expect("no private key found");
+                            let signing_key = rustls::crypto::aws_lc_rs::sign::any_supported_type(&key_der).unwrap();
+                            let certified_key = CertifiedKey::new(certs_parsed, signing_key);
+                            if i == 0 { default_cert = Some(Arc::new(certified_key.clone())); }
+                            let _ = cert_resolver.add(&host.name, certified_key);
+                        }
+                    }
+                    let resolver = Arc::new(CustomCertResolver { sni_resolver: cert_resolver, default_cert });
+                    let mut tls_config = RustlsServerConfig::builder()
+                        .with_no_client_auth()
+                        .with_cert_resolver(resolver);
+                    tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+                    Some(tokio_rustls::TlsAcceptor::from(Arc::new(tls_config)))
+                } else {
+                    None
+                }
+            };
+
             task_handles.push(tokio::spawn(async move {
                  let tcp_socket = match if addr.is_ipv6() { TcpSocket::new_v6() } else { TcpSocket::new_v4() } {
                      Ok(s) => s, Err(e) => { error!("Failed to create TCP socket for {}: {}", addr, e); return; }
@@ -330,8 +363,28 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
 
                      let app_clone = app.clone();
                      let _ = socket.set_nodelay(true);
+                     let tls_acc = tls_upgrade_acceptor.clone();
 
                      tokio::spawn(async move {
+                         if let Some(tls_acceptor) = tls_acc {
+                             let mut peek = [0u8; 1];
+                             if socket.peek(&mut peek).await.is_ok() && peek[0] == 0x16 {
+                                 // TLS ClientHello — complete handshake; protocol stays "http" for routing
+                                 match tls_acceptor.accept(socket).await {
+                                     Ok(tls_stream) => {
+                                         let mut svc = app_clone.into_make_service_with_connect_info::<SocketAddr>();
+                                         let ready_svc = match svc.call(remote_addr).await { Ok(s) => s, Err(_) => return };
+                                         let hyper_svc = TowerToHyperService::new(ready_svc);
+                                         let io = TokioIo::new(tls_stream);
+                                         let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                                             .serve_connection_with_upgrades(io, hyper_svc)
+                                             .await;
+                                     }
+                                     Err(e) => { error!("TLS upgrade error on {}: {}", addr, e); }
+                                 }
+                                 return;
+                             }
+                         }
                          let mut svc = app_clone.into_make_service_with_connect_info::<SocketAddr>();
                          let ready_svc = match svc.call(remote_addr).await { Ok(s) => s, Err(_) => return };
                          let hyper_svc = TowerToHyperService::new(ready_svc);

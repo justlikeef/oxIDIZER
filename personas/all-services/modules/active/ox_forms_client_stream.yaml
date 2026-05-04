@@ -1,14 +1,1 @@
-modules:
-  - id: "ox_forms_client_stream"
-    name: "ox_webservice_stream"
-    params:
-      content_root: "/var/repos/oxIDIZER/pkg/"
-      mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
-      on_content_conflict: "skip"
-
-routes:
-  - url: "^/ox_forms_client/(.*)"
-    module_id: "ox_forms_client_stream"
-    priority: 100
-    stage: Content
-    path_capture: true
+../available/ox_forms_client_stream.yaml

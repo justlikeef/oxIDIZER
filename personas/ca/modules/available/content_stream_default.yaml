@@ -2,17 +2,17 @@ modules:
   - id: "default_theme_stream"
     name: "ox_webservice_stream"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/conf/theme.yaml"
+      config_file: "${{OX_BASE}}/personas/ca/conf/theme.yaml"
   - id: "default_layout_stream"
     name: "ox_webservice_stream"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_stream/conf/layout.yaml"
+      config_file: "${{OX_BASE}}/crates/webservice/ox_webservice_stream/conf/layout.yaml"
 routes:
   - url: "^(/css/.*?)$"
     module_id: default_theme_stream
-    stage: Content
+    phase: Content
     priority: 998
   - url: "^(.*)$"
     module_id: default_layout_stream
-    stage: Content
+    phase: Content
     priority: 999

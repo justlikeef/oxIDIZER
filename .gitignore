@@ -20,3 +20,4 @@ Cargo.lock
 # Test output
 *_tests.log
 .worktrees/
+.env

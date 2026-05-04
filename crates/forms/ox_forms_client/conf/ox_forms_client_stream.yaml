@@ -1,0 +1,12 @@
+modules:
+  - id: "ox_forms_client_stream"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "${{OX_BASE}}/crates/forms/ox_forms_client/conf/stream.yaml"
+
+routes:
+  - url: "^/ox_forms_client/(.*)"
+    module_id: "ox_forms_client_stream"
+    priority: 100
+    phase: Content
+    path_capture: true

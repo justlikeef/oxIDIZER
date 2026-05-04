@@ -6,7 +6,10 @@
 #   servers/  — listening sockets
 #   modules/  — plugin registration and route tables
 
+substitutions:
+  OX_BASE: "/var/repos/oxIDIZER"
+
 merge:
-  - "/var/repos/oxIDIZER/personas/ca/service/"
-  - "/var/repos/oxIDIZER/personas/ca/servers/"
-  - "/var/repos/oxIDIZER/personas/ca/modules/active/"
+  - "${{OX_BASE}}/personas/ca/service/"
+  - "${{OX_BASE}}/personas/ca/servers/"
+  - "${{OX_BASE}}/personas/ca/modules/active/"

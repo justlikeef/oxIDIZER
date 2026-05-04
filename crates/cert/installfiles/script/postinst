@@ -43,169 +43,233 @@ setup_system() {
 }
 
 # ---------------------------------------------------------------------------
-# Interactive CA setup — fresh install only
+# CA setup — fresh install only
+# Accepts parameters interactively or via environment variables / answers file.
+#
+# Answers file (OX_CA_ANSWERS_FILE): shell-syntax file that sets any of:
+#   OX_CA_CERT_TYPE      1 (self-signed root CA) or 2 (CSR)  [default: 1]
+#   OX_CA_HOSTNAME       FQDN of the CA server               [required]
+#   OX_CA_CN             Common Name                         [default: hostname label]
+#   OX_CA_ORGANIZATION   Organization (O)
+#   OX_CA_OU             Organizational Unit (OU)
+#   OX_CA_LOCALITY       City / Locality (L)
+#   OX_CA_STATE          State or Province (ST)
+#   OX_CA_COUNTRY        Two-letter country code (C)         [default: US]
+#   OX_CA_DOMAIN         Domain for DC= components           [default: derived from FQDN]
+#   OX_CA_KEY_PASS       CA key passphrase                   [default: none]
 # ---------------------------------------------------------------------------
 setup_ca() {
-    if [ ! -t 0 ] || [ "${DEBIAN_FRONTEND:-}" = "noninteractive" ]; then
-        echo ""
-        echo "Non-interactive install: run 'sudo /usr/share/ox_webservice/setup-ca.sh' to complete CA setup."
-        echo ""
-        return 0
+    # Source answers file if provided
+    if [[ -n "${OX_CA_ANSWERS_FILE:-}" && -r "${OX_CA_ANSWERS_FILE}" ]]; then
+        # shellcheck source=/dev/null
+        . "$OX_CA_ANSWERS_FILE"
     fi
 
-    echo ""
-    echo "ox Certificate Authority Setup"
-    echo "================================"
-    echo ""
-
-    # Input collection loop — repeats until user confirms all settings
     CERT_TYPE="" CA_HOSTNAME="" CN="" O="" OU="" L="" ST="" C="" DC_COMPONENTS="" SUBJECT="" PASSPHRASE=""
-    while true; do
+    GENERATE_ARGS=""
 
-    # Certificate type
-    echo "Certificate type:"
-    echo "  1) Self-signed root CA  (standalone, no external CA required)"
-    echo "  2) Certificate signing request (CSR)  (subordinate CA signed by an existing root CA)"
-    echo ""
-    CERT_TYPE=""
-    while [[ "$CERT_TYPE" != "1" && "$CERT_TYPE" != "2" ]]; do
-        read -rp "Choice [1/2]: " CERT_TYPE
-    done
+    if [ ! -t 0 ] || [ "${DEBIAN_FRONTEND:-}" = "noninteractive" ]; then
+        # --- Non-interactive path ---
+        if [[ -z "${OX_CA_HOSTNAME:-}" ]]; then
+            echo ""
+            echo "Non-interactive install: run 'sudo /usr/share/ox_webservice/setup-ca.sh' to complete CA setup."
+            echo ""
+            return 0
+        fi
 
-    # CA hostname (FQDN — used to configure plugin URLs, not part of the cert subject)
-    echo ""
-    while true; do
-        read -rp "CA fully qualified domain name (e.g. ca.example.com): " CA_HOSTNAME
-        [[ -n "$CA_HOSTNAME" ]] && break
-        echo "  Hostname is required."
-    done
+        CERT_TYPE="${OX_CA_CERT_TYPE:-1}"
+        CA_HOSTNAME="$OX_CA_HOSTNAME"
 
-    # Derive CN and domain from FQDN
-    CN_DEFAULT="${CA_HOSTNAME%%.*}"
-    if [[ "$CA_HOSTNAME" == *"."* ]]; then
-        DC_DEFAULT="${CA_HOSTNAME#*.}"
-    else
+        CN_DEFAULT="${CA_HOSTNAME%%.*}"
         DC_DEFAULT=""
-    fi
+        [[ "$CA_HOSTNAME" == *"."* ]] && DC_DEFAULT="${CA_HOSTNAME#*.}"
 
-    # Certificate fields
-    echo ""
-    echo "Certificate information:"
+        CN="${OX_CA_CN:-$CN_DEFAULT}"
+        O="${OX_CA_ORGANIZATION:-}"
+        OU="${OX_CA_OU:-}"
+        L="${OX_CA_LOCALITY:-}"
+        ST="${OX_CA_STATE:-}"
+        C="${OX_CA_COUNTRY:-US}"
+        PASSPHRASE="${OX_CA_KEY_PASS:-}"
+        DC_INPUT="${OX_CA_DOMAIN:-$DC_DEFAULT}"
 
-    echo ""
-    echo "  (Common Name) Name of the person, server, or device."
-    read -rp "Host name without domain [${CN_DEFAULT}]: " CN_INPUT
-    CN="${CN_INPUT:-$CN_DEFAULT}"
+        DC_COMPONENTS=""
+        if [[ -n "$DC_INPUT" ]]; then
+            IFS='.' read -ra DC_PARTS <<< "$DC_INPUT"
+            for PART in "${DC_PARTS[@]}"; do
+                [[ -n "$PART" ]] && DC_COMPONENTS="${DC_COMPONENTS:+${DC_COMPONENTS},}DC=${PART}"
+            done
+        fi
 
-    echo ""
-    echo "  (Organization) The legal name of the company or entity."
-    read -rp "Organization Name: " O
+        SUBJECT="CN=${CN}"
+        [[ -n "$O" ]]             && SUBJECT="${SUBJECT},O=${O}"
+        [[ -n "$OU" ]]            && SUBJECT="${SUBJECT},OU=${OU}"
+        [[ -n "$L" ]]             && SUBJECT="${SUBJECT},L=${L}"
+        [[ -n "$ST" ]]            && SUBJECT="${SUBJECT},ST=${ST}"
+        SUBJECT="${SUBJECT},C=${C}"
+        [[ -n "$DC_COMPONENTS" ]] && SUBJECT="${SUBJECT},${DC_COMPONENTS}"
 
-    echo ""
-    echo "  (Organizational Unit) The specific department or division (e.g., 'IT Support' or 'Engineering')."
-    read -rp "Department or Division: " OU
+        GENERATE_ARGS="--force"
 
-    echo ""
-    echo "  (Locality) The city or local area where the entity is located."
-    read -rp "City: " L
+    else
+        # --- Interactive path ---
+        echo ""
+        echo "ox Certificate Authority Setup"
+        echo "================================"
+        echo ""
 
-    echo ""
-    echo "  (State or Province) The full name of the state or province (not abbreviated)."
-    read -rp "Full name of state or province: " ST
+        # Input collection loop — repeats until user confirms all settings
+        while true; do
 
-    echo ""
-    echo "  (Country) A two-letter country code (e.g., US or UK)."
-    C="US"
-    while true; do
-        read -rp "2 Letter Country Code [US]: " C_INPUT
-        C="${C_INPUT:-US}"
-        [[ "${#C}" -eq 2 ]] && break
-        echo "  Country must be exactly 2 letters."
-    done
-
-    echo ""
-    echo "  (Domain Component) The domain name is split into dc= components for directory lookups."
-    echo "  Example: 'justlikeef.com' becomes DC=justlikeef,DC=com — leave blank to omit."
-    if [[ -n "$DC_DEFAULT" ]]; then
-        echo "  Derived from your hostname: ${DC_DEFAULT}"
-    fi
-    read -rp "Domain Name [${DC_DEFAULT}]: " DC_INPUT_ENTERED
-    DC_INPUT="${DC_INPUT_ENTERED:-$DC_DEFAULT}"
-
-    # Parse DC into components
-    DC_COMPONENTS=""
-    if [[ -n "$DC_INPUT" ]]; then
-        IFS='.' read -ra DC_PARTS <<< "$DC_INPUT"
-        for PART in "${DC_PARTS[@]}"; do
-            [[ -n "$PART" ]] && DC_COMPONENTS="${DC_COMPONENTS:+${DC_COMPONENTS},}DC=${PART}"
+        # Certificate type
+        echo "Certificate type:"
+        echo "  1) Self-signed root CA  (standalone, no external CA required)"
+        echo "  2) Certificate signing request (CSR)  (subordinate CA signed by an existing root CA)"
+        echo ""
+        CERT_TYPE=""
+        while [[ "$CERT_TYPE" != "1" && "$CERT_TYPE" != "2" ]]; do
+            read -rp "Choice [1/2]: " CERT_TYPE
         done
+
+        # CA hostname (FQDN — used to configure plugin URLs, not part of the cert subject)
+        echo ""
+        while true; do
+            read -rp "CA fully qualified domain name (e.g. ca.example.com): " CA_HOSTNAME
+            [[ -n "$CA_HOSTNAME" ]] && break
+            echo "  Hostname is required."
+        done
+
+        # Derive CN and domain from FQDN
+        CN_DEFAULT="${CA_HOSTNAME%%.*}"
+        if [[ "$CA_HOSTNAME" == *"."* ]]; then
+            DC_DEFAULT="${CA_HOSTNAME#*.}"
+        else
+            DC_DEFAULT=""
+        fi
+
+        # Certificate fields
+        echo ""
+        echo "Certificate information:"
+
+        echo ""
+        echo "  (Common Name) Name of the person, server, or device."
+        read -rp "Host name without domain [${CN_DEFAULT}]: " CN_INPUT
+        CN="${CN_INPUT:-$CN_DEFAULT}"
+
+        echo ""
+        echo "  (Organization) The legal name of the company or entity."
+        read -rp "Organization Name: " O
+
+        echo ""
+        echo "  (Organizational Unit) The specific department or division (e.g., 'IT Support' or 'Engineering')."
+        read -rp "Department or Division: " OU
+
+        echo ""
+        echo "  (Locality) The city or local area where the entity is located."
+        read -rp "City: " L
+
+        echo ""
+        echo "  (State or Province) The full name of the state or province (not abbreviated)."
+        read -rp "Full name of state or province: " ST
+
+        echo ""
+        echo "  (Country) A two-letter country code (e.g., US or UK)."
+        C="US"
+        while true; do
+            read -rp "2 Letter Country Code [US]: " C_INPUT
+            C="${C_INPUT:-US}"
+            [[ "${#C}" -eq 2 ]] && break
+            echo "  Country must be exactly 2 letters."
+        done
+
+        echo ""
+        echo "  (Domain Component) The domain name is split into dc= components for directory lookups."
+        echo "  Example: 'justlikeef.com' becomes DC=justlikeef,DC=com — leave blank to omit."
+        if [[ -n "$DC_DEFAULT" ]]; then
+            echo "  Derived from your hostname: ${DC_DEFAULT}"
+        fi
+        read -rp "Domain Name [${DC_DEFAULT}]: " DC_INPUT_ENTERED
+        DC_INPUT="${DC_INPUT_ENTERED:-$DC_DEFAULT}"
+
+        # Parse DC into components
+        DC_COMPONENTS=""
+        if [[ -n "$DC_INPUT" ]]; then
+            IFS='.' read -ra DC_PARTS <<< "$DC_INPUT"
+            for PART in "${DC_PARTS[@]}"; do
+                [[ -n "$PART" ]] && DC_COMPONENTS="${DC_COMPONENTS:+${DC_COMPONENTS},}DC=${PART}"
+            done
+        fi
+
+        # Build subject DN
+        SUBJECT="CN=${CN}"
+        [[ -n "$O" ]]             && SUBJECT="${SUBJECT},O=${O}"
+        [[ -n "$OU" ]]            && SUBJECT="${SUBJECT},OU=${OU}"
+        [[ -n "$L" ]]             && SUBJECT="${SUBJECT},L=${L}"
+        [[ -n "$ST" ]]            && SUBJECT="${SUBJECT},ST=${ST}"
+        SUBJECT="${SUBJECT},C=${C}"
+        [[ -n "$DC_COMPONENTS" ]] && SUBJECT="${SUBJECT},${DC_COMPONENTS}"
+
+        # Passphrase
+        echo ""
+        echo "CA key passphrase (press Enter for no passphrase):"
+        PASSPHRASE=""
+        while true; do
+            read -rsp "  Passphrase: " PASSPHRASE; echo
+            [[ -z "$PASSPHRASE" ]] && break
+            read -rsp "  Confirm:    " PASSPHRASE2; echo
+            [[ "$PASSPHRASE" == "$PASSPHRASE2" ]] && break
+            echo "  Passphrases do not match — try again."
+        done
+
+        # Summary and confirmation
+        echo ""
+        echo "----------------------------------------"
+        echo "Certificate Authority Configuration"
+        echo "----------------------------------------"
+        if [[ "$CERT_TYPE" == "1" ]]; then
+            echo "  Type:             Self-signed root CA"
+        else
+            echo "  Type:             Certificate signing request (subordinate CA)"
+        fi
+        echo "  CA FQDN:          ${CA_HOSTNAME}"
+        echo ""
+        echo "  Common Name:      ${CN}"
+        echo "  Organization:     ${O:-<not set>}"
+        echo "  Department:       ${OU:-<not set>}"
+        echo "  City:             ${L:-<not set>}"
+        echo "  State/Province:   ${ST:-<not set>}"
+        echo "  Country:          ${C}"
+        if [[ -n "$DC_COMPONENTS" ]]; then
+            echo "  Domain (DC):      ${DC_COMPONENTS}"
+        else
+            echo "  Domain (DC):      <not set>"
+        fi
+        echo ""
+        echo "  Subject DN:       ${SUBJECT}"
+        echo ""
+        if [[ -n "$PASSPHRASE" ]]; then
+            echo "  Passphrase:       set"
+        else
+            echo "  Passphrase:       none"
+        fi
+        echo "----------------------------------------"
+        echo ""
+        read -rp "Proceed with these settings? [Y/n]: " CONFIRM
+        case "${CONFIRM,,}" in
+            ""|y|yes) break ;;
+            *)
+                echo ""
+                echo "Starting over..."
+                echo ""
+                ;;
+        esac
+
+        done  # end confirmation loop
     fi
 
-    # Build subject DN
-    SUBJECT="CN=${CN}"
-    [[ -n "$O" ]]             && SUBJECT="${SUBJECT},O=${O}"
-    [[ -n "$OU" ]]            && SUBJECT="${SUBJECT},OU=${OU}"
-    [[ -n "$L" ]]             && SUBJECT="${SUBJECT},L=${L}"
-    [[ -n "$ST" ]]            && SUBJECT="${SUBJECT},ST=${ST}"
-    SUBJECT="${SUBJECT},C=${C}"
-    [[ -n "$DC_COMPONENTS" ]] && SUBJECT="${SUBJECT},${DC_COMPONENTS}"
-
-    # Passphrase
-    echo ""
-    echo "CA key passphrase (press Enter for no passphrase):"
-    PASSPHRASE=""
-    while true; do
-        read -rsp "  Passphrase: " PASSPHRASE; echo
-        [[ -z "$PASSPHRASE" ]] && break
-        read -rsp "  Confirm:    " PASSPHRASE2; echo
-        [[ "$PASSPHRASE" == "$PASSPHRASE2" ]] && break
-        echo "  Passphrases do not match — try again."
-    done
-
-    # Summary and confirmation
-    echo ""
-    echo "----------------------------------------"
-    echo "Certificate Authority Configuration"
-    echo "----------------------------------------"
-    if [[ "$CERT_TYPE" == "1" ]]; then
-        echo "  Type:             Self-signed root CA"
-    else
-        echo "  Type:             Certificate signing request (subordinate CA)"
-    fi
-    echo "  CA FQDN:          ${CA_HOSTNAME}"
-    echo ""
-    echo "  Common Name:      ${CN}"
-    echo "  Organization:     ${O:-<not set>}"
-    echo "  Department:       ${OU:-<not set>}"
-    echo "  City:             ${L:-<not set>}"
-    echo "  State/Province:   ${ST:-<not set>}"
-    echo "  Country:          ${C}"
-    if [[ -n "$DC_COMPONENTS" ]]; then
-        echo "  Domain (DC):      ${DC_COMPONENTS}"
-    else
-        echo "  Domain (DC):      <not set>"
-    fi
-    echo ""
-    echo "  Subject DN:       ${SUBJECT}"
-    echo ""
-    if [[ -n "$PASSPHRASE" ]]; then
-        echo "  Passphrase:       set"
-    else
-        echo "  Passphrase:       none"
-    fi
-    echo "----------------------------------------"
-    echo ""
-    read -rp "Proceed with these settings? [Y/n]: " CONFIRM
-    case "${CONFIRM,,}" in
-        ""|y|yes) break ;;
-        *)
-            echo ""
-            echo "Starting over..."
-            echo ""
-            ;;
-    esac
-
-    done  # end confirmation loop
+    # ---------------------------------------------------------------------------
+    # Common setup — runs for both interactive and non-interactive paths
+    # ---------------------------------------------------------------------------
 
     # Configure hostname in plugin configs
     echo ""
@@ -240,10 +304,12 @@ setup_ca() {
 
     if [[ "$CERT_TYPE" == "2" ]]; then
         echo "Generating CA key and certificate signing request..."
+        # shellcheck disable=SC2086
         /usr/share/ox_webservice/generate-root-ca.sh \
             --subject     "$SUBJECT" \
             --content-dir "/usr/share/ox_webservice/content/www/ca" \
-            --csr-only
+            --csr-only \
+            $GENERATE_ARGS
         unset OX_CA_KEY_PASS
         echo ""
         echo "CSR generated. Next steps:"
@@ -256,9 +322,11 @@ setup_ca() {
         echo ""
     else
         echo "Generating self-signed root CA..."
+        # shellcheck disable=SC2086
         /usr/share/ox_webservice/generate-root-ca.sh \
             --subject     "$SUBJECT" \
-            --content-dir "/usr/share/ox_webservice/content/www/ca"
+            --content-dir "/usr/share/ox_webservice/content/www/ca" \
+            $GENERATE_ARGS
         unset OX_CA_KEY_PASS
         echo "Starting ox_webservice..."
         if [ -d /run/systemd/system ]; then

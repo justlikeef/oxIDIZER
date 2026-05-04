@@ -3,4 +3,4 @@ modules:
     name: "ox_cert_notify"
     phase: Init
     params:
-      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_notify/conf/plugin.yaml"
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_notify/conf/plugin.yaml"

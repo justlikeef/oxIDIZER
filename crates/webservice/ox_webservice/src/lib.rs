@@ -46,6 +46,7 @@ pub struct UrlRoute {
     pub hostname: Option<String>,
     #[serde(alias = "url")]
     pub url: Option<String>,
+    pub method: Option<String>,
     pub headers: Option<HashMap<String, String>>,
     pub query: Option<HashMap<String, String>>,
     #[serde(default)]
@@ -76,7 +77,11 @@ pub struct ServerConfig {
 
 pub fn load_config_from_path(path: &Path, _log_level: &str) -> Result<(ServerConfig, String), String> {
     // Phase 1: Load Main Config using ox_fileproc (handles standard includes/substitutions/merges)
-    let processed_value = ox_fileproc::process_file(path, 10).map_err(|e| format!("ox_fileproc failed to process config {:?}: {}", path, e))?;
+    let processed_value = ox_fileproc::processor::Processor::new()
+        .with_max_depth(10)
+        .use_env_vars(true)
+        .process(path)
+        .map_err(|e| format!("ox_fileproc failed to process config {:?}: {}", path, e))?;
     
     // ox_fileproc returns a merged Value. We just deserialize.
     // Note: The 'merge' and 'merge_recursive' keys are removed by ox_fileproc upon processing, 

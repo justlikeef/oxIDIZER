@@ -7,6 +7,7 @@ use axum::response::Response;
 use ox_workflow_core::Task;
 use ox_workflow_core::{FlowDef, PluginDef};
 use ox_workflow_executor::{FlowManager, create_host_api, FlowRunner};
+use ox_workflow_executor::plugin_registry::PluginInstance;
 use ox_workflow_abi::{CoreHostApi, FLOW_CONTROL_STREAM_FILE};
 use crate::ServerConfig;
 use tokio::sync::RwLock;
@@ -19,6 +20,10 @@ pub struct Flow {
     /// Limits the number of plugin pipelines executing concurrently.
     /// Excess requests wait as cheap async futures rather than spawning threads.
     pub plugin_semaphore: Arc<tokio::sync::Semaphore>,
+    /// Holds initialized contexts for phase=Init modules (startup-only plugins).
+    /// Kept alive until the Flow is dropped so ox_plugin_destroy is called on shutdown.
+    #[allow(dead_code)]
+    init_plugins: Vec<PluginInstance>,
 }
 
 /// Normalized route entry used during flow construction.
@@ -27,6 +32,7 @@ struct EffectiveRoute {
     module_id: String,
     priority: u16,
     path: String,
+    method: Option<String>,
     headers: Option<HashMap<String, String>>,
     query: Option<HashMap<String, String>>,
     protocol: Option<String>,
@@ -50,9 +56,17 @@ impl Flow {
         let mut all_routes: Vec<EffectiveRoute> = Vec::new();
 
         // Build a quick lookup: module_id → module stage
+        // Check m.stage first, then fall back to extra_params["phase"] (used by YAML modules that
+        // declare their stage as `phase: Content` instead of `stage: Content`).
         let module_stage_map: HashMap<String, Option<String>> = config.modules.iter().map(|m| {
             let id = m.id.clone().unwrap_or_else(|| m.name.clone());
-            (id, m.stage.clone())
+            let stage = m.stage.clone().or_else(|| {
+                m.extra_params.get("phase")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.eq_ignore_ascii_case("init"))
+                    .map(|s| s.to_string())
+            });
+            (id, stage)
         }).collect();
 
         // 1. Top-level routes
@@ -69,6 +83,7 @@ impl Flow {
                 module_id,
                 priority: r.priority,
                 path: r.url.clone().unwrap_or_default(),
+                method: r.method.clone(),
                 headers: r.headers.clone(),
                 query: r.query.clone(),
                 protocol: r.protocol.clone(),
@@ -81,7 +96,11 @@ impl Flow {
         for mod_cfg in &config.modules {
             if let Some(mod_routes) = &mod_cfg.routes {
                 let module_id = mod_cfg.id.as_deref().unwrap_or(&mod_cfg.name).to_string();
-                let module_stage = mod_cfg.stage.as_deref();
+                let module_stage = mod_cfg.stage.as_deref().or_else(|| {
+                    mod_cfg.extra_params.get("phase")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.eq_ignore_ascii_case("init"))
+                });
 
                 for r in mod_routes {
                     let route_stage = r.stage.as_deref();
@@ -92,6 +111,7 @@ impl Flow {
                         module_id: module_id.clone(),
                         priority: r.priority,
                         path: r.path.clone(),
+                        method: r.method.clone(),
                         headers: r.headers.clone(),
                         query: r.query.clone(),
                         protocol: r.protocol.clone(),
@@ -157,6 +177,9 @@ impl Flow {
                 }
                 if let Some(sc) = &r.status_code {
                     matcher.insert("status_code".to_string(), serde_json::Value::String(sc.clone()));
+                }
+                if let Some(m) = &r.method {
+                    matcher.insert("method".to_string(), serde_json::Value::String(m.clone()));
                 }
                 if let Some(hdrs) = &r.headers {
                     let hm: serde_json::Map<_, _> = hdrs.iter()
@@ -303,6 +326,53 @@ impl Flow {
                 .map_err(|e| format!("Failed to build flow: {:?}", e))?
         };
 
+        // Run phase=Init modules: load and initialize them once at startup.
+        // Their ox_plugin_process is a no-op; all work is done in ox_plugin_init.
+        // Contexts are kept alive until Flow is dropped so ox_plugin_destroy fires.
+        let mut init_plugins: Vec<PluginInstance> = Vec::new();
+        for mod_cfg in &config.modules {
+            let is_init = mod_cfg.extra_params.get("phase")
+                .and_then(|v| v.as_str())
+                .map(|s| s.eq_ignore_ascii_case("init"))
+                .unwrap_or(false);
+            if !is_init { continue; }
+
+            let module_id = mod_cfg.id.as_deref().unwrap_or(&mod_cfg.name).to_string();
+            let path = mod_cfg.path.clone()
+                .unwrap_or_else(|| format!("{}/lib{}.so", plugin_dir, mod_cfg.name));
+
+            let mut plugin_map = serde_json::Map::new();
+            for (k, v) in &mod_cfg.extra_params {
+                if k == "phase" || k == "routes" { continue; }
+                plugin_map.insert(k.clone(), v.clone());
+            }
+            if let Some(params) = &mod_cfg.params {
+                if let Some(params_obj) = params.as_object() {
+                    for (k, v) in params_obj {
+                        plugin_map.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+            let init_config_json = serde_json::to_string(&serde_json::Value::Object(plugin_map))
+                .unwrap_or_else(|_| "{}".to_string());
+
+            unsafe {
+                match manager.ensure_plugin_loaded(&module_id, &path) {
+                    Ok(plugin) => match plugin.init(&init_config_json, &api) {
+                        Ok(ctx) => {
+                            init_plugins.push(PluginInstance { name: module_id.clone(), plugin, ctx });
+                        }
+                        Err(e) => {
+                            return Err(format!("Init plugin '{}' failed: {:?}", module_id, e));
+                        }
+                    },
+                    Err(e) => {
+                        return Err(format!("Failed to load init plugin '{}': {:?}", module_id, e));
+                    }
+                }
+            }
+        }
+
         // Allow up to 4× CPU threads to run plugin pipelines concurrently.
         // Requests beyond this limit wait as async futures — no thread explosion.
         let concurrency = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(8) * 4;
@@ -313,6 +383,7 @@ impl Flow {
             main_flow,
             api,
             plugin_semaphore: Arc::new(tokio::sync::Semaphore::new(concurrency)),
+            init_plugins,
         })
     }
 
@@ -331,6 +402,13 @@ impl Flow {
 
             for (k, v) in parts.headers.iter() {
                 w.fields.insert(format!("request.header.{}", k.as_str()), ox_workflow_core::state::FieldValue::String(v.to_str().unwrap_or("").to_string()));
+            }
+
+            // HTTP/2 sends :authority pseudo-header instead of Host; fall back to URI authority.
+            if !w.fields.contains_key("request.header.host") {
+                if let Some(authority) = parts.uri.authority() {
+                    w.fields.insert("request.header.host".to_string(), ox_workflow_core::state::FieldValue::String(authority.to_string()));
+                }
             }
 
             // Defaults for response in case flow fails early

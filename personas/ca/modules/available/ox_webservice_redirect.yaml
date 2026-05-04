@@ -1,1 +1,11 @@
-../../../../crates/webservice/ox_webservice_redirect/conf/ox_webservice_redirect.yaml
+modules:
+  - id: "https_redirect"
+    name: "ox_webservice_redirect"
+    phase: EarlyRequest
+    params:
+      config_file: "${{OX_BASE}}/personas/ca/modules/conf/https_redirect.yaml"
+routes:
+  - url: ".*"
+    protocol: "http"
+    module_id: "https_redirect"
+    priority: 1000

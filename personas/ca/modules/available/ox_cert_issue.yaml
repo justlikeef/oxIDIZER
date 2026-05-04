@@ -1,1 +1,11 @@
-../../../../crates/cert/ox_cert_issue/conf/ox_cert_issue.yaml
+modules:
+  - id: "cert_issue"
+    name: "ox_cert_issue"
+    phase: Content
+    params:
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_issue/conf/plugin.yaml"
+routes:
+  - url: "^/api/v1/certificates/?$"
+    method: POST
+    module_id: "cert_issue"
+    priority: 100

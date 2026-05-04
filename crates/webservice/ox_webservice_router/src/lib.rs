@@ -32,6 +32,7 @@ pub struct RouterModule {
 
 struct CompiledRoute {
     matcher_path_regex: Option<Regex>,
+    matcher_method: Option<String>,
     matcher_header_regexes: HashMap<String, Regex>,
     matcher_query_regexes: HashMap<String, Regex>,
     module_id: String,
@@ -81,6 +82,8 @@ impl RouterModule {
 
             compiled_routes.push(CompiledRoute {
                 matcher_path_regex: path_regex,
+                matcher_method: route.matcher.as_ref().and_then(|m| m.method.clone())
+                    .map(|s| s.to_uppercase()),
                 matcher_header_regexes: header_regexes,
                 matcher_query_regexes: query_regexes,
                 module_id_cstring: CString::new(route.module_id.clone()).unwrap_or_default(),
@@ -170,10 +173,15 @@ pub unsafe extern "C" fn ox_plugin_process(
 
     let protocol = get_field(api, task_ctx, "request.protocol");
     let original_path = get_field(api, task_ctx, "request.path");
+    let request_method = get_field(api, task_ctx, "request.method");
 
     for route in &context.module.compiled_routes {
         if let Some(proto) = &route.matcher_protocol {
             if !proto.eq_ignore_ascii_case(&protocol) && !protocol.is_empty() { continue; }
+        }
+
+        if let Some(method) = &route.matcher_method {
+            if !method.eq_ignore_ascii_case(&request_method) { continue; }
         }
 
         if let Some(re) = &route.matcher_hostname_regex {

@@ -1,4 +1,4 @@
-log4rs_config: "/var/repos/oxIDIZER/personas/ca/log4rs.yaml"
+log4rs_config: "${{OX_BASE}}/personas/ca/log4rs.yaml"
 
 workflow:
   name: "ox_cert"

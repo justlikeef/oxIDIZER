@@ -3,11 +3,11 @@ modules:
     name: "ox_cert_admin"
     phase: Content
     params:
-      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_admin/conf/plugin.yaml"
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_admin/conf/plugin.yaml"
   - id: "cert_stream"
     name: "ox_webservice_stream"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_admin/conf/stream.yaml"
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_admin/conf/stream.yaml"
 
 routes:
   - url: "^/ca/root\\.crt$"

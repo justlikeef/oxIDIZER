@@ -127,7 +127,7 @@
     <div class="section-label">Certificate Lifecycle</div>
     <div class="function-grid">
 
-        <a class="function-card" href="/ca/admin/">
+        <a class="function-card" href="/ca/admin/#sign">
             <div class="card-icon">&#128221;</div>
             <div class="card-title">Issue Certificate</div>
             <div class="card-desc">
@@ -137,7 +137,7 @@
             <div class="card-meta">POST /api/v1/certificates</div>
         </a>
 
-        <a class="function-card" href="/ca/admin/">
+        <a class="function-card" href="/ca/admin/#renew">
             <div class="card-icon">&#128260;</div>
             <div class="card-title">Renew Certificate</div>
             <div class="card-desc">
@@ -147,7 +147,7 @@
             <div class="card-meta">POST /api/v1/certificates/{id}/renew</div>
         </a>
 
-        <a class="function-card" href="/ca/admin/">
+        <a class="function-card" href="/ca/admin/#revoke">
             <div class="card-icon">&#128683;</div>
             <div class="card-title">Revoke Certificate</div>
             <div class="card-desc">
@@ -157,7 +157,7 @@
             <div class="card-meta">POST /api/v1/certificates/{id}/revoke</div>
         </a>
 
-        <a class="function-card" href="/ca/admin/">
+        <a class="function-card" href="/ca/admin/#inventory">
             <div class="card-icon">&#128203;</div>
             <div class="card-title">Certificate Inventory</div>
             <div class="card-desc">
@@ -173,7 +173,7 @@
     <div class="section-label">Revocation &amp; Status</div>
     <div class="function-grid">
 
-        <a class="function-card" href="/api/v1/ca/ocsp">
+        <a class="function-card" href="/ocsp/">
             <div class="card-icon">&#9989;</div>
             <div class="card-title">Certificate Status (OCSP)</div>
             <div class="card-desc">
@@ -181,10 +181,10 @@
                 Online Certificate Status Protocol. Used automatically by browsers
                 and TLS clients.
             </div>
-            <div class="card-meta">/api/v1/ca/ocsp &mdash; RFC 6960</div>
+            <div class="card-meta">/ocsp/ &mdash; RFC 6960</div>
         </a>
 
-        <a class="function-card" href="/api/v1/ca/crl">
+        <a class="function-card" href="/crl" download>
             <div class="card-icon">&#128462;</div>
             <div class="card-title">Certificate Revocation List</div>
             <div class="card-desc">
@@ -192,7 +192,7 @@
                 on a regular schedule and available for offline or policy-based
                 revocation checking.
             </div>
-            <div class="card-meta">/api/v1/ca/crl &mdash; RFC 5280</div>
+            <div class="card-meta">/crl &mdash; RFC 5280</div>
         </a>
 
     </div>
@@ -223,7 +223,7 @@
             <div class="card-meta">/.well-known/est/ &mdash; RFC 7030</div>
         </a>
 
-        <a class="function-card" href="/api/v1/scep">
+        <a class="function-card" href="/api/v1/scep/challenges">
             <div class="card-icon">&#128268;</div>
             <div class="card-title">SCEP &mdash; Simple Certificate Enrollment Protocol</div>
             <div class="card-desc">
@@ -234,7 +234,7 @@
             <div class="card-meta">/api/v1/scep &mdash; RFC 8894</div>
         </a>
 
-        <a class="function-card" href="/api/v1/certificates/ssh">
+        <a class="function-card" href="/api/v1/ssh/config">
             <div class="card-icon">&#128290;</div>
             <div class="card-title">SSH Certificates</div>
             <div class="card-desc">
@@ -242,7 +242,7 @@
                 short-lived SSH access without distributing individual public
                 keys across servers.
             </div>
-            <div class="card-meta">/api/v1/certificates/ssh &mdash; OpenSSH format</div>
+            <div class="card-meta">/api/v1/ssh/ &mdash; OpenSSH format</div>
         </a>
 
     </div>
@@ -289,7 +289,7 @@
             <div class="card-meta">/ca/admin/ &mdash; full management interface</div>
         </a>
 
-        <a class="function-card" href="/api/v1/trust">
+        <a class="function-card" href="/api/v1/trust/info">
             <div class="card-icon">&#128101;</div>
             <div class="card-title">Trust Management</div>
             <div class="card-desc">

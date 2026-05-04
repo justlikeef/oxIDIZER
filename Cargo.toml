@@ -109,5 +109,6 @@ members = [
     "crates/cert/ox_cert_ocsp",
     "crates/cert/ox_cert_ssh",
     "crates/cert/ox_cert_acme",
+    "crates/cert/ox_cert_est",
     "crates/data/ox_data_error",
 ]

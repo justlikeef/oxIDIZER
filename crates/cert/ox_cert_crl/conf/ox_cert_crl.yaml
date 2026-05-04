@@ -3,7 +3,7 @@ modules:
     name: "ox_cert_crl"
     phase: Content
     params:
-      config_file: "/var/repos/oxIDIZER/crates/cert/ox_cert_crl/conf/plugin.yaml"
+      config_file: "${{OX_BASE}}/crates/cert/ox_cert_crl/conf/plugin.yaml"
 routes:
   - url: "^/crl(\\.der|/delta)?$"
     module_id: "cert_crl"

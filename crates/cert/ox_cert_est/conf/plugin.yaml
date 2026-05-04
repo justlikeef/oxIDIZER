@@ -1,0 +1,37 @@
+tenant_id: "default"
+default_profile: "server"
+
+ca_intermediate_key_id: "ca-intermediate"
+ca_intermediate_cert_path: "/etc/pki/ox_webservice/ca/intermediate.crt"
+ca_root_cert_path: "/etc/pki/ox_webservice/ca/root.crt"
+
+store:
+  driver: "sqlite"
+  path: "/var/lib/ox_webservice/cert.db"
+
+keystore:
+  store_type: software
+  key_dir: "/etc/pki/ox_webservice/private"
+  passphrase_env: "OX_CA_KEY_PASS"
+
+policy:
+  domain_allowlist: []
+  domain_blocklist: []
+  max_san_count: 100
+  wildcard_allowed: true
+  min_rsa_bits: 2048
+  require_ra_approval: false
+
+# HTTP Basic auth for enrollment endpoints.
+# Set basic_auth_enabled: false to require mTLS only.
+basic_auth_enabled: true
+require_client_cert: false
+
+# credentials: []   # empty = open access; add entries to restrict
+credentials: []
+
+# Labels map EST /{label}/ paths to certificate profiles.
+labels: {}
+
+# OIDs to advertise via GET /csrattrs (dotted-decimal strings).
+csr_attrs: []

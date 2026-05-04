@@ -19,7 +19,7 @@ modules:
     params:
       # Example params for 'ox_webservice_stream':
       content_root: "/var/www/sample"
-      mimetypes_file: "/var/repos/oxIDIZER/personas/common/mimetypes.yaml"
+      mimetypes_file: "${{OX_BASE}}/personas/common/mimetypes.yaml"
       on_content_conflict: "overwrite"
 
     # --- Library Path ---

@@ -2,7 +2,7 @@ modules:
   - id: "errorhandler_jinja2"
     name: "ox_webservice_errorhandler_jinja2"
     params:
-      config_file: "/var/repos/oxIDIZER/crates/webservice/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
+      config_file: "${{OX_BASE}}/crates/webservice/ox_webservice_errorhandler_jinja2/conf/errorhandler_jinja2.yaml"
 routes:
   - url: ".*"
     status_code: "4??|5??"

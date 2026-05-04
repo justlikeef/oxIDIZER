@@ -55,6 +55,16 @@ log_message() {
     fi
 }
 
+# Load environment overrides (secrets, port overrides, etc.) from .env if present.
+# This file is not committed; create it locally to set e.g. OX_CA_KEY_PASS.
+if [ -f "$WORKSPACE_DIR/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$WORKSPACE_DIR/.env"
+    set +a
+    log_message "$LOG_LEVEL" "debug" "Loaded environment from $WORKSPACE_DIR/.env"
+fi
+
 log_message "$LOG_LEVEL" "notice" "Starting server process..."
 log_message "$LOG_LEVEL" "debug" "Server Executable Target: $TARGET"
 log_message "$LOG_LEVEL" "debug" "Persona: $PERSONA"

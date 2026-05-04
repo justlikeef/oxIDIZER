@@ -113,7 +113,14 @@ impl StageRunner {
                                 if target_fc.code == FLOW_CONTROL_ERROR {
                                     let task_ptr2 = task as *mut Task as *mut c_void;
                                     target_plugin.plugin.error(target_plugin.ctx, task_ptr2);
-                                    return target_fc;
+                                    // Respect the stage on_error policy (same as the normal plugin loop).
+                                    match self.on_error_target.as_deref() {
+                                        Some("continue") => { break; } // error handled, stage ends
+                                        Some("end") => {
+                                            return FlowControl { code: FLOW_CONTROL_END, payload: std::ptr::null() };
+                                        }
+                                        _ => { return target_fc; }
+                                    }
                                 }
                                 last_fc = target_fc;
                             }
