@@ -39,7 +39,7 @@ ARCH=$(dpkg --print-architecture)
 MAINTAINER="oxIDIZER Team <support@oxidizer.io>"
 
 CERT_PLUGINS=(acme admin ca_init crl health issue notify ocsp p12 ra renew revoke ssh webhook)
-WS_CRATES=(ox_auth_ip ox_webservice_errorhandler_jinja2 ox_webservice_errorhandler_json ox_webservice_forwarded_for ox_webservice_ping ox_webservice_redirect ox_webservice_status ox_webservice_stream ox_webservice_template_jinja2 ox_webservice_vary_header ox_webservice_wsgi)
+WS_CRATES=(ox_auth_ip ox_webservice_errorhandler_jinja2 ox_webservice_errorhandler_json ox_webservice_forwarded_for ox_webservice_ping ox_webservice_redirect ox_webservice_status ox_webservice_stream ox_webservice_template_jinja2 ox_webservice_vary_header)
 
 echo "--- Building ox CA packages v${VERSION} (${BUILD_PROFILE}) ---"
 echo
@@ -222,6 +222,7 @@ EOF
              "$S/etc/ox_webservice"
     cp -r "$WS_CRATES_DIR/$CRATE/content/www/status/." \
           "$S/usr/share/ox_webservice/status/"
+    cp "$WS_CRATES_DIR/$CRATE/conf/status.yaml" "$S/etc/ox_webservice/"
     cat > "$S/etc/ox_webservice/ox_webservice_status_stream.yaml" <<'EOF'
 content_root: "/usr/share/ox_webservice/status"
 mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
@@ -443,6 +444,7 @@ EOF
 # CA trust page content and operational scripts
 cp -r "$ROOT_DIR/crates/cert/ox_cert_admin/content" "$S/usr/share/ox_webservice/"
 cp "$SCRIPT_DIR/generate-root-ca.sh"              "$S/usr/share/ox_webservice/"
+cp "$SCRIPT_DIR/install-ca-cert.sh"               "$S/usr/share/ox_webservice/"
 cp "$INSTALL_DIR/script/check-ca-key.sh"          "$S/usr/share/ox_webservice/"
 cp "$INSTALL_DIR/script/unlock-ca.sh"             "$S/usr/share/ox_webservice/"
 chmod 755 "$S/usr/share/ox_webservice/"*.sh

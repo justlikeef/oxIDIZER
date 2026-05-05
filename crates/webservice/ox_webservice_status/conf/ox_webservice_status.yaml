@@ -24,3 +24,4 @@ routes:
     module_id: "stream_status"
     phase: Content
     priority: 500
+    path_capture: true

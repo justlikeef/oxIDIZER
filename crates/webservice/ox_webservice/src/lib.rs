@@ -24,6 +24,9 @@ pub struct ServerDetails {
     pub hosts: Vec<HostConfig>,
     #[serde(default = "default_backlog")]
     pub backlog: u32,
+    /// Set to false to disable in-place TLS upgrade on this HTTP listener.
+    /// When absent or true, upgrade is active whenever any host has TLS certs configured.
+    pub tls_upgrade: Option<bool>,
 }
 
 fn default_backlog() -> u32 {
@@ -51,6 +54,7 @@ pub struct UrlRoute {
     pub query: Option<HashMap<String, String>>,
     #[serde(default)]
     pub priority: u16,
+    #[serde(alias = "phase")]
     pub stage: Option<String>,
     pub module_id: Option<String>,
     pub status_code: Option<String>,
