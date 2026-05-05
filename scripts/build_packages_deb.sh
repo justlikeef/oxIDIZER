@@ -190,28 +190,22 @@ for CRATE in "${WS_CRATES[@]}"; do
     done
   fi
 
-  # ox_webservice_stream: install default layout/theme content and generate the
-  # data configs that content_stream_default.yaml references at runtime.
+  # ox_webservice_stream: install a single unified content root combining the
+  # blue theme CSS with the layout assets (images, js, index.html).  This is
+  # what content_stream_default.yaml's single ^(.*)$ catch-all serves.
   if [[ "$CRATE" == "ox_webservice_stream" ]]; then
-    mkdir -p "$S/usr/share/ox_webservice/content/layouts/default/www" \
-             "$S/usr/share/ox_webservice/content/themes/brown/www" \
+    mkdir -p "$S/usr/share/ox_webservice/stream-content/www" \
              "$S/etc/ox_webservice"
     cp -r "$ROOT_DIR/content/layouts/default/www/." \
-          "$S/usr/share/ox_webservice/content/layouts/default/www/"
-    cp -r "$ROOT_DIR/content/themes/brown/www/." \
-          "$S/usr/share/ox_webservice/content/themes/brown/www/"
+          "$S/usr/share/ox_webservice/stream-content/www/"
+    cp -r "$ROOT_DIR/content/themes/blue/www/." \
+          "$S/usr/share/ox_webservice/stream-content/www/"
     cat > "$S/etc/ox_webservice/layout.yaml" <<'EOF'
-content_root: "/usr/share/ox_webservice/content/layouts/default/www"
+content_root: "/usr/share/ox_webservice/stream-content/www"
 mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
 default_documents:
   - document: "index.html"
 on_content_conflict: "skip"
-EOF
-    cat > "$S/etc/ox_webservice/theme.yaml" <<'EOF'
-content_root: "/usr/share/ox_webservice/content/themes/brown/www"
-mimetypes_file: "/etc/ox_webservice/mimetypes.yaml"
-default_documents: []
-on_content_conflict: skip
 EOF
   fi
 
