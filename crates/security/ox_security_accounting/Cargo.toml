@@ -1,0 +1,15 @@
+[package]
+name = "ox_security_accounting"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[dependencies]
+ox_security_core = { path = "../ox_security_core" }
+async-trait      = "0.1"
+serde_json       = "1"
+
+[dev-dependencies]
+tokio    = { version = "1", features = ["macros", "rt"] }
+tempfile = "3"
+chrono   = "0.4"
