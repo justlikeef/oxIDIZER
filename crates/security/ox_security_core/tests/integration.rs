@@ -273,3 +273,37 @@ fn authz_result_deny_carries_reason() {
         assert!(reason.contains("no grant"));
     }
 }
+
+use chrono::Utc;
+use ox_security_core::accounting::{AccountingEvent, AuthOutcome, AuthzOutcome};
+use ox_security_core::types::SessionId;
+
+#[test]
+fn accounting_event_constructed() {
+    let event = AccountingEvent {
+        principal_id: None,
+        auth_outcome: AuthOutcome::Failed("bad password".to_string()),
+        authz_outcome: None,
+        call_context: "com.justlikeef.application1".to_string(),
+        object_fragment: None,
+        operation_name: None,
+        timestamp: Utc::now(),
+        source_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+        session_id: None,
+        tenant_id: TenantId::from_str("acme").unwrap(),
+    };
+    assert!(matches!(event.auth_outcome, AuthOutcome::Failed(_)));
+    assert!(event.authz_outcome.is_none());
+}
+
+#[test]
+fn authz_outcome_denied_carries_path_and_op() {
+    let outcome = AuthzOutcome::Denied {
+        path: "com.justlikeef.data.obj1".to_string(),
+        operation_name: "write".to_string(),
+    };
+    if let AuthzOutcome::Denied { path, operation_name } = outcome {
+        assert_eq!(path, "com.justlikeef.data.obj1");
+        assert_eq!(operation_name, "write");
+    }
+}
