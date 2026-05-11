@@ -15,7 +15,10 @@ impl ValidationSet {
         self.rules.push(rule);
         self
     }
-    pub fn validate(&self, _gdo: &GenericDataObject) -> ValidationResult {
-        ValidationResult { errors: vec![] }
+    pub fn validate(&self, gdo: &GenericDataObject) -> ValidationResult {
+        let errors = self.rules.iter()
+            .filter_map(|rule| rule.validate(gdo).err())
+            .collect();
+        ValidationResult { errors }
     }
 }

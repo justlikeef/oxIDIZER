@@ -311,3 +311,31 @@ fn custom_fails() {
     assert_eq!(err.rule, "custom");
     assert!(err.message.contains("not 42"));
 }
+
+use ox_validation::ValidationSet;
+
+#[test]
+fn validation_set_collects_all_errors() {
+    let mut set = ValidationSet::new("user");
+    set.add_rule(Box::new(Required { attribute: "email".to_string(), message: None }))
+       .add_rule(Box::new(Required { attribute: "name".to_string(), message: None }));
+    let gdo = GenericDataObject::new("user", None);
+    let result = set.validate(&gdo);
+    assert!(!result.is_valid());
+    assert_eq!(result.errors.len(), 2);
+}
+
+#[test]
+fn validation_set_passes_when_all_rules_pass() {
+    let mut set = ValidationSet::new("user");
+    set.add_rule(Box::new(Required { attribute: "email".to_string(), message: None }));
+    let gdo = gdo_with("email", "user@example.com");
+    let result = set.validate(&gdo);
+    assert!(result.is_valid());
+}
+
+#[test]
+fn validation_set_object_id() {
+    let set = ValidationSet::new("my_object");
+    assert_eq!(set.object_id, "my_object");
+}
