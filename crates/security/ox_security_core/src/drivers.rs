@@ -15,6 +15,9 @@ pub enum AuthResult {
 pub enum AuthzResult {
     Allow,
     Deny(String),
+    /// No decision — pass to the next driver in the pipeline.
+    /// If no driver produces `Allow` or `Deny`, the pipeline denies (fail-closed).
+    Continue,
 }
 
 #[async_trait]

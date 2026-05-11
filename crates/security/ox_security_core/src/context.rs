@@ -47,6 +47,12 @@ impl SecurityContext {
                 path,
                 operation: operation.to_string(),
             }),
+            // A single driver returning Continue with no pipeline to continue means
+            // no grant was found — fail-closed.
+            crate::drivers::AuthzResult::Continue => Err(AuthzError::Denied {
+                path,
+                operation: operation.to_string(),
+            }),
         }
     }
 }
