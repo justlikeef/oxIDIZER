@@ -70,3 +70,34 @@ fn mfa_challenge_push_contains_token() {
         assert_eq!(session_token.as_str(), token.as_str());
     }
 }
+
+use ox_security_core::principal::{PartialPrincipal, Principal};
+use ox_security_core::types::GroupId;
+
+#[test]
+fn principal_constructed_with_groups() {
+    let p = Principal {
+        id: PrincipalId::new(),
+        display_name: "John Smith".to_string(),
+        source: AuthSource::Ldap,
+        groups: vec![GroupId::new("it"), GroupId::new("dataadmins")],
+        tenant_id: TenantId::from_str("acme").unwrap(),
+        session_id: None,
+    };
+    assert_eq!(p.groups.len(), 2);
+    assert_eq!(p.display_name, "John Smith");
+}
+
+#[test]
+fn partial_principal_promotes_to_principal() {
+    let partial = PartialPrincipal {
+        id: PrincipalId::new(),
+        display_name: "Jane".to_string(),
+        source: AuthSource::Local,
+        groups: vec![GroupId::new("finance")],
+        tenant_id: TenantId::from_str("acme").unwrap(),
+    };
+    let principal: Principal = partial.into_principal(None);
+    assert_eq!(principal.display_name, "Jane");
+    assert!(principal.session_id.is_none());
+}
