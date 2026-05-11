@@ -101,3 +101,36 @@ fn partial_principal_promotes_to_principal() {
     assert_eq!(principal.display_name, "Jane");
     assert!(principal.session_id.is_none());
 }
+
+use ox_security_core::context::{AuthPipelineContext, SecurityContext};
+use std::net::{IpAddr, Ipv4Addr};
+
+#[test]
+fn security_context_default_state() {
+    let ctx = SecurityContext::new(
+        TenantId::from_str("acme").unwrap(),
+        IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+    );
+    assert!(ctx.principal.is_none());
+    assert!(ctx.call_context.is_empty());
+}
+
+#[test]
+fn security_context_with_call_context() {
+    let mut ctx = SecurityContext::new(
+        TenantId::from_str("acme").unwrap(),
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+    );
+    ctx.call_context = "com.justlikeef.application1".to_string();
+    assert_eq!(ctx.call_context, "com.justlikeef.application1");
+}
+
+#[test]
+fn auth_pipeline_context_constructed() {
+    let ctx = AuthPipelineContext {
+        partial_principal: None,
+        tenant_id: TenantId::from_str("acme").unwrap(),
+        source_ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+    };
+    assert!(ctx.partial_principal.is_none());
+}
