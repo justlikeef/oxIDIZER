@@ -1,9 +1,9 @@
-#![allow(dead_code)]
-use ox_security_auth::pipeline::AuthPipeline;
+use ox_security_auth::AuthPipeline;
 use ox_security_core::{
     Credentials, AuthResult, Principal, AuthSource, PrincipalId, TenantId,
     AuthPipelineContext,
 };
+
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -25,17 +25,6 @@ struct AlwaysContinueDriver;
 impl AuthDriver for AlwaysContinueDriver {
     async fn authenticate(&self, _creds: &Credentials, _ctx: &mut AuthPipelineContext) -> AuthResult {
         AuthResult::Continue
-    }
-}
-
-fn test_principal() -> Principal {
-    Principal {
-        id: PrincipalId::new(),
-        display_name: "Test User".to_string(),
-        source: AuthSource::Local,
-        groups: vec![],
-        tenant_id: TenantId::from_str("test").unwrap(),
-        session_id: None,
     }
 }
 
@@ -105,7 +94,7 @@ async fn pipeline_continues_through_misses() {
     assert!(matches!(result, AuthResult::Authenticated(_)));
 }
 
-use ox_security_auth::drivers::DbAuthDriver;
+use ox_security_auth::DbAuthDriver;
 
 fn make_db_driver(username: &str, password: &str) -> DbAuthDriver {
     let u = username.to_string();

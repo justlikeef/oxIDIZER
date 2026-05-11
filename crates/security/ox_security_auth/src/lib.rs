@@ -1,5 +1,5 @@
-pub mod drivers;
-pub mod pipeline;
+pub(crate) mod drivers;
+pub(crate) mod pipeline;
 
 pub use pipeline::AuthPipeline;
 pub use drivers::{

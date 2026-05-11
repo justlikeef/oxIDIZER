@@ -7,8 +7,8 @@ use ox_security_core::{
 };
 use secrecy::ExposeSecret;
 
-pub type CredentialLookupFn = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
-pub type PasswordVerifierFn = Arc<dyn Fn(&str, &str) -> bool + Send + Sync>;
+pub(crate) type CredentialLookupFn = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
+pub(crate) type PasswordVerifierFn = Arc<dyn Fn(&str, &str) -> bool + Send + Sync>;
 
 pub struct DbAuthDriver {
     tenant_id: TenantId,
