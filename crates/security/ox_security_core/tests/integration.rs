@@ -238,3 +238,38 @@ fn context_registrar_records_registration() {
     assert_eq!(registered.len(), 1);
     assert_eq!(registered[0], "dataobject1");
 }
+
+use std::sync::Arc;
+use ox_security_core::drivers::{AuthzDriver, AuthzResult};
+
+struct AlwaysAllowAuthz;
+
+#[async_trait::async_trait]
+impl AuthzDriver for AlwaysAllowAuthz {
+    async fn check(&self, _p: &Principal, _path: &str, _op: &str) -> AuthzResult {
+        AuthzResult::Allow
+    }
+}
+
+#[tokio::test]
+async fn authz_driver_trait_object() {
+    let driver: Arc<dyn AuthzDriver> = Arc::new(AlwaysAllowAuthz);
+    let principal = Principal {
+        id: PrincipalId::new(),
+        display_name: "test".to_string(),
+        source: AuthSource::Local,
+        groups: vec![],
+        tenant_id: TenantId::from_str("acme").unwrap(),
+        session_id: None,
+    };
+    let result = driver.check(&principal, "com.justlikeef.data.obj1", "read").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[test]
+fn authz_result_deny_carries_reason() {
+    let r = AuthzResult::Deny("no grant found".to_string());
+    if let AuthzResult::Deny(reason) = r {
+        assert!(reason.contains("no grant"));
+    }
+}
