@@ -35,14 +35,19 @@ impl GroupId {
 pub struct TenantId(String);
 
 impl TenantId {
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::str::FromStr for TenantId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
             return Err("tenant id must not be empty".to_string());
         }
         Ok(Self(s.to_string()))
-    }
-    pub fn as_str(&self) -> &str {
-        &self.0
     }
 }
 

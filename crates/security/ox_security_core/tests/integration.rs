@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use ox_security_core::error::{AuthzError, SecurityError};
 
 #[test]
@@ -276,7 +277,6 @@ fn authz_result_deny_carries_reason() {
 
 use chrono::Utc;
 use ox_security_core::accounting::{AccountingEvent, AuthOutcome, AuthzOutcome};
-use ox_security_core::types::SessionId;
 
 #[test]
 fn accounting_event_constructed() {

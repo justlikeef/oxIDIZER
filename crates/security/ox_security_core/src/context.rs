@@ -9,8 +9,8 @@ pub struct SecurityContext {
     pub principal: Option<Principal>,
     pub call_context: String,
     pub tenant_id: TenantId,
-    pub(crate) source_ip: IpAddr,
-    pub(crate) authz: Option<Arc<dyn AuthzDriver>>,
+    pub source_ip: IpAddr,
+    pub authz: Option<Arc<dyn AuthzDriver>>,
 }
 
 impl SecurityContext {
