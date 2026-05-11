@@ -207,6 +207,34 @@ fn context_definition_subtree_operations() {
     let all_ops = def.all_operations();
     assert!(all_ops.iter().any(|op| op.name == "read"));
     assert!(all_ops.iter().any(|op| op.name == "write"));
-    // root has no ops of its own — they come from children
     assert_eq!(def.operations.len(), 0);
+}
+
+use std::sync::Mutex;
+use ox_security_core::registration::ContextRegistrar;
+
+struct FakeRegistrar {
+    registered: Mutex<Vec<String>>,
+}
+
+impl FakeRegistrar {
+    fn new() -> Self {
+        Self { registered: Mutex::new(Vec::new()) }
+    }
+}
+
+impl ContextRegistrar for FakeRegistrar {
+    fn register_context(&self, def: ContextDefinition) {
+        self.registered.lock().unwrap().push(def.root.to_string());
+    }
+}
+
+#[test]
+fn context_registrar_records_registration() {
+    let registrar = FakeRegistrar::new();
+    let obj = FakeDataObject;
+    registrar.register_context(obj.context_definition());
+    let registered = registrar.registered.lock().unwrap();
+    assert_eq!(registered.len(), 1);
+    assert_eq!(registered[0], "dataobject1");
 }
