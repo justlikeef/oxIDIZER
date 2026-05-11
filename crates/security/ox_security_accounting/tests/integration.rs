@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::Utc;
 use ox_security_accounting::drivers::MemoryAccountingDriver;
-use ox_security_accounting::pipeline::AccountingPipeline;
+use ox_security_accounting::AccountingPipeline;
 use ox_security_core::accounting::AccountingEvent;
 use ox_security_core::drivers::AccountingDriver;
 use ox_security_core::types::TenantId;
@@ -118,7 +118,7 @@ async fn file_driver_creates_file_if_missing() {
 // ── Task 3 tests ──────────────────────────────────────────────────────────────
 
 use ox_security_accounting::drivers::{DbAccountingDriver, SyslogAccountingDriver};
-use ox_security_accounting::drivers::db::RecordFn;
+use ox_security_accounting::drivers::RecordFn;
 use std::sync::Mutex;
 
 #[tokio::test]

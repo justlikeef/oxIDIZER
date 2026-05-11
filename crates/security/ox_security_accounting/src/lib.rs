@@ -1,6 +1,6 @@
 pub mod drivers;
-pub mod event_serializer;
-pub mod pipeline;
+pub(crate) mod event_serializer;
+pub(crate) mod pipeline;
 
 pub use drivers::{
     DbAccountingDriver, FileAccountingDriver, MemoryAccountingDriver, SyslogAccountingDriver,

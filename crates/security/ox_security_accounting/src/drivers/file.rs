@@ -33,6 +33,8 @@ impl AccountingDriver for FileAccountingDriver {
             .append(true)
             .open(&self.path)
         {
+            // Write errors are silently ignored: audit failures must not block the
+            // request path. Operators should monitor file size / rotation separately.
             let _ = file.write_all(line.as_bytes());
         }
     }
