@@ -39,3 +39,34 @@ fn tenant_id_from_str() {
     let id = TenantId::from_str("acme").unwrap();
     assert_eq!(id.as_str(), "acme");
 }
+
+use ox_security_core::credentials::{Credentials, MfaChallenge};
+use ox_security_core::types::SessionToken;
+
+#[test]
+fn credentials_username_password_constructed() {
+    let c = Credentials::UsernamePassword {
+        username: "john".to_string(),
+        password: "secret".to_string().into(),
+    };
+    assert!(matches!(c, Credentials::UsernamePassword { .. }));
+}
+
+#[test]
+fn credentials_mfa_passcode_constructed() {
+    let token = SessionToken::new();
+    let c = Credentials::MfaPasscode {
+        session_token: token,
+        code: "123456".to_string(),
+    };
+    assert!(matches!(c, Credentials::MfaPasscode { .. }));
+}
+
+#[test]
+fn mfa_challenge_push_contains_token() {
+    let token = SessionToken::new();
+    let challenge = MfaChallenge::PushSent { session_token: token.clone() };
+    if let MfaChallenge::PushSent { session_token } = challenge {
+        assert_eq!(session_token.as_str(), token.as_str());
+    }
+}
