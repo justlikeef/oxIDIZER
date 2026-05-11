@@ -5,7 +5,7 @@ use ox_security_authz::AuthzPipeline;
 use ox_security_accounting::AccountingPipeline;
 use ox_security_core::{
     AccountingEvent, AuthOutcome, AuthPipelineContext, AuthResult, AuthzOutcome, AuthzResult,
-    Credentials, Principal,
+    Credentials, Principal, PrincipalId, SessionId, TenantId,
 };
 use crate::error::SecurityError;
 
@@ -31,35 +31,25 @@ impl SecurityPipeline {
         match result {
             AuthResult::Authenticated(principal) => {
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: Some(principal.id.clone()),
-                        auth_outcome: AuthOutcome::Authenticated,
-                        authz_outcome: None,
-                        call_context: String::new(),
-                        object_fragment: None,
-                        operation_name: None,
-                        timestamp: Utc::now(),
-                        source_ip: auth_ctx.source_ip,
-                        session_id: principal.session_id.clone(),
-                        tenant_id: auth_ctx.tenant_id.clone(),
-                    })
+                    .record(&Self::auth_accounting_event(
+                        AuthOutcome::Authenticated,
+                        auth_ctx.source_ip,
+                        auth_ctx.tenant_id.clone(),
+                        Some(principal.id.clone()),
+                        principal.session_id.clone(),
+                    ))
                     .await;
                 Ok(principal)
             }
             AuthResult::Reject(reason) => {
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: None,
-                        auth_outcome: AuthOutcome::Failed(reason.clone()),
-                        authz_outcome: None,
-                        call_context: String::new(),
-                        object_fragment: None,
-                        operation_name: None,
-                        timestamp: Utc::now(),
-                        source_ip: auth_ctx.source_ip,
-                        session_id: None,
-                        tenant_id: auth_ctx.tenant_id.clone(),
-                    })
+                    .record(&Self::auth_accounting_event(
+                        AuthOutcome::Failed(reason.clone()),
+                        auth_ctx.source_ip,
+                        auth_ctx.tenant_id.clone(),
+                        None,
+                        None,
+                    ))
                     .await;
                 Err(SecurityError::AuthFailed(reason))
             }
@@ -75,18 +65,13 @@ impl SecurityPipeline {
             AuthResult::Continue => {
                 let reason = "no auth driver handled credentials".to_string();
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: None,
-                        auth_outcome: AuthOutcome::Failed(reason.clone()),
-                        authz_outcome: None,
-                        call_context: String::new(),
-                        object_fragment: None,
-                        operation_name: None,
-                        timestamp: Utc::now(),
-                        source_ip: auth_ctx.source_ip,
-                        session_id: None,
-                        tenant_id: auth_ctx.tenant_id.clone(),
-                    })
+                    .record(&Self::auth_accounting_event(
+                        AuthOutcome::Failed(reason.clone()),
+                        auth_ctx.source_ip,
+                        auth_ctx.tenant_id.clone(),
+                        None,
+                        None,
+                    ))
                     .await;
                 Err(SecurityError::AuthFailed(reason))
             }
@@ -108,38 +93,26 @@ impl SecurityPipeline {
         match result {
             AuthzResult::Allow => {
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: Some(principal.id.clone()),
-                        auth_outcome: AuthOutcome::Authenticated,
-                        authz_outcome: Some(AuthzOutcome::Allowed),
-                        call_context: path.to_string(),
-                        object_fragment: None,
-                        operation_name: Some(operation.to_string()),
-                        timestamp: Utc::now(),
-                        source_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-                        session_id: principal.session_id.clone(),
-                        tenant_id: principal.tenant_id.clone(),
-                    })
+                    .record(&Self::authz_accounting_event(
+                        principal,
+                        path,
+                        operation,
+                        AuthzOutcome::Allowed,
+                    ))
                     .await;
                 Ok(())
             }
             AuthzResult::Deny(reason) => {
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: Some(principal.id.clone()),
-                        auth_outcome: AuthOutcome::Authenticated,
-                        authz_outcome: Some(AuthzOutcome::Denied {
+                    .record(&Self::authz_accounting_event(
+                        principal,
+                        path,
+                        operation,
+                        AuthzOutcome::Denied {
                             path: path.to_string(),
                             operation_name: operation.to_string(),
-                        }),
-                        call_context: path.to_string(),
-                        object_fragment: None,
-                        operation_name: Some(operation.to_string()),
-                        timestamp: Utc::now(),
-                        source_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-                        session_id: principal.session_id.clone(),
-                        tenant_id: principal.tenant_id.clone(),
-                    })
+                        },
+                    ))
                     .await;
                 Err(SecurityError::AuthzDenied(reason))
             }
@@ -147,24 +120,61 @@ impl SecurityPipeline {
                 // Continue with no further drivers means fail-closed
                 let reason = "no authz driver granted access".to_string();
                 self.accounting
-                    .record(&AccountingEvent {
-                        principal_id: Some(principal.id.clone()),
-                        auth_outcome: AuthOutcome::Authenticated,
-                        authz_outcome: Some(AuthzOutcome::Denied {
+                    .record(&Self::authz_accounting_event(
+                        principal,
+                        path,
+                        operation,
+                        AuthzOutcome::Denied {
                             path: path.to_string(),
                             operation_name: operation.to_string(),
-                        }),
-                        call_context: path.to_string(),
-                        object_fragment: None,
-                        operation_name: Some(operation.to_string()),
-                        timestamp: Utc::now(),
-                        source_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-                        session_id: principal.session_id.clone(),
-                        tenant_id: principal.tenant_id.clone(),
-                    })
+                        },
+                    ))
                     .await;
                 Err(SecurityError::AuthzDenied(reason))
             }
+        }
+    }
+
+    fn auth_accounting_event(
+        auth_outcome: AuthOutcome,
+        source_ip: IpAddr,
+        tenant_id: TenantId,
+        principal_id: Option<PrincipalId>,
+        session_id: Option<SessionId>,
+    ) -> AccountingEvent {
+        AccountingEvent {
+            principal_id,
+            auth_outcome,
+            authz_outcome: None,
+            call_context: String::new(),
+            object_fragment: None,
+            operation_name: None,
+            timestamp: Utc::now(),
+            source_ip,
+            session_id,
+            tenant_id,
+        }
+    }
+
+    fn authz_accounting_event(
+        principal: &Principal,
+        path: &str,
+        operation: &str,
+        authz_outcome: AuthzOutcome,
+    ) -> AccountingEvent {
+        AccountingEvent {
+            principal_id: Some(principal.id.clone()),
+            auth_outcome: AuthOutcome::Authenticated,
+            authz_outcome: Some(authz_outcome),
+            call_context: path.to_string(),
+            object_fragment: None,
+            operation_name: Some(operation.to_string()),
+            timestamp: Utc::now(),
+            // source_ip is not available at authz call sites; callers should pass it via
+            // an enriched principal or a future source_ip parameter on authorize().
+            source_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            session_id: principal.session_id.clone(),
+            tenant_id: principal.tenant_id.clone(),
         }
     }
 }
