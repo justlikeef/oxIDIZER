@@ -134,3 +134,29 @@ fn auth_pipeline_context_constructed() {
     };
     assert!(ctx.partial_principal.is_none());
 }
+
+use ox_security_core::operations::{
+    OP_CHANGE, OP_CREATE, OP_DDL, OP_DELETE, OP_EXECUTE, OP_LIST, OP_READ, OP_WRITE,
+    OperationDef,
+};
+
+#[test]
+fn well_known_operations_have_names() {
+    assert_eq!(OP_READ.name, "read");
+    assert_eq!(OP_WRITE.name, "write");
+    assert_eq!(OP_CREATE.name, "create");
+    assert_eq!(OP_CHANGE.name, "change");
+    assert_eq!(OP_DELETE.name, "delete");
+    assert_eq!(OP_LIST.name, "list");
+    assert_eq!(OP_EXECUTE.name, "execute");
+    assert_eq!(OP_DDL.name, "ddl");
+}
+
+#[test]
+fn operation_def_custom_name() {
+    const OP_ISSUE: OperationDef = OperationDef {
+        name: "issue",
+        description: "Issue a new certificate",
+    };
+    assert_eq!(OP_ISSUE.name, "issue");
+}
