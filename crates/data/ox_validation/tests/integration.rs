@@ -257,3 +257,57 @@ fn range_fails_above() {
     let rule = Range { attribute: "pct".to_string(), min: 0.0, max: 100.0, message: None };
     assert!(rule.validate(&gdo).is_err());
 }
+
+use ox_validation::rules::{Regex as RegexRule, Custom};
+use std::sync::Arc;
+
+#[test]
+fn regex_passes() {
+    let gdo = gdo_with("email", "user@example.com");
+    let rule = RegexRule::new("email", r"^[^@]+@[^@]+\.[^@]+$", None).unwrap();
+    assert!(rule.validate(&gdo).is_ok());
+}
+
+#[test]
+fn regex_fails() {
+    let gdo = gdo_with("email", "not-an-email");
+    let rule = RegexRule::new("email", r"^[^@]+@[^@]+\.[^@]+$", None).unwrap();
+    let err = rule.validate(&gdo).unwrap_err();
+    assert_eq!(err.rule, "regex");
+}
+
+#[test]
+fn regex_invalid_pattern_returns_err() {
+    let result = RegexRule::new("f", r"[invalid", None);
+    assert!(result.is_err());
+}
+
+#[test]
+fn custom_passes() {
+    let gdo = gdo_with("score", "42");
+    let rule = Custom {
+        attribute: "score".to_string(),
+        description: "must be 42".to_string(),
+        rule_fn: Arc::new(|gdo| {
+            let v = gdo.get_attribute("score").map(|a| a.to_string()).unwrap_or_default();
+            if v == "42" { Ok(()) } else { Err("not 42".to_string()) }
+        }),
+    };
+    assert!(rule.validate(&gdo).is_ok());
+}
+
+#[test]
+fn custom_fails() {
+    let gdo = gdo_with("score", "99");
+    let rule = Custom {
+        attribute: "score".to_string(),
+        description: "must be 42".to_string(),
+        rule_fn: Arc::new(|gdo| {
+            let v = gdo.get_attribute("score").map(|a| a.to_string()).unwrap_or_default();
+            if v == "42" { Ok(()) } else { Err("not 42".to_string()) }
+        }),
+    };
+    let err = rule.validate(&gdo).unwrap_err();
+    assert_eq!(err.rule, "custom");
+    assert!(err.message.contains("not 42"));
+}
