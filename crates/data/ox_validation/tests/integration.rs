@@ -451,3 +451,12 @@ fn validatable_fires_callback_on_invalid() {
 
     unregister_validation_set("callback_invalid_test");
 }
+
+#[test]
+fn regex_rejects_partial_match() {
+    // Pattern matches "abc" but value has extra chars — must be rejected
+    let gdo = gdo_with("code", "xyzabcxyz");
+    let rule = RegexRule::new("code", r"abc", None).unwrap();
+    // Full-string match required: "abc" does not span the full string "xyzabcxyz"
+    assert!(rule.validate(&gdo).is_err());
+}

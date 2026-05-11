@@ -29,7 +29,10 @@ impl ValidationRule for Regex {
         let val = gdo.get_attribute(&self.attribute)
             .map(|a| a.to_string())
             .unwrap_or_default();
-        if !self.compiled.is_match(&val) {
+        let full_match = self.compiled
+            .find(&val)
+            .map_or(false, |m| m.start() == 0 && m.end() == val.len());
+        if !full_match {
             return Err(ValidationError {
                 attribute: self.attribute.clone(),
                 rule: self.rule_type_name().to_string(),

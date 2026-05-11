@@ -6,6 +6,7 @@ pub trait Validatable {
     fn validate(&mut self, object_id: &str) -> ValidationResult;
 }
 
+// &mut self is required because trigger_callbacks on GenericDataObject requires mutation.
 impl Validatable for GenericDataObject {
     fn validate(&mut self, object_id: &str) -> ValidationResult {
         let _ = self.trigger_callbacks("before_validate", None, None, None);
