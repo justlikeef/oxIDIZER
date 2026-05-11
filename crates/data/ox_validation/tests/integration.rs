@@ -370,3 +370,84 @@ fn registry_unregister_removes_set() {
     let result = registry_validate("temp_obj", &GenericDataObject::new("x", None));
     assert!(result.is_valid());
 }
+
+use ox_validation::Validatable;
+
+#[test]
+fn validatable_on_gdo_valid() {
+    let mut set = ValidationSet::new("gdo_valid_test");
+    set.add_rule(Box::new(Required { attribute: "field".to_string(), message: None }));
+    register_validation_set(set);
+
+    let mut gdo = gdo_with("field", "value");
+    let result = gdo.validate("gdo_valid_test");
+    assert!(result.is_valid());
+
+    unregister_validation_set("gdo_valid_test");
+}
+
+#[test]
+fn validatable_on_gdo_invalid() {
+    let mut set = ValidationSet::new("gdo_invalid_test");
+    set.add_rule(Box::new(Required { attribute: "mandatory".to_string(), message: None }));
+    register_validation_set(set);
+
+    let mut gdo = GenericDataObject::new("x", None);
+    let result = gdo.validate("gdo_invalid_test");
+    assert!(!result.is_valid());
+    assert_eq!(result.errors[0].attribute, "mandatory");
+
+    unregister_validation_set("gdo_invalid_test");
+}
+
+#[test]
+fn validatable_fires_callback_on_valid() {
+    use std::sync::{Arc, Mutex};
+    use ox_callback_manager::EventType;
+
+    let mut set = ValidationSet::new("callback_valid_test");
+    set.add_rule(Box::new(Required { attribute: "x".to_string(), message: None }));
+    register_validation_set(set);
+
+    let fired = Arc::new(Mutex::new(false));
+    let fired_clone = fired.clone();
+
+    let mut gdo = gdo_with("x", "hello");
+    gdo.register_callback(
+        EventType::new("after_validate"),
+        Arc::new(move |_gdo, _params| {
+            *fired_clone.lock().unwrap() = true;
+            Ok(())
+        }),
+    );
+    gdo.validate("callback_valid_test");
+    assert!(*fired.lock().unwrap());
+
+    unregister_validation_set("callback_valid_test");
+}
+
+#[test]
+fn validatable_fires_callback_on_invalid() {
+    use std::sync::{Arc, Mutex};
+    use ox_callback_manager::EventType;
+
+    let mut set = ValidationSet::new("callback_invalid_test");
+    set.add_rule(Box::new(Required { attribute: "missing".to_string(), message: None }));
+    register_validation_set(set);
+
+    let fired = Arc::new(Mutex::new(false));
+    let fired_clone = fired.clone();
+
+    let mut gdo = GenericDataObject::new("x", None);
+    gdo.register_callback(
+        EventType::new("on_error_validate"),
+        Arc::new(move |_gdo, _params| {
+            *fired_clone.lock().unwrap() = true;
+            Ok(())
+        }),
+    );
+    gdo.validate("callback_invalid_test");
+    assert!(*fired.lock().unwrap());
+
+    unregister_validation_set("callback_invalid_test");
+}
