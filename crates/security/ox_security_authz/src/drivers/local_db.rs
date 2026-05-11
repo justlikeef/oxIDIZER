@@ -25,29 +25,6 @@ impl LocalDbAuthzDriver {
     }
 }
 
-/// Returns true if `resource_pattern` matches `resource`.
-///
-/// Matching rules:
-///   - `None`                 → matches any resource
-///   - `Some("files/*")`      → matches any resource starting with `"files/"`
-///   - `Some("files/a.txt")`  → matches only the exact string `"files/a.txt"`
-fn pattern_matches(resource_pattern: &Option<String>, resource: &str) -> bool {
-    match resource_pattern {
-        None => true,
-        Some(pattern) => {
-            if let Some(prefix) = pattern.strip_suffix("/*") {
-                // wildcard: resource must start with "<prefix>/"
-                resource.len() > prefix.len()
-                    && resource.starts_with(prefix)
-                    && resource.as_bytes()[prefix.len()] == b'/'
-            } else {
-                // exact match
-                resource == pattern.as_str()
-            }
-        }
-    }
-}
-
 #[async_trait]
 impl AuthzDriver for LocalDbAuthzDriver {
     async fn check(

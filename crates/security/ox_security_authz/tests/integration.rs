@@ -214,9 +214,8 @@ async fn local_db_exact_beats_wildcard() {
 
 #[tokio::test]
 async fn local_db_no_principal_continues() {
-    // SecurityContext.principal is None — the driver cannot check, so Continue.
-    // The LocalDbAuthzDriver.check() receives a &Principal so it always has one;
-    // this test verifies that an empty grants list → Continue (not Deny).
+    // An empty grants list means the driver has nothing to match against,
+    // so it returns Continue to let the next pipeline driver decide.
     let driver = make_driver(vec![]);
     let principal = test_principal();
     let result = driver.check(&principal, "any/resource", "read").await;
