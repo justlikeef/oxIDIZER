@@ -97,6 +97,7 @@ members = [
     "crates/security/ox_security_accounting",
     "crates/security/ox_security_auth",
     "crates/security/ox_security_authz",
+    "crates/security/ox_security_pipeline",
 
     # cert
     "crates/cert/ox_cert_core",

@@ -1,0 +1,18 @@
+[package]
+name = "ox_security_pipeline"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[dependencies]
+ox_security_core       = { path = "../ox_security_core" }
+ox_security_auth       = { path = "../ox_security_auth" }
+ox_security_authz      = { path = "../ox_security_authz" }
+ox_security_accounting = { path = "../ox_security_accounting" }
+async-trait            = "0.1"
+thiserror              = "1"
+chrono                 = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio   = { version = "1", features = ["macros", "rt"] }
+secrecy = { version = "0.8", features = ["serde"] }
