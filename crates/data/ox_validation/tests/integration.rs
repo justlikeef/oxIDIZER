@@ -197,3 +197,63 @@ fn matches_fails() {
     let err = rule.validate(&gdo).unwrap_err();
     assert_eq!(err.rule, "matches");
 }
+
+use ox_validation::rules::{Min, Max, Range};
+
+#[test]
+fn min_passes() {
+    let gdo = gdo_with("age", "25");
+    let rule = Min { attribute: "age".to_string(), min: 18.0, message: None };
+    assert!(rule.validate(&gdo).is_ok());
+}
+
+#[test]
+fn min_fails() {
+    let gdo = gdo_with("age", "15");
+    let rule = Min { attribute: "age".to_string(), min: 18.0, message: None };
+    let err = rule.validate(&gdo).unwrap_err();
+    assert_eq!(err.rule, "min");
+}
+
+#[test]
+fn min_fails_non_numeric() {
+    let gdo = gdo_with("age", "not-a-number");
+    let rule = Min { attribute: "age".to_string(), min: 18.0, message: None };
+    assert!(rule.validate(&gdo).is_err());
+}
+
+#[test]
+fn max_passes() {
+    let gdo = gdo_with("score", "95");
+    let rule = Max { attribute: "score".to_string(), max: 100.0, message: None };
+    assert!(rule.validate(&gdo).is_ok());
+}
+
+#[test]
+fn max_fails() {
+    let gdo = gdo_with("score", "110");
+    let rule = Max { attribute: "score".to_string(), max: 100.0, message: None };
+    let err = rule.validate(&gdo).unwrap_err();
+    assert_eq!(err.rule, "max");
+}
+
+#[test]
+fn range_passes() {
+    let gdo = gdo_with("pct", "50");
+    let rule = Range { attribute: "pct".to_string(), min: 0.0, max: 100.0, message: None };
+    assert!(rule.validate(&gdo).is_ok());
+}
+
+#[test]
+fn range_fails_below() {
+    let gdo = gdo_with("pct", "-5");
+    let rule = Range { attribute: "pct".to_string(), min: 0.0, max: 100.0, message: None };
+    assert!(rule.validate(&gdo).is_err());
+}
+
+#[test]
+fn range_fails_above() {
+    let gdo = gdo_with("pct", "105");
+    let rule = Range { attribute: "pct".to_string(), min: 0.0, max: 100.0, message: None };
+    assert!(rule.validate(&gdo).is_err());
+}
