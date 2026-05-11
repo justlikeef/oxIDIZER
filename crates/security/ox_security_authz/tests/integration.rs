@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use async_trait::async_trait;
-use ox_security_authz::pipeline::AuthzPipeline;
+use ox_security_authz::AuthzPipeline;
 use ox_security_core::{
     AuthzResult,
     drivers::AuthzDriver,
@@ -96,10 +96,7 @@ async fn pipeline_continues_through_continues() {
 
 // ─── LocalDbAuthzDriver tests ───────────────────────────────────────────────
 
-use ox_security_authz::{
-    drivers::LocalDbAuthzDriver,
-    grant::PermissionGrant,
-};
+use ox_security_authz::{LocalDbAuthzDriver, PermissionGrant};
 
 fn make_driver(grants: Vec<PermissionGrant>) -> LocalDbAuthzDriver {
     let grants = Arc::new(grants);

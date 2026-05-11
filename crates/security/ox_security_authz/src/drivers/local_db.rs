@@ -12,7 +12,7 @@ use crate::grant::PermissionGrant;
 /// PermissionGrants that apply (direct grants + group grants combined).
 /// The injected function is responsible for querying whatever backing store
 /// (database, in-memory map, etc.) is appropriate for the deployment.
-pub type GrantLookupFn =
+pub(crate) type GrantLookupFn =
     Arc<dyn Fn(&PrincipalId, &[GroupId]) -> Vec<PermissionGrant> + Send + Sync>;
 
 pub struct LocalDbAuthzDriver {
@@ -37,7 +37,9 @@ fn pattern_matches(resource_pattern: &Option<String>, resource: &str) -> bool {
         Some(pattern) => {
             if let Some(prefix) = pattern.strip_suffix("/*") {
                 // wildcard: resource must start with "<prefix>/"
-                resource.starts_with(&format!("{}/", prefix))
+                resource.len() > prefix.len()
+                    && resource.starts_with(prefix)
+                    && resource.as_bytes()[prefix.len()] == b'/'
             } else {
                 // exact match
                 resource == pattern.as_str()
@@ -79,8 +81,11 @@ impl AuthzDriver for LocalDbAuthzDriver {
                 continue;
             }
             if let Some(ref pat) = grant.resource_pattern {
-                if pat.ends_with("/*") {
-                    if pattern_matches(&grant.resource_pattern, path) {
+                if let Some(prefix) = pat.strip_suffix("/*") {
+                    if path.len() > prefix.len()
+                        && path.starts_with(prefix)
+                        && path.as_bytes()[prefix.len()] == b'/'
+                    {
                         return AuthzResult::Allow;
                     }
                 }

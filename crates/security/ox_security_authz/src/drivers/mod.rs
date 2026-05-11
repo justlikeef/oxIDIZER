@@ -1,7 +1,7 @@
-pub mod ad;
-pub mod ldap;
-pub mod local_db;
-pub mod okta;
+pub(crate) mod ad;
+pub(crate) mod ldap;
+pub(crate) mod local_db;
+pub(crate) mod okta;
 
 pub use ad::AdAuthzDriver;
 pub use ldap::LdapAuthzDriver;
