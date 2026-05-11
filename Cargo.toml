@@ -92,6 +92,9 @@ members = [
     "crates/cc/ox_cc_keygen",
     "crates/cc/ox_cc_executor", "crates/data/ox_validation",
 
+    # security
+    "crates/security/ox_security_core",
+
     # cert
     "crates/cert/ox_cert_core",
     "crates/cert/ox_cert_issue_lib",
