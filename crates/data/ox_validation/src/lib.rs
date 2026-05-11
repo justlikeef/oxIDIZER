@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub mod error;
+pub mod rule;
+pub mod rules;
+pub mod registry;
+pub mod set;
+pub mod validatable;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use error::{ValidationError, ValidationResult};
+pub use rule::ValidationRule;
+pub use set::ValidationSet;
+pub use registry::{register_validation_set, unregister_validation_set, validate as registry_validate};
+pub use validatable::Validatable;
