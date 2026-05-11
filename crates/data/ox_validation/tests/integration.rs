@@ -339,3 +339,34 @@ fn validation_set_object_id() {
     let set = ValidationSet::new("my_object");
     assert_eq!(set.object_id, "my_object");
 }
+
+use ox_validation::{register_validation_set, unregister_validation_set, registry_validate};
+
+#[test]
+fn registry_validate_registered_set() {
+    let mut set = ValidationSet::new("registry_test_obj");
+    set.add_rule(Box::new(Required { attribute: "title".to_string(), message: None }));
+    register_validation_set(set);
+
+    let gdo = GenericDataObject::new("registry_test_obj", None);
+    let result = registry_validate("registry_test_obj", &gdo);
+    assert!(!result.is_valid());
+    assert_eq!(result.errors[0].attribute, "title");
+
+    unregister_validation_set("registry_test_obj");
+}
+
+#[test]
+fn registry_validate_unregistered_returns_valid() {
+    let result = registry_validate("no_such_object", &GenericDataObject::new("x", None));
+    assert!(result.is_valid());
+}
+
+#[test]
+fn registry_unregister_removes_set() {
+    let set = ValidationSet::new("temp_obj");
+    register_validation_set(set);
+    unregister_validation_set("temp_obj");
+    let result = registry_validate("temp_obj", &GenericDataObject::new("x", None));
+    assert!(result.is_valid());
+}
