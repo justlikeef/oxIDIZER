@@ -160,3 +160,53 @@ fn operation_def_custom_name() {
     };
     assert_eq!(OP_ISSUE.name, "issue");
 }
+
+use ox_security_core::registration::{ContextDefinition, SecurityRegistration};
+
+struct FakeDataObject;
+
+impl SecurityRegistration for FakeDataObject {
+    fn context_definition(&self) -> ContextDefinition {
+        ContextDefinition {
+            root: "dataobject1",
+            operations: &[],
+            children: &[
+                ContextDefinition {
+                    root: "field1",
+                    operations: &[OP_READ, OP_WRITE, OP_CHANGE, OP_DELETE],
+                    children: &[],
+                },
+            ],
+        }
+    }
+}
+
+#[test]
+fn context_definition_root() {
+    let obj = FakeDataObject;
+    let def = obj.context_definition();
+    assert_eq!(def.root, "dataobject1");
+    assert_eq!(def.children.len(), 1);
+    assert_eq!(def.children[0].root, "field1");
+}
+
+#[test]
+fn context_definition_operations_at_leaf() {
+    let obj = FakeDataObject;
+    let def = obj.context_definition();
+    let field1 = &def.children[0];
+    assert_eq!(field1.operations.len(), 4);
+    assert!(field1.operations.iter().any(|op| op.name == "read"));
+    assert!(field1.operations.iter().any(|op| op.name == "write"));
+}
+
+#[test]
+fn context_definition_subtree_operations() {
+    let obj = FakeDataObject;
+    let def = obj.context_definition();
+    let all_ops = def.all_operations();
+    assert!(all_ops.iter().any(|op| op.name == "read"));
+    assert!(all_ops.iter().any(|op| op.name == "write"));
+    // root has no ops of its own — they come from children
+    assert_eq!(def.operations.len(), 0);
+}
