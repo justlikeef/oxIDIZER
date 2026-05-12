@@ -63,7 +63,7 @@ impl LdapAdapter for RealLdapAdapter {
                     0 => {}
                     49 => return LdapBindResult::InvalidCredentials,
                     32 => return LdapBindResult::NoSuchEntry,
-                    code => return LdapBindResult::Error(format!("LDAP bind rc={}", code)),
+                    code => return LdapBindResult::Error(format!("LDAP bind returned rc={}", code)),
                 },
             }
 

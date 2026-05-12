@@ -1,12 +1,12 @@
 pub mod ad;
-pub(crate) mod api_key;
-pub(crate) mod db;
-pub(crate) mod kerberos;
+pub mod api_key;
+pub mod db;
+pub mod kerberos;
 pub mod ldap;
-pub(crate) mod mtls;
-pub(crate) mod radius;
-pub(crate) mod tacacs;
-pub(crate) mod totp;
+pub mod mtls;
+pub mod radius;
+pub mod tacacs;
+pub mod totp;
 
 pub use ad::AdAuthDriver;
 pub use api_key::{ApiKeyAuthDriver, ApiKeyLookupFn};

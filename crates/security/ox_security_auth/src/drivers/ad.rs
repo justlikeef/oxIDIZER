@@ -32,7 +32,7 @@ impl BindDnCapture {
     }
 
     pub fn new_sequence(results: Vec<LdapBindResult>) -> Self {
-        assert!(!results.is_empty());
+        assert!(!results.is_empty(), "BindDnCapture::new_sequence requires ≥1 result");
         Self {
             sequence: Arc::new(Mutex::new(results)),
             log: Arc::new(Mutex::new(vec![])),

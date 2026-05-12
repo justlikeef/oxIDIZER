@@ -160,7 +160,6 @@ async fn db_driver_continues_for_non_password_credentials() {
 // ── LDAP / AD tests ────────────────────────────────────────────────────────
 
 use ox_security_auth::{LdapAuthDriver, LdapConfig, AdAuthDriver, AdConfig};
-use ox_security_core::GroupId;
 use ox_security_auth::drivers::ldap::{LdapBindResult, MockLdapAdapter};
 use ox_security_auth::drivers::ad::BindDnCapture;
 
@@ -210,6 +209,7 @@ async fn ldap_driver_authenticates_valid_user() {
     match result {
         AuthResult::Authenticated(p) => {
             assert_eq!(p.display_name, "alice");
+            assert_eq!(p.groups, vec![ox_security_core::GroupId::new("cn=admins,dc=example,dc=com")]);
         }
         _ => panic!("expected Authenticated"),
     }
@@ -246,8 +246,12 @@ async fn ldap_driver_rejects_unknown_user() {
 }
 
 #[tokio::test]
-async fn ad_driver_tries_multiple_formats() {
-    let capture = BindDnCapture::new(LdapBindResult::Success { groups: vec![] });
+async fn ad_driver_tries_upn_format() {
+    let capture = BindDnCapture::new_sequence(vec![
+        LdapBindResult::InvalidCredentials,
+        LdapBindResult::InvalidCredentials,
+        LdapBindResult::Success { groups: vec![] },
+    ]);
     let driver = AdAuthDriver::with_mock(ad_config(), capture.clone());
     let creds = Credentials::UsernamePassword {
         username: "bob".to_string(),
@@ -258,6 +262,7 @@ async fn ad_driver_tries_multiple_formats() {
     assert!(matches!(result, AuthResult::Authenticated(_)));
     let attempted = capture.last_bind_dn();
     assert!(!attempted.is_empty(), "expected at least one bind attempt");
+    assert!(attempted.iter().any(|dn: &String| dn.ends_with("@example.com")), "expected UPN form to be tried");
 }
 
 #[tokio::test]
