@@ -7,6 +7,9 @@ license = "GPL-3.0-only"
 [features]
 default = []
 test-support = []
+# Enable to pull in cross-krb5 as a transitive dependency for callers that
+# wire their own TicketValidatorFn using cross_krb5::ServerCtx.
+# The driver itself uses a closure abstraction and does not directly import cross-krb5.
 kerberos = ["dep:cross-krb5"]
 
 [dependencies]

@@ -142,6 +142,7 @@ mod tests {
                 assert_eq!(p.display_name, "alice@EXAMPLE.COM");
                 assert_eq!(p.source, AuthSource::Kerberos);
                 assert!(p.groups.is_empty());
+                assert_eq!(p.tenant_id.as_str(), "test");
             }
             _ => panic!("expected Authenticated, got something else"),
         }

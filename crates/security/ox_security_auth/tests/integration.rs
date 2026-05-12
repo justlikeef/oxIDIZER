@@ -316,3 +316,31 @@ async fn ad_driver_returns_last_reject_when_all_forms_fail() {
     let result = driver.authenticate(&creds, &mut ctx).await;
     assert!(matches!(result, AuthResult::Reject(_)));
 }
+
+#[tokio::test]
+async fn kerberos_driver_authenticates_via_public_api() {
+    use ox_security_auth::{KerberosAuthDriver, KerberosConfig, KerberosTicketValidatorFn};
+
+    let validator: KerberosTicketValidatorFn = Arc::new(|_ticket: &[u8]| {
+        Ok("alice@EXAMPLE.COM".to_string())
+    });
+    let config = KerberosConfig {
+        service_principal: "HTTP/server.example.com@EXAMPLE.COM".to_string(),
+        keytab_path: "/etc/krb5.keytab".to_string(),
+        realm: "EXAMPLE.COM".to_string(),
+        tenant_id: ox_security_core::TenantId::from_str("test").unwrap(),
+    };
+    let driver = KerberosAuthDriver::new(config, validator);
+    let creds = Credentials::KerberosTicket {
+        ticket: vec![0x01, 0x02, 0x03],
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    match result {
+        AuthResult::Authenticated(p) => {
+            assert_eq!(p.display_name, "alice@EXAMPLE.COM");
+            assert_eq!(p.source, AuthSource::Kerberos);
+        }
+        _ => panic!("expected Authenticated, got something else"),
+    }
+}
