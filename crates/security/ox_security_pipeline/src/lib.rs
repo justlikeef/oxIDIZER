@@ -7,3 +7,5 @@ pub use builder::SecurityPipelineBuilder;
 pub use error::SecurityError;
 pub use pipeline::SecurityPipeline;
 pub use registrar::PipelineContextRegistrar;
+
+pub mod plugin;
