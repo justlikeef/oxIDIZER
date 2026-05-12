@@ -1,0 +1,20 @@
+modules:
+  - id: "security_pipeline"
+    name: "ox_security_pipeline"
+    phase: Content
+    params:
+      config_file: "${{OX_BASE}}/crates/security/ox_security_pipeline/conf/plugin.yaml"
+
+routes:
+  - url: "^/api/v1/security/authenticate$"
+    module_id: "security_pipeline"
+    priority: 100
+  - url: "^/api/v1/security/health$"
+    module_id: "security_pipeline"
+    priority: 100
+  - url: "^/api/v1/admin/accounting(/.*)?$"
+    module_id: "security_pipeline"
+    priority: 150
+  - url: "^/api/v1/admin/authz(/.*)?$"
+    module_id: "security_pipeline"
+    priority: 150

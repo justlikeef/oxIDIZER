@@ -1,0 +1,10 @@
+# ox_security_pipeline — Security Pipeline Plugin Configuration
+
+tenant_id: "default"
+
+api_keys:
+  - key: "changeme-replace-with-strong-secret"
+    principal_id: "00000000-0000-0000-0000-000000000001"
+    display_name: "Administrator"
+    groups:
+      - "admins"
