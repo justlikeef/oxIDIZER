@@ -98,19 +98,29 @@ pub fn xor_body(body: &mut [u8], secret: &[u8], session_id: u32, version: u8, se
 
 /// Build a full AUTH_START packet (header + body).
 /// `flags` controls encryption: use `FLAG_UNENCRYPTED` for tests.
+///
+/// Returns `None` if `username` or `password` exceeds 255 bytes (the maximum
+/// encodable in the 1-byte length fields defined by RFC 8907 §5.1).
 pub fn build_auth_start(
     username: &str,
     password: &str,
     session_id: u32,
     flags: u8,
     secret: &[u8],
-) -> Vec<u8> {
+) -> Option<Vec<u8>> {
     let user_bytes = username.as_bytes();
     let pass_bytes = password.as_bytes();
 
-    // Build body
+    if user_bytes.len() > 255 || pass_bytes.len() > 255 {
+        return None;
+    }
+
+    // RFC 8907 §5.1 AUTH_START fixed header (8 bytes):
+    //   action(1), priv_lvl(1), authen_type(1), authen_service(1),
+    //   user_len(1), port_len(1), rem_addr_len(1), data_len(1)
     let mut body = Vec::new();
     body.push(AUTH_ACTION_LOGIN);
+    body.push(0x00u8);          // priv_lvl = 0 (user)
     body.push(AUTH_TYPE_PAP);
     body.push(AUTH_SERVICE_LOGIN);
     body.push(user_bytes.len() as u8);
@@ -127,7 +137,7 @@ pub fn build_auth_start(
     let header = build_header(TYPE_AUTH, 1, flags, session_id, body.len() as u32);
     let mut pkt = header.to_vec();
     pkt.extend_from_slice(&body);
-    pkt
+    Some(pkt)
 }
 
 /// Parse an AUTH_REPLY packet and return the status byte.
@@ -136,9 +146,12 @@ pub fn parse_auth_reply(buf: &[u8], secret: &[u8], session_id: u32, flags: u8) -
     if buf.len() < 12 {
         return None;
     }
+    if buf[1] != TYPE_AUTH {
+        return None;
+    }
     let header_arr: [u8; 12] = buf[0..12].try_into().ok()?;
     let (_, _, _, _, body_len) = parse_header(&header_arr);
-    let end = 12 + body_len as usize;
+    let end = 12usize.checked_add(body_len as usize)?;
     if buf.len() < end {
         return None;
     }
@@ -205,7 +218,7 @@ pub fn parse_acct_reply(buf: &[u8], secret: &[u8], session_id: u32, flags: u8) -
     }
     let header_arr: [u8; 12] = buf[0..12].try_into().ok()?;
     let (_, _, _, _, body_len) = parse_header(&header_arr);
-    let end = 12 + body_len as usize;
+    let end = 12usize.checked_add(body_len as usize)?;
     if buf.len() < end {
         return None;
     }
@@ -235,7 +248,8 @@ mod tests {
 
     #[test]
     fn auth_start_round_trip_unencrypted() {
-        let pkt = build_auth_start("alice", "s3cret", 0x1234, FLAG_UNENCRYPTED, b"key");
+        let pkt = build_auth_start("alice", "s3cret", 0x1234, FLAG_UNENCRYPTED, b"key")
+            .expect("build_auth_start should succeed for short inputs");
         // Header version byte
         assert_eq!(pkt[0], VERSION);
         // Type AUTH
@@ -244,6 +258,20 @@ mod tests {
         assert_eq!(pkt[2], 1);
         // Body starts at byte 12; action=LOGIN
         assert_eq!(pkt[12], AUTH_ACTION_LOGIN);
+        // RFC 8907 §5.1: byte 13 is priv_lvl (must be 0 for user-level)
+        assert_eq!(pkt[13], 0x00);
+    }
+
+    #[test]
+    fn auth_start_rejects_overlong_username() {
+        let long = "a".repeat(256);
+        assert!(build_auth_start(&long, "pass", 0x1, FLAG_UNENCRYPTED, b"key").is_none());
+    }
+
+    #[test]
+    fn auth_start_rejects_overlong_password() {
+        let long = "a".repeat(256);
+        assert!(build_auth_start("user", &long, 0x1, FLAG_UNENCRYPTED, b"key").is_none());
     }
 
     #[test]

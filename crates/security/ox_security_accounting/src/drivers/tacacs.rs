@@ -17,7 +17,10 @@ const VERSION: u8            = 0xC1;
 const TYPE_ACCT: u8          = 0x03;
 const FLAG_UNENCRYPTED: u8   = 0x04;
 const FLAG_ENCRYPTED: u8     = 0x00;
-const ACCT_FLAG_STOP: u8     = 0x04;
+const ACCT_FLAG_START:    u8 = 0x02;
+const ACCT_FLAG_STOP:     u8 = 0x04;
+#[allow(dead_code)]
+const ACCT_FLAG_WATCHDOG: u8 = 0x08;
 const ACCT_METHOD_TACACS: u8 = 0x06;
 const AUTH_TYPE_PAP: u8      = 0x02;
 const AUTH_SERVICE_LOGIN: u8 = 0x01;
@@ -64,6 +67,7 @@ fn xor_body(body: &mut [u8], secret: &[u8], session_id: u32, version: u8, seq_no
 
 fn build_acct_request(
     username: &str,
+    acct_flags: u8,
     av_pairs: &[String],
     session_id: u32,
     flags: u8,
@@ -73,7 +77,7 @@ fn build_acct_request(
     let av_bytes: Vec<Vec<u8>> = av_pairs.iter().map(|s| s.as_bytes().to_vec()).collect();
 
     let mut body = Vec::new();
-    body.push(ACCT_FLAG_STOP);
+    body.push(acct_flags);
     body.push(ACCT_METHOD_TACACS);
     body.push(0x01u8); // priv_lvl
     body.push(AUTH_TYPE_PAP);
@@ -140,14 +144,26 @@ impl TacacsAccountingDriver {
 #[async_trait]
 impl AccountingDriver for TacacsAccountingDriver {
     async fn record(&self, event: &AccountingEvent) {
+        // Using principal_id UUID as the TACACS+ user field; display_name is not
+        // available on AccountingEvent. Consider adding display_name to the event type.
         let username = event
             .principal_id
             .as_ref()
             .map(|p| p.as_uuid().to_string())
             .unwrap_or_default();
 
+        // Derive ACCT flag from the auth outcome:
+        //   Authenticated → START (session beginning)
+        //   Failed / MfaFailed → STOP (session never started; mark as ended)
+        //   MfaRequired → START (authentication is still in progress)
+        use ox_security_core::accounting::AuthOutcome;
+        let acct_flags = match &event.auth_outcome {
+            AuthOutcome::Authenticated | AuthOutcome::MfaRequired => ACCT_FLAG_START,
+            AuthOutcome::Failed(_) | AuthOutcome::MfaFailed(_)    => ACCT_FLAG_STOP,
+        };
+
         let av_pairs = vec![
-            format!("service=shell"),
+            "service=shell".to_string(),
             format!("tenant_id={}", event.tenant_id.as_str()),
             format!("source_ip={}", event.source_ip),
             format!("auth_outcome={:?}", event.auth_outcome),
@@ -156,7 +172,7 @@ impl AccountingDriver for TacacsAccountingDriver {
         let session_id: u32 = rand::random();
         let flags = if self.config.encrypted { FLAG_ENCRYPTED } else { FLAG_UNENCRYPTED };
         let secret_bytes = self.config.secret.expose_secret().as_bytes().to_vec();
-        let pkt = build_acct_request(&username, &av_pairs, session_id, flags, &secret_bytes);
+        let pkt = build_acct_request(&username, acct_flags, &av_pairs, session_id, flags, &secret_bytes);
 
         // Fire-and-forget: ignore all errors.
         let _ = (self.send_fn)(pkt).await;

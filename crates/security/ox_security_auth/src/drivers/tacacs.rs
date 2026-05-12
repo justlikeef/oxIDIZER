@@ -77,13 +77,14 @@ impl AuthDriver for TacacsAuthDriver {
         let secret_bytes = self.config.secret.expose_secret().as_bytes().to_vec();
         let flags = if self.config.encrypted { FLAG_ENCRYPTED } else { FLAG_UNENCRYPTED };
 
-        let pkt = build_auth_start(
-            username,
-            password,
-            session_id,
-            flags,
-            &secret_bytes,
-        );
+        let pkt = match build_auth_start(username, password, session_id, flags, &secret_bytes) {
+            Some(p) => p,
+            None => {
+                return AuthResult::Reject(
+                    "TACACS+: username or password exceeds 255 bytes".to_string(),
+                );
+            }
+        };
 
         let reply = match (self.send_fn)(pkt).await {
             Ok(r) => r,
