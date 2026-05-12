@@ -6,6 +6,7 @@ pub mod ldap;
 pub mod mtls;
 pub mod radius;
 pub mod tacacs;
+pub(crate) mod tacacs_proto;
 pub mod totp;
 
 pub use ad::AdAuthDriver;

@@ -9,3 +9,4 @@ pub use drivers::{
     RadiusAuthDriver, RadiusConfig, RadiusUdpSendFn,
     TacacsAuthDriver, TotpAuthDriver, TotpSecretLookupFn,
 };
+pub use drivers::tacacs::{TacacsConfig, TcpSendFn as TacacsTcpSendFn};
