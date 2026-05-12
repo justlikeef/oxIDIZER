@@ -22,9 +22,15 @@ futures          = "0.3"
 cross-krb5       = { version = "0.4", optional = true }
 md-5             = "0.10"
 rand             = "0.8"
-tokio            = { version = "1", features = ["net", "time"] }
+tokio            = { version = "1", features = ["net", "time", "sync"] }
+jsonwebtoken     = "9"
+serde            = { version = "1", features = ["derive"] }
+serde_json       = "1"
 
 [dev-dependencies]
-tokio            = { version = "1", features = ["macros", "rt", "net"] }
+tokio            = { version = "1", features = ["macros", "rt", "net", "time", "sync"] }
 x509-cert        = "0.2"
 ox_security_auth = { path = ".", features = ["test-support"] }
+rsa              = { version = "0.9", features = ["pem"] }
+base64ct         = { version = "1", features = ["std"] }
+rand             = "0.8"
