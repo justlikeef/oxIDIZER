@@ -329,3 +329,77 @@ async fn ldap_authz_without_group_resolution_uses_direct_groups() {
     let result = driver.check(&principal, "files/readme.txt", "delete").await;
     assert!(matches!(result, AuthzResult::Allow));
 }
+
+// ─── AdAuthzDriver tests ────────────────────────────────────────────────────
+
+use ox_security_authz::drivers::AdAuthzDriver;
+
+#[tokio::test]
+async fn ad_authz_allows_direct_grant() {
+    let grants = Arc::new(vec![PermissionGrant {
+        operation: "read".to_string(),
+        resource_pattern: Some("shares/finance".to_string()),
+    }]);
+    let driver = AdAuthzDriver::new(
+        Arc::new(move |_id, _groups| grants.as_ref().clone()),
+        identity_resolver(),
+    );
+    let principal = test_principal();
+    let result = driver.check(&principal, "shares/finance", "read").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn ad_authz_allows_via_nested_group() {
+    // Principal belongs to "Domain Users"; resolver adds "Finance-Readers" as a parent.
+    let driver = AdAuthzDriver::new(
+        Arc::new(|_id, groups: &[GroupId]| {
+            if groups.iter().any(|g| g.as_str() == "Finance-Readers") {
+                vec![PermissionGrant {
+                    operation: "read".to_string(),
+                    resource_pattern: Some("shares/finance/*".to_string()),
+                }]
+            } else {
+                vec![]
+            }
+        }),
+        Arc::new(|groups: &[GroupId]| {
+            let mut expanded = groups.to_vec();
+            if groups.iter().any(|g| g.as_str() == "Domain Users") {
+                expanded.push(GroupId::new("Finance-Readers"));
+            }
+            expanded
+        }),
+    );
+    let principal = principal_with_groups(vec!["Domain Users"]);
+    let result = driver.check(&principal, "shares/finance/q1.xlsx", "read").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn ad_authz_continues_for_no_match() {
+    let driver = AdAuthzDriver::new(
+        Arc::new(|_id, _groups| vec![]),
+        identity_resolver(),
+    );
+    let principal = test_principal();
+    let result = driver.check(&principal, "any/resource", "write").await;
+    assert!(matches!(result, AuthzResult::Continue));
+}
+
+#[tokio::test]
+async fn ad_authz_without_group_resolution_uses_direct_groups() {
+    let driver = AdAuthzDriver::without_group_resolution(Arc::new(|_id, groups: &[GroupId]| {
+        if groups.iter().any(|g| g.as_str() == "Operators") {
+            vec![PermissionGrant {
+                operation: "execute".to_string(),
+                resource_pattern: None,
+            }]
+        } else {
+            vec![]
+        }
+    }));
+    let principal = principal_with_groups(vec!["Operators"]);
+    let result = driver.check(&principal, "scripts/deploy.sh", "execute").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
