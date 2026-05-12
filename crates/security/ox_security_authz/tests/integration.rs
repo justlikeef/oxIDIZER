@@ -221,3 +221,111 @@ async fn local_db_no_principal_continues() {
     let result = driver.check(&principal, "any/resource", "read").await;
     assert!(matches!(result, AuthzResult::Continue));
 }
+
+// ─── LdapAuthzDriver tests ──────────────────────────────────────────────────
+
+use ox_security_authz::drivers::{LdapAuthzDriver, GroupResolverFn};
+
+fn identity_resolver() -> GroupResolverFn {
+    Arc::new(|groups: &[GroupId]| groups.to_vec())
+}
+
+#[tokio::test]
+async fn ldap_authz_allows_direct_grant() {
+    // Principal has a direct PermissionGrant for the requested operation + resource.
+    let grants = Arc::new(vec![PermissionGrant {
+        operation: "read".to_string(),
+        resource_pattern: Some("docs/spec.md".to_string()),
+    }]);
+    let driver = LdapAuthzDriver::new(
+        Arc::new(move |_id, _groups| grants.as_ref().clone()),
+        identity_resolver(),
+    );
+    let principal = test_principal();
+    let result = driver.check(&principal, "docs/spec.md", "read").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn ldap_authz_allows_via_group() {
+    // The lookup fn returns grants when the principal belongs to "readers".
+    let driver = LdapAuthzDriver::new(
+        Arc::new(|_id, groups: &[GroupId]| {
+            if groups.iter().any(|g| g.as_str() == "readers") {
+                vec![PermissionGrant {
+                    operation: "read".to_string(),
+                    resource_pattern: None,
+                }]
+            } else {
+                vec![]
+            }
+        }),
+        identity_resolver(),
+    );
+    let principal = principal_with_groups(vec!["readers"]);
+    let result = driver.check(&principal, "any/resource", "read").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn ldap_authz_allows_via_nested_group() {
+    // Principal is a direct member of group B only.
+    // GroupResolverFn expands B → [B, A].
+    // The grant is attached to group A.
+    // The lookup fn is called with expanded groups [B, A] and returns the grant.
+    let driver = LdapAuthzDriver::new(
+        Arc::new(|_id, groups: &[GroupId]| {
+            // Grant is on group A
+            if groups.iter().any(|g| g.as_str() == "group-a") {
+                vec![PermissionGrant {
+                    operation: "write".to_string(),
+                    resource_pattern: None,
+                }]
+            } else {
+                vec![]
+            }
+        }),
+        // Resolver: group-b is nested under group-a
+        Arc::new(|groups: &[GroupId]| {
+            let mut expanded = groups.to_vec();
+            if groups.iter().any(|g| g.as_str() == "group-b") {
+                expanded.push(GroupId::new("group-a"));
+            }
+            expanded
+        }),
+    );
+    // Principal is only in group-b; resolver adds group-a
+    let principal = principal_with_groups(vec!["group-b"]);
+    let result = driver.check(&principal, "any/resource", "write").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn ldap_authz_continues_for_no_match() {
+    // No grant matches — driver returns Continue, not Deny.
+    let driver = LdapAuthzDriver::new(
+        Arc::new(|_id, _groups| vec![]),
+        identity_resolver(),
+    );
+    let principal = test_principal();
+    let result = driver.check(&principal, "any/resource", "delete").await;
+    assert!(matches!(result, AuthzResult::Continue));
+}
+
+#[tokio::test]
+async fn ldap_authz_without_group_resolution_uses_direct_groups() {
+    // without_group_resolution convenience constructor passes groups through unchanged.
+    let driver = LdapAuthzDriver::without_group_resolution(Arc::new(|_id, groups: &[GroupId]| {
+        if groups.iter().any(|g| g.as_str() == "admins") {
+            vec![PermissionGrant {
+                operation: "delete".to_string(),
+                resource_pattern: None,
+            }]
+        } else {
+            vec![]
+        }
+    }));
+    let principal = principal_with_groups(vec!["admins"]);
+    let result = driver.check(&principal, "files/readme.txt", "delete").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
