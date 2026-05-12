@@ -48,29 +48,24 @@ fn validate_totp(secret_b32: &str, code: &str) -> bool {
         Err(_) => return false,
     };
 
-    // Use new_unchecked to allow secrets of any size, including well-known
-    // test vectors shorter than the RFC-recommended 128 bits.
-    let totp = TOTP::new_unchecked(
+    let totp = match TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
         secret_bytes,
-    );
+    ) {
+        Ok(t) => t,
+        Err(_) => return false, // secret fails RFC compliance check — reject silently
+    };
 
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
 
-    // Check current step and ±1 for clock skew tolerance.
-    for offset in [-1i64, 0, 1] {
-        let t = (now_secs as i64 + offset * 30) as u64;
-        if totp.generate(t) == code {
-            return true;
-        }
-    }
-    false
+    // Use constant-time comparison with built-in ±1-step skew window.
+    totp.check(code, now_secs)
 }
 
 #[async_trait]
@@ -151,13 +146,13 @@ mod tests {
 
     /// Generate a valid TOTP code for a given base32 secret at the current time.
     fn current_code(secret_b32: &str) -> String {
-        let totp = TOTP::new_unchecked(
+        let totp = TOTP::new(
             Algorithm::SHA1,
             6,
             1,
             30,
             Secret::Encoded(secret_b32.to_string()).to_bytes().unwrap(),
-        );
+        ).expect("test secret must be RFC-compliant");
         let t = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -170,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn totp_continues_for_non_mfa_creds() {
         use secrecy::SecretString;
-        let driver = TotpAuthDriver::new(Arc::new(|_id| Some("JBSWY3DPEHPK3PXP".to_string())));
+        let driver = TotpAuthDriver::new(Arc::new(|_id| Some("JBSWY3DPEHPK3PXP2FASXCHVKN7G65Z".to_string())));
         let creds = Credentials::UsernamePassword {
             username: "alice".to_string(),
             password: SecretString::new("pass".to_string()),
@@ -184,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn totp_continues_when_no_partial_principal() {
-        let driver = TotpAuthDriver::new(Arc::new(|_id| Some("JBSWY3DPEHPK3PXP".to_string())));
+        let driver = TotpAuthDriver::new(Arc::new(|_id| Some("JBSWY3DPEHPK3PXP2FASXCHVKN7G65Z".to_string())));
         let creds = Credentials::MfaPasscode {
             session_token: SessionToken::new(),
             code: "123456".to_string(),
@@ -198,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn totp_validates_correct_code() {
-        let secret_b32 = "JBSWY3DPEHPK3PXP";
+        let secret_b32 = "JBSWY3DPEHPK3PXP2FASXCHVKN7G65Z";
         let id = PrincipalId::new();
         let id_clone = id.clone();
 
@@ -233,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn totp_rejects_wrong_code() {
-        let secret_b32 = "JBSWY3DPEHPK3PXP";
+        let secret_b32 = "JBSWY3DPEHPK3PXP2FASXCHVKN7G65Z";
         let id = PrincipalId::new();
         let id_clone = id.clone();
 

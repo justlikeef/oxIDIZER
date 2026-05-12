@@ -16,13 +16,13 @@ use ox_security_core::{
 use secrecy::SecretString;
 use totp_rs::{Algorithm, TOTP, Secret};
 
-const SECRET_B32: &str = "JBSWY3DPEHPK3PXP";
+const SECRET_B32: &str = "JBSWY3DPEHPK3PXP2FASXCHVKN7G65Z";
 
 fn current_totp_code() -> String {
-    let totp = TOTP::new_unchecked(
+    let totp = TOTP::new(
         Algorithm::SHA1, 6, 1, 30,
         Secret::Encoded(SECRET_B32.to_string()).to_bytes().unwrap(),
-    );
+    ).expect("test secret must be RFC-compliant");
     let t = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
     totp.generate(t)
