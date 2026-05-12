@@ -56,7 +56,9 @@ pub struct RadiusConfig {
     pub server: String,
     /// Shared secret between this client and the RADIUS server.
     pub secret: SecretString,
-    /// UDP response timeout in seconds. Default: 5.
+    /// UDP response timeout in seconds. This is advisory — the production `UdpSendFn` closure
+    /// should read this value and enforce it (e.g., via `tokio::time::timeout`). The driver
+    /// itself does not apply the timeout automatically, as the transport is caller-provided.
     pub timeout_secs: u64,
     /// Tenant this driver is scoped to.
     pub tenant_id: TenantId,
@@ -70,7 +72,7 @@ pub struct RadiusConfig {
 ///
 /// Access-Accept (Code=2) → `Authenticated`
 /// Access-Reject (Code=3) → `Reject("RADIUS Access-Reject")`
-/// Transport error or timeout → `Reject("<error message>")`
+/// Transport error or timeout → `Continue` (infrastructure outage; lets pipeline try next driver)
 /// Unknown response code → `Reject("unexpected RADIUS response code: <n>")`
 ///
 /// No group resolution is performed — `groups` is always `vec![]`.
@@ -97,6 +99,9 @@ impl RadiusAuthDriver {
 ///
 /// The result length is always a multiple of 16, between 16 and 128 bytes.
 pub fn encode_password(password: &[u8], secret: &[u8], authenticator: &[u8; 16]) -> Vec<u8> {
+    // RFC 2865 §5.2: password field is capped at 128 bytes.
+    let password = &password[..password.len().min(128)];
+
     // Pad password to next multiple of 16 bytes (minimum 16)
     let padded_len = ((password.len().max(1) + 15) / 16) * 16;
     let mut padded = vec![0u8; padded_len];
@@ -179,6 +184,11 @@ impl AuthDriver for RadiusAuthDriver {
             _ => return AuthResult::Continue,
         };
 
+        // RFC 2865: RADIUS attribute values are capped at 253 bytes.
+        if username.len() > 253 {
+            return AuthResult::Reject("RADIUS: username exceeds 253-byte maximum".to_string());
+        }
+
         // Generate random identifier and authenticator
         let identifier: u8 = rand::random();
         let authenticator: [u8; 16] = rand::random();
@@ -192,7 +202,12 @@ impl AuthDriver for RadiusAuthDriver {
         );
 
         match (self.send)(packet).await {
-            Err(reason) => AuthResult::Reject(reason),
+            Err(e) => {
+                // Transport/timeout errors return Continue (not Reject) per codebase convention:
+                // infrastructure outages should not block the pipeline from trying other drivers.
+                let _ = e; // error is intentionally discarded — log it if a tracing layer is added
+                AuthResult::Continue
+            }
             Ok(response) => {
                 if response.is_empty() {
                     return AuthResult::Reject("empty RADIUS response".to_string());
@@ -320,12 +335,24 @@ mod tests {
         };
         let mut ctx = test_ctx();
         let result = driver.authenticate(&creds, &mut ctx).await;
-        match result {
-            AuthResult::Reject(msg) => {
-                assert!(msg.contains("timeout"), "expected timeout message, got: {}", msg);
-            }
-            _ => panic!("expected Reject, got something else"),
-        }
+        // Transport/timeout errors return Continue per codebase convention so the pipeline
+        // can fall through to the next driver rather than hard-blocking on an outage.
+        assert!(matches!(result, AuthResult::Continue));
+    }
+
+    #[tokio::test]
+    async fn radius_rejects_on_unknown_response_code() {
+        let driver = RadiusAuthDriver::new(
+            test_config(),
+            Arc::new(|_pkt: Vec<u8>| async { Ok(vec![4u8, 0, 0, 0]) }.boxed()), // code=4, not 2 or 3
+        );
+        let creds = Credentials::UsernamePassword {
+            username: "alice".to_string(),
+            password: SecretString::new("pass".to_string()),
+        };
+        let mut ctx = test_ctx();
+        let result = driver.authenticate(&creds, &mut ctx).await;
+        assert!(matches!(result, AuthResult::Reject(_)));
     }
 
     #[test]
