@@ -28,6 +28,7 @@ pub type OktaGrantMapperFn =
     Arc<dyn Fn(&[String]) -> Vec<PermissionGrant> + Send + Sync>;
 
 pub struct OktaAuthzDriver {
+    #[allow(dead_code)] // stored for use by production OktaApiFn wiring layer; not consumed at check time
     config: OktaConfig,
     api: OktaApiFn,
     mapper: OktaGrantMapperFn,

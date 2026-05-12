@@ -1,4 +1,4 @@
-pub mod drivers;
+pub(crate) mod drivers;
 pub(crate) mod grant;
 pub(crate) mod pipeline;
 

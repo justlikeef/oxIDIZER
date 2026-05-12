@@ -224,7 +224,7 @@ async fn local_db_no_principal_continues() {
 
 // ─── LdapAuthzDriver tests ──────────────────────────────────────────────────
 
-use ox_security_authz::drivers::{LdapAuthzDriver, GroupResolverFn};
+use ox_security_authz::{LdapAuthzDriver, GroupResolverFn};
 
 fn identity_resolver() -> GroupResolverFn {
     Arc::new(|groups: &[GroupId]| groups.to_vec())
@@ -332,7 +332,7 @@ async fn ldap_authz_without_group_resolution_uses_direct_groups() {
 
 // ─── AdAuthzDriver tests ────────────────────────────────────────────────────
 
-use ox_security_authz::drivers::AdAuthzDriver;
+use ox_security_authz::AdAuthzDriver;
 
 #[tokio::test]
 async fn ad_authz_allows_direct_grant() {
@@ -406,7 +406,7 @@ async fn ad_authz_without_group_resolution_uses_direct_groups() {
 
 // ─── OktaAuthzDriver tests ──────────────────────────────────────────────────
 
-use ox_security_authz::drivers::{OktaAuthzDriver, OktaConfig, OktaApiFn, OktaGrantMapperFn};
+use ox_security_authz::{OktaAuthzDriver, OktaConfig, OktaApiFn, OktaGrantMapperFn};
 
 fn okta_config() -> OktaConfig {
     OktaConfig {
