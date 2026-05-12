@@ -95,6 +95,7 @@ async fn pipeline_continues_through_misses() {
 }
 
 use ox_security_auth::DbAuthDriver;
+use secrecy::SecretString;
 
 fn make_db_driver(username: &str, password: &str) -> DbAuthDriver {
     let u = username.to_string();
@@ -154,4 +155,128 @@ async fn db_driver_continues_for_non_password_credentials() {
     let mut ctx = test_ctx();
     let result = driver.authenticate(&creds, &mut ctx).await;
     assert!(matches!(result, AuthResult::Continue));
+}
+
+// ── LDAP / AD tests ────────────────────────────────────────────────────────
+
+use ox_security_auth::{LdapAuthDriver, LdapConfig, AdAuthDriver, AdConfig};
+use ox_security_core::GroupId;
+use ox_security_auth::drivers::ldap::{LdapBindResult, MockLdapAdapter};
+use ox_security_auth::drivers::ad::BindDnCapture;
+
+fn ldap_config() -> LdapConfig {
+    LdapConfig {
+        url: "ldap://localhost:389".to_string(),
+        bind_dn_template: "uid={},ou=users,dc=example,dc=com".to_string(),
+        base_dn: "dc=example,dc=com".to_string(),
+        group_attr: "memberOf".to_string(),
+        tenant_id: TenantId::from_str("test").unwrap(),
+    }
+}
+
+fn ad_config() -> AdConfig {
+    AdConfig {
+        ldap: ldap_config(),
+        domain: "EXAMPLE".to_string(),
+        upn_suffix: "example.com".to_string(),
+    }
+}
+
+#[tokio::test]
+async fn ldap_driver_continues_for_non_password_creds() {
+    let driver = LdapAuthDriver::with_mock(
+        ldap_config(),
+        MockLdapAdapter::new(LdapBindResult::Success { groups: vec![] }),
+    );
+    let creds = Credentials::ApiKey { key: SecretString::new("key123".to_string()) };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Continue));
+}
+
+#[tokio::test]
+async fn ldap_driver_authenticates_valid_user() {
+    let groups = vec!["cn=admins,dc=example,dc=com".to_string()];
+    let driver = LdapAuthDriver::with_mock(
+        ldap_config(),
+        MockLdapAdapter::new(LdapBindResult::Success { groups: groups.clone() }),
+    );
+    let creds = Credentials::UsernamePassword {
+        username: "alice".to_string(),
+        password: SecretString::new("correct".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    match result {
+        AuthResult::Authenticated(p) => {
+            assert_eq!(p.display_name, "alice");
+        }
+        _ => panic!("expected Authenticated"),
+    }
+}
+
+#[tokio::test]
+async fn ldap_driver_rejects_bad_password() {
+    let driver = LdapAuthDriver::with_mock(
+        ldap_config(),
+        MockLdapAdapter::new(LdapBindResult::InvalidCredentials),
+    );
+    let creds = Credentials::UsernamePassword {
+        username: "alice".to_string(),
+        password: SecretString::new("wrong".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Reject(_)));
+}
+
+#[tokio::test]
+async fn ldap_driver_rejects_unknown_user() {
+    let driver = LdapAuthDriver::with_mock(
+        ldap_config(),
+        MockLdapAdapter::new(LdapBindResult::NoSuchEntry),
+    );
+    let creds = Credentials::UsernamePassword {
+        username: "ghost".to_string(),
+        password: SecretString::new("anything".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Reject(_)));
+}
+
+#[tokio::test]
+async fn ad_driver_tries_multiple_formats() {
+    let capture = BindDnCapture::new(LdapBindResult::Success { groups: vec![] });
+    let driver = AdAuthDriver::with_mock(ad_config(), capture.clone());
+    let creds = Credentials::UsernamePassword {
+        username: "bob".to_string(),
+        password: SecretString::new("pass".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Authenticated(_)));
+    let attempted = capture.last_bind_dn();
+    assert!(!attempted.is_empty(), "expected at least one bind attempt");
+}
+
+#[tokio::test]
+async fn ad_driver_authenticates_via_domain_prefix() {
+    let capture = BindDnCapture::new_sequence(vec![
+        LdapBindResult::InvalidCredentials,
+        LdapBindResult::Success { groups: vec![] },
+    ]);
+    let driver = AdAuthDriver::with_mock(ad_config(), capture.clone());
+    let creds = Credentials::UsernamePassword {
+        username: "carol".to_string(),
+        password: SecretString::new("pass".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Authenticated(_)));
+    let attempted = capture.last_bind_dn();
+    assert!(
+        attempted.iter().any(|dn| dn.starts_with("EXAMPLE\\")),
+        "expected DOMAIN\\user attempt, got: {:?}", attempted
+    );
 }

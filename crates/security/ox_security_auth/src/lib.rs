@@ -1,9 +1,9 @@
-pub(crate) mod drivers;
+pub mod drivers;
 pub(crate) mod pipeline;
 
 pub use pipeline::AuthPipeline;
 pub use drivers::{
-    AdAuthDriver, ApiKeyAuthDriver, ApiKeyLookupFn, DbAuthDriver,
-    KerberosAuthDriver, LdapAuthDriver, MtlsAuthDriver, CertValidatorFn,
+    AdAuthDriver, AdConfig, ApiKeyAuthDriver, ApiKeyLookupFn, DbAuthDriver,
+    KerberosAuthDriver, LdapAuthDriver, LdapConfig, MtlsAuthDriver, CertValidatorFn,
     RadiusAuthDriver, TacacsAuthDriver, TotpAuthDriver, TotpSecretLookupFn,
 };

@@ -1,8 +1,8 @@
-pub(crate) mod ad;
+pub mod ad;
 pub(crate) mod api_key;
 pub(crate) mod db;
 pub(crate) mod kerberos;
-pub(crate) mod ldap;
+pub mod ldap;
 pub(crate) mod mtls;
 pub(crate) mod radius;
 pub(crate) mod tacacs;
@@ -17,3 +17,6 @@ pub use mtls::{MtlsAuthDriver, CertValidatorFn};
 pub use radius::RadiusAuthDriver;
 pub use tacacs::TacacsAuthDriver;
 pub use totp::{TotpAuthDriver, TotpSecretLookupFn};
+
+pub use ldap::{LdapConfig, LdapAdapter, LdapBindResult, MockLdapAdapter};
+pub use ad::{AdConfig, BindDnCapture};
