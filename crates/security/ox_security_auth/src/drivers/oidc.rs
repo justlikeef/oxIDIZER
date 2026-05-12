@@ -63,8 +63,8 @@ struct CachedJwks {
 ///
 /// Accepts only `Credentials::BearerToken` — passes `Continue` for all other variants.
 /// Fetches the JWKS from the injected `JwksFetchFn`, caches it in-process with a
-/// configurable TTL, and verifies the RS256 or ES256 signature. Validates `iss`,
-/// `aud`, and `exp` claims before returning a `Principal`.
+/// configurable TTL, and verifies asymmetric-key JWT signatures (RS256, RS384, RS512,
+/// ES256, ES384). Validates `iss`, `aud`, and `exp` claims before returning a `Principal`.
 ///
 /// Infrastructure errors (JWKS fetch failure, JSON parse error) → `Continue` so
 /// the pipeline can try another driver. Security failures (expired token, wrong
@@ -153,7 +153,12 @@ impl AuthDriver for OidcAuthDriver {
         // 2. Fetch JWKS (cached); infrastructure failure → Continue
         let jwks = match self.get_jwks().await {
             Ok(k) => k,
-            Err(_e) => return AuthResult::Continue,
+            Err(_err) => {
+                // Infrastructure error — return Continue per codebase convention.
+                // Log the error string so operators can diagnose JWKS outages.
+                let _ = _err; // Replace with tracing::warn!() when tracing is added
+                return AuthResult::Continue;
+            }
         };
 
         // 3. Find matching key by kid
@@ -166,7 +171,7 @@ impl AuthDriver for OidcAuthDriver {
         let decoding_key = match jsonwebtoken::DecodingKey::from_jwk(jwk) {
             Ok(k) => k,
             // Infrastructure/config error — treat as Continue
-            Err(_e) => return AuthResult::Continue,
+            Err(_err) => return AuthResult::Continue,
         };
 
         // 5. Determine algorithm — prefer JWK's alg, fall back to JWT header
@@ -181,8 +186,23 @@ impl AuthDriver for OidcAuthDriver {
             header.alg
         };
 
+        // 5b. Enforce explicit algorithm allowlist — reject anything outside the
+        // approved asymmetric-key set, even if the JWK or header specifies it.
+        match algorithm {
+            jsonwebtoken::Algorithm::RS256
+            | jsonwebtoken::Algorithm::RS384
+            | jsonwebtoken::Algorithm::RS512
+            | jsonwebtoken::Algorithm::ES256
+            | jsonwebtoken::Algorithm::ES384 => {}
+            other => {
+                return AuthResult::Reject(format!("algorithm {:?} is not permitted", other));
+            }
+        }
+
         // 6. Verify signature + claims (iss, aud, exp)
         let mut validation = jsonwebtoken::Validation::new(algorithm);
+        // Require iss, aud, and exp to be present in the token (not just checked when present).
+        validation.set_required_spec_claims(&["exp", "iss", "aud"]);
         validation.set_issuer(&[&self.config.issuer_url]);
         validation.set_audience(&[&self.config.audience]);
 
@@ -459,7 +479,63 @@ mod tests {
         }
     }
 
-    // ── Test 5: unknown kid ───────────────────────────────────────────────────
+    // ── Test 5: wrong issuer ──────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn oidc_rejects_wrong_issuer() {
+        let (private_key, public_key) = generate_test_key_pair();
+        let kid = "test-kid-iss";
+        let jwks_json = jwks_fixture(&public_key, kid);
+
+        let driver = OidcAuthDriver::new(test_config(), static_jwks_fn(jwks_json));
+
+        let claims = TestClaims {
+            sub: "user-55".to_string(),
+            iss: "https://evil.example.com".to_string(), // wrong issuer
+            aud: "my-api".to_string(),
+            exp: now_secs() + 300,
+            groups: vec![],
+        };
+        let token = mint_token(&private_key, kid, &claims);
+
+        let creds = Credentials::BearerToken { token };
+        let mut ctx = test_ctx();
+        let result = driver.authenticate(&creds, &mut ctx).await;
+        assert!(matches!(result, AuthResult::Reject(_)));
+    }
+
+    // ── Test 6: JWKS fetch failure → Continue ────────────────────────────────
+
+    #[tokio::test]
+    async fn oidc_continues_on_jwks_fetch_failure() {
+        // Mint a real (well-formed) token so decode_header succeeds.
+        // The JWKS fetch will fail before any signature check.
+        let (private_key, public_key) = generate_test_key_pair();
+        let kid = "test-kid-fetch-fail";
+        // Use a JWKS fn that succeeds once so we can mint, then swap to failing fn.
+        // Simpler: just mint a token — the fetch_fn below always fails, so we
+        // never get past step 2; we only need decode_header to succeed.
+        let _ = public_key; // key used only to satisfy generate_test_key_pair signature
+        let claims = TestClaims {
+            sub: "user-net-fail".to_string(),
+            iss: "https://idp.example.com".to_string(),
+            aud: "my-api".to_string(),
+            exp: now_secs() + 3600,
+            groups: vec![],
+        };
+        let token = mint_token(&private_key, kid, &claims);
+
+        let fetch_fn: JwksFetchFn = Arc::new(|| {
+            Box::pin(async { Err("simulated network failure".to_string()) })
+        });
+        let driver = OidcAuthDriver::new(test_config(), fetch_fn);
+        let creds = Credentials::BearerToken { token };
+        let mut ctx = test_ctx();
+        let result = driver.authenticate(&creds, &mut ctx).await;
+        assert!(matches!(result, AuthResult::Continue));
+    }
+
+    // ── Test 7: unknown kid ───────────────────────────────────────────────────
 
     #[tokio::test]
     async fn oidc_rejects_unknown_kid() {
