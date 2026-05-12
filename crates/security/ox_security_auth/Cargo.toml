@@ -4,10 +4,32 @@ version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
 
+[features]
+default = []
+test-support = []
+# Enable to pull in cross-krb5 as a transitive dependency for callers that
+# wire their own TicketValidatorFn using cross_krb5::ServerCtx.
+# The driver itself uses a closure abstraction and does not directly import cross-krb5.
+kerberos = ["dep:cross-krb5"]
+
 [dependencies]
 ox_security_core = { path = "../ox_security_core" }
 async-trait      = "0.1"
 secrecy          = { version = "0.8", features = ["serde"] }
+totp-rs          = { version = "5", features = ["gen_secret"] }
+ldap3            = { version = "0.11", default-features = false, features = ["tls-native"] }
+futures          = "0.3"
+cross-krb5       = { version = "0.4", optional = true }
+md-5             = "0.10"
+rand             = "0.8"
+tokio            = { version = "1", features = ["net", "time", "sync"] }
+jsonwebtoken     = "9"
+serde            = { version = "1", features = ["derive"] }
+serde_json       = "1"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt"] }
+tokio            = { version = "1", features = ["macros", "rt", "net", "time", "sync"] }
+x509-cert        = "0.2"
+ox_security_auth = { path = ".", features = ["test-support"] }
+rsa              = { version = "0.9", features = ["pem"] }
+base64ct         = { version = "1", features = ["std"] }

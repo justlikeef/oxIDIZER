@@ -1,17 +1,30 @@
-pub(crate) mod ad;
-pub(crate) mod api_key;
-pub(crate) mod db;
-pub(crate) mod kerberos;
-pub(crate) mod ldap;
-pub(crate) mod radius;
-pub(crate) mod tacacs;
-pub(crate) mod totp;
+pub mod ad;
+pub mod api_key;
+pub mod db;
+pub mod kerberos;
+pub mod ldap;
+pub mod mtls;
+pub mod oidc;
+pub mod radius;
+pub mod tacacs;
+pub(crate) mod tacacs_proto;
+pub mod totp;
 
 pub use ad::AdAuthDriver;
-pub use api_key::ApiKeyAuthDriver;
+pub use api_key::{ApiKeyAuthDriver, ApiKeyLookupFn};
 pub use db::DbAuthDriver;
-pub use kerberos::KerberosAuthDriver;
+pub use kerberos::{KerberosAuthDriver, KerberosConfig, TicketValidatorFn as KerberosTicketValidatorFn};
 pub use ldap::LdapAuthDriver;
-pub use radius::RadiusAuthDriver;
+pub use mtls::{MtlsAuthDriver, CertValidatorFn};
+pub use oidc::{OidcAuthDriver, OidcConfig, JwksFetchFn};
+pub use radius::{RadiusAuthDriver, RadiusConfig, UdpSendFn as RadiusUdpSendFn};
 pub use tacacs::TacacsAuthDriver;
-pub use totp::TotpAuthDriver;
+pub use totp::{TotpAuthDriver, TotpSecretLookupFn};
+
+pub use ldap::{LdapConfig, LdapAdapter, LdapBindResult};
+pub use ad::AdConfig;
+
+#[cfg(any(test, feature = "test-support"))]
+pub use ldap::MockLdapAdapter;
+#[cfg(any(test, feature = "test-support"))]
+pub use ad::BindDnCapture;

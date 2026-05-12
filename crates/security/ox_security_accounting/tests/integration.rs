@@ -149,3 +149,62 @@ async fn db_driver_calls_injected_fn() {
         .expect("injected fn must receive a valid JSON string");
     assert!(parsed.is_object());
 }
+
+// ── Task 4 tests: TacacsAccountingDriver ─────────────────────────────────────
+
+use ox_security_accounting::TacacsAccountingDriver;
+use ox_security_accounting::drivers::tacacs::TacacsTcpSendFn;
+
+fn tacacs_driver_with_capture() -> (TacacsAccountingDriver, Arc<Mutex<Vec<Vec<u8>>>>) {
+    let captured: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
+    let captured_clone = captured.clone();
+
+    let send_fn: TacacsTcpSendFn = Arc::new(move |pkt: Vec<u8>| {
+        captured_clone.lock().unwrap().push(pkt);
+        // Return a minimal ACCT_REPLY: header (12) + body [status=SUCCESS, 0,0,0,0]
+        let status = 0x01u8;
+        let body = vec![status, 0x00, 0x00, 0x00, 0x00];
+        let mut reply = vec![
+            0xC1, 0x03, 0x02, 0x04,  // version, TYPE_ACCT, seq=2, flags=UNENCRYPTED
+            0x00, 0x00, 0x00, 0x00,  // session_id (ignored in fire-and-forget)
+            0x00, 0x00, 0x00, 0x05,  // body_len = 5
+        ];
+        reply.extend_from_slice(&body);
+        Box::pin(async move { Ok(reply) })
+    });
+
+    let config = ox_security_accounting::drivers::tacacs::TacacsAccountingConfig {
+        server: "127.0.0.1:49".to_string(),
+        secret: secrecy::SecretString::new("test".to_string()),
+        timeout_secs: 5,
+        encrypted: false,
+    };
+
+    (TacacsAccountingDriver::new(config, send_fn), captured)
+}
+
+#[tokio::test]
+async fn tacacs_accounting_sends_event_on_success() {
+    let (driver, captured) = tacacs_driver_with_capture();
+    driver.record(&test_event()).await;
+    let pkts = captured.lock().unwrap();
+    assert_eq!(pkts.len(), 1, "one ACCT_REQUEST packet must be sent");
+    // packet type byte (index 1) must be 0x03 (ACCT)
+    assert_eq!(pkts[0][1], 0x03, "packet type must be ACCT");
+}
+
+#[tokio::test]
+async fn tacacs_accounting_ignores_send_failure() {
+    let send_fn: TacacsTcpSendFn = Arc::new(|_pkt: Vec<u8>| {
+        Box::pin(async { Err("connection refused".to_string()) })
+    });
+    let config = ox_security_accounting::drivers::tacacs::TacacsAccountingConfig {
+        server: "127.0.0.1:49".to_string(),
+        secret: secrecy::SecretString::new("test".to_string()),
+        timeout_secs: 5,
+        encrypted: false,
+    };
+    let driver = TacacsAccountingDriver::new(config, send_fn);
+    // Must not panic or propagate error
+    driver.record(&test_event()).await;
+}

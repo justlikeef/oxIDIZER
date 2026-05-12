@@ -1,35 +1,35 @@
 use std::sync::Arc;
 use async_trait::async_trait;
-use secrecy::ExposeSecret;
-use ox_security_core::{AuthResult, AuthPipelineContext, Credentials, Principal, drivers::AuthDriver};
+use ox_security_core::{
+    AuthResult, AuthPipelineContext, Credentials, Principal, drivers::AuthDriver,
+};
 
-pub type ApiKeyLookupFn = Arc<dyn Fn(&str) -> Option<Principal> + Send + Sync>;
+pub type CertValidatorFn = Arc<dyn Fn(&[u8]) -> Result<Principal, String> + Send + Sync>;
 
-pub struct ApiKeyAuthDriver {
-    lookup: ApiKeyLookupFn,
+pub struct MtlsAuthDriver {
+    validator: CertValidatorFn,
 }
 
-impl ApiKeyAuthDriver {
-    pub fn new(lookup: ApiKeyLookupFn) -> Self {
-        Self { lookup }
+impl MtlsAuthDriver {
+    pub fn new(validator: CertValidatorFn) -> Self {
+        Self { validator }
     }
 }
 
 #[async_trait]
-impl AuthDriver for ApiKeyAuthDriver {
+impl AuthDriver for MtlsAuthDriver {
     async fn authenticate(
         &self,
         credentials: &Credentials,
         _ctx: &mut AuthPipelineContext,
     ) -> AuthResult {
-        let key = match credentials {
-            Credentials::ApiKey { key } => key.expose_secret(),
+        let der = match credentials {
+            Credentials::ClientCert { der } => der.as_slice(),
             _ => return AuthResult::Continue,
         };
-        match (self.lookup)(key) {
-            Some(principal) => AuthResult::Authenticated(principal),
-            // Unknown key => Continue, not Reject; another driver may recognise it
-            None => AuthResult::Continue,
+        match (self.validator)(der) {
+            Ok(principal) => AuthResult::Authenticated(principal),
+            Err(reason) => AuthResult::Reject(reason),
         }
     }
 }
@@ -53,29 +53,29 @@ mod tests {
         }
     }
 
-    fn make_driver() -> ApiKeyAuthDriver {
-        ApiKeyAuthDriver::new(Arc::new(|key: &str| {
-            if key == "valid-api-key" {
-                Some(Principal {
+    fn make_driver() -> MtlsAuthDriver {
+        MtlsAuthDriver::new(Arc::new(|der: &[u8]| {
+            if der == b"valid-cert-der" {
+                Ok(Principal {
                     id: PrincipalId::new(),
-                    display_name: "service-account".to_string(),
-                    source: AuthSource::ApiKey,
+                    display_name: "CN=device-001".to_string(),
+                    source: AuthSource::Mtls,
                     groups: vec![],
                     tenant_id: TenantId::from_str("test").unwrap(),
                     session_id: None,
                 })
             } else {
-                None
+                Err("certificate validation failed: unknown issuer".to_string())
             }
         }))
     }
 
     #[tokio::test]
-    async fn api_key_continues_for_non_api_key_creds() {
+    async fn mtls_continues_for_non_cert_creds() {
         let driver = make_driver();
         let creds = Credentials::UsernamePassword {
-            username: "user".to_string(),
-            password: SecretString::new("pass".to_string()),
+            username: "alice".to_string(),
+            password: SecretString::new("secret".to_string()),
         };
         let mut ctx = test_ctx();
         let result = driver.authenticate(&creds, &mut ctx).await;
@@ -83,27 +83,30 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn api_key_authenticates_known_key() {
+    async fn mtls_authenticates_valid_cert() {
         let driver = make_driver();
-        let creds = Credentials::ApiKey {
-            key: SecretString::new("valid-api-key".to_string()),
+        let creds = Credentials::ClientCert {
+            der: b"valid-cert-der".to_vec(),
         };
         let mut ctx = test_ctx();
         let result = driver.authenticate(&creds, &mut ctx).await;
         match result {
-            AuthResult::Authenticated(p) => assert_eq!(p.display_name, "service-account"),
+            AuthResult::Authenticated(p) => assert_eq!(p.display_name, "CN=device-001"),
             _other => panic!("expected Authenticated, got something else"),
         }
     }
 
     #[tokio::test]
-    async fn api_key_continues_for_unknown_key() {
+    async fn mtls_rejects_invalid_cert() {
         let driver = make_driver();
-        let creds = Credentials::ApiKey {
-            key: SecretString::new("unknown-key".to_string()),
+        let creds = Credentials::ClientCert {
+            der: b"garbage-bytes".to_vec(),
         };
         let mut ctx = test_ctx();
         let result = driver.authenticate(&creds, &mut ctx).await;
-        assert!(matches!(result, AuthResult::Continue));
+        match result {
+            AuthResult::Reject(msg) => assert!(msg.contains("certificate validation failed")),
+            _other => panic!("expected Reject, got something else"),
+        }
     }
 }
