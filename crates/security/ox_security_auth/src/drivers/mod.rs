@@ -11,7 +11,7 @@ pub mod totp;
 pub use ad::AdAuthDriver;
 pub use api_key::{ApiKeyAuthDriver, ApiKeyLookupFn};
 pub use db::DbAuthDriver;
-pub use kerberos::KerberosAuthDriver;
+pub use kerberos::{KerberosAuthDriver, KerberosConfig, TicketValidatorFn as KerberosTicketValidatorFn};
 pub use ldap::LdapAuthDriver;
 pub use mtls::{MtlsAuthDriver, CertValidatorFn};
 pub use radius::RadiusAuthDriver;

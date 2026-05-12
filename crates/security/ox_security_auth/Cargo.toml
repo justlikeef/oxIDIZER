@@ -7,6 +7,7 @@ license = "GPL-3.0-only"
 [features]
 default = []
 test-support = []
+kerberos = ["dep:cross-krb5"]
 
 [dependencies]
 ox_security_core = { path = "../ox_security_core" }
@@ -15,6 +16,7 @@ secrecy          = { version = "0.8", features = ["serde"] }
 totp-rs          = { version = "5", features = ["gen_secret"] }
 ldap3            = { version = "0.11", default-features = false, features = ["tls-native"] }
 futures          = "0.3"
+cross-krb5       = { version = "0.4", optional = true }
 
 [dev-dependencies]
 tokio            = { version = "1", features = ["macros", "rt", "net"] }
