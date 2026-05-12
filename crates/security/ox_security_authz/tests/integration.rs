@@ -403,3 +403,121 @@ async fn ad_authz_without_group_resolution_uses_direct_groups() {
     let result = driver.check(&principal, "scripts/deploy.sh", "execute").await;
     assert!(matches!(result, AuthzResult::Allow));
 }
+
+// ─── OktaAuthzDriver tests ──────────────────────────────────────────────────
+
+use ox_security_authz::drivers::{OktaAuthzDriver, OktaConfig, OktaApiFn, OktaGrantMapperFn};
+
+fn okta_config() -> OktaConfig {
+    OktaConfig {
+        domain: "dev-123456.okta.com".to_string(),
+        api_token: "test-token".to_string(),
+        role_claim_attr: "groups".to_string(),
+        tenant_id: TenantId::from_str("test").unwrap(),
+    }
+}
+
+fn fixed_groups_api(groups: Vec<String>) -> OktaApiFn {
+    Arc::new(move |_user_id: &str| {
+        let groups = groups.clone();
+        Box::pin(async move { Ok(groups) })
+    })
+}
+
+fn error_api() -> OktaApiFn {
+    Arc::new(|_user_id: &str| {
+        Box::pin(async move {
+            Err("connection refused".to_string())
+        })
+    })
+}
+
+fn okta_principal() -> Principal {
+    Principal {
+        id: PrincipalId::new(),
+        display_name: "Okta User".to_string(),
+        source: AuthSource::Okta,
+        groups: vec![],
+        tenant_id: TenantId::from_str("test").unwrap(),
+        session_id: None,
+    }
+}
+
+fn local_principal_okta() -> Principal {
+    Principal {
+        id: PrincipalId::new(),
+        display_name: "Local User".to_string(),
+        source: AuthSource::Local,
+        groups: vec![],
+        tenant_id: TenantId::from_str("test").unwrap(),
+        session_id: None,
+    }
+}
+
+#[tokio::test]
+async fn okta_authz_continues_for_non_okta_principal() {
+    let driver = OktaAuthzDriver::new(
+        okta_config(),
+        fixed_groups_api(vec!["admins".to_string()]),
+        Arc::new(|_groups: &[String]| {
+            vec![PermissionGrant {
+                operation: "read".to_string(),
+                resource_pattern: None,
+            }]
+        }),
+    );
+    let result = driver.check(&local_principal_okta(), "any/resource", "read").await;
+    assert!(matches!(result, AuthzResult::Continue));
+}
+
+#[tokio::test]
+async fn okta_authz_allows_when_group_grants_permission() {
+    let driver = OktaAuthzDriver::new(
+        okta_config(),
+        fixed_groups_api(vec!["editors".to_string()]),
+        Arc::new(|groups: &[String]| {
+            if groups.iter().any(|g| g == "editors") {
+                vec![PermissionGrant {
+                    operation: "write".to_string(),
+                    resource_pattern: Some("docs/*".to_string()),
+                }]
+            } else {
+                vec![]
+            }
+        }),
+    );
+    let result = driver.check(&okta_principal(), "docs/spec.md", "write").await;
+    assert!(matches!(result, AuthzResult::Allow));
+}
+
+#[tokio::test]
+async fn okta_authz_continues_when_no_matching_grant() {
+    let driver = OktaAuthzDriver::new(
+        okta_config(),
+        fixed_groups_api(vec!["viewers".to_string()]),
+        Arc::new(|_groups: &[String]| {
+            vec![PermissionGrant {
+                operation: "read".to_string(),
+                resource_pattern: None,
+            }]
+        }),
+    );
+    let result = driver.check(&okta_principal(), "any/resource", "delete").await;
+    assert!(matches!(result, AuthzResult::Continue));
+}
+
+#[tokio::test]
+async fn okta_authz_continues_on_api_error() {
+    let driver = OktaAuthzDriver::new(
+        okta_config(),
+        error_api(),
+        Arc::new(|_groups: &[String]| {
+            vec![PermissionGrant {
+                operation: "read".to_string(),
+                resource_pattern: None,
+            }]
+        }),
+    );
+    let result = driver.check(&okta_principal(), "any/resource", "read").await;
+    assert!(matches!(result, AuthzResult::Continue));
+}
