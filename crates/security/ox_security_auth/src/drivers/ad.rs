@@ -17,12 +17,14 @@ pub struct AdConfig {
     pub upn_suffix: String,
 }
 
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Clone)]
 pub struct BindDnCapture {
     sequence: Arc<Mutex<Vec<LdapBindResult>>>,
     log: Arc<Mutex<Vec<String>>>,
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl BindDnCapture {
     pub fn new(result: LdapBindResult) -> Self {
         Self {
@@ -40,10 +42,11 @@ impl BindDnCapture {
     }
 
     pub fn last_bind_dn(&self) -> Vec<String> {
-        self.log.lock().unwrap().clone()
+        self.log.lock().expect("BindDnCapture lock poisoned").clone()
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl LdapAdapter for BindDnCapture {
     fn bind_and_search(
         &self,
@@ -53,9 +56,9 @@ impl LdapAdapter for BindDnCapture {
         _base_dn: String,
         _group_attr: String,
     ) -> BoxFuture<'static, LdapBindResult> {
-        self.log.lock().unwrap().push(bind_dn);
+        self.log.lock().expect("BindDnCapture lock poisoned").push(bind_dn);
         let result = {
-            let mut seq = self.sequence.lock().unwrap();
+            let mut seq = self.sequence.lock().expect("BindDnCapture lock poisoned");
             if seq.len() > 1 { seq.remove(0) } else { seq[0].clone() }
         };
         Box::pin(async move { result })

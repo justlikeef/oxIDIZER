@@ -37,7 +37,22 @@ pub trait LdapAdapter: Send + Sync + 'static {
     ) -> BoxFuture<'static, LdapBindResult>;
 }
 
-pub struct RealLdapAdapter;
+fn escape_ldap_filter_value(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\5c"),
+            '*'  => out.push_str("\\2a"),
+            '('  => out.push_str("\\28"),
+            ')'  => out.push_str("\\29"),
+            '\0' => out.push_str("\\00"),
+            c    => out.push(c),
+        }
+    }
+    out
+}
+
+pub(crate) struct RealLdapAdapter;
 
 impl LdapAdapter for RealLdapAdapter {
     fn bind_and_search(
@@ -72,7 +87,7 @@ impl LdapAdapter for RealLdapAdapter {
                 .next()
                 .and_then(|rdn| rdn.split('=').nth(1))
                 .unwrap_or("*");
-            let filter = format!("(uid={})", username_part);
+            let filter = format!("(uid={})", escape_ldap_filter_value(username_part));
             let attr_ref = group_attr.as_str();
 
             let groups = match ldap.search(&base_dn, Scope::Subtree, &filter, vec![attr_ref]).await {
@@ -100,16 +115,19 @@ impl LdapAdapter for RealLdapAdapter {
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 pub struct MockLdapAdapter {
     result: LdapBindResult,
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl MockLdapAdapter {
     pub fn new(result: LdapBindResult) -> Self {
         Self { result }
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl LdapAdapter for MockLdapAdapter {
     fn bind_and_search(
         &self,
@@ -155,7 +173,7 @@ impl LdapAuthDriver {
 
         match result {
             LdapBindResult::Success { groups } => {
-                let group_ids: Vec<GroupId> = groups.into_iter().map(|g| GroupId::new(g)).collect();
+                let group_ids: Vec<GroupId> = groups.into_iter().map(GroupId::new).collect();
                 AuthResult::Authenticated(Principal {
                     id: PrincipalId::new(),
                     display_name: display_name.to_string(),
@@ -171,8 +189,11 @@ impl LdapAuthDriver {
             LdapBindResult::NoSuchEntry => {
                 AuthResult::Reject(format!("user '{}' not found in directory", display_name))
             }
-            LdapBindResult::Error(msg) => {
-                AuthResult::Reject(format!("LDAP error for '{}': {}", display_name, msg))
+            LdapBindResult::Error(_msg) => {
+                // Infrastructure error (connection failure, timeout, TLS error).
+                // Return Continue so the pipeline can try the next driver; the pipeline
+                // is fail-closed at the system level — no driver authenticating = reject.
+                AuthResult::Continue
             }
         }
     }

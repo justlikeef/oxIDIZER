@@ -210,6 +210,8 @@ async fn ldap_driver_authenticates_valid_user() {
         AuthResult::Authenticated(p) => {
             assert_eq!(p.display_name, "alice");
             assert_eq!(p.groups, vec![ox_security_core::GroupId::new("cn=admins,dc=example,dc=com")]);
+            assert_eq!(p.source, AuthSource::Ldap);
+            assert_eq!(p.tenant_id.as_str(), "test");
         }
         _ => panic!("expected Authenticated"),
     }
@@ -261,6 +263,7 @@ async fn ad_driver_tries_upn_format() {
     let result = driver.authenticate(&creds, &mut ctx).await;
     assert!(matches!(result, AuthResult::Authenticated(_)));
     let attempted = capture.last_bind_dn();
+    assert_eq!(attempted.len(), 3, "expected all three DN forms to be tried");
     assert!(!attempted.is_empty(), "expected at least one bind attempt");
     assert!(attempted.iter().any(|dn: &String| dn.ends_with("@example.com")), "expected UPN form to be tried");
 }
@@ -284,4 +287,32 @@ async fn ad_driver_authenticates_via_domain_prefix() {
         attempted.iter().any(|dn| dn.starts_with("EXAMPLE\\")),
         "expected DOMAIN\\user attempt, got: {:?}", attempted
     );
+}
+
+#[tokio::test]
+async fn ldap_driver_continues_on_adapter_error() {
+    let mock = MockLdapAdapter::new(LdapBindResult::Error("connection refused".to_string()));
+    let driver = LdapAuthDriver::with_mock(ldap_config(), mock);
+    let creds = Credentials::UsernamePassword {
+        username: "alice".to_string(),
+        password: SecretString::new("pass".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Continue));
+}
+
+#[tokio::test]
+async fn ad_driver_returns_last_reject_when_all_forms_fail() {
+    use ox_security_auth::drivers::ad::BindDnCapture;
+    use ox_security_auth::drivers::ldap::LdapBindResult;
+    let mock = BindDnCapture::new(LdapBindResult::InvalidCredentials);
+    let driver = AdAuthDriver::with_mock(ad_config(), mock);
+    let creds = Credentials::UsernamePassword {
+        username: "bob".to_string(),
+        password: SecretString::new("wrong".to_string()),
+    };
+    let mut ctx = test_ctx();
+    let result = driver.authenticate(&creds, &mut ctx).await;
+    assert!(matches!(result, AuthResult::Reject(_)));
 }

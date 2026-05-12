@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
 
+[features]
+default = []
+test-support = []
+
 [dependencies]
 ox_security_core = { path = "../ox_security_core" }
 async-trait      = "0.1"
@@ -13,5 +17,6 @@ ldap3            = { version = "0.11", default-features = false, features = ["tl
 futures          = "0.3"
 
 [dev-dependencies]
-tokio     = { version = "1", features = ["macros", "rt", "net"] }
-x509-cert = "0.2"
+tokio            = { version = "1", features = ["macros", "rt", "net"] }
+x509-cert        = "0.2"
+ox_security_auth = { path = ".", features = ["test-support"] }

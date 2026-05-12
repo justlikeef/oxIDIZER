@@ -18,5 +18,10 @@ pub use radius::RadiusAuthDriver;
 pub use tacacs::TacacsAuthDriver;
 pub use totp::{TotpAuthDriver, TotpSecretLookupFn};
 
-pub use ldap::{LdapConfig, LdapAdapter, LdapBindResult, MockLdapAdapter};
-pub use ad::{AdConfig, BindDnCapture};
+pub use ldap::{LdapConfig, LdapAdapter, LdapBindResult};
+pub use ad::AdConfig;
+
+#[cfg(any(test, feature = "test-support"))]
+pub use ldap::MockLdapAdapter;
+#[cfg(any(test, feature = "test-support"))]
+pub use ad::BindDnCapture;
