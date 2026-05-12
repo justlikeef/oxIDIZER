@@ -9,7 +9,9 @@ ox_security_core = { path = "../ox_security_core" }
 async-trait      = "0.1"
 secrecy          = { version = "0.8", features = ["serde"] }
 totp-rs          = { version = "5", features = ["gen_secret"] }
+ldap3            = { version = "0.11", default-features = false, features = ["tls-native"] }
+futures          = "0.3"
 
 [dev-dependencies]
-tokio     = { version = "1", features = ["macros", "rt"] }
+tokio     = { version = "1", features = ["macros", "rt", "net"] }
 x509-cert = "0.2"
