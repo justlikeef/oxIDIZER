@@ -20,6 +20,9 @@ totp-rs          = { version = "5", features = ["gen_secret"] }
 ldap3            = { version = "0.11", default-features = false, features = ["tls-native"] }
 futures          = "0.3"
 cross-krb5       = { version = "0.4", optional = true }
+md-5             = "0.10"
+rand             = "0.8"
+tokio            = { version = "1", features = ["net", "time"] }
 
 [dev-dependencies]
 tokio            = { version = "1", features = ["macros", "rt", "net"] }

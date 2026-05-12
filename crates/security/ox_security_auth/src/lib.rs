@@ -6,5 +6,6 @@ pub use drivers::{
     AdAuthDriver, AdConfig, ApiKeyAuthDriver, ApiKeyLookupFn, DbAuthDriver,
     KerberosAuthDriver, KerberosConfig, KerberosTicketValidatorFn,
     LdapAuthDriver, LdapConfig, MtlsAuthDriver, CertValidatorFn,
-    RadiusAuthDriver, TacacsAuthDriver, TotpAuthDriver, TotpSecretLookupFn,
+    RadiusAuthDriver, RadiusConfig, RadiusUdpSendFn,
+    TacacsAuthDriver, TotpAuthDriver, TotpSecretLookupFn,
 };

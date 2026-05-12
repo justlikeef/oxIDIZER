@@ -14,7 +14,7 @@ pub use db::DbAuthDriver;
 pub use kerberos::{KerberosAuthDriver, KerberosConfig, TicketValidatorFn as KerberosTicketValidatorFn};
 pub use ldap::LdapAuthDriver;
 pub use mtls::{MtlsAuthDriver, CertValidatorFn};
-pub use radius::RadiusAuthDriver;
+pub use radius::{RadiusAuthDriver, RadiusConfig, UdpSendFn as RadiusUdpSendFn};
 pub use tacacs::TacacsAuthDriver;
 pub use totp::{TotpAuthDriver, TotpSecretLookupFn};
 
