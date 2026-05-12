@@ -18,5 +18,12 @@ async-trait     = "0.1"
 serde_json      = "1"
 libc            = "0.2"
 
+[features]
+# Enable FFI exports (ox_driver_init, ox_driver_persist, etc.).
+# Enabled by default when building the crate standalone as a cdylib.
+# ox_persistence_ad links against the rlib without this feature to avoid symbol conflicts.
+ffi = []
+default = ["ffi"]
+
 [dev-dependencies]
 tokio           = { version = "1", features = ["rt", "macros"] }

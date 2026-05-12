@@ -9,7 +9,9 @@ pub mod mapping;
 use std::collections::HashMap;
 use std::sync::Arc;
 use ox_data_error::OxDataError;
-use ox_persistence::{PersistenceDriver, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, DriverMetadata, ModuleCompatibility, OxBuffer};
+use ox_persistence::{PersistenceDriver, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, OxBuffer};
+#[cfg(feature = "ffi")]
+use ox_persistence::{DriverMetadata, ModuleCompatibility};
 use ox_type_converter::ValueType;
 
 use conn_factory::{LdapConnFactory, LdapConfig, RealLdapConnFactory};
@@ -215,11 +217,17 @@ impl PersistenceDriver for LdapPersistenceDriver {
 
 // ---------------------------------------------------------------------------
 // FFI exports — mirrors ox_persistence_api pattern exactly
+// Only compiled when the "ffi" feature is enabled (default for standalone builds;
+// disabled when linked as a library dependency by ox_persistence_ad to avoid
+// duplicate symbol errors).
 // ---------------------------------------------------------------------------
 
+#[cfg(feature = "ffi")]
 use std::ffi::{c_void, CString, CStr};
+#[cfg(feature = "ffi")]
 use libc::c_char;
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
     let config_str = unsafe { CStr::from_ptr(config_json).to_string_lossy() };
@@ -235,6 +243,7 @@ pub extern "C" fn ox_driver_init(config_json: *const c_char) -> *mut c_void {
     Box::into_raw(driver) as *mut c_void
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub unsafe extern "C" fn ox_driver_destroy(ctx: *mut c_void) {
     if !ctx.is_null() {
@@ -242,6 +251,7 @@ pub unsafe extern "C" fn ox_driver_destroy(ctx: *mut c_void) {
     }
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub unsafe extern "C" fn ox_driver_persist(
     ctx: *mut c_void,
@@ -260,6 +270,7 @@ pub unsafe extern "C" fn ox_driver_persist(
     }
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub unsafe extern "C" fn ox_driver_restore(
     ctx: *mut c_void,
@@ -275,6 +286,7 @@ pub unsafe extern "C" fn ox_driver_restore(
     }
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub unsafe extern "C" fn ox_driver_fetch(
     ctx: *mut c_void,
@@ -293,6 +305,7 @@ pub unsafe extern "C" fn ox_driver_fetch(
     }
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
     let mut compat = HashMap::new();
@@ -315,6 +328,7 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
     CString::new(json).expect("CString").into_raw()
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub extern "C" fn ox_driver_get_config_schema() -> *mut c_char {
     let schema = r#"
@@ -339,6 +353,7 @@ parameters:
     CString::new(schema).expect("CString").into_raw()
 }
 
+#[cfg(feature = "ffi")]
 #[no_mangle]
 pub unsafe extern "C" fn ox_driver_free_buffer(buf: OxBuffer) {
     ox_persistence::free_ox_buffer(buf);
