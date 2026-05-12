@@ -94,6 +94,7 @@ impl AuthzDriver for InMemoryAuthzDriver {
             match &entry.resource_pattern {
                 None => return AuthzResult::Allow,
                 Some(pat) if pat.ends_with("/*") => {
+                    // prefix of "" (from pat "/*") matches all paths — equivalent to resource_pattern: None
                     let prefix = &pat[..pat.len() - 2];
                     if path.starts_with(prefix) { return AuthzResult::Allow; }
                 }
@@ -303,6 +304,9 @@ pub extern "C" fn ox_plugin_process(plugin_ctx: *mut c_void, task_ctx: *mut c_vo
         let path   = get_field(&state.api, task_ctx, "request.path");
         let body   = get_field(&state.api, task_ctx, "request.body");
         let segs: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+        // Admin routes (/api/v1/admin/*) rely on the host workflow engine for perimeter
+        // authentication — the persona YAML routes admin URLs only after the pipeline
+        // authenticates the request. No per-handler auth check is needed here.
         match (method.as_str(), segs.get(0).copied(), segs.get(1).copied(),
                segs.get(2).copied(), segs.get(3).copied(), segs.get(4).copied()) {
             ("POST", Some("api"), Some("v1"), Some("security"), Some("authenticate"), None) => {
@@ -321,9 +325,15 @@ pub extern "C" fn ox_plugin_process(plugin_ctx: *mut c_void, task_ctx: *mut c_vo
                 handle_grants_create(state, task_ctx, &body);
             }
             ("DELETE", Some("api"), Some("v1"), Some("admin"), Some("authz"), Some("grants")) => {
+                // segs[5] = principal_id, segs[6] = operation
                 let pid = segs.get(5).copied().unwrap_or("");
                 let op  = segs.get(6).copied().unwrap_or("");
-                handle_grants_delete(state, task_ctx, pid, op);
+                if pid.is_empty() || op.is_empty() {
+                    json_response(&state.api, task_ctx, 400,
+                        r#"{"error":{"code":"INVALID_REQUEST","message":"DELETE /api/v1/admin/authz/grants/{principal_id}/{operation} requires both path segments"}}"#);
+                } else {
+                    handle_grants_delete(state, task_ctx, pid, op);
+                }
             }
             _ => {}
         }
@@ -400,6 +410,17 @@ mod tests {
         }
     }
 
+    fn make_test_principal(pid_str: &str, uuid_str: &str) -> Principal {
+        Principal {
+            id: PrincipalId::from_uuid(Uuid::parse_str(uuid_str).unwrap()),
+            display_name: pid_str.to_string(),
+            source: AuthSource::Local,
+            groups: vec![],
+            tenant_id: TenantId::from("test"),
+            session_id: None,
+        }
+    }
+
     fn make_state() -> PluginState {
         let config = make_config();
         let key_map: HashMap<String, (Uuid, String, Vec<String>, String)> = config.api_keys.iter()
@@ -465,5 +486,22 @@ mod tests {
         assert_eq!(state.grant_store.lock().unwrap().len(), 1);
         state.grant_store.lock().unwrap().retain(|e| !(e.principal_id == "pid1" && e.operation == "read"));
         assert!(state.grant_store.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_authz_driver_wildcard_patterns() {
+        // Grant entries use the UUID string form — matching what principal.id.as_uuid().to_string() returns.
+        let store: Arc<Mutex<Vec<GrantEntry>>> = Arc::new(Mutex::new(vec![
+            GrantEntry { principal_id: "00000000-0000-0000-0000-000000000001".into(), operation: "read".into(), resource_pattern: Some("files/*".into()) },
+            GrantEntry { principal_id: "00000000-0000-0000-0000-000000000002".into(), operation: "write".into(), resource_pattern: None },
+        ]));
+        let driver = InMemoryAuthzDriver { grants: store };
+        let principal_1 = make_test_principal("pid1", "00000000-0000-0000-0000-000000000001");
+        let principal_2 = make_test_principal("pid2", "00000000-0000-0000-0000-000000000002");
+
+        assert_eq!(driver.check(&principal_1, "files/readme.txt", "read").await, AuthzResult::Allow);
+        assert_eq!(driver.check(&principal_1, "other/file.txt", "read").await, AuthzResult::Continue);
+        assert_eq!(driver.check(&principal_2, "any/path", "write").await, AuthzResult::Allow);
+        assert_eq!(driver.check(&principal_1, "files/readme.txt", "write").await, AuthzResult::Continue);
     }
 }

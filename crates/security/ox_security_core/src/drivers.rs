@@ -11,7 +11,7 @@ pub enum AuthResult {
     Reject(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AuthzResult {
     Allow,
     Deny(String),
