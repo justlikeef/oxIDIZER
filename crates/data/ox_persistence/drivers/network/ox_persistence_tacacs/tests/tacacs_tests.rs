@@ -81,3 +81,36 @@ fn tacacs_driver_list_datasets_does_not_include_grants() {
     assert!(!datasets.contains(&"grants".to_string()));
     assert!(!datasets.contains(&"sessions".to_string()));
 }
+
+#[test]
+fn tacacs_driver_fetch_members_returns_by_group() {
+    let driver = TacacsPersistenceDriver::new();
+    let mut entry1 = HashMap::new();
+    entry1.insert("principal_id".to_string(), str_entry("u1"));
+    entry1.insert("group_id".to_string(),     str_entry("g1"));
+    entry1.insert("tenant_id".to_string(),    str_entry("t1"));
+    driver.insert_cached_principal("u1", entry1);
+
+    let mut entry2 = HashMap::new();
+    entry2.insert("principal_id".to_string(), str_entry("u2"));
+    entry2.insert("group_id".to_string(),     str_entry("g2"));
+    entry2.insert("tenant_id".to_string(),    str_entry("t1"));
+    driver.insert_cached_principal("u2", entry2);
+
+    let mut filter = HashMap::new();
+    filter.insert("group_id".to_string(), str_entry("g1"));
+    let result = driver.fetch(&filter, "members").expect("fetch failed");
+    assert_eq!(result.len(), 1);
+    assert!(result.contains(&"u1".to_string()));
+}
+
+#[test]
+fn parse_av_pairs_priv_level_overridden_by_oxgroup() {
+    let pairs = vec![
+        TacacsAvPair { attribute: "user".to_string(),     value: "admin".to_string() },
+        TacacsAvPair { attribute: "priv-lvl".to_string(), value: "15".to_string() },
+        TacacsAvPair { attribute: "oxgroup".to_string(),  value: "netops".to_string() },
+    ];
+    let result = parse_av_pairs(&pairs, "tenant1");
+    assert_eq!(result.get("group_id").unwrap().0, "netops");
+}

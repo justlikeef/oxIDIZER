@@ -98,7 +98,8 @@ impl PersistenceDriver for OktaPersistenceDriver {
             }
             "groups" => {
                 // Okta group lookup by name requires a search.
-                let path = format!("/api/v1/groups?q={}", id);
+                let encoded_id = id.replace(' ', "%20").replace('&', "%26").replace('=', "%3D").replace('+', "%2B");
+                let path = format!("/api/v1/groups?q={}", encoded_id);
                 let groups = self.client.get(&path)?;
                 let arr = groups.as_array()
                     .and_then(|a| a.first())
@@ -305,7 +306,14 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules: compat,
     };
-    CString::new(serde_json::to_string(&metadata).expect("serialize")).expect("CString").into_raw()
+    let json = match serde_json::to_string(&metadata) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]
@@ -322,7 +330,10 @@ parameters:
     required: true
     description: "Okta SSWS API token"
 "#;
-    CString::new(schema).expect("CString").into_raw()
+    match CString::new(schema) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]

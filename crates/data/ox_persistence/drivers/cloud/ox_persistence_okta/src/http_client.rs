@@ -6,10 +6,6 @@ use std::sync::{Arc, Mutex};
 use ox_data_error::OxDataError;
 use serde_json::Value;
 
-// Unused type aliases kept for documentation clarity.
-pub type OktaRequest = Value;
-pub type OktaResponse = Value;
-
 /// Minimal HTTP operations needed by the Okta driver.
 pub trait OktaHttpClient: Send + Sync {
     fn get(&self, path: &str) -> Result<Value, OxDataError>;
@@ -25,6 +21,7 @@ pub trait OktaHttpClient: Send + Sync {
 pub struct RealOktaHttpClient {
     base_url: String,   // e.g. "https://yourorg.okta.com"
     api_token: String,  // SSWS token
+    client: reqwest::blocking::Client,
 }
 
 impl RealOktaHttpClient {
@@ -34,15 +31,15 @@ impl RealOktaHttpClient {
         } else {
             format!("https://{}", domain)
         };
-        Self { base_url, api_token: api_token.to_string() }
+        Self {
+            base_url,
+            api_token: api_token.to_string(),
+            client: reqwest::blocking::Client::new(),
+        }
     }
 
     fn full_url(&self, path: &str) -> String {
         format!("{}{}", self.base_url.trim_end_matches('/'), path)
-    }
-
-    fn client(&self) -> reqwest::blocking::Client {
-        reqwest::blocking::Client::new()
     }
 
     fn auth_header(&self) -> String {
@@ -52,7 +49,7 @@ impl RealOktaHttpClient {
 
 impl OktaHttpClient for RealOktaHttpClient {
     fn get(&self, path: &str) -> Result<Value, OxDataError> {
-        let resp = self.client()
+        let resp = self.client
             .get(&self.full_url(path))
             .header("Authorization", self.auth_header())
             .header("Accept", "application/json")
@@ -68,7 +65,7 @@ impl OktaHttpClient for RealOktaHttpClient {
     }
 
     fn post(&self, path: &str, body: &Value) -> Result<Value, OxDataError> {
-        let resp = self.client()
+        let resp = self.client
             .post(&self.full_url(path))
             .header("Authorization", self.auth_header())
             .header("Accept", "application/json")
@@ -85,7 +82,7 @@ impl OktaHttpClient for RealOktaHttpClient {
     }
 
     fn put(&self, path: &str, body: &Value) -> Result<Value, OxDataError> {
-        let resp = self.client()
+        let resp = self.client
             .put(&self.full_url(path))
             .header("Authorization", self.auth_header())
             .header("Accept", "application/json")
@@ -102,7 +99,7 @@ impl OktaHttpClient for RealOktaHttpClient {
     }
 
     fn delete(&self, path: &str) -> Result<(), OxDataError> {
-        let resp = self.client()
+        let resp = self.client
             .delete(&self.full_url(path))
             .header("Authorization", self.auth_header())
             .send()

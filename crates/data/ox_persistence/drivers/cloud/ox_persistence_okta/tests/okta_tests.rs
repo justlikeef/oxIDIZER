@@ -1,6 +1,5 @@
 mod http_client_tests {
-    use ox_persistence_okta::http_client::{MockOktaHttpClient, OktaHttpClient, OktaRequest, OktaResponse};
-    use std::collections::HashMap;
+    use ox_persistence_okta::http_client::{MockOktaHttpClient, OktaHttpClient};
 
     #[test]
     fn mock_get_returns_canned_response() {

@@ -74,3 +74,33 @@ fn radius_driver_list_datasets_returns_principals_and_members() {
     assert!(!datasets.contains(&"grants".to_string()));
     assert!(!datasets.contains(&"sessions".to_string()));
 }
+
+#[test]
+fn radius_driver_fetch_members_returns_by_group() {
+    let driver = RadiusPersistenceDriver::new();
+    let mut entry1 = HashMap::new();
+    entry1.insert("principal_id".to_string(), str_entry("u1"));
+    entry1.insert("group_id".to_string(),     str_entry("g1"));
+    entry1.insert("tenant_id".to_string(),    str_entry("t1"));
+    driver.insert_cached_principal("u1", entry1);
+
+    let mut entry2 = HashMap::new();
+    entry2.insert("principal_id".to_string(), str_entry("u2"));
+    entry2.insert("group_id".to_string(),     str_entry("g2"));
+    entry2.insert("tenant_id".to_string(),    str_entry("t1"));
+    driver.insert_cached_principal("u2", entry2);
+
+    let mut filter = HashMap::new();
+    filter.insert("group_id".to_string(), str_entry("g1"));
+    let result = driver.fetch(&filter, "members").expect("fetch failed");
+    assert_eq!(result.len(), 1);
+    assert!(result.contains(&"u1".to_string()));
+}
+
+#[test]
+fn radius_driver_fetch_members_missing_group_id_returns_error() {
+    let driver = RadiusPersistenceDriver::new();
+    let filter = HashMap::new();
+    let result = driver.fetch(&filter, "members");
+    assert!(result.is_err());
+}

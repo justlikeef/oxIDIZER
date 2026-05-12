@@ -37,7 +37,7 @@ impl TacacsPersistenceDriver {
 
     /// Called by the TACACS+ auth driver after a successful Authorization-Response.
     pub fn insert_cached_principal(&self, principal_id: &str, data: CanonicalMap) {
-        self.cache.lock().unwrap().insert(principal_id.to_string(), data);
+        self.cache.lock().unwrap_or_else(|p| p.into_inner()).insert(principal_id.to_string(), data);
     }
 }
 
@@ -66,7 +66,7 @@ impl PersistenceDriver for TacacsPersistenceDriver {
     ) -> Result<HashMap<String, (String, ValueType, HashMap<String, String>)>, OxDataError> {
         match location {
             "principals" => {
-                let cache = self.cache.lock().unwrap();
+                let cache = self.cache.lock().unwrap_or_else(|p| p.into_inner());
                 cache.get(id)
                     .cloned()
                     .ok_or_else(|| OxDataError::InternalError(format!("TACACS+: principal '{}' not in cache", id)))
@@ -84,7 +84,7 @@ impl PersistenceDriver for TacacsPersistenceDriver {
     ) -> Result<Vec<String>, OxDataError> {
         match location {
             "principals" => {
-                let cache = self.cache.lock().unwrap();
+                let cache = self.cache.lock().unwrap_or_else(|p| p.into_inner());
                 let ids: Vec<String> = cache
                     .iter()
                     .filter(|(_, entry)| {
@@ -97,14 +97,13 @@ impl PersistenceDriver for TacacsPersistenceDriver {
                 Ok(ids)
             }
             "members" => {
-                let group_id_filter = filter.get("group_id").map(|(v, _, _)| v.clone());
-                if group_id_filter.is_none() {
-                    return Err(OxDataError::DriverError(
+                let gid = match filter.get("group_id").map(|(v, _, _)| v.clone()) {
+                    Some(v) => v,
+                    None => return Err(OxDataError::DriverError(
                         "TACACS+ members fetch requires 'group_id' in filter".to_string(),
-                    ));
-                }
-                let gid = group_id_filter.unwrap();
-                let cache = self.cache.lock().unwrap();
+                    )),
+                };
+                let cache = self.cache.lock().unwrap_or_else(|p| p.into_inner());
                 let ids: Vec<String> = cache
                     .iter()
                     .filter(|(_, entry)| {
@@ -253,7 +252,14 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules: compat,
     };
-    CString::new(serde_json::to_string(&metadata).expect("serialize")).expect("CString").into_raw()
+    let json = match serde_json::to_string(&metadata) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]
@@ -266,7 +272,10 @@ parameters:
     required: false
     description: "TACACS+ server address (informational only)"
 "#;
-    CString::new(schema).expect("CString").into_raw()
+    match CString::new(schema) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]
