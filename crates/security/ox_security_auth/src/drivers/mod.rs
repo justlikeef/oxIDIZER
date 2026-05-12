@@ -9,11 +9,11 @@ pub(crate) mod tacacs;
 pub(crate) mod totp;
 
 pub use ad::AdAuthDriver;
-pub use api_key::ApiKeyAuthDriver;
+pub use api_key::{ApiKeyAuthDriver, ApiKeyLookupFn};
 pub use db::DbAuthDriver;
 pub use kerberos::KerberosAuthDriver;
 pub use ldap::LdapAuthDriver;
-pub use mtls::MtlsAuthDriver;
+pub use mtls::{MtlsAuthDriver, CertValidatorFn};
 pub use radius::RadiusAuthDriver;
 pub use tacacs::TacacsAuthDriver;
 pub use totp::{TotpAuthDriver, TotpSecretLookupFn};

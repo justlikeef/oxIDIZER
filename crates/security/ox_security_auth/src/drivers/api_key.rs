@@ -28,6 +28,7 @@ impl AuthDriver for ApiKeyAuthDriver {
         };
         match (self.lookup)(key) {
             Some(principal) => AuthResult::Authenticated(principal),
+            // Unknown key => Continue, not Reject; another driver may recognise it
             None => AuthResult::Continue,
         }
     }

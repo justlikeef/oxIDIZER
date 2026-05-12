@@ -11,4 +11,5 @@ secrecy          = { version = "0.8", features = ["serde"] }
 totp-rs          = { version = "5", features = ["gen_secret"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt"] }
+tokio     = { version = "1", features = ["macros", "rt"] }
+x509-cert = "0.2"
