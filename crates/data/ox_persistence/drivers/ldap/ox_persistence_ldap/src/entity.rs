@@ -81,9 +81,12 @@ pub fn build_fetch_filter(
 ) -> String {
     let conditions: Vec<String> = filter_map
         .iter()
-        .map(|(canon_key, (value, _, _))| {
+        .filter_map(|(canon_key, (value, _, _))| {
             let ldap_attr = mapping.canonical_to_ldap(location, canon_key);
-            format!("({}={})", ldap_attr, ldap_escape(value))
+            if ldap_attr == "__skip__" {
+                return None;
+            }
+            Some(format!("({}={})", ldap_attr, ldap_escape(value)))
         })
         .collect();
 
@@ -97,15 +100,17 @@ pub fn build_fetch_filter(
 }
 
 /// Escapes special characters in LDAP filter values per RFC 4515.
-pub fn ldap_escape(s: &str) -> String {
-    s.chars()
-        .flat_map(|c| match c {
-            '\\' => vec!['\\', '5', 'c'],
-            '*'  => vec!['\\', '2', 'a'],
-            '('  => vec!['\\', '2', '8'],
-            ')'  => vec!['\\', '2', '9'],
-            '\0' => vec!['\\', '0', '0'],
-            c    => vec![c],
-        })
-        .collect()
+pub fn ldap_escape(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for c in input.chars() {
+        match c {
+            '*'  => out.push_str(r"\2a"),
+            '('  => out.push_str(r"\28"),
+            ')'  => out.push_str(r"\29"),
+            '\\' => out.push_str(r"\5c"),
+            '\0' => out.push_str(r"\00"),
+            _    => out.push(c),
+        }
+    }
+    out
 }

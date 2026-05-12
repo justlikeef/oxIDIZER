@@ -1,7 +1,9 @@
 //! Abstracts the LDAP connection so production code uses ldap3 and tests use MockLdapConn.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+#[cfg(any(test, feature = "test-support"))]
+use std::sync::Mutex;
 use async_trait::async_trait;
 use ox_data_error::OxDataError;
 use crate::entity::LdapAttrList;
@@ -214,21 +216,24 @@ impl LdapConnFactory for RealLdapConnFactory {
 }
 
 // ---------------------------------------------------------------------------
-// Mock connection (tests only)
+// Mock connection (tests and test-support feature only)
 // ---------------------------------------------------------------------------
 
 /// In-memory LDAP store backed by a HashMap<dn, LdapAttrList>.
+#[cfg(any(test, feature = "test-support"))]
 #[derive(Clone, Default)]
 pub struct MockLdapConn {
     store: Arc<Mutex<HashMap<String, LdapAttrList>>>,
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl MockLdapConn {
     pub fn new() -> Self {
         Self { store: Arc::new(Mutex::new(HashMap::new())) }
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 #[async_trait]
 impl LdapConn for MockLdapConn {
     async fn search(&self, base_dn: &str, filter: &str) -> Result<Vec<LdapAttrList>, OxDataError> {
@@ -281,16 +286,19 @@ impl LdapConn for MockLdapConn {
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 pub struct MockLdapConnFactory {
     conn: Arc<MockLdapConn>,
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl MockLdapConnFactory {
     pub fn new(conn: Arc<MockLdapConn>) -> Self {
         Self { conn }
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 impl LdapConnFactory for MockLdapConnFactory {
     fn create(&self) -> Arc<dyn LdapConn> {
         self.conn.clone()
@@ -303,6 +311,7 @@ impl LdapConnFactory for MockLdapConnFactory {
 
 /// Parses "(attr=value)" into ("attr", "value").  Handles "(objectClass=*)" and
 /// simple equality filters only — sufficient for the mock.
+#[cfg(any(test, feature = "test-support"))]
 fn parse_simple_filter(filter: &str) -> (String, String) {
     let inner = filter.trim_start_matches('(').trim_end_matches(')');
     if let Some(pos) = inner.find('=') {

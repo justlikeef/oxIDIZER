@@ -9,9 +9,9 @@ pub mod mapping;
 use std::collections::HashMap;
 use std::sync::Arc;
 use ox_data_error::OxDataError;
-use ox_persistence::{PersistenceDriver, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter, OxBuffer};
+use ox_persistence::{PersistenceDriver, DataSet, ColumnDefinition, ColumnMetadata, ConnectionParameter};
 #[cfg(feature = "ffi")]
-use ox_persistence::{DriverMetadata, ModuleCompatibility};
+use ox_persistence::{DriverMetadata, ModuleCompatibility, OxBuffer};
 use ox_type_converter::ValueType;
 
 use conn_factory::{LdapConnFactory, LdapConfig, RealLdapConnFactory};
@@ -20,6 +20,7 @@ use entity::{ldap_attrs_from_canonical_map, canonical_map_from_ldap_attrs,
 use mapping::SchemaMapping;
 
 // Re-export MockLdapConn so integration tests can import it from the crate root in tests.
+#[cfg(any(test, feature = "test-support"))]
 pub use conn_factory::{MockLdapConn, MockLdapConnFactory};
 
 /// The LDAP persistence driver.  Holds a `LdapConnFactory` — in production this is a
@@ -28,13 +29,19 @@ pub struct LdapPersistenceDriver {
     factory: Arc<dyn LdapConnFactory>,
     mapping: SchemaMapping,
     base_dn: String,
+    /// Tokio runtime created once at construction; reused across all blocking calls.
+    runtime: tokio::runtime::Runtime,
 }
 
 impl LdapPersistenceDriver {
     pub fn new(config: LdapConfig, mapping: SchemaMapping) -> Self {
         let base_dn = config.base_dn.clone();
         let factory = Arc::new(RealLdapConnFactory::new(config));
-        Self { factory, mapping, base_dn }
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime");
+        Self { factory, mapping, base_dn, runtime }
     }
 
     /// Constructor that accepts a pre-built factory (used by tests and ox_persistence_ad).
@@ -44,7 +51,11 @@ impl LdapPersistenceDriver {
         connection_info: HashMap<String, String>,
     ) -> Self {
         let base_dn = connection_info.get("base_dn").cloned().unwrap_or_default();
-        Self { factory, mapping, base_dn }
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create tokio runtime");
+        Self { factory, mapping, base_dn, runtime }
     }
 
     /// Build the DN for a new entry under the appropriate sub-tree.
@@ -71,23 +82,23 @@ impl PersistenceDriver for LdapPersistenceDriver {
         let attrs = ldap_attrs_from_canonical_map(serializable_map, &self.mapping, location);
         let conn = self.factory.create();
 
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
-
-        // Try add; if entry exists, fall back to modify.
-        rt.block_on(async {
+        // Try add; only fall back to modify if the entry already exists (LDAP code 68).
+        self.runtime.block_on(async {
             let add_result = conn.add(&dn, attrs.clone()).await;
-            if add_result.is_err() {
-                // Entry may already exist — replace attribute values.
-                let mods: Vec<(String, Vec<String>)> = attrs
-                    .into_iter()
-                    .filter(|(k, _)| k != "objectClass")
-                    .collect();
-                conn.modify(&dn, mods).await
-            } else {
-                add_result
+            match add_result {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    // LDAP result code 68 = EntryAlreadyExists — fall back to modify.
+                    if e.to_string().contains("68") {
+                        let mods: Vec<(String, Vec<String>)> = attrs
+                            .into_iter()
+                            .filter(|(k, _)| k != "objectClass")
+                            .collect();
+                        conn.modify(&dn, mods).await
+                    } else {
+                        Err(e)
+                    }
+                }
             }
         })
     }
@@ -101,12 +112,7 @@ impl PersistenceDriver for LdapPersistenceDriver {
         let search_base = format!("ou={},{}", location, self.base_dn);
         let conn = self.factory.create();
 
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
-
-        let entries = rt.block_on(conn.search(&search_base, &filter))?;
+        let entries = self.runtime.block_on(conn.search(&search_base, &filter))?;
         let entry = entries.into_iter().next()
             .ok_or_else(|| OxDataError::InternalError(format!("LDAP entry not found: id={} location={}", id, location)))?;
 
@@ -122,12 +128,7 @@ impl PersistenceDriver for LdapPersistenceDriver {
         let search_base = format!("ou={},{}", location, self.base_dn);
         let conn = self.factory.create();
 
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
-
-        let entries = rt.block_on(conn.search(&search_base, &ldap_filter))?;
+        let entries = self.runtime.block_on(conn.search(&search_base, &ldap_filter))?;
         let pk_field = self.mapping.primary_key_field(location);
 
         let ids: Vec<String> = entries
@@ -149,11 +150,7 @@ impl PersistenceDriver for LdapPersistenceDriver {
             .map_err(|e| OxDataError::DriverError(format!("{:?}", e)))?;
         let driver = LdapPersistenceDriver::new(config, self.mapping.clone());
         let conn = driver.factory.create();
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| OxDataError::InternalError(e.to_string()))?;
-        let _ = rt.block_on(conn.search("", "(objectClass=*)"))?;
+        let _ = driver.runtime.block_on(conn.search("", "(objectClass=*)"))?;
         Ok(())
     }
 
@@ -324,8 +321,14 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules: compat,
     };
-    let json = serde_json::to_string(&metadata).expect("serialize metadata");
-    CString::new(json).expect("CString").into_raw()
+    let json = match serde_json::to_string(&metadata) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]
@@ -350,7 +353,10 @@ parameters:
     required: true
     description: "Search base DN"
 "#;
-    CString::new(schema).expect("CString").into_raw()
+    match CString::new(schema) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[cfg(feature = "ffi")]

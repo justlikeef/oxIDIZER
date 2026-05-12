@@ -23,7 +23,10 @@ libc            = "0.2"
 # Enabled by default when building the crate standalone as a cdylib.
 # ox_persistence_ad links against the rlib without this feature to avoid symbol conflicts.
 ffi = []
-default = ["ffi"]
+default = []
+# Expose mock types (MockLdapConn, MockLdapConnFactory) for downstream integration tests.
+test-support = []
 
 [dev-dependencies]
 tokio           = { version = "1", features = ["rt", "macros"] }
+ox_persistence_ldap = { path = ".", features = ["test-support"] }

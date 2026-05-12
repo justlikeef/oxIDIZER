@@ -226,7 +226,14 @@ pub extern "C" fn ox_driver_get_driver_metadata() -> *mut c_char {
         version: env!("CARGO_PKG_VERSION").to_string(),
         compatible_modules: compat,
     };
-    CString::new(serde_json::to_string(&metadata).expect("serialize")).expect("CString").into_raw()
+    let json = match serde_json::to_string(&metadata) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[no_mangle]
@@ -250,7 +257,10 @@ parameters:
     required: true
     description: "AD search base DN"
 "#;
-    CString::new(schema).expect("CString").into_raw()
+    match CString::new(schema) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[no_mangle]
