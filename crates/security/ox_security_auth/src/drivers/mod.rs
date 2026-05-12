@@ -14,4 +14,4 @@ pub use kerberos::KerberosAuthDriver;
 pub use ldap::LdapAuthDriver;
 pub use radius::RadiusAuthDriver;
 pub use tacacs::TacacsAuthDriver;
-pub use totp::TotpAuthDriver;
+pub use totp::{TotpAuthDriver, TotpSecretLookupFn};

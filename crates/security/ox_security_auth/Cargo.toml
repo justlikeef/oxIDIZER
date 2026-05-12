@@ -8,6 +8,7 @@ license = "GPL-3.0-only"
 ox_security_core = { path = "../ox_security_core" }
 async-trait      = "0.1"
 secrecy          = { version = "0.8", features = ["serde"] }
+totp-rs          = { version = "5", features = ["gen_secret"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }
