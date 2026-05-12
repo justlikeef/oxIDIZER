@@ -1,0 +1,22 @@
+[package]
+name = "ox_persistence_ldap"
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ox_persistence  = { path = "../../../../ox_persistence" }
+ox_data_object  = { path = "../../../../ox_data_object" }
+ox_data_error   = { path = "../../../../ox_data_error" }
+ox_type_converter = { path = "../../../../ox_type_converter" }
+ldap3           = { version = "0.11", default-features = false, features = ["tls-native"] }
+tokio           = { version = "1", features = ["rt-multi-thread", "macros"] }
+async-trait     = "0.1"
+serde_json      = "1"
+libc            = "0.2"
+
+[dev-dependencies]
+tokio           = { version = "1", features = ["rt", "macros"] }
