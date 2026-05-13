@@ -281,11 +281,15 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) {
         ("DELETE", Some("api"), Some("v1"), Some("admin"), Some("idp"))
             if segs.get(4).copied() == Some("tokens") =>
         {
-            if let Some(jti) = segs.get(5).copied() {
+            let jti = segs.get(5).copied().unwrap_or("");
+            if jti.is_empty() {
+                json_response(api, task_ctx, 400,
+                    r#"{"error":{"code":"INVALID_REQUEST","message":"missing token jti"}}"#);
+            } else {
                 state.token_store.revoke(jti);
+                let data = serde_json::json!({ "data": { "revoked": true } });
+                json_response(api, task_ctx, 200, &data.to_string());
             }
-            let data = serde_json::json!({ "data": { "revoked": true } });
-            json_response(api, task_ctx, 200, &data.to_string());
         }
 
         // Admin routes: GET /api/v1/admin/idp/sessions
