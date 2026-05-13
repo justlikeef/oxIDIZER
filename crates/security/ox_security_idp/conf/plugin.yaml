@@ -1,0 +1,21 @@
+tenant_id: "default"
+issuer: "https://auth.example.com"
+# Paste your RSA private key here (PKCS#1 or PKCS#8 PEM format).
+# Generate with: openssl genrsa -out idp_signing.pem 2048
+rsa_private_key_pem: |
+  -----BEGIN RSA PRIVATE KEY-----
+  REPLACE_WITH_ACTUAL_KEY
+  -----END RSA PRIVATE KEY-----
+access_token_ttl_secs: 3600
+refresh_token_ttl_secs: 86400
+clients:
+  - client_id: "example-app"
+    client_secret_hash: null
+    redirect_uris:
+      - "https://app.example.com/callback"
+    allowed_scopes: ["openid", "profile"]
+    allowed_grants: ["authorization_code", "refresh_token"]
+saml_sps:
+  - entity_id: "urn:example:sp"
+    acs_url: "https://sp.example.com/saml/acs"
+    slo_url: "https://sp.example.com/saml/slo"
