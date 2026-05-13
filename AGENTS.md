@@ -102,6 +102,20 @@ Global project information should be maintained in [README.md]
 Modules should be completely and thoroughly documented in code and system administration and development documentation should be maintained in the docs folder within each crate.
 All module/crate boundaries are to be respected.  Major changes should, in general, be restricted to the primary crate or system that you are working on in a case where a specific system is made up of multiple crates.
 
+### HTTP Handler Plugins (Workflow Engine — CRITICAL)
+
+**DO NOT use axum, actix-web, or any HTTP framework** for request handling in this project. All HTTP handlers are FFI plugins loaded by the workflow engine.
+
+- **Plugin crate type**: `crate-type = ["cdylib", "rlib"]` — every handler is a shared library
+- **Required FFI exports**: `ox_plugin_init`, `ox_plugin_process`, `ox_plugin_error`, `ox_plugin_destroy` (all `#[unsafe(no_mangle)] extern "C"`)
+- **ABI**: defined in `crates/workflow/ox_workflow_abi/src/lib.rs` — import `ox_workflow_abi` in every plugin
+- **Request/response access**: via `CoreHostApi` function pointers (`get_field`, `set_field`, etc.) — fields are `request.method`, `request.path`, `request.query`, `request.body`, `response.status`, `response.body`, `response.header.*`
+- **Multi-route dispatch**: use `match (method, segs.get(N), segs.get(N+1), ...)` on path segments inside `ox_plugin_process`
+- **Routes declared in YAML**: persona files under `personas/` — regex URL patterns map to plugin module IDs. See `personas/ca/modules/available/ox_cert_admin.yaml` as a canonical example.
+- **Static content**: served by `ox_webservice_stream` (separate module entry in persona YAML), configured with `content_root`, `mimetypes_file`, `default_documents`. Never serve static files from a handler plugin.
+- **Reference implementations**: `crates/cert/ox_cert_ra/src/lib.rs` (simple), `crates/cert/ox_cert_admin/src/lib.rs` (multi-route)
+- **Each functional crate registers its own admin routes**: no monolithic admin crate — each crate has its own plugin for admin endpoints
+
 ### ox_cc (Command and Control)
 - **Architecture**: Pull-based model. Clients (`ox_cc_client`) poll server plugins (`ox_cc_manifest_plugin`).
 - **Security**: Ed25519 for signing, X25519 for per-client encryption.

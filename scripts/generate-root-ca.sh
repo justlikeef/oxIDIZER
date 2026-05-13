@@ -20,6 +20,8 @@
 #   --content-dir DIR     Override destination for root.crt web copy
 #                         (default: <repo>/crates/cert/ox_cert_admin/content/www/ca)
 #   --csr-only            Generate a CSR instead of a self-signed certificate
+#   --hostname FQDN       FQDN of the CA host; adds DNS SANs to the certificate
+#                         (e.g. gagarca01.justlikeef.com → DNS:gagarca01,DNS:gagarca01.justlikeef.com)
 #   --help                Show this help message
 
 set -euo pipefail
@@ -36,6 +38,7 @@ FORCE=false
 PASSPHRASE="${OX_CA_KEY_PASS:-}"   # passphrase for the generated key; also settable via --passphrase
 CONTENT_DIR_OVERRIDE=""            # override CONTENT_CA_DIR; set via --content-dir
 CSR_ONLY=false                     # generate a CSR instead of a self-signed cert
+HOSTNAME=""                        # optional FQDN; used to populate SubjectAltName
 
 # ---------------------------------------------------------------------------
 # OS-specific paths
@@ -69,7 +72,7 @@ case "$OS" in
         exit 1
         ;;
 esac
-ROOT_KEY="$KEY_DIR/ca-root.key"
+ROOT_KEY="$KEY_DIR/default/ca-root.key.pem"
 ROOT_CERT="$CA_DIR/root.crt"
 
 # ---------------------------------------------------------------------------
@@ -78,7 +81,6 @@ ROOT_CERT="$CA_DIR/root.crt"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 CONTENT_CA_DIR="$REPO_DIR/crates/cert/ox_cert_admin/content/www/ca"
-[[ -n "$CONTENT_DIR_OVERRIDE" ]] && CONTENT_CA_DIR="$CONTENT_DIR_OVERRIDE"
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -94,6 +96,7 @@ while [[ $# -gt 0 ]]; do
         --passphrase)   PASSPHRASE="$2";          shift 2 ;;
         --content-dir)  CONTENT_DIR_OVERRIDE="$2"; shift 2 ;;
         --csr-only)     CSR_ONLY=true;            shift   ;;
+        --hostname)     HOSTNAME="$2";            shift 2 ;;
         --help)
             sed -n '/^# Usage/,/^$/p' "$0" | grep -v '^$'
             exit 0
@@ -101,6 +104,8 @@ while [[ $# -gt 0 ]]; do
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
+
+[[ -n "$CONTENT_DIR_OVERRIDE" ]] && CONTENT_CA_DIR="$CONTENT_DIR_OVERRIDE"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -141,10 +146,14 @@ fi
 # Create directories
 # ---------------------------------------------------------------------------
 info "Creating directories..."
-mkdir -p "$KEY_DIR" "$CA_DIR"
-chmod 700 "$KEY_DIR"
-chmod 755 "$CA_DIR"
-ok "Directories ready: $KEY_DIR, $CA_DIR"
+mkdir -p "$KEY_DIR/default" "$CA_DIR"
+chmod 750 "$KEY_DIR"
+chmod 770 "$KEY_DIR/default"
+chmod 775 "$CA_DIR"
+if command -v getent &>/dev/null && getent group ox_webservice &>/dev/null; then
+    chown root:ox_webservice "$KEY_DIR" "$KEY_DIR/default" "$CA_DIR"
+fi
+ok "Directories ready: $KEY_DIR/default, $CA_DIR"
 
 # ---------------------------------------------------------------------------
 # OpenSSL extensions config (written to a temp file)
@@ -166,10 +175,22 @@ to_openssl_subj() {
         part="${part#"${part%%[![:space:]]*}"}"   # ltrim
         part="${part%"${part##*[![:space:]]}"}"   # rtrim
         [[ -n "$part" ]] && result="${result}/${part}"
-    done < <(printf '%s' "$1" | tr ',' '\n')
+    done < <(printf '%s\n' "$1" | tr ',' '\n')
     printf '%s' "$result"
 }
 OPENSSL_SUBJECT="$(to_openssl_subj "$SUBJECT")"
+
+# Build SubjectAltName line from --hostname if provided.
+# Adds DNS:<short-hostname> and DNS:<fqdn> (only DNS:<fqdn> if no dots).
+SAN_LINE=""
+if [[ -n "$HOSTNAME" ]]; then
+    SHORT_HOST="${HOSTNAME%%.*}"
+    if [[ "$SHORT_HOST" != "$HOSTNAME" ]]; then
+        SAN_LINE="subjectAltName         = DNS:${SHORT_HOST}, DNS:${HOSTNAME}"
+    else
+        SAN_LINE="subjectAltName         = DNS:${HOSTNAME}"
+    fi
+fi
 
 cat > "$EXT_CONF" <<EOF
 [req]
@@ -184,21 +205,17 @@ subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints       = critical,CA:true,pathlen:1
 keyUsage               = critical,keyCertSign,cRLSign
+${SAN_LINE}
 EOF
 
 # ---------------------------------------------------------------------------
-# Passphrase setup — write to temp file to keep it off the command line
+# Passphrase — the ox_cert keystore uses its own AES-256-GCM format (not
+# OpenSSL PKCS#8 encryption), so the root CA key file must be unencrypted.
+# The passphrase is still written to /etc/ox_webservice/env by postinst
+# and used by the keystore to protect auto-generated intermediate CA keys.
 # ---------------------------------------------------------------------------
 PASSOUT_ARGS=()
 PASSIN_ARGS=()
-if [[ -n "$PASSPHRASE" ]]; then
-    PASS_FILE="$(mktemp /tmp/ox_ca_pass.XXXXXX)"
-    chmod 600 "$PASS_FILE"
-    printf '%s' "$PASSPHRASE" > "$PASS_FILE"
-    CLEANUP_FILES+=("$PASS_FILE")
-    PASSOUT_ARGS=(-aes256 -pass "file:$PASS_FILE")
-    PASSIN_ARGS=(-passin "file:$PASS_FILE")
-fi
 
 # ---------------------------------------------------------------------------
 # Generate root key
@@ -225,7 +242,10 @@ case "$KEY_TYPE" in
         ;;
 esac
 
-chmod 400 "$ROOT_KEY"
+chmod 640 "$ROOT_KEY"
+if command -v getent &>/dev/null && getent group ox_webservice &>/dev/null; then
+    chown root:ox_webservice "$ROOT_KEY"
+fi
 ok "Root key written:  $ROOT_KEY"
 
 # ---------------------------------------------------------------------------

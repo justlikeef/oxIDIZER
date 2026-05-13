@@ -76,7 +76,7 @@ pub fn handle(
         };
     }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
     };

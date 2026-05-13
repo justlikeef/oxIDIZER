@@ -90,7 +90,7 @@ pub fn run_checks(config: &HealthConfig) -> HealthOutcome {
     // Database check (open store)
     let db_check = {
         let t0 = std::time::Instant::now();
-        match OxPersistenceCertStore::open().and_then(|s| s.migrate()) {
+        match OxPersistenceCertStore::open(config.store.db_path()).and_then(|s| s.migrate()) {
             Ok(()) => CheckResult::ok(t0.elapsed().as_millis() as u64),
             Err(e) => CheckResult::fail(e.to_string()),
         }

@@ -116,6 +116,16 @@ pub unsafe extern "C" fn ox_plugin_process(
         return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
     }
 
+    // If a plugin already set a JSON body, pass it through unchanged.
+    let existing_ct = get_field(api, task_ctx, "response.header.Content-Type");
+    let existing_body = get_field(api, task_ctx, "response.body");
+    if action != Action::Append
+        && existing_ct.contains("application/json")
+        && !existing_body.is_empty()
+    {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+
     let status_text = axum::http::StatusCode::from_u16(status)
         .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
         .canonical_reason().unwrap_or("Unknown Error");

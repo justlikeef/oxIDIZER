@@ -355,7 +355,7 @@ fn handle_new_account(ctx: &AcmeContext, body: &str, nonce: String) -> AcmeOutco
         err!(403, "externalAccountRequired", "external account binding required");
     }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "serverInternal", &e.to_string()),
     };
@@ -409,7 +409,7 @@ fn handle_new_order(ctx: &AcmeContext, body: &str, nonce: String) -> AcmeOutcome
         .and_then(|i| i.as_array()).cloned().unwrap_or_default();
     if identifiers.is_empty() { err!(400, "malformed", "identifiers is required"); }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "serverInternal", &e.to_string()),
     };
@@ -492,7 +492,7 @@ fn handle_new_order(ctx: &AcmeContext, body: &str, nonce: String) -> AcmeOutcome
 
 fn handle_get_order(ctx: &AcmeContext, order_id: &str, nonce: String) -> AcmeOutcome {
     let tenant = &ctx.config.tenant_id;
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => return AcmeOutcome {
             http_status: 500, body_json: acme_error("serverInternal", &e.to_string()),
@@ -519,7 +519,7 @@ fn handle_get_order(ctx: &AcmeContext, order_id: &str, nonce: String) -> AcmeOut
 fn handle_get_authz(ctx: &AcmeContext, authz_id: &str, nonce: String) -> AcmeOutcome {
     let tenant = &ctx.config.tenant_id;
     let base   = base_url(ctx);
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => return AcmeOutcome {
             http_status: 500, body_json: acme_error("serverInternal", &e.to_string()),
@@ -579,7 +579,7 @@ fn handle_challenge(
         };
     }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "serverInternal", &e.to_string()),
     };
@@ -738,7 +738,7 @@ fn handle_finalize(ctx: &AcmeContext, order_id: &str, body: &str, nonce: String)
         None => err!(400, "malformed", "invalid JWS"),
     };
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "serverInternal", &e.to_string()),
     };
@@ -821,7 +821,7 @@ fn handle_finalize(ctx: &AcmeContext, order_id: &str, body: &str, nonce: String)
 
 fn handle_get_cert(ctx: &AcmeContext, order_id: &str, nonce: String) -> AcmeOutcome {
     let tenant = &ctx.config.tenant_id;
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => return AcmeOutcome {
             http_status: 500, body_json: acme_error("serverInternal", &e.to_string()),
@@ -903,7 +903,7 @@ fn handle_revoke_cert(ctx: &AcmeContext, body: &str, nonce: String) -> AcmeOutco
     let serial = parse_serial_from_cert_der(&cert_der).unwrap_or_default();
     if serial.is_empty() { err!(400, "malformed", "cannot parse cert serial"); }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "serverInternal", &e.to_string()),
     };

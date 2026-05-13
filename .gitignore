@@ -21,8 +21,10 @@ Cargo.lock
 *.log
 *.pid
 staging/
+packages/
 
 # Test output
 *_tests.log
 .worktrees/
 .env
+.superpowers/

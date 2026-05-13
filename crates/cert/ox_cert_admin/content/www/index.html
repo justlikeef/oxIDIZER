@@ -227,13 +227,13 @@
 
         <a class="function-card" href="/api/v1/scep/challenges">
             <div class="card-icon">&#128268;</div>
-            <div class="card-title">SCEP &mdash; Simple Certificate Enrollment Protocol</div>
+            <div class="card-title">SCEP Challenge Passwords</div>
             <div class="card-desc">
-                Issue certificates to network devices, routers, and MDM-managed
-                endpoints using SCEP. Widely supported by Cisco, Juniper, and
-                mobile device management systems.
+                Provision one-time challenge passwords for SCEP-capable devices.
+                Generate a challenge here, then supply the password to the device
+                during its SCEP enrollment.
             </div>
-            <div class="card-meta">/api/v1/scep &mdash; RFC 8894</div>
+            <div class="card-meta">/api/v1/scep/challenges</div>
         </a>
 
         <a class="function-card" href="/api/v1/ssh/config">
@@ -289,6 +289,16 @@
                 log, configure profiles and policies, and manage the CA key material.
             </div>
             <div class="card-meta">/ca/admin/ &mdash; full management interface</div>
+        </a>
+
+        <a class="function-card" href="/ca/certinfo/">
+            <div class="card-icon">&#128101;</div>
+            <div class="card-title">Certificate Status</div>
+            <div class="card-desc">
+                Inspect the server&rsquo;s root CA certificate and verify the trust
+                status of the client certificate presented with this request.
+            </div>
+            <div class="card-meta">/ca/certinfo/</div>
         </a>
 
         <a class="function-card" href="/api/v1/trust/info">

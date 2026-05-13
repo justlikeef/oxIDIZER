@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 INSTALL_DIR="$ROOT_DIR/crates/cert/installfiles"
-PKG_DIR="$ROOT_DIR/packages"
+PKG_DIR="$ROOT_DIR/packages/deb"
 STAGING_ROOT="$ROOT_DIR/staging/deb"
 
 BUILD_PROFILE="debug"

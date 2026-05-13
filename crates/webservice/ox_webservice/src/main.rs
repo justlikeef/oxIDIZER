@@ -169,6 +169,7 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
         let bind_address = server_details.bind_address.clone();
         let port = server_details.port;
         let backlog = server_details.backlog;
+        let tls_upgrade_config = server_details.tls_upgrade;
         let servers = server_details.hosts.clone();
 
         let app = Router::new()
@@ -310,7 +311,8 @@ async fn start_server(initial_config: ServerConfig, config_path: PathBuf, config
             // The protocol reported to the workflow stays "http" so http-only routes fire.
             let tls_upgrade_acceptor: Option<tokio_rustls::TlsAcceptor> = {
                 let has_certs = servers.iter().any(|h| h.tls_cert_path.is_some() && h.tls_key_path.is_some());
-                if has_certs {
+                let upgrade_enabled = tls_upgrade_config.unwrap_or(true);
+                if upgrade_enabled && has_certs {
                     let mut cert_resolver = ResolvesServerCertUsingSni::new();
                     let mut default_cert = None;
                     for (i, host) in servers.iter().enumerate() {

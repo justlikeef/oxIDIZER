@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-KEY_FILE="/etc/pki/ox_webservice/private/ca-root.key"
+KEY_FILE="/etc/pki/ox_webservice/private/default/ca-root.key.pem"
 
 if [[ ! -f "$KEY_FILE" ]]; then
     echo "ERROR: CA private key not found at $KEY_FILE" >&2

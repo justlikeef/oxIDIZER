@@ -19,13 +19,17 @@ setup_system() {
                 ox_webservice
     fi
 
-    mkdir -p /etc/pki/ox_webservice/private \
+    mkdir -p /etc/pki/ox_webservice/private/default \
              /etc/pki/ox_webservice/ca \
              /etc/pki/ox_webservice/tls
-    chmod 750 /etc/pki/ox_webservice/private /etc/pki/ox_webservice/tls
-    chmod 755 /etc/pki/ox_webservice/ca
+    chmod 750 /etc/pki/ox_webservice/private \
+              /etc/pki/ox_webservice/tls
+    chmod 770 /etc/pki/ox_webservice/private/default
+    chmod 775 /etc/pki/ox_webservice/ca
     chown root:ox_webservice /etc/pki/ox_webservice/private \
-                             /etc/pki/ox_webservice/tls
+                             /etc/pki/ox_webservice/private/default \
+                             /etc/pki/ox_webservice/tls \
+                             /etc/pki/ox_webservice/ca
 
     chown -R root:ox_webservice /etc/ox_webservice
     chmod 750 /etc/ox_webservice
@@ -57,15 +61,115 @@ setup_system() {
 #   OX_CA_COUNTRY        Two-letter country code (C)         [default: US]
 #   OX_CA_DOMAIN         Domain for DC= components           [default: derived from FQDN]
 #   OX_CA_KEY_PASS       CA key passphrase                   [default: none]
+#   OX_CA_CSR_SERVER     Parent ox CA URL for automatic CSR submission (type 2 only)
+#   OX_CA_CSR_SERVER_CACERT  Path to parent CA's TLS certificate for verification
 # ---------------------------------------------------------------------------
-setup_ca() {
-    # Source answers file if provided
-    if [[ -n "${OX_CA_ANSWERS_FILE:-}" && -r "${OX_CA_ANSWERS_FILE}" ]]; then
-        # shellcheck source=/dev/null
-        . "$OX_CA_ANSWERS_FILE"
+# ---------------------------------------------------------------------------
+# Submit the generated CSR to a parent ox CA and install the signed certificate.
+# Returns 0 on success, 1 on failure (caller falls back to manual instructions).
+# Expects OX_CA_KEY_PASS to be exported if the CA key is passphrase-protected.
+# ---------------------------------------------------------------------------
+submit_csr() {
+    local server="$1"
+    # Ensure the server URL has a scheme; default to https://
+    [[ "$server" != http://* && "$server" != https://* ]] && server="https://${server}"
+    # Strip trailing slash
+    server="${server%/}"
+    local csr_file="/etc/pki/ox_webservice/ca/root.csr"
+    local tmp_body tmp_resp tmp_cert
+    tmp_body=$(mktemp /tmp/ox_csr_req.XXXXXX.json)
+    tmp_resp=$(mktemp /tmp/ox_csr_resp.XXXXXX.json)
+    tmp_cert=$(mktemp /tmp/ox_signed_cert.XXXXXX.pem)
+
+    echo ""
+    echo "Submitting CSR to ${server}..."
+
+    # TLS verification for the parent CA's HTTPS endpoint
+    local curl_tls=()
+    if [[ -n "${OX_CA_CSR_SERVER_CACERT:-}" && -f "${OX_CA_CSR_SERVER_CACERT}" ]]; then
+        curl_tls=(--cacert "$OX_CA_CSR_SERVER_CACERT")
+    else
+        echo "  Warning: OX_CA_CSR_SERVER_CACERT not set — parent CA TLS will not be verified."
+        curl_tls=(-k)
     fi
 
-    CERT_TYPE="" CA_HOSTNAME="" CN="" O="" OU="" L="" ST="" C="" DC_COMPONENTS="" SUBJECT="" PASSPHRASE=""
+    # Build JSON request body (python3 handles PEM escaping; jq as fallback)
+    python3 -c "
+import json, sys
+with open('${csr_file}') as f:
+    csr = f.read()
+print(json.dumps({'csr_pem': csr}))
+" > "$tmp_body" 2>/dev/null \
+    || jq -n --rawfile csr_pem "${csr_file}" \
+           '{"csr_pem": $csr_pem}' \
+           > "$tmp_body" 2>/dev/null \
+    || { echo "  Cannot build request body: install python3 or jq."; rm -f "$tmp_body" "$tmp_resp" "$tmp_cert"; return 1; }
+
+    local http_code
+    http_code=$(curl -s \
+        "${curl_tls[@]}" \
+        -o "$tmp_resp" \
+        -w "%{http_code}" \
+        -X POST \
+        "${server}/api/v1/ca/cross-sign" \
+        -H "Content-Type: application/json" \
+        --data-binary "@${tmp_body}")
+    rm -f "$tmp_body"
+
+    if [[ "$http_code" != "200" && "$http_code" != "201" ]]; then
+        echo "  CSR submission failed (HTTP ${http_code}):"
+        cat "$tmp_resp" 2>/dev/null || echo "  (no response body)"
+        echo "  (check /tmp/ox_cross_sign_error.txt on the root CA for details)"
+        rm -f "$tmp_resp" "$tmp_cert"
+        return 1
+    fi
+
+    # Extract signed certificate PEM from response JSON (data.pem)
+    python3 -c "
+import json, sys
+with open('${tmp_resp}') as f:
+    d = json.load(f)
+cert = (d.get('data') or d).get('pem', '').strip()
+if not cert:
+    sys.exit(1)
+print(cert)
+" > "$tmp_cert" 2>/dev/null \
+    || { rm -f "$tmp_resp" "$tmp_cert"; echo "  Could not extract certificate from response."; return 1; }
+    rm -f "$tmp_resp"
+
+    [[ -s "$tmp_cert" ]] || { rm -f "$tmp_cert"; echo "  Empty certificate in response."; return 1; }
+
+    echo "  Certificate received. Installing..."
+    /usr/share/ox_webservice/install-ca-cert.sh "$tmp_cert" \
+        --content-dir "/usr/share/ox_webservice/content/www/ca" \
+        --start 2>&1
+    local rc=$?
+    rm -f "$tmp_cert"
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+setup_ca() {
+    # Load answers file if provided — parsed as KEY=VALUE pairs so unquoted
+    # values with spaces work without the user needing to quote them.
+    if [[ -n "${OX_CA_ANSWERS_FILE:-}" && -r "${OX_CA_ANSWERS_FILE}" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue   # skip comments
+            [[ -z "${line//[[:space:]]/}" ]] && continue  # skip blank lines
+            if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+                local _key="${BASH_REMATCH[1]}"
+                local _val="${BASH_REMATCH[2]}"
+                # Strip a single layer of surrounding quotes if present
+                if [[ "$_val" =~ ^\"(.*)\"$ ]] || [[ "$_val" =~ ^\'(.*)\'$ ]]; then
+                    _val="${BASH_REMATCH[1]}"
+                fi
+                printf -v "$_key" '%s' "$_val"
+                export "$_key"
+            fi
+        done < "$OX_CA_ANSWERS_FILE"
+    fi
+
+    CSR_SERVER="" CERT_TYPE="" CA_HOSTNAME="" CN="" O="" OU="" L="" ST="" C="" DC_COMPONENTS="" SUBJECT="" PASSPHRASE=""
     GENERATE_ARGS=""
 
     if [ ! -t 0 ] || [ "${DEBIAN_FRONTEND:-}" = "noninteractive" ]; then
@@ -77,6 +181,7 @@ setup_ca() {
             return 0
         fi
 
+        CSR_SERVER="${OX_CA_CSR_SERVER:-}"
         CERT_TYPE="${OX_CA_CERT_TYPE:-1}"
         CA_HOSTNAME="$OX_CA_HOSTNAME"
 
@@ -130,6 +235,15 @@ setup_ca() {
         while [[ "$CERT_TYPE" != "1" && "$CERT_TYPE" != "2" ]]; do
             read -rp "Choice [1/2]: " CERT_TYPE
         done
+
+        # Parent CA URL (type 2 only — optional automatic submission)
+        CSR_SERVER=""
+        if [[ "$CERT_TYPE" == "2" ]]; then
+            echo ""
+            echo "  To submit the CSR automatically, provide the URL of the parent ox CA."
+            echo "  Leave blank to submit the CSR manually after installation."
+            read -rp "Parent CA URL (e.g. https://root-ca.example.com): " CSR_SERVER
+        fi
 
         # CA hostname (FQDN — used to configure plugin URLs, not part of the cert subject)
         echo ""
@@ -230,6 +344,11 @@ setup_ca() {
             echo "  Type:             Self-signed root CA"
         else
             echo "  Type:             Certificate signing request (subordinate CA)"
+            if [[ -n "$CSR_SERVER" ]]; then
+                echo "  Parent CA URL:    ${CSR_SERVER}"
+            else
+                echo "  Parent CA URL:    <submit manually>"
+            fi
         fi
         echo "  CA FQDN:          ${CA_HOSTNAME}"
         echo ""
@@ -271,20 +390,43 @@ setup_ca() {
     # Common setup — runs for both interactive and non-interactive paths
     # ---------------------------------------------------------------------------
 
+    # Compute TLS SAN — include both short hostname and FQDN when FQDN contains a dot
+    SHORT_HOST="${CA_HOSTNAME%%.*}"
+    if [[ "$SHORT_HOST" != "$CA_HOSTNAME" ]]; then
+        TLS_SAN="subjectAltName=DNS:${SHORT_HOST},DNS:${CA_HOSTNAME}"
+    else
+        TLS_SAN="subjectAltName=DNS:${CA_HOSTNAME}"
+    fi
+
     # Configure hostname in plugin configs
     echo ""
     echo "Configuring CA hostname in plugin configs..."
-    sed -i "s|YOUR_CA_HOSTNAME|${CA_HOSTNAME}|g" /etc/ox_webservice/*.yaml
+    find /etc/ox_webservice -name "*.yaml" -exec sed -i "s|YOUR_CA_HOSTNAME|${CA_HOSTNAME}|g" {} \;
+
+    # Build TLS certificate subject — same org details as the CA, FQDN as CN
+    local tls_subj="/CN=${CA_HOSTNAME}"
+    [[ -n "$O" ]]  && tls_subj="${tls_subj}/O=${O}"
+    [[ -n "$OU" ]] && tls_subj="${tls_subj}/OU=${OU}"
+    [[ -n "$L" ]]  && tls_subj="${tls_subj}/L=${L}"
+    [[ -n "$ST" ]] && tls_subj="${tls_subj}/ST=${ST}"
+    [[ -n "$C" ]]  && tls_subj="${tls_subj}/C=${C}"
+    # DC components derived from hostname domain (host.example.com → DC=example/DC=com)
+    local _tls_domain="${CA_HOSTNAME#*.}"
+    IFS='.' read -ra _tls_dc <<< "$_tls_domain"
+    for _tls_dc_part in "${_tls_dc[@]}"; do
+        tls_subj="${tls_subj}/DC=${_tls_dc_part}"
+    done
+    unset _tls_domain _tls_dc _tls_dc_part
 
     # Generate self-signed TLS certificate for the HTTPS listener
-    # (Replace with a cert from a trusted CA after initial setup)
+    # (Replaced by a CA-signed cert below once the CA is ready)
     echo "Generating self-signed TLS certificate for HTTPS listener..."
     openssl req -x509 -newkey rsa:2048 -nodes \
         -keyout /etc/pki/ox_webservice/tls/server.key \
         -out    /etc/pki/ox_webservice/tls/server.crt \
         -days 3650 \
-        -subj "/CN=${CA_HOSTNAME}" \
-        -addext "subjectAltName=DNS:${CA_HOSTNAME}" \
+        -subj "$tls_subj" \
+        -addext "$TLS_SAN" \
         2>/dev/null
     chmod 640 /etc/pki/ox_webservice/tls/server.crt \
               /etc/pki/ox_webservice/tls/server.key
@@ -307,26 +449,130 @@ setup_ca() {
         # shellcheck disable=SC2086
         /usr/share/ox_webservice/generate-root-ca.sh \
             --subject     "$SUBJECT" \
+            --hostname    "$CA_HOSTNAME" \
             --content-dir "/usr/share/ox_webservice/content/www/ca" \
             --csr-only \
             $GENERATE_ARGS
-        unset OX_CA_KEY_PASS
-        echo ""
-        echo "CSR generated. Next steps:"
-        echo "  1. Submit the CSR to your root CA:"
-        echo "       /etc/pki/ox_webservice/ca/root.csr"
-        echo "  2. Copy the signed certificate to:"
-        echo "       /etc/pki/ox_webservice/ca/root.crt"
-        echo "  3. Start the service:"
-        echo "       sudo systemctl start ox_webservice"
-        echo ""
+
+        if [[ -n "$CSR_SERVER" ]]; then
+            # Download the parent CA cert (TOFU bootstrap) so HTTPS to the parent CA
+            # can be verified without -k on this and future runs.
+            local parent_cert="/etc/pki/ox_webservice/ca/parent-root-ca.crt"
+            if [[ -z "${OX_CA_CSR_SERVER_CACERT:-}" || ! -f "${OX_CA_CSR_SERVER_CACERT}" ]]; then
+                local dl_server="$CSR_SERVER"
+                [[ "$dl_server" != http://* && "$dl_server" != https://* ]] && dl_server="https://${dl_server}"
+                dl_server="${dl_server%/}"
+                echo "Downloading parent CA certificate (trust-on-first-use bootstrap)..."
+                if curl -s -k --max-time 15 "${dl_server}/ca/root.crt" -o "$parent_cert" 2>/dev/null \
+                   && openssl x509 -in "$parent_cert" -noout 2>/dev/null; then
+                    export OX_CA_CSR_SERVER_CACERT="$parent_cert"
+                    printf 'OX_CA_CSR_SERVER_CACERT=%s\n' "$parent_cert" >> /etc/ox_webservice/env
+                    echo "  Parent CA cert saved: $parent_cert"
+                else
+                    rm -f "$parent_cert"
+                    echo "  Warning: could not download parent CA cert — TLS will not be verified."
+                fi
+            fi
+
+            # OX_CA_KEY_PASS still exported — needed by install-ca-cert.sh for key verification
+            if submit_csr "$CSR_SERVER"; then
+                unset OX_CA_KEY_PASS
+                # Re-sign the TLS certificate with the now-installed ICA CA key so browsers
+                # can verify HTTPS using the trusted root CA.  Append the ICA CA cert to form
+                # a chain; rustls reads all PEM certs in server.crt and sends them during the
+                # TLS handshake, allowing clients to build the full trust path.
+                echo "Signing ICA TLS certificate with CA key..."
+                local ica_tls_csr ica_tls_signed_pem ica_tls_signed=false
+                ica_tls_csr=$(mktemp /tmp/ox_ica_tls.XXXXXX.pem)
+                ica_tls_signed_pem=$(mktemp /tmp/ox_ica_tls_signed.XXXXXX.pem)
+                if openssl req -new \
+                       -key /etc/pki/ox_webservice/tls/server.key \
+                       -subj "$tls_subj" \
+                       -out "$ica_tls_csr" 2>/dev/null; then
+                    if openssl x509 -req -in "$ica_tls_csr" \
+                           -CA    /etc/pki/ox_webservice/ca/root.crt \
+                           -CAkey /etc/pki/ox_webservice/private/default/ca-root.key.pem \
+                           -CAcreateserial \
+                           -out "$ica_tls_signed_pem" \
+                           -days 3650 \
+                           -extfile <(printf "%s\n" "$TLS_SAN") 2>/dev/null; then
+                        # Chain: ICA TLS cert + ICA CA cert (rustls sends both)
+                        cat "$ica_tls_signed_pem" /etc/pki/ox_webservice/ca/root.crt \
+                            > /etc/pki/ox_webservice/tls/server.crt
+                        chmod 640 /etc/pki/ox_webservice/tls/server.crt
+                        ica_tls_signed=true
+                    fi
+                fi
+                rm -f "$ica_tls_csr" "$ica_tls_signed_pem"
+                if [[ "$ica_tls_signed" == true ]]; then
+                    echo "  ICA TLS certificate signed — restarting service with new cert..."
+                    if [ -d /run/systemd/system ]; then
+                        systemctl restart ox_webservice.service 2>/dev/null || true
+                    fi
+                    echo "  Done."
+                else
+                    echo "  Warning: could not sign ICA TLS cert — HTTPS uses self-signed fallback."
+                fi
+            else
+                unset OX_CA_KEY_PASS
+                echo ""
+                echo "Automatic submission failed. Submit the CSR manually:"
+                echo "  1. Submit:  /etc/pki/ox_webservice/ca/root.csr"
+                echo "  2. Install: sudo /usr/share/ox_webservice/install-ca-cert.sh <signed.crt> --start"
+                echo ""
+            fi
+        else
+            unset OX_CA_KEY_PASS
+            echo ""
+            echo "CSR generated. Next steps:"
+            echo "  1. Submit the CSR to your root CA:"
+            echo "       /etc/pki/ox_webservice/ca/root.csr"
+            echo "  2. When you receive the signed certificate, install it with:"
+            echo "       sudo /usr/share/ox_webservice/install-ca-cert.sh <signed.crt>"
+            echo "     If your CA also provides the issuing chain:"
+            echo "       sudo /usr/share/ox_webservice/install-ca-cert.sh <signed.crt> --chain <chain.pem>"
+            echo "     To start the service automatically after installation:"
+            echo "       sudo /usr/share/ox_webservice/install-ca-cert.sh <signed.crt> --start"
+            echo ""
+        fi
     else
         echo "Generating self-signed root CA..."
         # shellcheck disable=SC2086
         /usr/share/ox_webservice/generate-root-ca.sh \
             --subject     "$SUBJECT" \
+            --hostname    "$CA_HOSTNAME" \
             --content-dir "/usr/share/ox_webservice/content/www/ca" \
             $GENERATE_ARGS
+
+        # Re-sign the TLS certificate with the root CA so subordinate CAs can
+        # verify HTTPS connections using only the root CA cert (TOFU bootstrap).
+        echo "Signing TLS certificate with root CA..."
+        local tls_csr tls_signed=false
+        tls_csr=$(mktemp /tmp/ox_tls_csr.XXXXXX.pem)
+        if openssl req -new \
+               -key /etc/pki/ox_webservice/tls/server.key \
+               -subj "$tls_subj" \
+               -out "$tls_csr" 2>/dev/null; then
+            local passin_args=()
+            [[ -n "${OX_CA_KEY_PASS:-}" ]] && passin_args=(-passin env:OX_CA_KEY_PASS)
+            if openssl x509 -req -in "$tls_csr" \
+                   -CA    /etc/pki/ox_webservice/ca/root.crt \
+                   -CAkey /etc/pki/ox_webservice/private/default/ca-root.key.pem \
+                   "${passin_args[@]}" \
+                   -CAcreateserial \
+                   -out /etc/pki/ox_webservice/tls/server.crt \
+                   -days 3650 \
+                   -extfile <(printf "%s\n" "$TLS_SAN") 2>/dev/null; then
+                tls_signed=true
+            fi
+        fi
+        rm -f "$tls_csr"
+        if [[ "$tls_signed" == true ]]; then
+            echo "  TLS certificate signed by root CA."
+        else
+            echo "  Warning: could not sign TLS with root CA — using self-signed fallback."
+        fi
+
         unset OX_CA_KEY_PASS
         echo "Starting ox_webservice..."
         if [ -d /run/systemd/system ]; then
@@ -335,8 +581,13 @@ setup_ca() {
         echo ""
         echo "ox Certificate Authority is running."
         echo "  Root CA certificate: https://${CA_HOSTNAME}/ca/root.crt"
-        echo "  Note: HTTPS uses a self-signed certificate — accept the browser warning"
-        echo "        or replace /etc/pki/ox_webservice/tls/ with a trusted certificate."
+        if [[ "$tls_signed" == true ]]; then
+            echo "  Note: HTTPS is served with a certificate signed by this root CA."
+            echo "        Install the root CA certificate in your browser/OS to trust it."
+        else
+            echo "  Note: HTTPS uses a self-signed certificate — accept the browser warning"
+            echo "        or replace /etc/pki/ox_webservice/tls/ with a trusted certificate."
+        fi
         echo ""
     fi
 }

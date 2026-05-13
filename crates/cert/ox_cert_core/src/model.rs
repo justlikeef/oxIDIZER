@@ -614,6 +614,12 @@ pub struct CertStoreConfig {
     pub url: Option<String>,
 }
 
+impl CertStoreConfig {
+    pub fn db_path(&self) -> &str {
+        self.path.as_deref().unwrap_or("/var/lib/ox_webservice/cert.db")
+    }
+}
+
 // ---------------------------------------------------------------------------
 // CT types
 // ---------------------------------------------------------------------------

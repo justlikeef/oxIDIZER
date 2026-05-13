@@ -2,10 +2,11 @@ use ox_cert_core::{
     issuer_params_from_cert_pem,
     model::{
         AuditAction, AuditEvent, AuditFilter, CaKeyRecord, CaKeyStatus, CertFilter,
-        CertStoreConfig, KeyStoreConfig, KeyType, Pagination, ScepChallenge,
+        CertStoreConfig, CertificateRecord, KeyStoreConfig, KeyType, Pagination, ScepChallenge,
     },
     open_keystore,
     store::{CertStore, OxPersistenceCertStore},
+    CertError,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
@@ -18,6 +19,9 @@ pub struct ExtensionsConfig {
     pub cdp_url: Option<String>,
 }
 
+fn default_ca_root_key_id() -> String { "ca-root".to_string() }
+fn default_ca_intermediate_key_id() -> String { "ca-intermediate".to_string() }
+
 #[derive(Debug, Deserialize)]
 pub struct AdminConfig {
     pub tenant_id: String,
@@ -25,6 +29,10 @@ pub struct AdminConfig {
     pub keystore: KeyStoreConfig,
     pub ca_intermediate_cert_path: String,
     pub ca_root_cert_path: String,
+    #[serde(default = "default_ca_root_key_id")]
+    pub ca_root_key_id: String,
+    #[serde(default = "default_ca_intermediate_key_id")]
+    pub ca_intermediate_key_id: String,
     #[serde(default)]
     pub extensions: ExtensionsConfig,
 }
@@ -50,7 +58,7 @@ pub fn handle(config: &AdminConfig, method: &str, path: &str, query: &str, body:
         };
     }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
     };
@@ -66,7 +74,7 @@ pub fn handle(config: &AdminConfig, method: &str, path: &str, query: &str, body:
                 Ok(r) => AdminOutcome {
                     http_status: 200,
                     body_json: serde_json::json!({
-                        "data": r.items,
+                        "data": r.items.iter().map(cert_record_to_json).collect::<Vec<_>>(),
                         "meta": { "tenant_id": tenant, "total": r.total, "offset": r.offset, "limit": r.limit }
                     }).to_string(),
                 },
@@ -81,7 +89,7 @@ pub fn handle(config: &AdminConfig, method: &str, path: &str, query: &str, body:
                 Ok(certs) => AdminOutcome {
                     http_status: 200,
                     body_json: serde_json::json!({
-                        "data": certs,
+                        "data": certs.iter().map(cert_record_to_json).collect::<Vec<_>>(),
                         "meta": { "tenant_id": tenant, "days": days }
                     }).to_string(),
                 },
@@ -95,7 +103,7 @@ pub fn handle(config: &AdminConfig, method: &str, path: &str, query: &str, body:
                 Ok(Some(cert)) => AdminOutcome {
                     http_status: 200,
                     body_json: serde_json::json!({
-                        "data": cert,
+                        "data": cert_record_to_json(&cert),
                         "meta": { "tenant_id": tenant, "request_id": request_id }
                     }).to_string(),
                 },
@@ -153,7 +161,7 @@ pub fn handle(config: &AdminConfig, method: &str, path: &str, query: &str, body:
             match store.list_certs(tenant, &filter, &page) {
                 Ok(r) => AdminOutcome {
                     http_status: 200,
-                    body_json: serde_json::json!({ "data": r.items, "meta": { "tenant_id": tenant } }).to_string(),
+                    body_json: serde_json::json!({ "data": r.items.iter().map(cert_record_to_json).collect::<Vec<_>>(), "meta": { "tenant_id": tenant } }).to_string(),
                 },
                 Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
             }
@@ -297,6 +305,9 @@ fn handle_ca_rollover(config: &AdminConfig, store: &OxPersistenceCertStore, body
         },
     };
 
+    // Capture the currently-active key ID before storing the new one (pointer would otherwise update).
+    let old_key_id = store.get_active_ca_key(tenant).ok().flatten().map(|k| k.id);
+
     let now = OffsetDateTime::now_utc();
     let new_record = CaKeyRecord {
         id: new_key_id.clone(),
@@ -313,9 +324,9 @@ fn handle_ca_rollover(config: &AdminConfig, store: &OxPersistenceCertStore, body
     };
     let _ = store.store_ca_key(tenant, &new_record);
 
-    // Mark old key retiring
-    if let Ok(Some(old)) = store.get_active_ca_key(tenant) {
-        let _ = store.update_ca_key_status(tenant, &old.id, CaKeyStatus::Retiring);
+    // Mark old key retiring now that the new key is stored and the pointer updated.
+    if let Some(old_id) = old_key_id {
+        let _ = store.update_ca_key_status(tenant, &old_id, CaKeyStatus::Retiring);
     }
 
     let _ = store.store_audit_event(tenant, &AuditEvent {
@@ -415,7 +426,14 @@ fn handle_cross_sign(config: &AdminConfig, store: &OxPersistenceCertStore, body:
         },
     };
 
-    let ca_cert_pem = match std::fs::read_to_string(&config.ca_intermediate_cert_path) {
+    // Cross-sign always uses the root CA cert/key.
+    // ca_init auto-generates an intermediate cert for the end-entity issuance pipeline
+    // (ox_cert_issue), but that intermediate must never be used to cross-sign sub-CAs:
+    // it would insert an anonymous extra level into the trust chain that clients cannot
+    // verify.  Sub-CA certs must chain directly to this CA's root cert.
+    let ca_cert_path = config.ca_root_cert_path.as_str();
+    let ca_key_id = config.ca_root_key_id.as_str();
+    let ca_cert_pem = match std::fs::read_to_string(ca_cert_path) {
         Ok(s) => s,
         Err(e) => return AdminOutcome {
             http_status: 503,
@@ -423,7 +441,7 @@ fn handle_cross_sign(config: &AdminConfig, store: &OxPersistenceCertStore, body:
         },
     };
 
-    let issuer_params = match issuer_params_from_cert_pem(&ca_cert_pem) {
+    let ca_key_pem = match ks.load_key_pem(tenant, ca_key_id) {
         Ok(p) => p,
         Err(e) => return AdminOutcome {
             http_status: 503,
@@ -431,32 +449,12 @@ fn handle_cross_sign(config: &AdminConfig, store: &OxPersistenceCertStore, body:
         },
     };
 
-    // Get active CA key id
-    let ca_key_id = match store.get_active_ca_key(tenant) {
-        Ok(Some(k)) => k.id,
-        _ => return AdminOutcome {
-            http_status: 503,
-            body_json: serde_json::json!({ "error": { "code": "CA_NOT_READY", "message": "no active CA key" } }).to_string(),
-        },
+    let safe_error_msg = |e: &CertError| -> String {
+        // Strip null bytes so the message survives CString conversion in the plugin ABI.
+        e.to_string().replace('\0', "<NUL>")
     };
 
-    let ca_key_pem = match ks.load_key_pem(tenant, &ca_key_id) {
-        Ok(p) => p,
-        Err(e) => return AdminOutcome {
-            http_status: 503,
-            body_json: serde_json::json!({ "error": { "code": "CA_NOT_READY", "message": e.to_string() } }).to_string(),
-        },
-    };
-
-    let ca_keypair = match rcgen::KeyPair::from_pem(&ca_key_pem) {
-        Ok(k) => k,
-        Err(e) => return AdminOutcome {
-            http_status: 503,
-            body_json: serde_json::json!({ "error": { "code": "CA_NOT_READY", "message": e.to_string() } }).to_string(),
-        },
-    };
-
-    match ox_cert_core::sign_csr(&csr_pem, tenant, "ca_intermediate", 3 * 365 * 86400, None, &issuer_params, &ca_keypair) {
+    match ox_cert_core::cross_sign_csr_with_pem(&csr_pem, &ca_cert_pem, &ca_key_pem, tenant, 3 * 365) {
         Ok(record) => {
             let _ = store.store_cert(tenant, &record);
             let now = OffsetDateTime::now_utc();
@@ -473,10 +471,19 @@ fn handle_cross_sign(config: &AdminConfig, store: &OxPersistenceCertStore, body:
                 }).to_string(),
             }
         }
-        Err(e) => AdminOutcome {
-            http_status: 400,
-            body_json: serde_json::json!({ "error": { "code": "INVALID_CSR", "message": e.to_string() } }).to_string(),
-        },
+        Err(e) => {
+            let msg = safe_error_msg(&e);
+            // Write to a known path so a failed deploy can be diagnosed without SSH.
+            let debug = format!(
+                "cross-sign error:\n  ca_cert_path: {}\n  ca_key_id:    {}\n  error:        {}\n",
+                ca_cert_path, ca_key_id, msg
+            );
+            let _ = std::fs::write("/tmp/ox_cross_sign_error.txt", &debug);
+            AdminOutcome {
+                http_status: 400,
+                body_json: serde_json::json!({ "error": { "code": "INVALID_CSR", "message": msg } }).to_string(),
+            }
+        }
     }
 }
 
@@ -566,25 +573,185 @@ fn parse_query_u32(query: &str, key: &str, default: u32) -> u32 {
     default
 }
 
+fn fmt_dt(dt: time::OffsetDateTime) -> String {
+    use time::format_description::well_known::Rfc3339;
+    dt.format(&Rfc3339).unwrap_or_else(|_| dt.to_string())
+}
+
+fn cert_record_to_json(cert: &CertificateRecord) -> serde_json::Value {
+    serde_json::json!({
+        "serial":      cert.serial,
+        "tenant_id":   cert.tenant_id,
+        "subject_cn":  cert.subject_cn,
+        "subject_dn":  cert.subject_dn,
+        "sans":        cert.sans,
+        "issuer_dn":   cert.issuer_dn,
+        "not_before":  fmt_dt(cert.not_before),
+        "not_after":   fmt_dt(cert.not_after),
+        "key_type":    cert.key_type,
+        "profile":     cert.profile,
+        "status":      cert.status,
+        "revoked_at":  cert.revoked_at.map(fmt_dt),
+        "created_at":  fmt_dt(cert.created_at),
+        "pem":         cert.pem,
+    })
+}
+
 // ---------------------------------------------------------------------------
 // Trust info
 // ---------------------------------------------------------------------------
 
 #[derive(serde::Serialize)]
+pub struct CertExtension {
+    pub name: String,
+    pub critical: bool,
+    pub value: String,
+}
+
+#[derive(serde::Serialize)]
 pub struct CertInfo {
+    pub version: u32,
+    pub serial: String,
+    pub signature_algorithm: String,
     pub subject: String,
     pub issuer: String,
-    pub serial: String,
     pub not_before: String,
     pub not_after: String,
+    pub key_algorithm: String,
+    pub extensions: Vec<CertExtension>,
     pub fingerprint_sha256: String,
     pub is_ca: bool,
     pub is_self_signed: bool,
-    pub key_algorithm: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trusted_by_server: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issued_by_us: Option<bool>,
+}
+
+fn format_general_name(gn: &x509_parser::extensions::GeneralName) -> String {
+    use x509_parser::extensions::GeneralName;
+    match gn {
+        GeneralName::DNSName(s)      => format!("DNS:{}", s),
+        GeneralName::RFC822Name(s)   => format!("email:{}", s),
+        GeneralName::URI(s)          => format!("URI:{}", s),
+        GeneralName::DirectoryName(dn) => format!("DirName:{}", dn),
+        GeneralName::RegisteredID(oid) => format!("OID:{}", oid.to_id_string()),
+        GeneralName::IPAddress(ip) => {
+            if ip.len() == 4 {
+                format!("IP:{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+            } else {
+                format!("IP:{}", ip.iter().map(|b| format!("{:02x}", b)).collect::<Vec<_>>().join(":"))
+            }
+        },
+        GeneralName::OtherName(oid, _) => format!("OtherName:{}", oid.to_id_string()),
+        _ => "(unknown GeneralName)".to_string(),
+    }
+}
+
+fn format_extension(ext: &x509_parser::extensions::X509Extension) -> (String, String) {
+    use x509_parser::extensions::ParsedExtension;
+
+    let name = match ext.parsed_extension() {
+        ParsedExtension::AuthorityKeyIdentifier(_)  => "Authority Key Identifier",
+        ParsedExtension::SubjectKeyIdentifier(_)    => "Subject Key Identifier",
+        ParsedExtension::KeyUsage(_)                => "Key Usage",
+        ParsedExtension::CertificatePolicies(_)     => "Certificate Policies",
+        ParsedExtension::SubjectAlternativeName(_)  => "Subject Alternative Name",
+        ParsedExtension::IssuerAlternativeName(_)   => "Issuer Alternative Name",
+        ParsedExtension::BasicConstraints(_)        => "Basic Constraints",
+        ParsedExtension::NameConstraints(_)         => "Name Constraints",
+        ParsedExtension::PolicyConstraints(_)       => "Policy Constraints",
+        ParsedExtension::ExtendedKeyUsage(_)        => "Extended Key Usage",
+        ParsedExtension::CRLDistributionPoints(_)   => "CRL Distribution Points",
+        ParsedExtension::InhibitAnyPolicy(_)        => "Inhibit Any Policy",
+        ParsedExtension::AuthorityInfoAccess(_)     => "Authority Info Access",
+        ParsedExtension::NSCertType(_)              => "Netscape Cert Type",
+        ParsedExtension::NsCertComment(_)           => "Netscape Comment",
+        ParsedExtension::UnsupportedExtension { .. } => "Unsupported Extension",
+        ParsedExtension::ParseError { .. }          => "Parse Error",
+        _                                           => "Unknown Extension",
+    }.to_string();
+
+    let value = match ext.parsed_extension() {
+        ParsedExtension::SubjectKeyIdentifier(ki) => {
+            ki.0.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(":")
+        },
+        ParsedExtension::AuthorityKeyIdentifier(aki) => {
+            let mut parts = Vec::new();
+            if let Some(ki) = &aki.key_identifier {
+                parts.push(format!("keyid:{}", ki.0.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(":")));
+            }
+            if let Some(issuers) = &aki.authority_cert_issuer {
+                for gn in issuers {
+                    parts.push(format!("issuer:{}", format_general_name(gn)));
+                }
+            }
+            if let Some(serial) = aki.authority_cert_serial {
+                parts.push(format!("serial:{}", serial.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(":")));
+            }
+            parts.join(", ")
+        },
+        ParsedExtension::KeyUsage(ku) => {
+            let mut bits = Vec::new();
+            if ku.digital_signature() { bits.push("Digital Signature"); }
+            if ku.non_repudiation()   { bits.push("Non Repudiation"); }
+            if ku.key_encipherment()  { bits.push("Key Encipherment"); }
+            if ku.data_encipherment() { bits.push("Data Encipherment"); }
+            if ku.key_agreement()     { bits.push("Key Agreement"); }
+            if ku.key_cert_sign()     { bits.push("Certificate Sign"); }
+            if ku.crl_sign()          { bits.push("CRL Sign"); }
+            if ku.encipher_only()     { bits.push("Encipher Only"); }
+            if ku.decipher_only()     { bits.push("Decipher Only"); }
+            bits.join(", ")
+        },
+        ParsedExtension::BasicConstraints(bc) => {
+            let mut s = if bc.ca { "CA:TRUE".to_string() } else { "CA:FALSE".to_string() };
+            if let Some(pl) = bc.path_len_constraint {
+                s.push_str(&format!(", pathlen:{}", pl));
+            }
+            s
+        },
+        ParsedExtension::SubjectAlternativeName(san) => {
+            san.general_names.iter().map(format_general_name).collect::<Vec<_>>().join(", ")
+        },
+        ParsedExtension::IssuerAlternativeName(ian) => {
+            ian.general_names.iter().map(format_general_name).collect::<Vec<_>>().join(", ")
+        },
+        ParsedExtension::ExtendedKeyUsage(eku) => {
+            let mut uses: Vec<String> = Vec::new();
+            if eku.server_auth    { uses.push("TLS Web Server Authentication".into()); }
+            if eku.client_auth    { uses.push("TLS Web Client Authentication".into()); }
+            if eku.code_signing   { uses.push("Code Signing".into()); }
+            if eku.email_protection { uses.push("E-mail Protection".into()); }
+            if eku.time_stamping  { uses.push("Time Stamping".into()); }
+            if eku.ocsp_signing   { uses.push("OCSP Signing".into()); }
+            for oid in &eku.other { uses.push(oid.to_id_string()); }
+            uses.join(", ")
+        },
+        ParsedExtension::CRLDistributionPoints(cdp) => {
+            use x509_parser::extensions::DistributionPointName;
+            cdp.iter()
+                .filter_map(|dp| dp.distribution_point.as_ref())
+                .map(|dpn| match dpn {
+                    DistributionPointName::FullName(names) =>
+                        names.iter().map(format_general_name).collect::<Vec<_>>().join(", "),
+                    DistributionPointName::NameRelativeToCRLIssuer(rdn) => format!("{:?}", rdn),
+                })
+                .collect::<Vec<_>>()
+                .join("; ")
+        },
+        ParsedExtension::AuthorityInfoAccess(aia) => {
+            aia.iter()
+                .map(|ad| format!("{}: {}", ad.access_method.to_id_string(), format_general_name(&ad.access_location)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        },
+        ParsedExtension::NsCertComment(s) => s.to_string(),
+        ParsedExtension::UnsupportedExtension { oid } => format!("OID {}", oid.to_id_string()),
+        _ => "(not decoded)".to_string(),
+    };
+
+    (name, value)
 }
 
 fn parse_cert_pem(pem_str: &str) -> Result<CertInfo, String> {
@@ -607,23 +774,32 @@ fn parse_cert_pem(pem_str: &str) -> Result<CertInfo, String> {
         .join(":");
 
     let key_algorithm = cert.tbs_certificate
-        .subject_pki
-        .algorithm
-        .algorithm
-        .to_id_string();
+        .subject_pki.algorithm.algorithm.to_id_string();
+
+    let signature_algorithm = cert.signature_algorithm.algorithm.to_id_string();
+
+    let extensions = cert.tbs_certificate.iter_extensions()
+        .map(|ext| {
+            let (name, value) = format_extension(ext);
+            CertExtension { name, critical: ext.critical, value }
+        })
+        .collect::<Vec<_>>();
 
     Ok(CertInfo {
-        subject:           cert.subject().to_string(),
-        issuer:            cert.issuer().to_string(),
+        version:             cert.version().0 + 1,
         serial,
-        not_before:        cert.validity().not_before.to_datetime().to_string(),
-        not_after:         cert.validity().not_after.to_datetime().to_string(),
-        fingerprint_sha256,
-        is_ca:             cert.is_ca(),
-        is_self_signed:    cert.subject() == cert.issuer(),
+        signature_algorithm,
+        subject:             cert.subject().to_string(),
+        issuer:              cert.issuer().to_string(),
+        not_before:          cert.validity().not_before.to_datetime().to_string(),
+        not_after:           cert.validity().not_after.to_datetime().to_string(),
         key_algorithm,
-        trusted_by_server: None,
-        issued_by_us:      None,
+        extensions,
+        fingerprint_sha256,
+        is_ca:               cert.is_ca(),
+        is_self_signed:      cert.subject() == cert.issuer(),
+        trusted_by_server:   None,
+        issued_by_us:        None,
     })
 }
 
@@ -646,13 +822,34 @@ pub fn trust_info(config: &AdminConfig, client_pem: &str) -> AdminOutcome {
         },
     };
 
+    // Build the issuing chain above this CA cert.
+    // Look for chain.pem first (installed via --chain), then parent-root-ca.crt (TOFU download).
+    let ca_dir = std::path::Path::new(&config.ca_root_cert_path)
+        .parent()
+        .unwrap_or(std::path::Path::new("/etc/pki/ox_webservice/ca"));
+    let chain_candidates = [ca_dir.join("chain.pem"), ca_dir.join("parent-root-ca.crt")];
+    let mut chain: Vec<CertInfo> = Vec::new();
+    for path in &chain_candidates {
+        if let Ok(pem_text) = std::fs::read_to_string(path) {
+            for single_pem in split_pem_certs(&pem_text) {
+                if let Ok(info) = parse_cert_pem(&single_pem) {
+                    // Exclude the server cert itself (e.g. if chain.pem is the same file)
+                    if info.fingerprint_sha256 != server_info.fingerprint_sha256 {
+                        chain.push(info);
+                    }
+                }
+            }
+            if !chain.is_empty() { break; }
+        }
+    }
+
     let client_info: Option<CertInfo> = if client_pem.is_empty() {
         None
     } else {
         parse_cert_pem(client_pem).ok().map(|mut info| {
             info.trusted_by_server = Some(info.issuer == server_info.subject);
             // Check if serial is in the cert store (issued by this CA).
-            info.issued_by_us = OxPersistenceCertStore::open().ok().map(|s| {
+            info.issued_by_us = OxPersistenceCertStore::open(config.store.db_path()).ok().map(|s| {
                 let serial_clean = info.serial.replace(':', "");
                 s.get_cert_by_serial(&config.tenant_id, &serial_clean).ok().flatten().is_some()
             });
@@ -664,9 +861,24 @@ pub fn trust_info(config: &AdminConfig, client_pem: &str) -> AdminOutcome {
         http_status: 200,
         body_json: serde_json::json!({
             "server": server_info,
+            "chain": chain,
             "client": client_info,
         }).to_string(),
     }
+}
+
+fn split_pem_certs(pem_str: &str) -> Vec<String> {
+    let mut certs = Vec::new();
+    let mut current = String::new();
+    for line in pem_str.lines() {
+        current.push_str(line);
+        current.push('\n');
+        if line.trim_end() == "-----END CERTIFICATE-----" {
+            certs.push(current.clone());
+            current.clear();
+        }
+    }
+    certs
 }
 
 // ---------------------------------------------------------------------------
@@ -702,7 +914,10 @@ pub mod plugin {
     }
 
     fn set(api: &CoreHostApi, task_ctx: *mut c_void, key: &str, val: &str) {
-        if let (Ok(k), Ok(v)) = (CString::new(key), CString::new(val)) {
+        // CString fails on interior null bytes; replace them so binary error messages
+        // (e.g. x509-parser printing raw DER bytes) don't silently swallow the body.
+        let sanitized = val.replace('\0', "");
+        if let (Ok(k), Ok(v)) = (CString::new(key), CString::new(sanitized)) {
             (api.set_field)(task_ctx, k.as_ptr(), v.as_ptr());
         }
     }

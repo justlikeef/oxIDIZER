@@ -12,7 +12,7 @@ mod tests;
 pub use model::*;
 pub use keystore::{KeyStore, SoftwareKeyStore, open_keystore, encrypt_private_key, decrypt_private_key};
 pub use store::{CertStore, OxPersistenceCertStore};
-pub use builder::{CertBuilder, parse_csr, sign_csr, issuer_params_from_cert_pem};
+pub use builder::{CertBuilder, parse_csr, sign_csr, cross_sign_csr, cross_sign_csr_with_pem, issuer_params_from_cert_pem};
 
 #[derive(Error, Debug)]
 pub enum CertError {
@@ -50,6 +50,7 @@ pub fn register_schemas(dictionary: &mut DataDictionary) -> Result<(), CertError
     register_certificate_schema(dictionary)?;
     register_ssh_certificate_schema(dictionary)?;
     register_ca_key_schema(dictionary)?;
+    register_ca_key_ptr_schema(dictionary)?;
     register_acme_schemas(dictionary)?;
     register_ra_schemas(dictionary)?;
     register_audit_schema(dictionary)?;
@@ -116,9 +117,20 @@ fn register_ca_key_schema(dict: &mut DataDictionary) -> Result<(), CertError> {
     schema.add_field(FieldDescriptor::new("name_constraints", ValueType::Json));
     schema.add_field(FieldDescriptor::new("path_length", ValueType::Integer));
     schema.add_field(FieldDescriptor::new("created_at", ValueType::Timestamp));
-    
+
     dict.register_schema(schema)
         .map_err(|e| CertError::Internal(format!("Failed to register ca_key schema: {}", e)))
+}
+
+/// Single-row pointer that tracks the ID of the currently-active CA signing key.
+/// Primary key is "{tenant_id}:active" to avoid cross-tenant collisions.
+fn register_ca_key_ptr_schema(dict: &mut DataDictionary) -> Result<(), CertError> {
+    let mut schema = DataObjectSchema::new("ca_key_ptr");
+    schema.add_field(FieldDescriptor::new("id", ValueType::Text).primary_key());
+    schema.add_field(FieldDescriptor::new("tenant_id", ValueType::Text).indexed());
+    schema.add_field(FieldDescriptor::new("data", ValueType::Text));
+    dict.register_schema(schema)
+        .map_err(|e| CertError::Internal(format!("Failed to register ca_key_ptr schema: {}", e)))
 }
 
 fn register_acme_schemas(dict: &mut DataDictionary) -> Result<(), CertError> {

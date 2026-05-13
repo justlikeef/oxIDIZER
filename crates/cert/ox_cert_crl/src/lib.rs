@@ -51,13 +51,12 @@ pub struct CrlContext {
     delta_crl: Arc<RwLock<Option<CachedCrl>>>,
     holder_id: String,
     shutdown: Arc<std::sync::atomic::AtomicBool>,
-    _background: Option<std::thread::JoinHandle<()>>,
 }
 unsafe impl Send for CrlContext {}
 unsafe impl Sync for CrlContext {}
 
 impl CrlContext {
-    pub fn new(config: CrlConfig) -> Self {
+    pub fn new(config: CrlConfig) -> Arc<Self> {
         let holder_id = config.node_id.clone().unwrap_or_else(|| {
             format!("{}:{}", hostname(), std::process::id())
         });
@@ -65,29 +64,27 @@ impl CrlContext {
         let delta_crl = Arc::new(RwLock::new(None));
         let shutdown = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
-        let background = if config.background_pregenerate {
-            let full_clone = Arc::clone(&full_crl);
-            let delta_clone = Arc::clone(&delta_crl);
-            let cfg_clone_tenant = config.tenant_id.clone();
-            let cfg_update = config.crl_update_interval_secs;
-            let cfg_delta = config.crl_delta_interval_secs;
-            let sd = Arc::clone(&shutdown);
-            let hid = holder_id.clone();
-            Some(std::thread::spawn(move || {
-                bg_loop(cfg_clone_tenant, cfg_update, cfg_delta, full_clone, delta_clone, sd, hid);
-            }))
-        } else {
-            None
-        };
-
-        Self {
+        let ctx = Arc::new(Self {
             config,
             full_crl,
             delta_crl,
             holder_id,
             shutdown,
-            _background: background,
+        });
+
+        if ctx.config.background_pregenerate {
+            let ctx_clone = Arc::clone(&ctx);
+            let full_clone = Arc::clone(&ctx.full_crl);
+            let delta_clone = Arc::clone(&ctx.delta_crl);
+            let update_secs = ctx.config.crl_update_interval_secs;
+            let delta_secs = ctx.config.crl_delta_interval_secs;
+            let sd = Arc::clone(&ctx.shutdown);
+            std::thread::spawn(move || {
+                bg_loop(ctx_clone, update_secs, delta_secs, full_clone, delta_clone, sd);
+            });
         }
+
+        ctx
     }
 }
 
@@ -102,18 +99,22 @@ fn hostname() -> String {
 }
 
 fn bg_loop(
-    tenant_id: String,
+    ctx: Arc<CrlContext>,
     update_secs: u64,
     delta_secs: u64,
     full_crl: Arc<RwLock<Option<CachedCrl>>>,
     delta_crl: Arc<RwLock<Option<CachedCrl>>>,
     shutdown: Arc<std::sync::atomic::AtomicBool>,
-    holder_id: String,
 ) {
     let sleep_secs = (update_secs.min(delta_secs) / 2).max(30);
     loop {
         std::thread::sleep(std::time::Duration::from_secs(sleep_secs));
         if shutdown.load(std::sync::atomic::Ordering::Relaxed) { break; }
+
+        let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
 
         let now = OffsetDateTime::now_utc();
         let should_full = {
@@ -121,7 +122,7 @@ fn bg_loop(
             guard.as_ref().map(|c| c.next_update - ::time::Duration::seconds(60) < now).unwrap_or(true)
         };
         if should_full {
-            if let Ok(cached) = generate_crl(&tenant_id, update_secs, &holder_id, false) {
+            if let Ok(cached) = generate_crl_with_store(&ctx, &store, update_secs, false) {
                 *full_crl.write().unwrap() = Some(cached);
             }
         }
@@ -131,81 +132,11 @@ fn bg_loop(
             guard.as_ref().map(|c| c.next_update - ::time::Duration::seconds(30) < now).unwrap_or(true)
         };
         if should_delta {
-            if let Ok(cached) = generate_crl(&tenant_id, delta_secs, &holder_id, true) {
+            if let Ok(cached) = generate_crl_with_store(&ctx, &store, delta_secs, true) {
                 *delta_crl.write().unwrap() = Some(cached);
             }
         }
     }
-}
-
-fn generate_crl(
-    tenant_id: &str,
-    next_update_secs: u64,
-    _holder_id: &str,
-    is_delta: bool,
-) -> Result<CachedCrl, CertError> {
-    let store = OxPersistenceCertStore::open()?;
-
-    let revoked = if is_delta {
-        let since = OffsetDateTime::now_utc() - ::time::Duration::seconds(next_update_secs as i64 * 2);
-        store.list_revoked_since(tenant_id, since)?
-    } else {
-        store.list_revoked(tenant_id)?
-    };
-
-    // Load CA cert + key from ENV-based config
-    let ca_cert_path = std::env::var("OX_CRL_CA_CERT_PATH")
-        .map_err(|_| CertError::Internal("OX_CRL_CA_CERT_PATH not set".to_string()))?;
-    let ca_cert_pem = std::fs::read_to_string(&ca_cert_path)
-        .map_err(|e| CertError::Internal(e.to_string()))?;
-    let issuer_params = issuer_params_from_cert_pem(&ca_cert_pem)?;
-
-    let ca_key_id = std::env::var("OX_CRL_CA_KEY_ID")
-        .map_err(|_| CertError::Internal("OX_CRL_CA_KEY_ID not set".to_string()))?;
-    // This is a stub: in real use, the keystore would be passed from the plugin context
-    // For now, load key via a default keystore config (returns an error stub)
-    let _ = ca_key_id;
-
-    // Build rcgen revoked certs list
-    let now = OffsetDateTime::now_utc();
-    let revoked_certs: Vec<RevokedCertParams> = revoked.iter().filter_map(|c| {
-        let serial_bytes = uuid::Uuid::parse_str(&c.serial).ok()?.as_bytes().to_vec();
-        let revocation_time = c.revoked_at.unwrap_or(now);
-        let reason_code = c.revocation_reason.map(ox_reason_to_rcgen);
-        Some(RevokedCertParams {
-            serial_number: SerialNumber::from_slice(&serial_bytes),
-            revocation_time,
-            reason_code,
-            invalidity_date: None,
-        })
-    }).collect();
-
-    let crl_number = now.unix_timestamp() as u64;
-    let next_update = now + ::time::Duration::seconds(next_update_secs as i64);
-
-    let params = CertificateRevocationListParams {
-        this_update: now,
-        next_update,
-        crl_number: SerialNumber::from_slice(&crl_number.to_be_bytes()),
-        issuing_distribution_point: None,
-        revoked_certs,
-        key_identifier_method: KeyIdMethod::Sha256,
-    };
-
-    // Stub: build a minimal self-signed issuer for testing
-    // In production, the issuer should be loaded from the CA key store
-    let issuer_kp = rcgen::KeyPair::generate()
-        .map_err(|e| CertError::Crypto(e.to_string()))?;
-    let issuer = Issuer::new(issuer_params, issuer_kp);
-
-    let crl = params.signed_by(&issuer)
-        .map_err(|e| CertError::Internal(format!("CRL sign: {}", e)))?;
-
-    let der = crl.der().to_vec();
-    let pem = crl.pem()
-        .map_err(|e| CertError::Internal(format!("CRL PEM: {}", e)))?;
-
-    Ok(CachedCrl { der, pem, next_update, crl_number })
 }
 
 fn ox_reason_to_rcgen(r: OxRevocationReason) -> RcgenRevocationReason {
@@ -242,7 +173,7 @@ pub fn handle_crl_request(ctx: &CrlContext, path: &str) -> CrlResponse {
     }
 
     // Try to acquire lock and regenerate
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(ctx.config.store.db_path()) {
         Ok(s) => s,
         Err(e) => return CrlResponse {
             http_status: 500,
@@ -407,7 +338,7 @@ pub mod plugin {
 
     struct PluginState {
         api: CoreHostApi,
-        ctx: CrlContext,
+        ctx: Arc<CrlContext>,
     }
     unsafe impl Send for PluginState {}
     unsafe impl Sync for PluginState {}

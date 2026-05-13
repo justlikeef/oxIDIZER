@@ -96,7 +96,7 @@ fn run_schedule_loop(config: NotifyConfig, shutdown: Arc<AtomicBool>) {
 }
 
 fn run_notification_sweep(config: &NotifyConfig) {
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(_) => return,
     };

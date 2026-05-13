@@ -269,7 +269,7 @@ pub fn handle_ocsp(config: &OcspConfig, request_der: &[u8]) -> OcspOutcome {
     };
 
     // Open cert store
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(_) => return err(2),
     };
@@ -423,7 +423,32 @@ pub mod plugin {
             } else {
                 // GET /ocsp/{base64url-encoded-DER}
                 let encoded = path.trim_start_matches("/ocsp/");
-                if encoded.is_empty() { return cont; }
+                if encoded.is_empty() {
+                    // Bare GET — return a human-readable info page.
+                    let html = concat!(
+                        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">",
+                        "<title>OCSP Responder</title>",
+                        "<style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;padding:2rem;max-width:700px;margin:auto}",
+                        "h1{color:#38bdf8}code{background:rgba(0,0,0,.4);padding:.15rem .4rem;border-radius:3px;font-size:.9em;color:#a5b4fc}",
+                        "pre{background:rgba(0,0,0,.4);border:1px solid #334155;border-radius:6px;padding:1rem;overflow-x:auto}",
+                        "p,li{color:#94a3b8;line-height:1.7}</style></head>",
+                        "<body><h1>OCSP Responder</h1>",
+                        "<p>This is an Online Certificate Status Protocol (RFC 6960) responder. ",
+                        "It is used automatically by browsers and TLS clients to check whether a certificate has been revoked.</p>",
+                        "<h2>Usage</h2>",
+                        "<p><strong>POST</strong> &mdash; send a DER-encoded <code>OCSPRequest</code>:</p>",
+                        "<pre>curl -s -X POST /ocsp/ \\\n  -H 'Content-Type: application/ocsp-request' \\\n  --data-binary @request.der \\\n  -o response.der</pre>",
+                        "<p><strong>GET</strong> &mdash; base64url-encode the DER request and append to the path:</p>",
+                        "<pre>curl -s \"/ocsp/$(base64 -w0 request.der | tr '+/' '-_' | tr -d '=')\" -o response.der</pre>",
+                        "<p>Responses are DER-encoded <code>OCSPResponse</code> with <code>Content-Type: application/ocsp-response</code>.</p>",
+                        "<p><a href=\"/ca/\" style=\"color:#38bdf8\">&larr; Certificate Authority Dashboard</a></p>",
+                        "</body></html>"
+                    );
+                    set(&state.api, task_ctx, "response.status", "200");
+                    set(&state.api, task_ctx, "response.header.Content-Type", "text/html; charset=utf-8");
+                    set_bytes(&state.api, task_ctx, "response.body", html.as_bytes());
+                    return cont;
+                }
                 base64::Engine::decode(
                     &base64::engine::general_purpose::URL_SAFE_NO_PAD,
                     encoded.as_bytes(),

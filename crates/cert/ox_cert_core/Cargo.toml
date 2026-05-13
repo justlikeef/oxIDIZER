@@ -21,4 +21,5 @@ x509-parser = "0.16"
 pem = "3"
 base64 = "0.22"
 regex = "1"
+rusqlite = { version = "0.31", features = ["bundled"] }
 tracing = "0.1"

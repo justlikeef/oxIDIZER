@@ -32,7 +32,7 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     fn make_store() -> OxPersistenceCertStore {
-        OxPersistenceCertStore::open().expect("store open failed")
+        OxPersistenceCertStore::open(":memory:").expect("store open failed")
     }
 
     fn sample_cert(tenant: &str, serial: &str) -> CertificateRecord {
@@ -65,7 +65,6 @@ mod tests {
     // ignored until ox_persistence_driver_db_* is wired into the test fixture.
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_store_cert_roundtrip() {
         let store = make_store();
         let cert = sample_cert("acme-corp", "test-serial-001");
@@ -79,7 +78,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_tenant_isolation() {
         let store = make_store();
         let cert = sample_cert("tenant-a", "isolation-serial-001");
@@ -99,7 +97,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_mark_revoked() {
         let store = make_store();
         let cert = sample_cert("acme-corp", "revoke-serial-001");
@@ -151,7 +148,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_store_ca_key_roundtrip() {
         let store = make_store();
         let key = sample_ca_key("acme-corp", "intermediate-2026");
@@ -165,7 +161,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_update_ca_key_status() {
         let store = make_store();
         let key = sample_ca_key("acme-corp", "retiring-key-001");
@@ -183,7 +178,6 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_acme_account_roundtrip() {
         let store = make_store();
         let now = OffsetDateTime::now_utc();
@@ -209,7 +203,6 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    #[ignore = "requires real persistence backend"]
     fn test_ra_request_roundtrip() {
         let store = make_store();
         let now = OffsetDateTime::now_utc();
@@ -415,6 +408,258 @@ mod tests {
         assert_eq!(policy.domain_allowlist.len(), 1);
         assert!(policy.domain_allowlist[0].is_match("app.example.com"));
         assert!(policy.domain_blocklist[0].is_match("malicious.example.com"));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Cross-sign: P-384 CSR with CA extensions (simulates ICA → RCA)
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn test_cross_sign_p384_csr_with_ca_extensions() {
+        use rcgen::KeyPair;
+        use std::process::Command;
+
+        // Skip if openssl not available
+        if Command::new("openssl").arg("version").output().is_err() {
+            eprintln!("openssl not found, skipping");
+            return;
+        }
+
+        let dir = tempdir();
+        let key_path = format!("{}/ica.key", dir);
+        let csr_path = format!("{}/ica.csr", dir);
+        let ext_conf = format!("{}/ext.cnf", dir);
+
+        // Write openssl ext.cnf with CA extensions (same as generate-root-ca.sh)
+        std::fs::write(&ext_conf, r#"
+[req]
+distinguished_name = req_dn
+req_extensions     = v3_ca_req
+prompt             = no
+
+[req_dn]
+
+[v3_ca_req]
+basicConstraints = critical,CA:true,pathlen:1
+keyUsage         = critical,keyCertSign,cRLSign
+"#).unwrap();
+
+        // Generate P-384 key
+        let status = Command::new("openssl")
+            .args(["genpkey", "-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-384", "-out", &key_path])
+            .output().expect("openssl genpkey failed");
+        assert!(status.status.success(), "genpkey failed: {}", String::from_utf8_lossy(&status.stderr));
+
+        // Generate CSR with CA extensions
+        let status = Command::new("openssl")
+            .args(["req", "-new", "-key", &key_path, "-subj", "/CN=Test ICA,O=Test,C=US", "-out", &csr_path, "-config", &ext_conf])
+            .output().expect("openssl req failed");
+        assert!(status.status.success(), "req failed: {}", String::from_utf8_lossy(&status.stderr));
+
+        let csr_pem = std::fs::read_to_string(&csr_path).expect("read csr");
+
+        // Build a root CA to sign with
+        let ca_key = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P384_SHA384)
+            .expect("ca key gen failed");
+        let ca_params = CertBuilder::new()
+            .subject("CN=Test Root CA, O=Test, C=US")
+            .is_ca(true, None)
+            .build_params()
+            .expect("ca params failed");
+
+        // This is the exact call that handle_cross_sign makes
+        let result = crate::builder::cross_sign_csr(
+            &csr_pem,
+            "default",
+            3 * 365 * 86400,
+            &ca_params,
+            &ca_key,
+        );
+
+        let record = match result {
+            Ok(r) => r,
+            Err(e) => { cleanup_dir(&dir); panic!("cross-sign failed: {}", e); }
+        };
+        assert!(record.pem.contains("BEGIN CERTIFICATE"), "cert PEM missing");
+        assert_eq!(record.profile, "ca_intermediate");
+
+        // Verify the public key in the signed cert matches the original private key.
+        let cert_path = format!("{}/signed.crt", dir);
+        std::fs::write(&cert_path, &record.pem).unwrap();
+
+        let cert_pubkey = Command::new("openssl")
+            .args(["x509", "-in", &cert_path, "-noout", "-pubkey"])
+            .output().expect("openssl x509 failed");
+        let key_pubkey = Command::new("openssl")
+            .args(["pkey", "-in", &key_path, "-pubout"])
+            .output().expect("openssl pkey failed");
+
+        cleanup_dir(&dir);
+
+        let cert_pk = String::from_utf8_lossy(&cert_pubkey.stdout);
+        let key_pk = String::from_utf8_lossy(&key_pubkey.stdout);
+        assert!(cert_pubkey.status.success(), "openssl x509 -pubkey failed: {}", String::from_utf8_lossy(&cert_pubkey.stderr));
+        assert!(key_pubkey.status.success(), "openssl pkey -pubout failed: {}", String::from_utf8_lossy(&key_pubkey.stderr));
+        assert_eq!(cert_pk.trim(), key_pk.trim(), "public key in cert does not match original private key");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Cross-sign: P-384 CSR without CA extensions (production path from generate-root-ca.sh)
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn test_cross_sign_p384_csr_without_ca_extensions() {
+        use rcgen::KeyPair;
+        use std::process::Command;
+
+        if Command::new("openssl").arg("version").output().is_err() {
+            eprintln!("openssl not found, skipping");
+            return;
+        }
+
+        let dir = tempdir();
+        let key_path = format!("{}/ica.key", dir);
+        let csr_path = format!("{}/ica.csr", dir);
+
+        // Generate P-384 key via openssl (matches generate-root-ca.sh)
+        let out = Command::new("openssl")
+            .args(["genpkey", "-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-384", "-out", &key_path])
+            .output().expect("openssl genpkey failed");
+        assert!(out.status.success(), "genpkey: {}", String::from_utf8_lossy(&out.stderr));
+
+        // Generate plain CSR with no extensions (matches generate-root-ca.sh --csr-only current output)
+        let out = Command::new("openssl")
+            .args(["req", "-new", "-key", &key_path, "-subj", "/CN=Test ICA,O=Test,C=US", "-out", &csr_path])
+            .output().expect("openssl req failed");
+        assert!(out.status.success(), "req: {}", String::from_utf8_lossy(&out.stderr));
+
+        let csr_pem = std::fs::read_to_string(&csr_path).expect("read csr");
+
+        let ca_key = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P384_SHA384).expect("ca key gen");
+        let ca_params = CertBuilder::new()
+            .subject("CN=Test Root CA, O=Test, C=US")
+            .is_ca(true, None)
+            .build_params()
+            .expect("ca params");
+
+        let record = match crate::builder::cross_sign_csr(&csr_pem, "default", 3 * 365 * 86400, &ca_params, &ca_key) {
+            Ok(r) => r,
+            Err(e) => { cleanup_dir(&dir); panic!("cross-sign failed: {}", e); }
+        };
+
+        let cert_path = format!("{}/signed.crt", dir);
+        std::fs::write(&cert_path, &record.pem).unwrap();
+
+        let cert_pk_out = Command::new("openssl")
+            .args(["x509", "-in", &cert_path, "-noout", "-pubkey"])
+            .output().expect("openssl x509");
+        let key_pk_out = Command::new("openssl")
+            .args(["pkey", "-in", &key_path, "-pubout"])
+            .output().expect("openssl pkey");
+
+        cleanup_dir(&dir);
+
+        assert!(cert_pk_out.status.success(), "x509 -pubkey: {}", String::from_utf8_lossy(&cert_pk_out.stderr));
+        assert!(key_pk_out.status.success(), "pkey -pubout: {}", String::from_utf8_lossy(&key_pk_out.stderr));
+        assert_eq!(
+            String::from_utf8_lossy(&cert_pk_out.stdout).trim(),
+            String::from_utf8_lossy(&key_pk_out.stdout).trim(),
+            "public key in signed cert does not match original private key"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // parse_dn_into — DC component handling
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn test_parse_dn_into_dc_abbreviated_form() {
+        // rcgen DistinguishedName uses a HashMap keyed by DnType, so pushing the same OID
+        // twice overwrites the first value. Only the last DC survives — this is a known
+        // rcgen 0.14 limitation. Use cross_sign_csr_with_pem for multi-valued DC support.
+        use crate::builder::{parse_dn_into, dn_to_string_pub};
+        let mut dn = rcgen::DistinguishedName::new();
+        parse_dn_into(&mut dn, "CN=host.example.com, O=Org, DC=example, DC=com");
+        let s = dn_to_string_pub(&dn);
+        assert!(s.contains("DC="), "no DC component in: {}", s);
+        assert!(s.contains("CN=host.example.com"), "CN missing from: {}", s);
+    }
+
+    #[test]
+    fn test_parse_dn_into_dc_raw_oid_form() {
+        // x509-parser may emit the OID dotted string when the OID isn't in its registry.
+        // Verify the raw OID form is recognised and stored as a DC attribute.
+        use crate::builder::{parse_dn_into, dn_to_string_pub};
+        let mut dn = rcgen::DistinguishedName::new();
+        parse_dn_into(&mut dn, "CN=host.example.com, O=Org, 0.9.2342.19200300.100.1.25=example");
+        let s = dn_to_string_pub(&dn);
+        assert!(s.contains("DC=example"), "DC=example missing from: {}", s);
+    }
+
+    #[test]
+    fn test_cross_sign_with_pem_preserves_dc_components() {
+        use rcgen::KeyPair;
+        use std::process::Command;
+
+        if Command::new("openssl").arg("version").output().is_err() {
+            eprintln!("openssl not found, skipping");
+            return;
+        }
+
+        let dir = tempdir();
+        let ica_key_path = format!("{}/ica.key", dir);
+        let ica_csr_path = format!("{}/ica.csr", dir);
+        let ca_key_path  = format!("{}/ca.key", dir);
+        let ca_crt_path  = format!("{}/ca.crt", dir);
+        let signed_path  = format!("{}/signed.crt", dir);
+
+        // Generate ICA key and CSR with DC components
+        let out = Command::new("openssl")
+            .args(["genpkey", "-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-384", "-out", &ica_key_path])
+            .output().expect("genpkey");
+        assert!(out.status.success(), "genpkey: {}", String::from_utf8_lossy(&out.stderr));
+
+        let out = Command::new("openssl")
+            .args(["req", "-new", "-key", &ica_key_path,
+                   "-subj", "/CN=gagaica01.justlikeef.com/O=Justlikeef/OU=IT-Dept/DC=justlikeef/DC=com",
+                   "-out", &ica_csr_path])
+            .output().expect("req");
+        assert!(out.status.success(), "req: {}", String::from_utf8_lossy(&out.stderr));
+
+        // Build a root CA and export its cert + key as PEM
+        let ca_key = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P384_SHA384).expect("ca key gen");
+        let ca_record = CertBuilder::new()
+            .subject("CN=Test Root CA, O=Test, C=US")
+            .is_ca(true, None)
+            .self_sign("default", &ca_key)
+            .expect("ca self-sign");
+        std::fs::write(&ca_crt_path, &ca_record.pem).unwrap();
+        std::fs::write(&ca_key_path, ca_key.serialize_pem()).unwrap();
+
+        let csr_pem     = std::fs::read_to_string(&ica_csr_path).expect("read csr");
+        let ca_cert_pem = std::fs::read_to_string(&ca_crt_path).expect("read ca cert");
+        let ca_key_pem  = std::fs::read_to_string(&ca_key_path).expect("read ca key");
+
+        let record = match crate::builder::cross_sign_csr_with_pem(
+            &csr_pem, &ca_cert_pem, &ca_key_pem, "default", 3 * 365,
+        ) {
+            Ok(r) => r,
+            Err(e) => { cleanup_dir(&dir); panic!("cross-sign failed: {}", e); }
+        };
+
+        std::fs::write(&signed_path, &record.pem).unwrap();
+
+        let subj_out = Command::new("openssl")
+            .args(["x509", "-in", &signed_path, "-noout", "-subject", "-nameopt", "RFC2253"])
+            .output().expect("x509 -subject");
+
+        cleanup_dir(&dir);
+
+        assert!(subj_out.status.success(), "x509: {}", String::from_utf8_lossy(&subj_out.stderr));
+        let subj_str = String::from_utf8_lossy(&subj_out.stdout).to_string();
+        assert!(subj_str.contains("DC=justlikeef"), "DC=justlikeef missing from cert: {}", subj_str);
+        assert!(subj_str.contains("DC=com"),        "DC=com missing from cert: {}",        subj_str);
+        assert!(record.subject_dn.contains("DC="),  "DC missing from record subject_dn: {}", record.subject_dn);
     }
 
     // ---------------------------------------------------------------------------

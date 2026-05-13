@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# deploy_rca.sh
+# deploy_ica1.sh
 #
 # Reset the Proxmox test VM to a clean snapshot, build CA packages locally,
-# deploy and install them on the guest VM non-interactively.
+# deploy and install them on the guest VM non-interactively as an
+# intermediate CA (cert type 2). Generates a CSR and submits it to the
+# root CA for signing.
 #
-# Usage: ./scripts/deploy_rca.sh [--skip-build]
+# Usage: ./scripts/deploy_ica1.sh [--skip-build]
 #
 # Options:
 #   --skip-build    Skip the package build step (use existing packages/deb/)
@@ -17,27 +19,29 @@ set -euo pipefail
 PROXMOX_HOST="192.168.99.14"
 PROXMOX_USER="root"
 PROXMOX_PASS="1Password.."
-VM_ID=104
+VM_ID=105
 SNAPSHOT="BASE_INSTALL"
 
 # ---------------------------------------------------------------------------
 # Guest VM
 # ---------------------------------------------------------------------------
-GUEST_HOST="gagarca01.justlikeef.com"
+GUEST_HOST="gagaica01.justlikeef.com"
 GUEST_USER="justlikeef"
 GUEST_PASS="1Password.."
 
 # ---------------------------------------------------------------------------
 # CA configuration — written to an answers file on the guest
 # ---------------------------------------------------------------------------
-CA_HOSTNAME="gagarca01.justlikeef.com"
+CA_HOSTNAME="gagaica01.justlikeef.com"
 CA_ORGANIZATION="Justlikeef"
 CA_OU="IT-Dept"
 CA_LOCALITY="Gainesville"
 CA_STATE="Georgia"
 CA_COUNTRY="US"
 CA_PASSPHRASE="1Password.."
-CA_CERT_TYPE="1"
+CA_CERT_TYPE="2"
+CA_CSR_SERVER="gagarca01.justlikeef.com"
+
 
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -147,6 +151,8 @@ OX_CA_STATE=${CA_STATE}
 OX_CA_COUNTRY=${CA_COUNTRY}
 OX_CA_KEY_PASS=${CA_PASSPHRASE}
 OX_CA_CERT_TYPE=${CA_CERT_TYPE}
+OX_CA_CSR_SERVER=${CA_CSR_SERVER}
+OX_CA_CSR_SERVER_CACERT=/etc/pki/ox_webservice/ca/parent-root-ca.crt
 EOF
 guest_ssh "chmod 600 ~/ca_answers.env"
 

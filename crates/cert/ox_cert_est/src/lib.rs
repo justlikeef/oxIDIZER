@@ -303,7 +303,7 @@ fn handle_enroll(
         Ok(k) => k,
         Err(e) => return EstResponse::err(503, &format!("CA not ready: {}", e)),
     };
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => return EstResponse::err(500, &format!("store error: {}", e)),
     };

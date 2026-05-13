@@ -3,43 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate Trust &mdash; ox Certificate Authority</title>
+    <title>Install Trusted Root Certificate &mdash; ox Certificate Authority</title>
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="stylesheet" href="/ca/css/style.css">
     <style>
-        code { font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85em; color: var(--accent); }
         a { color: var(--accent); }
 
-        .cert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 760px) { .cert-grid { grid-template-columns: 1fr; } }
-
-        .cert-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem 1.5rem; }
-        .cert-card h2 { font-size: 1.1rem; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.6rem; }
-
-        .trust-pill {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            padding: 0.25rem 0.65rem; border-radius: 20px;
-            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        .download-bar {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            background: rgba(56,189,248,0.07);
+            border: 1px solid rgba(56,189,248,0.3);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
         }
-        .trust-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-        .trust-yes     { color: #27ae60; border: 1px solid #27ae60; background: rgba(39,174,96,0.08); }
-        .trust-no      { color: #e74c3c; border: 1px solid #e74c3c; background: rgba(231,76,60,0.08); }
-        .trust-unknown { color: var(--text-secondary); border: 1px solid var(--border); }
+        .download-bar .icon { font-size: 2rem; flex-shrink: 0; }
+        .download-bar .info { flex: 1; min-width: 200px; }
+        .download-bar .info strong { display: block; font-size: 1rem; color: var(--text-primary); }
+        .download-bar .info span { font-size: 0.85rem; color: var(--text-secondary); font-family: monospace; }
+        .download-btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            background: var(--accent); color: #0f172a;
+            font-weight: 700; font-size: 0.9rem;
+            padding: 0.6rem 1.25rem; border-radius: 6px;
+            text-decoration: none; white-space: nowrap;
+            transition: opacity 0.15s;
+        }
+        .download-btn:hover { opacity: 0.85; }
 
-        .field-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        .field-table tr + tr td { border-top: 1px solid rgba(255,255,255,0.05); }
-        .field-table td { padding: 0.45rem 0; vertical-align: top; }
-        .field-table td:first-child { color: var(--text-secondary); white-space: nowrap; padding-right: 1rem; width: 40%; }
-        .field-table td.fp-value { word-break: break-all; font-family: monospace; font-size: 0.82rem; }
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
 
-        .no-client { text-align: center; padding: 2.5rem 1.5rem; color: var(--text-secondary); }
-        .no-client .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        details.platform-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: 0;
+        }
+        details.platform-card[open] { border-color: rgba(56,189,248,0.35); }
 
-        .loader-wrap { display: flex; align-items: center; justify-content: center; padding: 3rem; }
-        .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        details.platform-card > summary {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600; font-size: 0.95rem;
+            color: var(--text-primary);
+            list-style: none;
+            border-bottom: 1px solid transparent;
+            transition: background 0.15s;
+        }
+        details.platform-card[open] > summary {
+            border-bottom-color: var(--border);
+            background: rgba(56,189,248,0.04);
+        }
+        details.platform-card > summary:hover { background: rgba(255,255,255,0.04); text-decoration: none; }
+        details.platform-card > summary::-webkit-details-marker { display: none; }
+        details.platform-card > summary::after {
+            content: '›'; margin-left: auto; font-size: 1.2rem;
+            color: var(--text-secondary); transition: transform 0.2s;
+        }
+        details.platform-card[open] > summary::after { transform: rotate(90deg); }
+        details.platform-card .platform-icon { font-size: 1.4rem; }
 
-        .error-msg { color: #e74c3c; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.3); border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.875rem; }
+        .platform-body { padding: 1.25rem; }
+        .platform-body ol { margin: 0; padding-left: 1.4rem; color: var(--text-secondary); line-height: 2; }
+        .platform-body ol li { padding-left: 0.25rem; }
+        .platform-body code {
+            font-family: monospace; background: rgba(0,0,0,0.35);
+            padding: 0.1rem 0.35rem; border-radius: 3px;
+            font-size: 0.82rem; color: var(--accent);
+        }
+        .platform-body pre {
+            background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+            border-radius: 6px; padding: 0.75rem 1rem;
+            overflow-x: auto; font-size: 0.82rem; color: #a5b4fc;
+            margin: 0.5rem 0 0.25rem;
+        }
+        .platform-body .note {
+            margin-top: 0.75rem; padding: 0.65rem 0.85rem;
+            background: rgba(56,189,248,0.06); border-left: 3px solid var(--accent);
+            border-radius: 0 4px 4px 0; font-size: 0.82rem; color: var(--text-secondary);
+        }
+
+        .section-label {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--text-secondary);
+            margin: 2rem 0 0.75rem;
+        }
 
         footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
     </style>
@@ -53,7 +110,7 @@
                 <img src="/images/logo.png" alt="oxIDIZER" class="logo">
                 <div>
                     <h1>Certificate Authority</h1>
-                    <p class="subtitle">Certificate Trust Information</p>
+                    <p class="subtitle">Install Trusted Root Certificate</p>
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:1rem;">
@@ -65,79 +122,167 @@
         </div>
     </header>
 
-    <!-- Loading state -->
-    <div id="loader" class="loader-wrap"><div class="spinner"></div></div>
+    <div class="card" style="margin-bottom:1.5rem;">
+        <p>
+            Add this CA&rsquo;s root certificate to your device&rsquo;s trusted store.
+            This is required once per device so that certificates issued by this CA are
+            trusted automatically by your browser, OS, and command-line tools.
+        </p>
+    </div>
 
-    <!-- Error state -->
-    <div id="error-banner" class="error-msg" style="display:none;"></div>
-
-    <!-- Cert grid (hidden until data loads) -->
-    <div id="cert-grid" class="cert-grid" style="display:none;">
-
-        <!-- Server cert card -->
-        <div class="cert-card">
-            <h2>&#127919; Server Certificate (Root CA)</h2>
-            <table class="field-table">
-                <tr><td>Subject</td>    <td class="fp-value" id="srv-subject"></td></tr>
-                <tr><td>Issuer</td>     <td class="fp-value" id="srv-issuer"></td></tr>
-                <tr><td>Serial</td>     <td class="fp-value" id="srv-serial"></td></tr>
-                <tr><td>Valid from</td> <td class="fp-value" id="srv-not-before"></td></tr>
-                <tr><td>Valid until</td><td class="fp-value" id="srv-not-after"></td></tr>
-                <tr><td>CA cert</td>    <td class="fp-value" id="srv-is-ca"></td></tr>
-                <tr><td>Self-signed</td><td class="fp-value" id="srv-self-signed"></td></tr>
-                <tr><td>Key type</td>   <td class="fp-value" id="srv-key-algo"></td></tr>
-                <tr><td>SHA-256</td>    <td class="fp-value" id="srv-fp"></td></tr>
-            </table>
+    <!-- Download bar -->
+    <div class="download-bar">
+        <div class="icon">&#128196;</div>
+        <div class="info">
+            <strong>Root CA Certificate</strong>
+            <span>/ca/root.crt &mdash; PEM format</span>
         </div>
+        <a class="download-btn" href="/ca/root.crt" download="ox-root-ca.crt">
+            &#11015; Download root.crt
+        </a>
+    </div>
 
-        <!-- Client cert card — shown/hidden based on whether client presented a cert -->
-        <div class="cert-card" id="client-card">
-            <h2>
-                &#128100; Your Certificate
-                <span id="client-trust-pill" class="trust-pill trust-unknown" style="display:none;"></span>
-            </h2>
-            <!-- Populated fields (shown when cert present) -->
-            <div id="client-fields" style="display:none;">
-                <table class="field-table">
-                    <tr><td>Subject</td>    <td class="fp-value" id="cli-subject"></td></tr>
-                    <tr><td>Issuer</td>     <td class="fp-value" id="cli-issuer"></td></tr>
-                    <tr><td>Serial</td>     <td class="fp-value" id="cli-serial"></td></tr>
-                    <tr><td>Valid from</td> <td class="fp-value" id="cli-not-before"></td></tr>
-                    <tr><td>Valid until</td><td class="fp-value" id="cli-not-after"></td></tr>
-                    <tr><td>CA cert</td>    <td class="fp-value" id="cli-is-ca"></td></tr>
-                    <tr><td>Key type</td>   <td class="fp-value" id="cli-key-algo"></td></tr>
-                    <tr><td>SHA-256</td>    <td class="fp-value" id="cli-fp"></td></tr>
-                </table>
-                <div style="margin-top:1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem;">
-                        <span style="color:var(--text-secondary);">Trusted by server:</span>
-                        <span id="cli-trusted-pill" class="trust-pill trust-unknown"></span>
-                    </div>
-                    <div id="cli-issued-row" style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; display:none;">
-                        <span style="color:var(--text-secondary);">Issued by this CA:</span>
-                        <span id="cli-issued-pill" class="trust-pill trust-unknown"></span>
-                    </div>
-                </div>
+    <!-- Browsers & OS -->
+    <div class="section-label">Operating Systems &amp; Browsers</div>
+    <div class="platform-grid">
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#129695;</span> Windows</summary>
+            <div class="platform-body">
+                <ol>
+                    <li>Download <strong>ox-root-ca.crt</strong> using the button above.</li>
+                    <li>Double-click the file &mdash; the Certificate dialog opens.</li>
+                    <li>Click <strong>Install Certificate&hellip;</strong></li>
+                    <li>Choose <strong>Local Machine</strong> and click Next.</li>
+                    <li>Select <strong>Place all certificates in the following store</strong>, then Browse and pick <strong>Trusted Root Certification Authorities</strong>.</li>
+                    <li>Click Next &rarr; Finish. Confirm the security prompt.</li>
+                    <li>Restart any open browsers.</li>
+                </ol>
+                <p class="note">Alternatively, import via PowerShell (run as Administrator):<br>
+                    <pre>Import-Certificate -FilePath ox-root-ca.crt `
+    -CertStoreLocation Cert:\LocalMachine\Root</pre>
+                </p>
             </div>
-            <!-- No-cert placeholder -->
-            <div id="client-none" class="no-client">
-                <div class="icon">&#128274;</div>
-                <p>No client certificate was presented with this request.</p>
-                <p style="font-size:0.85rem; margin-top:0.5rem;">Client certificate authentication requires a certificate issued by this CA installed in your browser or client tool.</p>
+        </details>
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#63743;</span> macOS</summary>
+            <div class="platform-body">
+                <ol>
+                    <li>Download <strong>ox-root-ca.crt</strong> and double-click it.</li>
+                    <li>Keychain Access opens. Select the <strong>System</strong> keychain and click <strong>Add</strong>.</li>
+                    <li>Find the certificate in the list, double-click it to open it.</li>
+                    <li>Expand <strong>Trust</strong> and set <em>When using this certificate</em> to <strong>Always Trust</strong>.</li>
+                    <li>Close the dialog and enter your password when prompted.</li>
+                    <li>Restart browsers.</li>
+                </ol>
+                <p class="note">Or via Terminal (requires sudo):<br>
+                    <pre>sudo security add-trusted-cert \
+    -d -r trustRoot \
+    -k /Library/Keychains/System.keychain \
+    ox-root-ca.crt</pre>
+                </p>
             </div>
-        </div>
+        </details>
 
-    </div><!-- /cert-grid -->
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#128039;</span> Linux &mdash; Debian / Ubuntu</summary>
+            <div class="platform-body">
+                <ol>
+                    <li>Download <strong>ox-root-ca.crt</strong>.</li>
+                    <li>Copy the certificate to the system trust store:
+                        <pre>sudo cp ox-root-ca.crt \
+    /usr/local/share/ca-certificates/ox-root-ca.crt</pre>
+                    </li>
+                    <li>Update the trust store:
+                        <pre>sudo update-ca-certificates</pre>
+                    </li>
+                </ol>
+                <p class="note">Chrome and Chromium on Linux use the system NSS database. Run <code>certutil</code> as below if Chrome still shows warnings.</p>
+            </div>
+        </details>
 
-    <!-- How-to hint (shown when no client cert) -->
-    <div id="howto-hint" class="card" style="display:none; margin-top:1.5rem;">
-        <h2>How to present a client certificate</h2>
-        <p class="label">To see client certificate trust information, connect using a certificate issued by this CA.</p>
-        <ul style="color:var(--text-secondary); padding-left:1.5rem; line-height:2; margin:0.75rem 0;">
-            <li>Install a client certificate in your browser and configure the server to require mutual TLS (mTLS).</li>
-            <li>Use <code>curl --cert client.crt --key client.key https://&lt;ca-server&gt;/ca/trust</code></li>
-            <li>Pass the certificate PEM as the <code>X-Client-Cert</code> header for proxy or testing scenarios.</li>
-        </ul>
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#128039;</span> Linux &mdash; RHEL / Fedora / CentOS</summary>
+            <div class="platform-body">
+                <ol>
+                    <li>Download <strong>ox-root-ca.crt</strong>.</li>
+                    <li>The file must end in <code>.crt</code> (it does). Copy it:
+                        <pre>sudo cp ox-root-ca.crt \
+    /etc/pki/ca-trust/source/anchors/</pre>
+                    </li>
+                    <li>Rebuild the trust store:
+                        <pre>sudo update-ca-trust extract</pre>
+                    </li>
+                </ol>
+            </div>
+        </details>
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#128760;</span> Firefox</summary>
+            <div class="platform-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem;">Firefox maintains its own certificate store independent of the OS.</p>
+                <ol>
+                    <li>Open <strong>Settings</strong> &rarr; <strong>Privacy &amp; Security</strong>.</li>
+                    <li>Scroll to <strong>Certificates</strong> and click <strong>View Certificates&hellip;</strong></li>
+                    <li>On the <strong>Authorities</strong> tab, click <strong>Import&hellip;</strong></li>
+                    <li>Select the downloaded <strong>ox-root-ca.crt</strong> file.</li>
+                    <li>Check <strong>Trust this CA to identify websites</strong> and click OK.</li>
+                </ol>
+                <p class="note">Enterprise deployments can push this via <code>policies.json</code> or Group Policy.</p>
+            </div>
+        </details>
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#127760;</span> Chrome &amp; Edge</summary>
+            <div class="platform-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem;">Chrome and Edge use the OS trust store on Windows and macOS. Follow the Windows or macOS instructions above.</p>
+                <p style="font-size:0.875rem; color:var(--text-secondary);">On Linux, Chrome reads the NSS shared database. Add the cert with:</p>
+                <pre>certutil -d sql:$HOME/.pki/nssdb \
+    -A -t "CT,," \
+    -n "ox Root CA" \
+    -i ox-root-ca.crt</pre>
+                <p class="note">Create the database first if it doesn&rsquo;t exist: <code>mkdir -p ~/.pki/nssdb &amp;&amp; certutil -d sql:$HOME/.pki/nssdb -N --empty-password</code></p>
+            </div>
+        </details>
+
+    </div>
+
+    <!-- CLI tools -->
+    <div class="section-label">Command-Line Tools</div>
+    <div class="platform-grid">
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#9679;</span> curl</summary>
+            <div class="platform-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem;">Pass the CA certificate directly for a single request:</p>
+                <pre>curl --cacert ox-root-ca.crt https://your-server/</pre>
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0.75rem 0 0.25rem;">Or add it permanently to curl&rsquo;s default CA bundle. On Debian/Ubuntu this is handled by <code>update-ca-certificates</code> above. On macOS:</p>
+                <pre>echo 'capath=/etc/ssl/certs/' >> ~/.curlrc</pre>
+                <p class="note">After running <code>update-ca-certificates</code> or the macOS <code>security</code> command, curl uses the system bundle automatically.</p>
+            </div>
+        </details>
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#9679;</span> wget</summary>
+            <div class="platform-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem;">For a single request:</p>
+                <pre>wget --ca-certificate=ox-root-ca.crt https://your-server/</pre>
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0.75rem 0 0.25rem;">Once installed at the OS level (see Linux instructions above), wget picks it up automatically.</p>
+            </div>
+        </details>
+
+        <details class="platform-card">
+            <summary><span class="platform-icon">&#9679;</span> OpenSSL / s_client</summary>
+            <div class="platform-body">
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 0.75rem;">Verify a TLS connection against this CA:</p>
+                <pre>openssl s_client \
+    -CAfile ox-root-ca.crt \
+    -connect your-server:443</pre>
+                <p class="note">A successful handshake shows <code>Verify return code: 0 (ok)</code>.</p>
+            </div>
+        </details>
+
     </div>
 
     <footer>
@@ -146,104 +291,13 @@
 
 </div>
 <script>
-(function () {
-    function set(id, val) {
-        var el = document.getElementById(id);
-        if (el) el.textContent = (val === undefined || val === null) ? '—' : String(val);
-    }
-
-    function setPill(id, trusted, labelTrue, labelFalse) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.style.display = '';
-        if (trusted === true) {
-            el.textContent = labelTrue || 'Trusted';
-            el.className = 'trust-pill trust-yes';
-        } else if (trusted === false) {
-            el.textContent = labelFalse || 'Not trusted';
-            el.className = 'trust-pill trust-no';
-        } else {
-            el.textContent = 'Unknown';
-            el.className = 'trust-pill trust-unknown';
-        }
-    }
-
-    function show(id) { var el = document.getElementById(id); if (el) el.style.display = ''; }
-    function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
-
-    fetch('/api/v1/trust/info')
-        .then(function (r) {
-            if (!r.ok) return Promise.reject(new Error('HTTP ' + r.status));
-            return r.text().then(function(t) {
-                if (!t) return Promise.reject(new Error('Trust info endpoint not yet implemented'));
-                return JSON.parse(t);
-            });
-        })
-        .then(function (data) {
-            hide('loader');
-
-            if (data.error) {
-                var banner = document.getElementById('error-banner');
-                banner.textContent = '⚠ ' + (data.error.message || 'Unknown error');
-                show('error-banner');
-                return;
-            }
-
-            // Server cert
-            var s = data.server;
-            set('srv-subject',     s.subject);
-            set('srv-issuer',      s.issuer);
-            set('srv-serial',      s.serial);
-            set('srv-not-before',  s.not_before);
-            set('srv-not-after',   s.not_after);
-            set('srv-is-ca',       s.is_ca ? 'Yes' : 'No');
-            set('srv-self-signed', s.is_self_signed ? 'Yes' : 'No');
-            set('srv-key-algo',    s.key_algorithm);
-            set('srv-fp',          s.fingerprint_sha256);
-
-            // Client cert
-            if (data.client) {
-                var c = data.client;
-                hide('client-none');
-                show('client-fields');
-                set('cli-subject',    c.subject);
-                set('cli-issuer',     c.issuer);
-                set('cli-serial',     c.serial);
-                set('cli-not-before', c.not_before);
-                set('cli-not-after',  c.not_after);
-                set('cli-is-ca',      c.is_ca ? 'Yes' : 'No');
-                set('cli-key-algo',   c.key_algorithm);
-                set('cli-fp',         c.fingerprint_sha256);
-
-                setPill('client-trust-pill', c.trusted_by_server, 'Trusted by server', 'Not trusted by server');
-                setPill('cli-trusted-pill',  c.trusted_by_server);
-
-                if (c.issued_by_us !== null && c.issued_by_us !== undefined) {
-                    document.getElementById('cli-issued-row').style.display = 'flex';
-                    setPill('cli-issued-pill', c.issued_by_us, 'Yes', 'Not in registry');
-                }
-            } else {
-                hide('client-fields');
-                show('client-none');
-                show('howto-hint');
-            }
-
-            show('cert-grid');
-        })
-        .catch(function (e) {
-            hide('loader');
-            var banner = document.getElementById('error-banner');
-            banner.textContent = '⚠ Failed to load trust info: ' + e.message;
-            show('error-banner');
-        });
-
-    // Status badge ping
-    fetch('/ping/').then(function (r) {
+(function() {
+    fetch('/ping/').then(function(r) {
         var b = document.getElementById('status-badge');
         if (!b) return;
         if (r.ok) { b.textContent = 'ONLINE'; b.className = 'status-badge status-ok'; }
         else       { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
-    }).catch(function () {
+    }).catch(function() {
         var b = document.getElementById('status-badge');
         if (b) { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
     });

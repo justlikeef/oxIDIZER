@@ -62,7 +62,7 @@ pub fn handle_renew(config: &CertRenewConfig, serial: &str, body: &str) -> Renew
 
     let req: RenewRequest = serde_json::from_str(body).unwrap_or_default();
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
     };

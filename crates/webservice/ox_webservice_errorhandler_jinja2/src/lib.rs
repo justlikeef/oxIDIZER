@@ -164,6 +164,14 @@ pub unsafe extern "C" fn ox_plugin_process(
 
     let accept = get_field(api, task_ctx, "request.header.Accept");
     let existing_ct = get_field(api, task_ctx, "response.header.Content-Type");
+    let existing_body = get_field(api, task_ctx, "response.body");
+
+    // If a plugin already set a JSON body, pass it through unchanged — don't overwrite
+    // a structured API error response with a rendered template.
+    if existing_ct.contains("application/json") && !existing_body.is_empty() {
+        return FlowControl { code: FLOW_CONTROL_CONTINUE, payload: std::ptr::null() };
+    }
+
     let serve_json = accept.contains("application/json") || existing_ct.contains("application/json");
 
     if serve_json {

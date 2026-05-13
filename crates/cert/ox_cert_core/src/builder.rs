@@ -309,6 +309,202 @@ pub fn sign_csr(
     })
 }
 
+/// Sign a CSR as a CA (intermediate) certificate, explicitly setting CA extensions.
+///
+/// Unlike `sign_csr`, this always sets `basicConstraints = CA:true, pathlen:1` and CA key usages
+/// regardless of what the CSR requests — the issuing CA decides extensions, not the CSR.
+///
+/// Uses x509-parser directly for SPKI extraction rather than rcgen's CSR parsing, because
+/// rcgen 0.14's reconstruction of externally-generated EC public keys produces malformed
+/// SubjectPublicKeyInfo that OpenSSL rejects.
+pub fn cross_sign_csr(
+    csr_pem: &str,
+    tenant_id: &str,
+    validity_seconds: u64,
+    ca_params: &CertificateParams,
+    ca_key: &KeyPair,
+) -> Result<CertificateRecord, CertError> {
+    use rcgen::SubjectPublicKeyInfo;
+    use x509_parser::prelude::FromDer;
+
+    let now = OffsetDateTime::now_utc();
+    let not_after = now + time::Duration::seconds(validity_seconds as i64);
+    let serial = Uuid::new_v4();
+    let issuer = Issuer::from_params(ca_params, ca_key);
+
+    let csr_der = ::pem::parse(csr_pem)
+        .map_err(|e| CertError::Crypto(format!("CSR PEM decode: {}", e)))?
+        .into_contents();
+    let (_, raw_csr) = x509_parser::certification_request::X509CertificationRequest::from_der(&csr_der)
+        .map_err(|e| CertError::Crypto(format!("CSR DER parse: {}", e)))?;
+    let subject_dn = raw_csr.certification_request_info.subject.to_string();
+    let spki_raw = raw_csr.certification_request_info.subject_pki.raw;
+    let spki = SubjectPublicKeyInfo::from_der(spki_raw)
+        .map_err(|e| CertError::Crypto(format!("SPKI parse: {}", e)))?;
+    let params = build_ca_params(&subject_dn, now, not_after, &serial);
+    let cert_pem = params
+        .signed_by(&spki, &issuer)
+        .map_err(|e| CertError::Crypto(format!("CA signing failed: {}", e)))?
+        .pem();
+
+    let subject_cn = extract_cn(&subject_dn);
+    Ok(CertificateRecord {
+        serial: serial.to_string(),
+        tenant_id: tenant_id.to_string(),
+        subject_cn,
+        subject_dn,
+        sans: vec![],
+        issuer_dn: dn_to_string(&ca_params.distinguished_name),
+        not_before: now,
+        not_after,
+        key_type: "external".to_string(),
+        profile: "ca_intermediate".to_string(),
+        pem: cert_pem,
+        csr_pem: Some(csr_pem.to_string()),
+        private_key_encrypted: None,
+        status: CertStatus::Active,
+        revoked_at: None,
+        revocation_reason: None,
+        scts: vec![],
+        policy_oids: vec![],
+        enrollment_protocol: None,
+        created_at: now,
+    })
+}
+
+/// Sign a CSR as a CA (intermediate) certificate using the OpenSSL CLI.
+///
+/// Preferred over `cross_sign_csr` when the CA cert and key are available as PEM strings,
+/// because rcgen's `DistinguishedName` uses a HashMap that deduplicates attributes sharing the
+/// same OID — so `DC=justlikeef, DC=com` collapses to a single DC entry in rcgen-built certs.
+/// OpenSSL preserves the full multi-valued subject from the CSR verbatim.
+pub fn cross_sign_csr_with_pem(
+    csr_pem: &str,
+    ca_cert_pem: &str,
+    ca_key_pem: &str,
+    tenant_id: &str,
+    validity_days: u64,
+) -> Result<CertificateRecord, CertError> {
+    use std::fs;
+    use std::process::Command;
+    use x509_parser::prelude::{FromDer, X509Certificate};
+
+    let dir = std::env::temp_dir().join(format!("ox_cross_sign_{}", Uuid::new_v4()));
+    fs::create_dir_all(&dir)
+        .map_err(|e| CertError::Crypto(format!("tmp dir: {}", e)))?;
+
+    let csr_path    = dir.join("csr.pem");
+    let ca_crt_path = dir.join("ca.crt");
+    let ca_key_path = dir.join("ca.key");
+    let signed_path = dir.join("signed.crt");
+    let ext_path    = dir.join("ext.cnf");
+
+    let write_file = |p: &std::path::Path, d: &str| -> Result<(), CertError> {
+        fs::write(p, d).map_err(|e| CertError::Crypto(format!("write {}: {}", p.display(), e)))
+    };
+    write_file(&csr_path,    csr_pem)?;
+    write_file(&ca_crt_path, ca_cert_pem)?;
+    write_file(&ca_key_path, ca_key_pem)?;
+    write_file(&ext_path,    "basicConstraints=critical,CA:true,pathlen:1\nkeyUsage=critical,keyCertSign,cRLSign\n")?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = fs::metadata(&ca_key_path) {
+            let mut perms = meta.permissions();
+            perms.set_mode(0o600);
+            let _ = fs::set_permissions(&ca_key_path, perms);
+        }
+    }
+
+    let serial      = Uuid::new_v4();
+    let serial_hex  = format!("0x{:032x}", serial.as_u128());
+
+    let result: Result<CertificateRecord, CertError> = (|| {
+        let out = Command::new("openssl")
+            .args([
+                "x509", "-req",
+                "-in",         csr_path.to_str().unwrap_or(""),
+                "-CA",         ca_crt_path.to_str().unwrap_or(""),
+                "-CAkey",      ca_key_path.to_str().unwrap_or(""),
+                "-set_serial", &serial_hex,
+                "-out",        signed_path.to_str().unwrap_or(""),
+                "-days",       &validity_days.to_string(),
+                "-extfile",    ext_path.to_str().unwrap_or(""),
+            ])
+            .output()
+            .map_err(|e| CertError::Crypto(format!("openssl exec: {}", e)))?;
+
+        if !out.status.success() {
+            return Err(CertError::Crypto(format!(
+                "openssl x509 -req: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            )));
+        }
+
+        let cert_pem = fs::read_to_string(&signed_path)
+            .map_err(|e| CertError::Crypto(format!("read signed cert: {}", e)))?;
+
+        let cert_der = ::pem::parse(cert_pem.as_bytes())
+            .map_err(|e| CertError::Crypto(format!("PEM parse: {}", e)))?
+            .into_contents();
+        let (_, parsed) = X509Certificate::from_der(&cert_der)
+            .map_err(|e| CertError::Crypto(format!("DER parse: {}", e)))?;
+
+        let subject_dn = parsed.subject().to_string();
+        let issuer_dn  = parsed.issuer().to_string();
+        let subject_cn = extract_cn(&subject_dn);
+
+        let now       = OffsetDateTime::now_utc();
+        let not_after = now + time::Duration::seconds(validity_days as i64 * 86400);
+
+        Ok(CertificateRecord {
+            serial:               serial.to_string(),
+            tenant_id:            tenant_id.to_string(),
+            subject_cn,
+            subject_dn,
+            sans:                 vec![],
+            issuer_dn,
+            not_before:           now,
+            not_after,
+            key_type:             "external".to_string(),
+            profile:              "ca_intermediate".to_string(),
+            pem:                  cert_pem,
+            csr_pem:              Some(csr_pem.to_string()),
+            private_key_encrypted: None,
+            status:               CertStatus::Active,
+            revoked_at:           None,
+            revocation_reason:    None,
+            scts:                 vec![],
+            policy_oids:          vec![],
+            enrollment_protocol:  None,
+            created_at:           now,
+        })
+    })();
+
+    let _ = fs::remove_dir_all(&dir);
+    result
+}
+
+fn build_ca_params(
+    subject_dn: &str,
+    now: OffsetDateTime,
+    not_after: OffsetDateTime,
+    serial: &Uuid,
+) -> CertificateParams {
+    use rcgen::{BasicConstraints, IsCa, KeyUsagePurpose};
+    let mut params = CertificateParams::default();
+    let mut dn = RcgenDN::new();
+    parse_dn_into(&mut dn, subject_dn);
+    params.distinguished_name = dn;
+    params.is_ca = IsCa::Ca(BasicConstraints::Constrained(1));
+    params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+    params.not_before = rcgen::date_time_ymd(now.year(), now.month() as u8, now.day());
+    params.not_after = rcgen::date_time_ymd(not_after.year(), not_after.month() as u8, not_after.day());
+    params.serial_number = Some(rcgen::SerialNumber::from_slice(serial.as_bytes()));
+    params
+}
+
 /// Build rcgen `CertificateParams` suitable for use as an issuer, by extracting the subject DN
 /// from an existing CA cert PEM. Used to reconstruct the issuer context without
 /// `CertificateParams::from_ca_cert_pem` (not available in rcgen 0.14).
@@ -399,9 +595,9 @@ pub fn parse_dn_into(dn: &mut RcgenDN, dn_str: &str) {
                 "C"  => dn.push(DnType::CountryName, val.trim()),
                 "ST" => dn.push(DnType::StateOrProvinceName, val.trim()),
                 "L"  => dn.push(DnType::LocalityName, val.trim()),
-                // domainComponent — both the abbreviated and full-name forms,
-                // since x509-parser may use either when converting an existing cert.
-                "DC" | "DOMAINCOMPONENT" => dn.push(dc_dn_type(), val.trim()),
+                // domainComponent — abbreviated, full-name, and raw OID forms.
+                // x509-parser may emit the OID dotted string if the OID is not in its registry.
+                "DC" | "DOMAINCOMPONENT" | "0.9.2342.19200300.100.1.25" => dn.push(dc_dn_type(), val.trim()),
                 _ => {}
             }
         }
@@ -419,6 +615,8 @@ fn extract_cn(dn_str: &str) -> String {
     }
     dn_str.to_string()
 }
+
+pub fn dn_to_string_pub(dn: &RcgenDN) -> String { dn_to_string(dn) }
 
 fn dn_to_string(dn: &RcgenDN) -> String {
     use rcgen::DnValue;

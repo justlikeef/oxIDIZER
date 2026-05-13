@@ -177,3 +177,72 @@ Key Design Decisions:
 - OxDataError is the central error type in ox_data_object.
 - ox_callback_manager has its own CallbackError which is then wrapped by OxDataError in the data object.
 - Error handling rule: Never swallow errors; propagate them using Result.
+
+---
+
+## Requirements for IAM / Security Layer Support
+
+The `ox_security` crates require the data layer to persist and retrieve a canonical IAM schema across heterogeneous backends (SQL, LDAP, Active Directory, Okta, RADIUS, TACACS+). The data layer is solely responsible for translating the canonical schema to and from each backend's native format — the security crates never see backend-specific representations.
+
+The following work is required before the security layer can be fully delivered.
+
+### 1. New Persistence Drivers
+
+| Driver Crate | Backend | Notes |
+|---|---|---|
+| `ox_persistence_ldap` | LDAP / LDAPS directory | Map canonical entities to directory entries, `memberOf`, and custom attributes or auxiliary object classes for grant storage |
+| `ox_persistence_ad` | Active Directory | Extends LDAP driver with AD-specific schema; maps groups to AD security groups, grants to custom AD attributes or group policy extensions |
+| `ox_persistence_okta` | Okta REST API | Map principals to Okta users, groups to Okta groups, grants to custom roles or profile attributes |
+| `ox_persistence_radius` | RADIUS server | User and group membership only — no native grant storage; overflow to local store |
+| `ox_persistence_tacacs` | TACACS+ server | Authentication and group membership; accounting records forwarded via TACACS+ accounting |
+
+### 2. Schema Translation & Overflow
+
+Backends vary in how much of the canonical IAM schema they can natively represent. The data layer must handle this transparently:
+
+- **Driver capability declaration** — each driver declares which canonical fields it can natively store (e.g., an LDAP driver with a basic schema can store `PrincipalRecord` and `GroupMember` but not `PermissionGrant`)
+- **Overflow storage** — fields that the primary backend cannot represent are automatically routed to a configured local overflow store (SQL) by the data layer, invisible to the security crates
+- **Composite reads** — when hydrating an entity, the data layer assembles the full canonical object from the primary backend and any overflow store, returning a single complete result
+
+This is an extension to the existing `DataObjectManager` / `QueryEngine` cross-datasource join capability. The overflow routing logic belongs in the dictionary/mapping layer, not in individual drivers.
+
+### 3. Field-Level Encryption
+
+Sensitive IAM fields (API keys, session tokens, password hashes, MFA secrets) must not transit the data layer in the clear. Required:
+
+- An encrypted `ValueType` variant or an attribute-level encryption annotation in the data dictionary
+- Encryption/decryption applied transparently by the persistence addon before serialization and after deserialization
+- Key management (at minimum: a configured key reference; key rotation out of scope for initial delivery)
+
+### 4. Cross-Datasource Atomic Transactions
+
+The existing transaction spec describes ACID semantics but multi-store atomicity is not yet fully implemented. For IAM, a write that spans stores (e.g., `GroupMember` in LDAP + `PermissionGrant` in SQL + `AuditEvent` in SQL) must either fully commit or fully roll back.
+
+Required: complete the multi-store transaction commit/rollback path in `ox_transaction` so that transaction boundaries work correctly when a single GDO save touches more than one datasource.
+
+### 5. Audit Trail Addon
+
+The security layer's `AuditEvent` entity requires tamper-evident append-only storage. Required:
+
+- An `Auditable` addon (parallel to `Persistent`, `Transactable`) that automatically records who changed what and when on any GDO that opts in
+- Audit records are append-only — no update or delete operations permitted on audit rows
+- The addon fires via the existing callback mechanism (`after_save`, `after_delete`) so no GDO core changes are needed
+
+### 6. Completed Cross-Datasource Query Execution
+
+The `QueryEngine` / `QueryPlan` / `QueryNode` spec exists but execution across multiple datasources is incomplete. The security layer's evaluation algorithm requires reliably joining group membership (potentially from LDAP) with grant records (potentially from SQL) at check time. The cross-datasource join execution path in `ox_data_object_manager` must be completed.
+
+### Summary
+
+| Item | Blocking For |
+|---|---|
+| `ox_persistence_ldap` driver | `LdapAuthDriver`, `LdapAuthzDriver` |
+| `ox_persistence_ad` driver | `AdAuthDriver`, `AdAuthzDriver` |
+| `ox_persistence_okta` driver | `OktaAuthzDriver` |
+| `ox_persistence_radius` driver | `RadiusAuthDriver` |
+| `ox_persistence_tacacs` driver | `TacacsAuthDriver`, `TacacsAccountingDriver` |
+| Schema translation & overflow routing | All non-SQL backends |
+| Field-level encryption | Session tokens, API keys, MFA secrets |
+| Multi-store atomic transactions | Any IAM write spanning two backends |
+| Audit trail addon | `AuditEvent` storage, compliance logging |
+| Cross-datasource query completion | Group + grant join at authz check time |

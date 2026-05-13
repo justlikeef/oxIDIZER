@@ -629,12 +629,18 @@ function loadInventory() {
     });
 }
 
+function fmtDate(v) {
+    if (!v) return '—';
+    var s = typeof v === 'string' ? v : String(v);
+    return s.substring(0, 10);
+}
+
 function buildInvTable(items) {
     var table = document.createElement('table');
     table.className = 'queue';
     var thead = table.createTHead();
     var hrow = thead.insertRow();
-    ['Subject', 'Serial', 'Profile', 'Issued', 'Expires', 'Status'].forEach(function(h) {
+    ['Subject', 'Serial', 'Profile', 'Issued', 'Expires', 'Status', 'Actions'].forEach(function(h) {
         var th = document.createElement('th');
         th.textContent = h;
         hrow.appendChild(th);
@@ -642,6 +648,11 @@ function buildInvTable(items) {
     var tbody = table.createTBody();
     items.forEach(function(cert) {
         var row = tbody.insertRow();
+        var feedbackRow = tbody.insertRow();
+        feedbackRow.style.display = 'none';
+        var feedbackCell = feedbackRow.insertCell();
+        feedbackCell.colSpan = 7;
+        feedbackCell.style.padding = '0 0.75rem 0.5rem';
 
         var tdCn = row.insertCell();
         tdCn.className = 'cn';
@@ -656,13 +667,93 @@ function buildInvTable(items) {
         tdProf.textContent = cert.profile || '—';
 
         var tdIssued = row.insertCell();
-        tdIssued.textContent = (cert.not_before || cert.issued_at || '').substring(0, 10);
+        tdIssued.textContent = fmtDate(cert.not_before || cert.issued_at);
 
         var tdExp = row.insertCell();
-        tdExp.textContent = (cert.not_after || cert.expires_at || '').substring(0, 10);
+        tdExp.textContent = fmtDate(cert.not_after || cert.expires_at);
 
         var tdStatus = row.insertCell();
         tdStatus.appendChild(statusPill(cert.status));
+
+        var tdAct = row.insertCell();
+        tdAct.style.whiteSpace = 'nowrap';
+        var serial = cert.serial || cert.id || '';
+
+        if (cert.status !== 'Revoked') {
+            var renewBtn = document.createElement('button');
+            renewBtn.className = 'btn btn-sm btn-outline';
+            renewBtn.textContent = 'Renew';
+            renewBtn.addEventListener('click', (function(s, fRow, fCell, btn) {
+                return function() {
+                    btn.disabled = true;
+                    setText(btn, 'Renewing…');
+                    fetch('/api/v1/certificates/' + encodeURIComponent(s) + '/renew', { method: 'POST' })
+                    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+                    .then(function(res) {
+                        btn.disabled = false;
+                        setText(btn, 'Renew');
+                        clearEl(fCell);
+                        if (res.status === 201 && res.body.data) {
+                            var d = res.body.data;
+                            fCell.appendChild(makeAlert('Renewed — expires ' + fmtDate(d.not_after), true));
+                        } else {
+                            var msg = (res.body.error && res.body.error.message) || 'Error ' + res.status;
+                            fCell.appendChild(makeAlert(msg, false));
+                        }
+                        fRow.style.display = '';
+                    })
+                    .catch(function(err) {
+                        btn.disabled = false;
+                        setText(btn, 'Renew');
+                        clearEl(fCell);
+                        fCell.appendChild(makeAlert('Network error: ' + err.message, false));
+                        fRow.style.display = '';
+                    });
+                };
+            })(serial, feedbackRow, feedbackCell, renewBtn));
+            tdAct.appendChild(renewBtn);
+
+            var revokeBtn = document.createElement('button');
+            revokeBtn.className = 'btn btn-sm btn-deny';
+            revokeBtn.style.marginLeft = '0.35rem';
+            revokeBtn.textContent = 'Revoke';
+            revokeBtn.addEventListener('click', (function(s, fRow, fCell, rBtn, statusCell) {
+                return function() {
+                    if (!confirm('Revoke certificate ' + s + '?\nThis cannot be undone.')) return;
+                    rBtn.disabled = true;
+                    setText(rBtn, 'Revoking…');
+                    fetch('/api/v1/certificates/' + encodeURIComponent(s) + '/revoke', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reason: 'unspecified' })
+                    })
+                    .then(function(r) { return r.json().then(function(j) { return { status: r.status, body: j }; }); })
+                    .then(function(res) {
+                        rBtn.disabled = false;
+                        setText(rBtn, 'Revoke');
+                        clearEl(fCell);
+                        if (res.status === 200) {
+                            fCell.appendChild(makeAlert('Revoked.', true));
+                            clearEl(statusCell);
+                            statusCell.appendChild(statusPill('Revoked'));
+                            rBtn.disabled = true;
+                        } else {
+                            var msg = (res.body.error && res.body.error.message) || 'Error ' + res.status;
+                            fCell.appendChild(makeAlert(msg, false));
+                        }
+                        fRow.style.display = '';
+                    })
+                    .catch(function(err) {
+                        rBtn.disabled = false;
+                        setText(rBtn, 'Revoke');
+                        clearEl(fCell);
+                        fCell.appendChild(makeAlert('Network error: ' + err.message, false));
+                        fRow.style.display = '';
+                    });
+                };
+            })(serial, feedbackRow, feedbackCell, revokeBtn, tdStatus));
+            tdAct.appendChild(revokeBtn);
+        }
     });
     return table;
 }

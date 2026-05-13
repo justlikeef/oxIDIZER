@@ -57,7 +57,7 @@ pub fn handle_p12(config: &P12Config, serial: &str, password: &str) -> P12Outcom
         json_err!(400, "INVALID_REQUEST", "password is required");
     }
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => json_err!(500, "INTERNAL_ERROR", e.to_string()),
     };

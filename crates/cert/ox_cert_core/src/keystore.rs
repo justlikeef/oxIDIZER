@@ -87,9 +87,18 @@ impl SoftwareKeyStore {
         let pem_item = pem::parse(pem_str.as_bytes())
             .map_err(|e| CertError::Crypto(format!("invalid PEM: {}", e)))?;
 
-        let raw_der = if let Some(pass) = &self.passphrase {
+        let raw_der = if pem_item.tag() == "ENCRYPTED PRIVATE KEY" {
+            // Custom AES-256-GCM format written by this keystore's generate_key.
+            // Keys generated externally (e.g. by generate-root-ca.sh) are stored
+            // unencrypted ("PRIVATE KEY") and handled by the else branch below.
+            let pass = self.passphrase.as_deref().ok_or_else(|| {
+                CertError::Crypto(
+                    "key is encrypted but passphrase_env is not set or empty".to_string(),
+                )
+            })?;
             decrypt_key(pem_item.contents(), pass, tenant_id)?
         } else {
+            // Unencrypted PKCS#8 DER ("PRIVATE KEY" PEM header).
             pem_item.contents().to_vec()
         };
 

@@ -212,7 +212,7 @@ fn handle_ssh_sign(config: &SshConfig, body: &str, request_id: &str) -> SshOutco
         .and_then(|c| serde_json::from_value(c.clone()).ok())
         .unwrap_or_else(|| policy.default_critical_options.clone());
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
     };
@@ -375,7 +375,7 @@ fn handle_ssh_renew(config: &SshConfig, body: &str, request_id: &str) -> SshOutc
         None => err!(400, "INVALID_REQUEST", "serial is required"),
     };
 
-    let store = match OxPersistenceCertStore::open() {
+    let store = match OxPersistenceCertStore::open(config.store.db_path()) {
         Ok(s) => s,
         Err(e) => err!(500, "INTERNAL_ERROR", e.to_string()),
     };

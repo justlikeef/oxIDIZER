@@ -187,7 +187,7 @@ pub fn handle_issue(
     // ------------------------------------------------------------------
     // 4–6. Parse CSR or prepare server-keygen
     // ------------------------------------------------------------------
-    let store = OxPersistenceCertStore::open().map_err(|e| IssueError {
+    let store = OxPersistenceCertStore::open(config.store.db_path()).map_err(|e| IssueError {
         http_status: 500,
         error_code: "INTERNAL_ERROR",
         message: e.to_string(),

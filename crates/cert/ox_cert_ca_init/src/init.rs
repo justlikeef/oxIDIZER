@@ -58,7 +58,7 @@ pub fn run(config: &CaInitConfig) -> Result<(), CertError> {
     let tenant = &config.tenant_id;
 
     // Open store and run migration.
-    let store = OxPersistenceCertStore::open()?;
+    let store = OxPersistenceCertStore::open(config.store.db_path())?;
     store.migrate()?;
 
     // Open key store.

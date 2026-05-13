@@ -36,7 +36,7 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/ox_webservice /var/log/ox_webservice /var/run/ox_webservice /etc/pki/ox_webservice/ca
+ReadWritePaths=/var/lib/ox_webservice /var/log/ox_webservice /var/run/ox_webservice /etc/pki/ox_webservice/ca /etc/pki/ox_webservice/private/default /tmp
 ReadOnlyPaths=/etc/ox_webservice /etc/pki/ox_webservice/private
 
 [Install]

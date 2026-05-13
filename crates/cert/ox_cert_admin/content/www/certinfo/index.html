@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Status &mdash; ox Certificate Authority</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="stylesheet" href="/ca/css/style.css">
+    <style>
+        code { font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85em; color: var(--accent); }
+        a { color: var(--accent); }
+
+        .cert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 760px) { .cert-grid { grid-template-columns: 1fr; } }
+
+        .cert-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem 1.5rem; }
+        .cert-card h2 { font-size: 1.1rem; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.6rem; }
+
+        .trust-pill {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.25rem 0.65rem; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .trust-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .trust-yes     { color: #27ae60; border: 1px solid #27ae60; background: rgba(39,174,96,0.08); }
+        .trust-no      { color: #e74c3c; border: 1px solid #e74c3c; background: rgba(231,76,60,0.08); }
+        .trust-unknown { color: var(--text-secondary); border: 1px solid var(--border); }
+
+        .field-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .field-table tr + tr td { border-top: 1px solid rgba(255,255,255,0.05); }
+        .field-table td { padding: 0.45rem 0; vertical-align: top; }
+        .field-table td:first-child { color: var(--text-secondary); white-space: nowrap; padding-right: 1rem; width: 40%; }
+        .field-table td.fp-value { word-break: break-all; font-family: monospace; font-size: 0.82rem; }
+        .field-table .section-head td { padding-top: 1rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; font-family: sans-serif; }
+        .critical-badge { display: inline-block; margin-left: 0.4rem; font-size: 0.68rem; color: #e67e22; border: 1px solid #e67e22; border-radius: 3px; padding: 0 0.3rem; vertical-align: middle; text-transform: uppercase; font-weight: 700; font-family: sans-serif; }
+
+        .no-client { text-align: center; padding: 2.5rem 1.5rem; color: var(--text-secondary); }
+        .no-client .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+        .loader-wrap { display: flex; align-items: center; justify-content: center; padding: 3rem; }
+        .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg { color: #e74c3c; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.3); border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.875rem; }
+
+        footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-content">
+            <div class="logo-area">
+                <img src="/images/logo.png" alt="oxIDIZER" class="logo">
+                <div>
+                    <h1>Certificate Authority</h1>
+                    <p class="subtitle">Certificate Status</p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <nav style="margin-top:0.25rem;">
+                    <a href="/ca/" style="font-size:0.875rem; color:var(--text-secondary);">&larr; Dashboard</a>
+                </nav>
+                <a href="/status" class="status-badge status-ok" id="status-badge" title="System Status">ONLINE</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loading state -->
+    <div id="loader" class="loader-wrap"><div class="spinner"></div></div>
+
+    <!-- Error state -->
+    <div id="error-banner" class="error-msg" style="display:none;"></div>
+
+    <!-- Cert grid (hidden until data loads) -->
+    <div id="cert-grid" class="cert-grid" style="display:none;">
+
+        <!-- Server cert card -->
+        <div class="cert-card">
+            <h2 id="srv-title">&#127919; Server Certificate</h2>
+            <table class="field-table" id="srv-table"></table>
+        </div>
+
+        <!-- Client cert card -->
+        <div class="cert-card" id="client-card">
+            <h2>
+                &#128100; Your Certificate
+                <span id="client-trust-pill" class="trust-pill trust-unknown" style="display:none;"></span>
+            </h2>
+            <div id="client-fields" style="display:none;">
+                <table class="field-table" id="cli-table"></table>
+                <div style="margin-top:1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem;">
+                        <span style="color:var(--text-secondary);">Trusted by server:</span>
+                        <span id="cli-trusted-pill" class="trust-pill trust-unknown"></span>
+                    </div>
+                    <div id="cli-issued-row" style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; display:none;">
+                        <span style="color:var(--text-secondary);">Issued by this CA:</span>
+                        <span id="cli-issued-pill" class="trust-pill trust-unknown"></span>
+                    </div>
+                </div>
+            </div>
+            <div id="client-none" class="no-client">
+                <div class="icon">&#128274;</div>
+                <p>No client certificate was presented with this request.</p>
+                <p style="font-size:0.85rem; margin-top:0.5rem;">To check a client certificate&rsquo;s trust status, connect using a certificate issued by this CA.</p>
+            </div>
+        </div>
+
+    </div><!-- /cert-grid -->
+
+    <!-- Certificate chain (shown when chain certs are present) -->
+    <div id="chain-section" style="display:none; margin-top:1.5rem;">
+        <h3 style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 1rem; text-transform:uppercase; letter-spacing:0.07em; font-weight:600;">Certificate Chain</h3>
+        <div id="chain-grid" class="cert-grid"></div>
+    </div>
+
+    <!-- How-to hint (shown when no client cert) -->
+    <div id="howto-hint" class="card" style="display:none; margin-top:1.5rem;">
+        <h2>How to present a client certificate</h2>
+        <p class="label">Connect using a certificate issued by this CA to see client certificate trust information.</p>
+        <ul style="color:var(--text-secondary); padding-left:1.5rem; line-height:2; margin:0.75rem 0;">
+            <li>Install a client certificate in your browser and configure the server to require mutual TLS (mTLS).</li>
+            <li>Use <code>curl --cert client.crt --key client.key https://&lt;ca-server&gt;/ca/certinfo/</code></li>
+            <li>Pass the certificate PEM as the <code>X-Client-Cert</code> header for proxy or testing scenarios.</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p>ox Certificate Authority &mdash; powered by <strong>oxIDIZER</strong></p>
+    </footer>
+
+</div>
+<script>
+(function () {
+    function addRow(table, label, value, critical) {
+        var tr = document.createElement('tr');
+        var td1 = document.createElement('td');
+        var td2 = document.createElement('td');
+        td1.textContent = label;
+        if (critical) {
+            var badge = document.createElement('span');
+            badge.className = 'critical-badge';
+            badge.textContent = 'critical';
+            td1.appendChild(badge);
+        }
+        td2.className = 'fp-value';
+        td2.textContent = (value === undefined || value === null || value === '') ? '—' : String(value);
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        table.appendChild(tr);
+        return tr;
+    }
+
+    function addSectionHead(table, label) {
+        var tr = document.createElement('tr');
+        tr.className = 'section-head';
+        var td = document.createElement('td');
+        td.colSpan = 2;
+        td.textContent = label;
+        tr.appendChild(td);
+        table.appendChild(tr);
+    }
+
+    function buildCertTable(tableId, info) {
+        var table = document.getElementById(tableId);
+        if (!table) return;
+
+        addRow(table, 'Version',    'v' + info.version);
+        addRow(table, 'Serial',     info.serial);
+        addRow(table, 'Signature',  info.signature_algorithm);
+        addRow(table, 'Subject',    info.subject);
+        addRow(table, 'Issuer',     info.issuer);
+        addRow(table, 'Valid from', info.not_before);
+        addRow(table, 'Valid until',info.not_after);
+        addRow(table, 'Key type',   info.key_algorithm);
+
+        if (info.extensions && info.extensions.length > 0) {
+            addSectionHead(table, 'Extensions');
+            for (var i = 0; i < info.extensions.length; i++) {
+                var ext = info.extensions[i];
+                addRow(table, ext.name, ext.value, ext.critical);
+            }
+        }
+
+        addRow(table, 'SHA-256', info.fingerprint_sha256);
+    }
+
+    function setPill(id, trusted, labelTrue, labelFalse) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = '';
+        if (trusted === true) {
+            el.textContent = labelTrue || 'Trusted';
+            el.className = 'trust-pill trust-yes';
+        } else if (trusted === false) {
+            el.textContent = labelFalse || 'Not trusted';
+            el.className = 'trust-pill trust-no';
+        } else {
+            el.textContent = 'Unknown';
+            el.className = 'trust-pill trust-unknown';
+        }
+    }
+
+    function show(id) { var el = document.getElementById(id); if (el) el.style.display = ''; }
+    function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+    fetch('/api/v1/trust/info')
+        .then(function (r) {
+            if (!r.ok) return Promise.reject(new Error('HTTP ' + r.status));
+            return r.json();
+        })
+        .then(function (data) {
+            hide('loader');
+
+            if (data.error) {
+                var banner = document.getElementById('error-banner');
+                banner.textContent = '⚠ ' + (data.error.message || 'Unknown error');
+                show('error-banner');
+                return;
+            }
+
+            buildCertTable('srv-table', data.server);
+
+            var srvTitle = document.getElementById('srv-title');
+            if (srvTitle && data.server) {
+                var s = data.server;
+                var srvLabel = s.is_ca
+                    ? (s.is_self_signed ? 'Root CA Certificate' : 'Intermediate CA Certificate')
+                    : 'Server Certificate';
+                srvTitle.textContent = '🎯 ' + srvLabel;
+            }
+
+            if (data.chain && data.chain.length > 0) {
+                var chainGrid = document.getElementById('chain-grid');
+                for (var i = 0; i < data.chain.length; i++) {
+                    var cert = data.chain[i];
+                    var card = document.createElement('div');
+                    card.className = 'cert-card';
+                    var ch2 = document.createElement('h2');
+                    var chainLabel = cert.is_ca
+                        ? (cert.is_self_signed ? 'Root CA Certificate' : 'Intermediate CA Certificate')
+                        : 'CA Certificate';
+                    ch2.textContent = '🔗 ' + chainLabel;
+                    var tbl = document.createElement('table');
+                    tbl.className = 'field-table';
+                    var tblId = 'chain-table-' + i;
+                    tbl.id = tblId;
+                    card.appendChild(ch2);
+                    card.appendChild(tbl);
+                    chainGrid.appendChild(card);
+                    buildCertTable(tblId, cert);
+                }
+                show('chain-section');
+            }
+
+            if (data.client) {
+                var c = data.client;
+                hide('client-none');
+                show('client-fields');
+                buildCertTable('cli-table', c);
+
+                setPill('client-trust-pill', c.trusted_by_server, 'Trusted by server', 'Not trusted by server');
+                setPill('cli-trusted-pill',  c.trusted_by_server);
+
+                if (c.issued_by_us !== null && c.issued_by_us !== undefined) {
+                    document.getElementById('cli-issued-row').style.display = 'flex';
+                    setPill('cli-issued-pill', c.issued_by_us, 'Yes', 'Not in registry');
+                }
+            } else {
+                hide('client-fields');
+                show('client-none');
+                show('howto-hint');
+            }
+
+            show('cert-grid');
+        })
+        .catch(function (e) {
+            hide('loader');
+            var banner = document.getElementById('error-banner');
+            banner.textContent = '⚠ Failed to load certificate status: ' + e.message;
+            show('error-banner');
+        });
+
+    fetch('/ping/').then(function (r) {
+        var b = document.getElementById('status-badge');
+        if (!b) return;
+        if (r.ok) { b.textContent = 'ONLINE'; b.className = 'status-badge status-ok'; }
+        else       { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    }).catch(function () {
+        var b = document.getElementById('status-badge');
+        if (b) { b.textContent = 'OFFLINE'; b.className = 'status-badge status-error'; }
+    });
+}());
+</script>
+</body>
+</html>
