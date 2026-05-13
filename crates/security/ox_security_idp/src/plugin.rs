@@ -192,6 +192,7 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) {
 
         // GET /oidc/jwks.json
         ("GET", Some("oidc"), Some("jwks.json"), None, None) => {
+            // TODO: derive public key JWK (n, e) from config.rsa_private_key_pem using the rsa crate
             json_response(api, task_ctx, 200, r#"{"keys":[]}"#);
         }
 
@@ -218,9 +219,23 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) {
             let name_id = params.get("name_id").copied().unwrap_or("");
             let relay_state = params.get("RelayState").copied().unwrap_or("");
 
-            // Look up the SP in config
-            let sp = state.config.saml_sps.iter().find(|sp| sp.entity_id == sp_entity_id);
-            let acs_url = sp.map(|s| s.acs_url.as_str()).unwrap_or("");
+            // Reject unauthenticated requests
+            if name_id.is_empty() {
+                json_response(&state.api, task_ctx, 401,
+                    r#"{"error":"unauthenticated","error_description":"name_id required"}"#);
+                return;
+            }
+
+            // Only issue assertions for registered SPs
+            let sp = match state.config.saml_sps.iter().find(|s| s.entity_id == sp_entity_id) {
+                Some(s) => s,
+                None => {
+                    json_response(&state.api, task_ctx, 400,
+                        r#"{"error":"unknown_sp","error_description":"SP not registered"}"#);
+                    return;
+                }
+            };
+            let acs_url = sp.acs_url.as_str();
 
             let session_id = uuid::Uuid::new_v4().to_string();
             let assertion_id = uuid::Uuid::new_v4().to_string();
@@ -260,6 +275,9 @@ fn dispatch(state: &PluginState, task_ctx: *mut c_void) {
             state.saml_sessions.remove(session_id);
             json_response(api, task_ctx, 200, "{}");
         }
+
+        // Admin routes — perimeter authentication is enforced by the ox_security_pipeline plugin
+        // loaded at higher priority in the persona YAML. No per-handler auth check needed here.
 
         // Admin routes: GET /api/v1/admin/idp/clients
         ("GET", Some("api"), Some("v1"), Some("admin"), Some("idp"))
@@ -450,7 +468,6 @@ pub extern "C" fn ox_plugin_destroy(plugin_ctx: *mut c_void) {
 /// Attempt to extract the public-key DER as base64 from a PEM-encoded RSA private key.
 /// Returns an empty string on any failure (graceful degradation for SAML metadata).
 fn extract_cert_b64_from_pem(_pem: &str) -> String {
-    // For a full implementation this would extract the DER-encoded public key.
-    // As a stub we return an empty string; SAML metadata will have an empty certificate element.
+    // TODO: extract Base64-encoded DER public cert from RSA key for SAML metadata
     String::new()
 }

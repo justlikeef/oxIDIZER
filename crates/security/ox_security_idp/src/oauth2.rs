@@ -94,6 +94,42 @@ pub fn authenticate_client(client: &OAuthClientDef, secret: Option<&str>) -> boo
     }
 }
 
+fn percent_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(hi), Some(lo)) = (
+                (bytes[i+1] as char).to_digit(16),
+                (bytes[i+2] as char).to_digit(16),
+            ) {
+                out.push((hi * 16 + lo) as u8 as char);
+                i += 3;
+                continue;
+            }
+        }
+        if bytes[i] == b'+' {
+            out.push(' ');
+        } else {
+            out.push(bytes[i] as char);
+        }
+        i += 1;
+    }
+    out
+}
+
+fn parse_form(input: &str) -> std::collections::HashMap<String, String> {
+    input.split('&')
+        .filter_map(|p| {
+            let mut kv = p.splitn(2, '=');
+            let k = kv.next()?;
+            let v = kv.next().unwrap_or("");
+            Some((percent_decode(k), percent_decode(v)))
+        })
+        .collect()
+}
+
 fn urlencoding_encode(s: &str) -> String {
     let mut out = String::new();
     for b in s.bytes() {
@@ -113,24 +149,26 @@ pub fn handle_authorize(
     query: &str,
     authenticated_principal_id: Option<&str>,
 ) -> Result<String, Oauth2Error> {
-    let params: std::collections::HashMap<&str, &str> = query.split('&')
-        .filter_map(|p| {
-            let mut kv = p.splitn(2, '=');
-            Some((kv.next()?, kv.next()?))
-        })
-        .collect();
+    let params = parse_form(query);
 
-    let client_id = params.get("client_id").copied().ok_or(Oauth2Error {
+    let client_id = params.get("client_id").map(String::as_str).ok_or(Oauth2Error {
         status: 400, error: "invalid_request", description: "missing client_id",
     })?;
-    let redirect_uri = params.get("redirect_uri").copied().ok_or(Oauth2Error {
+    let redirect_uri = params.get("redirect_uri").map(String::as_str).ok_or(Oauth2Error {
         status: 400, error: "invalid_request", description: "missing redirect_uri",
     })?;
-    let response_type = params.get("response_type").copied().unwrap_or("");
-    let scope = params.get("scope").copied().unwrap_or("openid");
-    let state = params.get("state").copied().unwrap_or("");
-    let code_challenge = params.get("code_challenge").copied();
-    let code_challenge_method = params.get("code_challenge_method").copied();
+    let response_type = params.get("response_type").map(String::as_str).unwrap_or("");
+    let scope = params.get("scope").map(String::as_str).unwrap_or("openid");
+    let state = params.get("state").map(String::as_str).unwrap_or("");
+    let code_challenge = params.get("code_challenge").map(String::as_str);
+    let code_challenge_method = params.get("code_challenge_method").map(String::as_str);
+
+    if let Some(method) = code_challenge_method {
+        if method != "S256" {
+            return Err(Oauth2Error { status: 400, error: "invalid_request",
+                description: "only S256 code_challenge_method supported" });
+        }
+    }
 
     if response_type != "code" {
         return Err(Oauth2Error { status: 400, error: "unsupported_response_type", description: "only 'code' supported" });
@@ -181,16 +219,11 @@ pub fn handle_token(
     refresh_store: &RefreshTokenStore,
     body: &str,
 ) -> (u16, String) {
-    let params: std::collections::HashMap<&str, &str> = body.split('&')
-        .filter_map(|p| {
-            let mut kv = p.splitn(2, '=');
-            Some((kv.next()?, kv.next()?))
-        })
-        .collect();
+    let params = parse_form(body);
 
-    let grant_type = params.get("grant_type").copied().unwrap_or("");
-    let client_id = params.get("client_id").copied().unwrap_or("");
-    let client_secret = params.get("client_secret").copied();
+    let grant_type = params.get("grant_type").map(String::as_str).unwrap_or("");
+    let client_id = params.get("client_id").map(String::as_str).unwrap_or("");
+    let client_secret = params.get("client_secret").map(String::as_str);
 
     let client = match find_client(config, client_id) {
         Some(c) => c,
@@ -215,14 +248,14 @@ fn handle_token_auth_code(
     code_store: &AuthCodeStore,
     token_store: &TokenStore,
     refresh_store: &RefreshTokenStore,
-    params: &std::collections::HashMap<&str, &str>,
+    params: &std::collections::HashMap<String, String>,
     client: &OAuthClientDef,
 ) -> (u16, String) {
-    let code = match params.get("code") {
-        Some(&c) => c,
+    let code = match params.get("code").map(String::as_str) {
+        Some(c) => c,
         None => return (400, serde_json::json!({"error":"invalid_request","error_description":"missing code"}).to_string()),
     };
-    let redirect_uri = params.get("redirect_uri").copied().unwrap_or("");
+    let redirect_uri = params.get("redirect_uri").map(String::as_str).unwrap_or("");
 
     let entry = match code_store.consume(code) {
         Some(e) => e,
@@ -240,8 +273,8 @@ fn handle_token_auth_code(
     }
 
     if let Some(challenge) = &entry.code_challenge {
-        let verifier = match params.get("code_verifier") {
-            Some(&v) => v,
+        let verifier = match params.get("code_verifier").map(String::as_str) {
+            Some(v) => v,
             None => return (400, serde_json::json!({"error":"invalid_request","error_description":"code_verifier required"}).to_string()),
         };
         if !verify_pkce_challenge(verifier, challenge) {
@@ -292,10 +325,10 @@ fn handle_token_client_credentials(
     config: &IdpConfig,
     enc_key: &EncodingKey,
     token_store: &TokenStore,
-    params: &std::collections::HashMap<&str, &str>,
+    params: &std::collections::HashMap<String, String>,
     client: &OAuthClientDef,
 ) -> (u16, String) {
-    let scope = params.get("scope").copied().unwrap_or("");
+    let scope = params.get("scope").map(String::as_str).unwrap_or("");
     let jti = uuid::Uuid::new_v4().to_string();
     let access_token = match issue_access_token(enc_key, &config.issuer,
         &client.client_id, None, scope, config.access_token_ttl_secs, &jti)
@@ -324,16 +357,20 @@ fn handle_token_refresh(
     enc_key: &EncodingKey,
     token_store: &TokenStore,
     refresh_store: &RefreshTokenStore,
-    params: &std::collections::HashMap<&str, &str>,
+    params: &std::collections::HashMap<String, String>,
 ) -> (u16, String) {
-    let rt = match params.get("refresh_token") {
-        Some(&t) => t,
+    let rt = match params.get("refresh_token").map(String::as_str) {
+        Some(t) => t,
         None => return (400, serde_json::json!({"error":"invalid_request"}).to_string()),
     };
     let entry = match refresh_store.consume(rt) {
         Some(e) => e,
         None => return (400, serde_json::json!({"error":"invalid_grant","error_description":"refresh token not found"}).to_string()),
     };
+    let requesting_client_id = params.get("client_id").map(String::as_str).unwrap_or("");
+    if !requesting_client_id.is_empty() && entry.client_id != requesting_client_id {
+        return (401, serde_json::json!({"error":"invalid_grant","error_description":"refresh token was not issued to this client"}).to_string());
+    }
     if entry.revoked || entry.expires_at < now_secs() {
         return (400, serde_json::json!({"error":"invalid_grant","error_description":"refresh token expired or revoked"}).to_string());
     }
