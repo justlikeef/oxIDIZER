@@ -1,0 +1,5 @@
+content_root: "${{OX_BASE}}/crates/security/ox_security_pipeline/content/www"
+mimetypes_file: "${{OX_BASE}}/personas/common/mimetypes.yaml"
+default_documents:
+  - document: "index.html"
+on_content_conflict: "skip"

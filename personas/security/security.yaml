@@ -1,0 +1,7 @@
+substitutions:
+  OX_BASE: "/var/repos/oxIDIZER"
+
+merge:
+  - "${{OX_BASE}}/personas/security/modules/available/ox_security_pipeline.yaml"
+  - "${{OX_BASE}}/personas/security/modules/available/ox_security_idp.yaml"
+  - "${{OX_BASE}}/personas/security/modules/available/ox_security_stream.yaml"

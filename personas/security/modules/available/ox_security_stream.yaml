@@ -1,0 +1,12 @@
+modules:
+  - id: "security_stream"
+    name: "ox_webservice_stream"
+    params:
+      config_file: "${{OX_BASE}}/crates/security/ox_security_pipeline/conf/stream.yaml"
+
+routes:
+  - url: "^/security/(.*)$"
+    module_id: "security_stream"
+    priority: 50
+    phase: Content
+    path_capture: true

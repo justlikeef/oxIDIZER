@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Security Admin</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; }
+    section { border: 1px solid #ddd; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
+    h2 { margin-top: 0; }
+    button { background: #2563eb; color: white; border: none; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; }
+    pre { background: #f5f5f5; padding: .5rem; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Security Admin</h1>
+
+  <section>
+    <h2>Health</h2>
+    <button onclick="fetch('/api/v1/security/health').then(r=>r.json()).then(d=>document.getElementById('health').textContent=JSON.stringify(d,null,2))">Check</button>
+    <pre id="health"></pre>
+  </section>
+
+  <section>
+    <h2>Accounting Events</h2>
+    <button onclick="fetch('/api/v1/admin/accounting/events').then(r=>r.json()).then(d=>document.getElementById('events').textContent=JSON.stringify(d,null,2))">Load</button>
+    <pre id="events"></pre>
+  </section>
+
+  <section>
+    <h2>Authz Grants</h2>
+    <button onclick="fetch('/api/v1/admin/authz/grants').then(r=>r.json()).then(d=>document.getElementById('grants').textContent=JSON.stringify(d,null,2))">Load</button>
+    <pre id="grants"></pre>
+  </section>
+
+  <section>
+    <h2>IdP Tokens</h2>
+    <button onclick="fetch('/api/v1/admin/idp/tokens').then(r=>r.json()).then(d=>document.getElementById('tokens').textContent=JSON.stringify(d,null,2))">Load</button>
+    <pre id="tokens"></pre>
+  </section>
+</body>
+</html>
